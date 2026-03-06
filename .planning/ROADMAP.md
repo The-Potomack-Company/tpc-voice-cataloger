@@ -88,7 +88,10 @@ Plans:
   1. After recording stops, structured fields (title, description, condition, estimate, category) appear in the item record without a separate transcription step
   2. Title output is in ALL CAPS following the TPC format ([PERIOD/STYLE] [MATERIAL] [ITEM TYPE]); description starts with "the" in lowercase formal auction language
   3. Fields not mentioned in the audio are stored as null — the app does not invent plausible values for unspoken details
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 05-01-PLAN.md — DB migration (aiStatus), Zod schema for Gemini responses, Cloudflare Worker proxy
+- [ ] 05-02-PLAN.md — Client-side AI processing service (audio to base64, proxy call, Zod validation, Dexie write)
 
 ### Phase 6: Review, Edit, Export
 **Goal**: Auctioneers can review every AI-parsed item, correct any field inline, and export the session as a JSON file that the Chrome extension can consume
@@ -135,7 +138,17 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 0/2 | Not started | - |
-| 5. AI Pipeline | 0/TBD | Not started | - |
+| 5. AI Pipeline | 0/2 | Not started | - |
 | 6. Review, Edit, Export | 0/TBD | Not started | - |
 | 7. Extension Batch Import | 0/TBD | Not started | - |
 | 8. Offline Queue | 0/TBD | Not started | - |
+
+### Phase 9: deffered items
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 8
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 9 to break down)
