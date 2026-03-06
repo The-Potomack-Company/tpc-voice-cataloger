@@ -13,7 +13,6 @@ export default function App() {
         <Route index element={<SessionsPage />} />
         <Route path="new" element={<NewSessionPage />} />
         <Route path="session/:sessionId" element={<SessionDetailPage />} />
-        <Route path="session/:sessionId/item/new" element={<ItemEntryPage />} />
         <Route path="session/:sessionId/item/:itemId" element={<ItemEntryPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
