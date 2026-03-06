@@ -10,8 +10,8 @@ progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 13
-  completed_plans: 10
-  percent: 77
+  completed_plans: 11
+  percent: 85
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 4 Cataloging Modes complete, ready for Phase 5 AI Pipeline
+**Current focus:** Phase 5 AI Pipeline complete, ready for Phase 6 Export
 
 ## Current Position
 
 Phase: 5 of 8 (AI Pipeline)
-Plan: 1 of 2 in current phase
-Status: Phase 5 in progress
-Last activity: 2026-03-06 — Plan 05-01 complete (aiStatus tracking, Zod schema, Gemini proxy)
+Plan: 2 of 2 in current phase
+Status: Phase 5 complete
+Last activity: 2026-03-06 — Plan 05-02 complete (processAudioWithAi pipeline, fire-and-forget wiring)
 
-Progress: [████████--] 77% of milestone
+Progress: [████████░-] 85% of milestone
 
 ## Performance Metrics
 
@@ -47,11 +47,11 @@ Progress: [████████--] 77% of milestone
 | 2. Audio Capture | 2/2 | 10min | 5min |
 | 3. Session Management | 3/3 | 11min | 4min |
 | 4. Cataloging Modes | 2/2 | 48min | 24min |
-| 5. AI Pipeline | 1/2 | 3min | 3min |
+| 5. AI Pipeline | 2/2 | 7min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (5min), 04-01 (3min), 04-02 (45min), 05-01 (3min)
-- Trend: 05-01 fast — schema/proxy tasks with clear specs
+- Last 5 plans: 03-03 (5min), 04-01 (3min), 04-02 (45min), 05-01 (3min), 05-02 (4min)
+- Trend: 05-02 fast — clear spec with TDD, service + wiring
 
 *Updated after each plan completion*
 
@@ -93,6 +93,8 @@ Recent decisions affecting current work:
 - [04-02] Camera capture via hidden file input with capture='environment' attribute
 - [05-01] Used Zod v4 built-in toJSONSchema instead of zod-to-json-schema (incompatible with Zod v4)
 - [05-01] Cloudflare Worker proxy tsconfig uses skipLibCheck and lib:ES2022 to avoid dom type conflicts
+- [05-02] Re-wrap Blob before arrayBuffer() for structured clone compatibility (IndexedDB Blobs lose prototype)
+- [05-02] AI processing wired in RecordButton (where stopRecording lives) rather than ItemEntry.tsx
 
 ### Roadmap Evolution
 
@@ -111,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T21:46:49Z
-Stopped at: Completed 05-01-PLAN.md
-Resume file: .planning/phases/05-ai-pipeline/05-01-SUMMARY.md
+Last session: 2026-03-06T21:53:34Z
+Stopped at: Completed 05-02-PLAN.md
+Resume file: .planning/phases/05-ai-pipeline/05-02-SUMMARY.md

@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB (completed 2026-03-06)
 - [x] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss (completed 2026-03-06)
 - [x] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation) (completed 2026-03-06)
-- [ ] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement
+- [x] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement (completed 2026-03-06)
 - [ ] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension
 - [ ] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages
 - [ ] **Phase 8: Offline Queue** - Audio queued locally when offline, processed automatically when connectivity returns
@@ -88,7 +88,7 @@ Plans:
   1. After recording stops, structured fields (title, description, condition, estimate, category) appear in the item record without a separate transcription step
   2. Title output is in ALL CAPS following the TPC format ([PERIOD/STYLE] [MATERIAL] [ITEM TYPE]); description starts with "the" in lowercase formal auction language
   3. Fields not mentioned in the audio are stored as null — the app does not invent plausible values for unspoken details
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 05-01-PLAN.md — DB migration (aiStatus), Zod schema for Gemini responses, Cloudflare Worker proxy
 - [ ] 05-02-PLAN.md — Client-side AI processing service (audio to base64, proxy call, Zod validation, Dexie write)
@@ -141,7 +141,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
-| 5. AI Pipeline | 0/2 | Not started | - |
+| 5. AI Pipeline | 2/2 | Complete   | 2026-03-06 |
 | 6. Review, Edit, Export | 0/2 | Not started | - |
 | 7. Extension Batch Import | 0/TBD | Not started | - |
 | 8. Offline Queue | 0/TBD | Not started | - |
