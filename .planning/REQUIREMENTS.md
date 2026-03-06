@@ -22,14 +22,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### House Visit Mode
 
-- [ ] **HOUSE-01**: User can start a house visit session and catalog items one by one
+- [x] **HOUSE-01**: User can start a house visit session and catalog items one by one
 - [ ] **HOUSE-02**: User can capture one or more photos per item using device camera
 - [ ] **HOUSE-03**: User can view a photo gallery for each item showing all captured photos
 - [ ] **HOUSE-04**: User can tap "Next Item" to advance to a new blank entry
 
 ### Sale Cataloging Mode
 
-- [ ] **SALE-01**: User can start a sale cataloging session
+- [x] **SALE-01**: User can start a sale cataloging session
 - [ ] **SALE-02**: User can enter a receipt number (format XXXXX-N) before dictating each item
 - [ ] **SALE-03**: User can tap "Next Item" to advance to a new blank entry with receipt number field
 
@@ -120,11 +120,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-01 | Phase 5 | Pending |
 | AI-02 | Phase 5 | Pending |
 | AI-03 | Phase 5 | Pending |
-| HOUSE-01 | Phase 4 | Pending |
+| HOUSE-01 | Phase 4 | Complete |
 | HOUSE-02 | Phase 4 | Pending |
 | HOUSE-03 | Phase 4 | Pending |
 | HOUSE-04 | Phase 4 | Pending |
-| SALE-01 | Phase 4 | Pending |
+| SALE-01 | Phase 4 | Complete |
 | SALE-02 | Phase 4 | Pending |
 | SALE-03 | Phase 4 | Pending |
 | EDIT-01 | Phase 6 | Pending |

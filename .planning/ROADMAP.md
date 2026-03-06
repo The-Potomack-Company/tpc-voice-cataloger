@@ -75,7 +75,7 @@ Plans:
   2. User can view a gallery of all photos attached to a specific item within the session
   3. User can start a sale cataloging session, enter a receipt number in XXXXX-N format, record a description, tap "Next Item", and see a new entry with a fresh receipt number field
   4. Receipt number from sale mode is carried through to each item's record and visible in the item list
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 04-01-PLAN.md — Utility functions (image resize, receipt validation, blob URL hook), session creation/list/detail pages with routing
 - [ ] 04-02-PLAN.md — Item entry screen for both modes (photo capture, lightbox, receipt input, Next Item, back navigation)
@@ -137,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 1. Foundation | 2/2 | Complete   | 2026-03-06 |
 | 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
-| 4. Cataloging Modes | 0/2 | Not started | - |
+| 4. Cataloging Modes | 1/2 | In Progress|  |
 | 5. AI Pipeline | 0/2 | Not started | - |
 | 6. Review, Edit, Export | 0/TBD | Not started | - |
 | 7. Extension Batch Import | 0/TBD | Not started | - |

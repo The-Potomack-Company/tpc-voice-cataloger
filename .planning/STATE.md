@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 6 context gathered
-last_updated: "2026-03-06T20:53:02.816Z"
-last_activity: 2026-03-06 — Plan 03-03 complete (session detail and recovery)
+status: in-progress
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-06T20:58:00.000Z"
+last_activity: 2026-03-06 — Plan 04-01 complete (foundational utilities and session pages)
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 11
-  completed_plans: 7
-  percent: 78
+  completed_plans: 8
+  percent: 73
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 3 Session Management complete (3 of 3 plans done)
+**Current focus:** Phase 4 Cataloging Modes in progress (1 of 2 plans done)
 
 ## Current Position
 
-Phase: 3 of 8 (Session Management) - COMPLETE
-Plan: 3 of 3 in current phase
-Status: Phase 03 complete
-Last activity: 2026-03-06 — Plan 03-03 complete (session detail and recovery)
+Phase: 4 of 8 (Cataloging Modes)
+Plan: 1 of 2 in current phase
+Status: Plan 04-01 complete
+Last activity: 2026-03-06 — Plan 04-01 complete (foundational utilities and session pages)
 
-Progress: [████████--] 78% of milestone
+Progress: [███████---] 73% of milestone
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 4min
-- Total execution time: 0.48 hours
+- Total execution time: 0.53 hours
 
 **By Phase:**
 
@@ -46,9 +46,10 @@ Progress: [████████--] 78% of milestone
 | 1. Foundation | 2/2 | 10min | 5min |
 | 2. Audio Capture | 2/2 | 10min | 5min |
 | 3. Session Management | 3/3 | 11min | 4min |
+| 4. Cataloging Modes | 1/2 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (5min), 03-01 (4min), 03-02 (2min), 03-03 (5min)
+- Last 5 plans: 03-01 (4min), 03-02 (2min), 03-03 (5min), 04-01 (3min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 - [03-03] Inline name/notes editing with silent auto-save on blur (no save button)
 - [03-03] Interrupted recording banner checks uiStore.recordingSessionId on mount
 - [03-03] Soft-delete recovery section placed between Storage and Actions in Settings
+- [04-01] ItemList uses per-row useLiveQuery for audio/photo counts (consistent with SessionCardWithCount pattern)
+- [04-01] Route param renamed from :id to :sessionId for consistency with nested item routes
+- [04-01] Image resize uses createImageBitmap + OffscreenCanvas with canvas element fallback
 
 ### Roadmap Evolution
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T20:53:02.815Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-review-edit-export/06-CONTEXT.md
+Last session: 2026-03-06T20:58:00.000Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: .planning/phases/04-cataloging-modes/04-01-SUMMARY.md
