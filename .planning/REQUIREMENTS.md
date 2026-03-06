@@ -113,49 +113,59 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VOICE-01 | — | Pending |
-| VOICE-02 | — | Pending |
-| VOICE-03 | — | Pending |
-| VOICE-04 | — | Pending |
-| AI-01 | — | Pending |
-| AI-02 | — | Pending |
-| AI-03 | — | Pending |
-| HOUSE-01 | — | Pending |
-| HOUSE-02 | — | Pending |
-| HOUSE-03 | — | Pending |
-| HOUSE-04 | — | Pending |
-| SALE-01 | — | Pending |
-| SALE-02 | — | Pending |
-| SALE-03 | — | Pending |
-| EDIT-01 | — | Pending |
-| EDIT-02 | — | Pending |
-| EDIT-03 | — | Pending |
-| EDIT-04 | — | Pending |
-| SESS-01 | — | Pending |
-| SESS-02 | — | Pending |
-| SESS-03 | — | Pending |
-| SESS-04 | — | Pending |
-| OFFL-01 | — | Pending |
-| OFFL-02 | — | Pending |
-| OFFL-03 | — | Pending |
-| OFFL-04 | — | Pending |
-| EXPO-01 | — | Pending |
-| EXPO-02 | — | Pending |
-| EXPO-03 | — | Pending |
-| EXT-01 | — | Pending |
-| EXT-02 | — | Pending |
-| EXT-03 | — | Pending |
-| EXT-04 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
-| UX-03 | — | Pending |
-| UX-04 | — | Pending |
+| VOICE-01 | Phase 2 | Pending |
+| VOICE-02 | Phase 2 | Pending |
+| VOICE-03 | Phase 2 | Pending |
+| VOICE-04 | Phase 2 | Pending |
+| AI-01 | Phase 5 | Pending |
+| AI-02 | Phase 5 | Pending |
+| AI-03 | Phase 5 | Pending |
+| HOUSE-01 | Phase 4 | Pending |
+| HOUSE-02 | Phase 4 | Pending |
+| HOUSE-03 | Phase 4 | Pending |
+| HOUSE-04 | Phase 4 | Pending |
+| SALE-01 | Phase 4 | Pending |
+| SALE-02 | Phase 4 | Pending |
+| SALE-03 | Phase 4 | Pending |
+| EDIT-01 | Phase 6 | Pending |
+| EDIT-02 | Phase 6 | Pending |
+| EDIT-03 | Phase 6 | Pending |
+| EDIT-04 | Phase 6 | Pending |
+| SESS-01 | Phase 3 | Pending |
+| SESS-02 | Phase 3 | Pending |
+| SESS-03 | Phase 3 | Pending |
+| SESS-04 | Phase 3 | Pending |
+| OFFL-01 | Phase 8 | Pending |
+| OFFL-02 | Phase 8 | Pending |
+| OFFL-03 | Phase 8 | Pending |
+| OFFL-04 | Phase 8 | Pending |
+| EXPO-01 | Phase 6 | Pending |
+| EXPO-02 | Phase 6 | Pending |
+| EXPO-03 | Phase 6 | Pending |
+| EXT-01 | Phase 7 | Pending |
+| EXT-02 | Phase 7 | Pending |
+| EXT-03 | Phase 7 | Pending |
+| EXT-04 | Phase 7 | Pending |
+| UX-01 | Phase 1 | Pending |
+| UX-02 | Phase 1 | Pending |
+| UX-03 | Phase 1 | Pending |
+| UX-04 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 37 total
-- Mapped to phases: 0
-- Unmapped: 37 ⚠️
+- Mapped to phases: 37
+- Unmapped: 0 (100% coverage)
+
+**Phase breakdown:**
+- Phase 1 (Foundation): UX-01, UX-02, UX-03, UX-04 (4 requirements)
+- Phase 2 (Audio Capture): VOICE-01, VOICE-02, VOICE-03, VOICE-04 (4 requirements)
+- Phase 3 (Session Management): SESS-01, SESS-02, SESS-03, SESS-04 (4 requirements)
+- Phase 4 (Cataloging Modes): HOUSE-01, HOUSE-02, HOUSE-03, HOUSE-04, SALE-01, SALE-02, SALE-03 (7 requirements)
+- Phase 5 (AI Pipeline): AI-01, AI-02, AI-03 (3 requirements)
+- Phase 6 (Review, Edit, Export): EDIT-01, EDIT-02, EDIT-03, EDIT-04, EXPO-01, EXPO-02, EXPO-03 (7 requirements)
+- Phase 7 (Extension Batch Import): EXT-01, EXT-02, EXT-03, EXT-04 (4 requirements)
+- Phase 8 (Offline Queue): OFFL-01, OFFL-02, OFFL-03, OFFL-04 (4 requirements)
 
 ---
 *Requirements defined: 2026-03-06*
-*Last updated: 2026-03-06 after initial definition*
+*Last updated: 2026-03-06 after roadmap creation — traceability complete*
