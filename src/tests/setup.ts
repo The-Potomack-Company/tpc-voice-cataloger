@@ -44,7 +44,11 @@ class MockMediaRecorder {
 
   start(): void {
     this.state = "recording";
-    // After a microtask, fire ondataavailable with a test Blob, then onstop
+  }
+
+  stop(): void {
+    this.state = "inactive";
+    // Fire ondataavailable with a test Blob, then onstop (async, like real MediaRecorder)
     queueMicrotask(() => {
       if (this.ondataavailable) {
         this.ondataavailable({
@@ -55,10 +59,6 @@ class MockMediaRecorder {
         this.onstop();
       }
     });
-  }
-
-  stop(): void {
-    this.state = "inactive";
   }
 
   static isTypeSupported(type: string): boolean {
