@@ -32,7 +32,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. All interactive elements are reachable with one thumb without zooming, with tap targets no smaller than 48px
   3. App layout is usable in both portrait and landscape orientation without horizontal scrolling or overlapping controls
   4. Recording and navigation controls remain accessible when the phone is held in one hand
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — Scaffold Vite project, PWA config, Dexie schema, TypeScript types, test infrastructure
+- [ ] 01-02-PLAN.md — App shell with bottom tab bar, routing, pages, install banner, walkthrough, device verification
 
 ### Phase 2: Audio Capture
 **Goal**: Auctioneers can tap to record their voice for each item and see the audio stored locally, on both iOS Safari and Android Chrome
@@ -118,7 +121,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/2 | Planning complete | - |
 | 2. Audio Capture | 0/TBD | Not started | - |
 | 3. Session Management | 0/TBD | Not started | - |
 | 4. Cataloging Modes | 0/TBD | Not started | - |
