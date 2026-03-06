@@ -9,10 +9,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Voice Capture
 
-- [ ] **VOICE-01**: User can tap to start recording and tap again to stop for each item
-- [ ] **VOICE-02**: User can record audio that is stored locally as audio blob in IndexedDB
+- [x] **VOICE-01**: User can tap to start recording and tap again to stop for each item
+- [x] **VOICE-02**: User can record audio that is stored locally as audio blob in IndexedDB
 - [ ] **VOICE-03**: User hears/sees clear feedback when recording is active vs stopped
-- [ ] **VOICE-04**: Audio recording works on both iOS Safari and Android Chrome
+- [x] **VOICE-04**: Audio recording works on both iOS Safari and Android Chrome
 
 ### AI Processing
 
@@ -113,10 +113,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VOICE-01 | Phase 2 | Pending |
-| VOICE-02 | Phase 2 | Pending |
+| VOICE-01 | Phase 2 | Complete |
+| VOICE-02 | Phase 2 | Complete |
 | VOICE-03 | Phase 2 | Pending |
-| VOICE-04 | Phase 2 | Pending |
+| VOICE-04 | Phase 2 | Complete |
 | AI-01 | Phase 5 | Pending |
 | AI-02 | Phase 5 | Pending |
 | AI-03 | Phase 5 | Pending |
