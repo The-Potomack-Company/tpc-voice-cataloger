@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4 (completed 2026-03-06)
 - [x] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB (completed 2026-03-06)
-- [ ] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss
+- [x] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss (completed 2026-03-06)
 - [ ] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation)
 - [ ] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement
 - [ ] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension
@@ -60,7 +60,7 @@ Plans:
   2. Home screen shows a list of all saved sessions with enough detail (mode, item count, date) to identify each one
   3. User can tap a saved session and resume adding items to it without losing previously recorded items
   4. After recording each item, the session saves automatically — no manual "Save" button required
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [ ] 03-01-PLAN.md — Schema migration, session CRUD data layer, reactive hooks, reusable components (ConfirmDialog, SwipeableRow)
 - [ ] 03-02-PLAN.md — Session creation form (NewSession page) and session list (Sessions page) with search, sections, swipe-to-delete
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-06 |
 | 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
-| 3. Session Management | 1/3 | In Progress|  |
+| 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 0/2 | Not started | - |
 | 5. AI Pipeline | 0/TBD | Not started | - |
 | 6. Review, Edit, Export | 0/TBD | Not started | - |
