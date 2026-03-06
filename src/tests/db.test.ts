@@ -23,6 +23,8 @@ describe("Dexie database", () => {
     const session: Omit<Session, "id"> = {
       name: "Test House Visit",
       mode: "house",
+      status: "active",
+      notes: "",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -39,6 +41,8 @@ describe("Dexie database", () => {
     const sessionId = await db.sessions.add({
       name: "Session 1",
       mode: "house",
+      status: "active",
+      notes: "",
       createdAt: new Date(),
       updatedAt: new Date(),
     } as Session);
@@ -66,6 +70,8 @@ describe("Dexie database", () => {
     const sessionId = await db.sessions.add({
       name: "Sale Session",
       mode: "sale",
+      status: "active",
+      notes: "",
       createdAt: new Date(),
       updatedAt: new Date(),
     } as Session);

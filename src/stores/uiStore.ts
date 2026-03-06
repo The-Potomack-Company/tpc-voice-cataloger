@@ -5,6 +5,8 @@ interface UIState {
   hasCompletedWalkthrough: boolean;
   completeWalkthrough: () => void;
   resetWalkthrough: () => void;
+  recordingSessionId: number | null;
+  setRecordingSession: (id: number | null) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -13,6 +15,9 @@ export const useUIStore = create<UIState>()(
       hasCompletedWalkthrough: false,
       completeWalkthrough: () => set({ hasCompletedWalkthrough: true }),
       resetWalkthrough: () => set({ hasCompletedWalkthrough: false }),
+      recordingSessionId: null,
+      setRecordingSession: (id: number | null) =>
+        set({ recordingSessionId: id }),
     }),
     { name: "tpc-ui-state" },
   ),

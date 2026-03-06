@@ -2,6 +2,9 @@ export interface Session {
   id?: number;
   name: string;
   mode: "house" | "sale";
+  status: "active" | "completed";
+  notes: string;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
