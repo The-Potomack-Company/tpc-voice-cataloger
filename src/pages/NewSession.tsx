@@ -1,45 +1,84 @@
-import { useState, useEffect } from "react";
-import { RecordButton } from "../components/RecordButton";
-import { RecordingIndicator } from "../components/RecordingIndicator";
-import { RecordingToast } from "../components/RecordingToast";
-import { db } from "../db";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { createSession } from "../db/sessions";
+import { useActiveSessions } from "../hooks/useSessions";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+
+type Mode = "house" | "sale";
 
 export function NewSessionPage() {
-  // Phase 2 demo: create an orphan HouseVisitItem for recording
-  // Phase 3 will restructure this into proper session flow
-  const [demoItemId, setDemoItemId] = useState<number | null>(null);
+  const [name, setName] = useState("");
+  const [mode, setMode] = useState<Mode>("house");
+  const [notes, setNotes] = useState("");
+  const [showActiveWarning, setShowActiveWarning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const activeSessions = useActiveSessions();
 
   useEffect(() => {
-    let cancelled = false;
-    db.houseVisitItems
-      .add({
-        sessionId: 0,
-        sortOrder: 0,
-        createdAt: new Date(),
-      })
-      .then((id) => {
-        if (!cancelled) setDemoItemId(id as number);
-      });
-    return () => {
-      cancelled = true;
-    };
+    nameRef.current?.focus();
   }, []);
+
+  const handleSubmit = async () => {
+    if (!name.trim() || submitting) return;
+
+    // Check for existing active sessions
+    if (activeSessions.length > 0 && !showActiveWarning) {
+      setShowActiveWarning(true);
+      return;
+    }
+
+    await doCreate();
+  };
+
+  const doCreate = async () => {
+    setSubmitting(true);
+    try {
+      const newId = await createSession(name.trim(), mode, notes.trim() || undefined);
+      navigate(`/session/${newId}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
         New Session
       </h1>
-      <p className="text-gray-500 dark:text-gray-400 mb-6">
-        Choose a cataloging mode to get started.
-      </p>
-      <div className="grid gap-4 portrait:grid-cols-1 landscape:grid-cols-2">
+
+      {/* Session Name */}
+      <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Session Name
+      </label>
+      <input
+        ref={nameRef}
+        type="text"
+        required
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="e.g., Smith Estate House Visit"
+        className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                   placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700
+                   focus:outline-none focus:ring-2 focus:ring-accent min-h-12 mb-6"
+      />
+
+      {/* Mode Picker */}
+      <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Cataloging Mode
+      </label>
+      <div className="grid gap-4 portrait:grid-cols-1 landscape:grid-cols-2 mb-6">
         {/* House Visit card */}
         <button
           type="button"
-          className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 dark:border-gray-700
-                     bg-white dark:bg-gray-800 min-h-[80px] w-full text-left
-                     hover:border-accent dark:hover:border-accent transition-colors"
+          onClick={() => setMode("house")}
+          className={`flex items-start gap-4 p-5 rounded-xl border min-h-[80px] w-full text-left transition-colors
+            ${
+              mode === "house"
+                ? "border-accent bg-accent/5 dark:bg-accent/10"
+                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-accent dark:hover:border-accent"
+            }`}
         >
           <svg
             className="w-8 h-8 text-accent shrink-0 mt-0.5"
@@ -67,9 +106,13 @@ export function NewSessionPage() {
         {/* Sale Cataloging card */}
         <button
           type="button"
-          className="flex items-start gap-4 p-5 rounded-xl border border-gray-200 dark:border-gray-700
-                     bg-white dark:bg-gray-800 min-h-[80px] w-full text-left
-                     hover:border-accent dark:hover:border-accent transition-colors"
+          onClick={() => setMode("sale")}
+          className={`flex items-start gap-4 p-5 rounded-xl border min-h-[80px] w-full text-left transition-colors
+            ${
+              mode === "sale"
+                ? "border-accent bg-accent/5 dark:bg-accent/10"
+                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-accent dark:hover:border-accent"
+            }`}
         >
           <svg
             className="w-8 h-8 text-accent shrink-0 mt-0.5"
@@ -95,22 +138,44 @@ export function NewSessionPage() {
         </button>
       </div>
 
-      {/* Quick Record section */}
-      <div className="mt-8">
-        <div className="border-t border-gray-200 dark:border-gray-700 mb-6" />
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">
-          Quick Record
-        </h2>
-        <div className="flex justify-center">
-          {demoItemId !== null && (
-            <RecordButton itemId={demoItemId} itemType="house" />
-          )}
-        </div>
-      </div>
+      {/* Notes */}
+      <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Notes (optional)
+      </label>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Any notes about this session..."
+        rows={3}
+        className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                   placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700
+                   focus:outline-none focus:ring-2 focus:ring-accent resize-none mb-8"
+      />
 
-      {/* Recording overlays */}
-      <RecordingIndicator />
-      <RecordingToast />
+      {/* Submit */}
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={!name.trim() || submitting}
+        className="w-full bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
+                   text-white font-medium py-3 px-8 rounded-lg min-h-12 flex items-center justify-center transition-colors"
+      >
+        {submitting ? "Creating..." : "Start Session"}
+      </button>
+
+      {/* Active session warning */}
+      <ConfirmDialog
+        open={showActiveWarning}
+        title="Active Session Exists"
+        message="You have an open session — start a new one anyway?"
+        confirmLabel="Start New"
+        cancelLabel="Go Back"
+        onConfirm={() => {
+          setShowActiveWarning(false);
+          doCreate();
+        }}
+        onCancel={() => setShowActiveWarning(false)}
+      />
     </div>
   );
 }
