@@ -16,9 +16,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### AI Processing
 
-- [ ] **AI-01**: Recorded audio is sent to AI and returned as structured fields (title, description, condition, estimate, category) in a single step — no separate transcription
+- [x] **AI-01**: Recorded audio is sent to AI and returned as structured fields (title, description, condition, estimate, category) in a single step — no separate transcription
 - [ ] **AI-02**: AI output follows TPC conventions (ALL CAPS title, lowercase "the"-starting description, formal auction language)
-- [ ] **AI-03**: AI handles missing fields gracefully (null when not spoken, no hallucinated values)
+- [x] **AI-03**: AI handles missing fields gracefully (null when not spoken, no hallucinated values)
 
 ### House Visit Mode
 
@@ -117,9 +117,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VOICE-02 | Phase 2 | Complete |
 | VOICE-03 | Phase 2 | Complete |
 | VOICE-04 | Phase 2 | Complete |
-| AI-01 | Phase 5 | Pending |
+| AI-01 | Phase 5 | Complete |
 | AI-02 | Phase 5 | Pending |
-| AI-03 | Phase 5 | Pending |
+| AI-03 | Phase 5 | Complete |
 | HOUSE-01 | Phase 4 | Complete |
 | HOUSE-02 | Phase 4 | Complete |
 | HOUSE-03 | Phase 4 | Complete |

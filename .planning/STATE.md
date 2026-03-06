@@ -10,8 +10,8 @@ progress:
   total_phases: 9
   completed_phases: 4
   total_plans: 13
-  completed_plans: 9
-  percent: 69
+  completed_plans: 10
+  percent: 77
 ---
 
 # Project State
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 ## Current Position
 
 Phase: 5 of 8 (AI Pipeline)
-Plan: 0 of 2 in current phase
-Status: Phase 4 complete, Phase 5 not started
-Last activity: 2026-03-06 — Plan 04-02 complete (item entry with photo capture, lightbox, receipt validation)
+Plan: 1 of 2 in current phase
+Status: Phase 5 in progress
+Last activity: 2026-03-06 — Plan 05-01 complete (aiStatus tracking, Zod schema, Gemini proxy)
 
-Progress: [██████----] 69% of milestone
+Progress: [████████--] 77% of milestone
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 8min
-- Total execution time: 1.28 hours
+- Total execution time: 1.33 hours
 
 **By Phase:**
 
@@ -47,10 +47,11 @@ Progress: [██████----] 69% of milestone
 | 2. Audio Capture | 2/2 | 10min | 5min |
 | 3. Session Management | 3/3 | 11min | 4min |
 | 4. Cataloging Modes | 2/2 | 48min | 24min |
+| 5. AI Pipeline | 1/2 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (2min), 03-03 (5min), 04-01 (3min), 04-02 (45min)
-- Trend: 04-02 longer due to bug fixes during visual verification checkpoint
+- Last 5 plans: 03-03 (5min), 04-01 (3min), 04-02 (45min), 05-01 (3min)
+- Trend: 05-01 fast — schema/proxy tasks with clear specs
 
 *Updated after each plan completion*
 
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [04-02] RecordingsList component added to show saved recordings per item with play/delete
 - [04-02] RecordingToast simplified and recording timer moved to top-right for better UX
 - [04-02] Camera capture via hidden file input with capture='environment' attribute
+- [05-01] Used Zod v4 built-in toJSONSchema instead of zod-to-json-schema (incompatible with Zod v4)
+- [05-01] Cloudflare Worker proxy tsconfig uses skipLibCheck and lib:ES2022 to avoid dom type conflicts
 
 ### Roadmap Evolution
 
@@ -108,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T21:35:44Z
-Stopped at: Completed 04-02-PLAN.md
-Resume file: .planning/phases/04-cataloging-modes/04-02-SUMMARY.md
+Last session: 2026-03-06T21:46:49Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: .planning/phases/05-ai-pipeline/05-01-SUMMARY.md
