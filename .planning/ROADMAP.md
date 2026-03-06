@@ -12,7 +12,7 @@ The TPC Speech Cataloger is built in eight phases that follow a strict dependenc
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4
+- [x] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4 (completed 2026-03-06)
 - [ ] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB
 - [ ] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss
 - [ ] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation)
@@ -32,10 +32,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. All interactive elements are reachable with one thumb without zooming, with tap targets no smaller than 48px
   3. App layout is usable in both portrait and landscape orientation without horizontal scrolling or overlapping controls
   4. Recording and navigation controls remain accessible when the phone is held in one hand
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 01-01-PLAN.md — Scaffold Vite project, PWA config, Dexie schema, TypeScript types, test infrastructure
-- [ ] 01-02-PLAN.md — App shell with bottom tab bar, routing, pages, install banner, walkthrough, device verification
+- [x] 01-02-PLAN.md — App shell with bottom tab bar, routing, pages, install banner, walkthrough, device verification
 
 ### Phase 2: Audio Capture
 **Goal**: Auctioneers can tap to record their voice for each item and see the audio stored locally, on both iOS Safari and Android Chrome
@@ -121,7 +121,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/2 | Executing | - |
+| 1. Foundation | 2/2 | Complete   | 2026-03-06 |
 | 2. Audio Capture | 0/TBD | Not started | - |
 | 3. Session Management | 0/TBD | Not started | - |
 | 4. Cataloging Modes | 0/TBD | Not started | - |

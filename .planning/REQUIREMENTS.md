@@ -70,9 +70,9 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Mobile UX
 
 - [x] **UX-01**: App is installable as a PWA on phone and tablet
-- [ ] **UX-02**: UI uses large tap targets (min 48px) optimized for thumb-zone interaction
-- [ ] **UX-03**: App works in both portrait and landscape orientation
-- [ ] **UX-04**: Recording and navigation controls are accessible one-handed
+- [x] **UX-02**: UI uses large tap targets (min 48px) optimized for thumb-zone interaction
+- [x] **UX-03**: App works in both portrait and landscape orientation
+- [x] **UX-04**: Recording and navigation controls are accessible one-handed
 
 ## v2 Requirements
 
@@ -147,9 +147,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXT-03 | Phase 7 | Pending |
 | EXT-04 | Phase 7 | Pending |
 | UX-01 | Phase 1 | Complete |
-| UX-02 | Phase 1 | Pending |
-| UX-03 | Phase 1 | Pending |
-| UX-04 | Phase 1 | Pending |
+| UX-02 | Phase 1 | Complete |
+| UX-03 | Phase 1 | Complete |
+| UX-04 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 37 total
