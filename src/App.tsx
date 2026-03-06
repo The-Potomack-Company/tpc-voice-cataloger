@@ -1,7 +1,17 @@
+import { Routes, Route } from "react-router";
+import { AppLayout } from "./layouts/AppLayout";
+import { SessionsPage } from "./pages/Sessions";
+import { NewSessionPage } from "./pages/NewSession";
+import { SettingsPage } from "./pages/Settings";
+
 export default function App() {
   return (
-    <div className="flex items-center justify-center h-dvh bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <h1 className="text-2xl font-semibold">TPC Catalog</h1>
-    </div>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<SessionsPage />} />
+        <Route path="new" element={<NewSessionPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
+    </Routes>
   );
 }
