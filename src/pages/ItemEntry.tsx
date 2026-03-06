@@ -124,7 +124,9 @@ export function ItemEntryPage() {
   }, [numericItemId, mode, receiptValue]);
 
   // Determine current item position (1-based)
-  const currentPosition = item ? item.sortOrder + 1 : totalItems + 1;
+  // When item is loaded, use its sortOrder; ensure total is at least current position
+  const currentPosition = item ? item.sortOrder + 1 : 1;
+  const displayTotal = Math.max(totalItems, currentPosition);
 
   // Check if record button should be disabled (sale mode: no valid receipt)
   const isRecordDisabled =
@@ -225,7 +227,7 @@ export function ItemEntryPage() {
         )}
 
         {/* Item counter */}
-        <ItemCounter current={currentPosition} total={totalItems} />
+        <ItemCounter current={currentPosition} total={displayTotal} />
       </div>
 
       {/* Bottom record + next item section (sticky) */}
