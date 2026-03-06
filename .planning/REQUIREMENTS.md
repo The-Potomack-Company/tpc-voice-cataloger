@@ -43,8 +43,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Session Management
 
 - [x] **SESS-01**: User can save a session and return to it later (persists across browser close)
-- [ ] **SESS-02**: User can view a list of saved sessions on the home screen
-- [ ] **SESS-03**: User can resume a saved session and continue adding items
+- [x] **SESS-02**: User can view a list of saved sessions on the home screen
+- [x] **SESS-03**: User can resume a saved session and continue adding items
 - [x] **SESS-04**: Session auto-saves after each item is recorded
 
 ### Offline Support
@@ -132,8 +132,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-03 | Phase 6 | Pending |
 | EDIT-04 | Phase 6 | Pending |
 | SESS-01 | Phase 3 | Complete |
-| SESS-02 | Phase 3 | Pending |
-| SESS-03 | Phase 3 | Pending |
+| SESS-02 | Phase 3 | Complete |
+| SESS-03 | Phase 3 | Complete |
 | SESS-04 | Phase 3 | Complete |
 | OFFL-01 | Phase 8 | Pending |
 | OFFL-02 | Phase 8 | Pending |
