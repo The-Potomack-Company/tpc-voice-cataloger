@@ -4,11 +4,14 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { isValidReceiptNumber } from "../utils/receiptNumber";
 import { PhotoCapture } from "../components/PhotoCapture";
+import { PhotoLightbox } from "../components/PhotoLightbox";
 import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
 import { RecordButton } from "../components/RecordButton";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import type { ItemPhoto } from "../db/types";
 
 export function ItemEntryPage() {
   const { sessionId, itemId } = useParams<{
@@ -18,6 +21,8 @@ export function ItemEntryPage() {
   const navigate = useNavigate();
   const creatingRef = useRef(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showEmptyWarning, setShowEmptyWarning] = useState(false);
+  const isCreatingNext = useRef(false);
 
   const numericSessionId = Number(sessionId);
 
@@ -29,6 +34,13 @@ export function ItemEntryPage() {
 
   const mode = session?.mode ?? "house";
   const isNewItem = itemId === "new";
+
+  // Reset creation ref when itemId changes (navigated to a different item)
+  useEffect(() => {
+    if (!isNewItem) {
+      creatingRef.current = false;
+    }
+  }, [isNewItem, itemId]);
 
   // Create new item when navigating to /item/new
   useEffect(() => {
@@ -79,6 +91,16 @@ export function ItemEntryPage() {
     0,
   );
 
+  // Load photos for lightbox (house mode)
+  const photos = useLiveQuery(
+    () => {
+      if (!numericItemId || mode !== "house") return [] as ItemPhoto[];
+      return db.photos.where("itemId").equals(numericItemId).sortBy("sortOrder");
+    },
+    [numericItemId, mode],
+    [] as ItemPhoto[],
+  );
+
   // Receipt number state for sale mode
   const [receiptValue, setReceiptValue] = useState("");
 
@@ -107,6 +129,54 @@ export function ItemEntryPage() {
   // Check if record button should be disabled (sale mode: no valid receipt)
   const isRecordDisabled =
     mode === "sale" && !isValidReceiptNumber(receiptValue);
+
+  // Next Item handler
+  const handleNextItem = useCallback(async () => {
+    if (!numericItemId || isCreatingNext.current) return;
+
+    // Check if item is empty
+    const audioCount = await db.audio
+      .where("itemId")
+      .equals(numericItemId)
+      .count();
+    const photoCount =
+      mode === "house"
+        ? await db.photos.where("itemId").equals(numericItemId).count()
+        : 0;
+    const hasReceipt =
+      mode === "sale" && isValidReceiptNumber(receiptValue);
+
+    const isEmpty =
+      audioCount === 0 &&
+      photoCount === 0 &&
+      (mode === "house" || !hasReceipt);
+
+    if (isEmpty) {
+      setShowEmptyWarning(true);
+      return;
+    }
+
+    proceedToNextItem();
+  }, [numericItemId, mode, receiptValue, sessionId, navigate]);
+
+  const proceedToNextItem = useCallback(() => {
+    if (isCreatingNext.current) return;
+    isCreatingNext.current = true;
+    setShowEmptyWarning(false);
+    navigate(`/session/${sessionId}/item/new`);
+    // Reset after navigation
+    setTimeout(() => {
+      isCreatingNext.current = false;
+    }, 500);
+  }, [sessionId, navigate]);
+
+  // Lightbox delete handler
+  const handleLightboxDelete = useCallback(
+    async (photoId: number) => {
+      await db.photos.delete(photoId);
+    },
+    [],
+  );
 
   // Loading state
   if (!session || (isNewItem && !numericItemId)) {
@@ -158,8 +228,8 @@ export function ItemEntryPage() {
         <ItemCounter current={currentPosition} total={totalItems} />
       </div>
 
-      {/* Bottom record section (fixed) */}
-      <div className="sticky bottom-0 pb-4 pt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+      {/* Bottom record + next item section (sticky) */}
+      <div className="sticky bottom-0 pb-4 pt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm space-y-3">
         {numericItemId && (
           <>
             {isRecordDisabled && (
@@ -170,6 +240,21 @@ export function ItemEntryPage() {
             <div className={isRecordDisabled ? "opacity-50 pointer-events-none" : ""}>
               <RecordButton itemId={numericItemId} itemType={mode} />
             </div>
+
+            {/* Next Item button */}
+            <button
+              type="button"
+              onClick={handleNextItem}
+              className="w-full flex items-center justify-center gap-2 min-h-12 rounded-lg
+                bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                text-gray-700 dark:text-gray-300 font-medium
+                hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <span>Next Item</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
           </>
         )}
       </div>
@@ -178,14 +263,26 @@ export function ItemEntryPage() {
       <RecordingIndicator />
       <RecordingToast />
 
-      {/* Lightbox (rendered conditionally - will be added in Task 2) */}
-      {lightboxIndex !== null && numericItemId && (
-        <PhotoLightboxWrapper
-          itemId={numericItemId}
+      {/* Photo lightbox */}
+      {lightboxIndex !== null && photos.length > 0 && (
+        <PhotoLightbox
+          photos={photos}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
+          onDelete={handleLightboxDelete}
         />
       )}
+
+      {/* Empty item warning dialog */}
+      <ConfirmDialog
+        open={showEmptyWarning}
+        title="Skip Item?"
+        message="This item has no recording or photos. Skip it?"
+        confirmLabel="Skip"
+        cancelLabel="Cancel"
+        onConfirm={proceedToNextItem}
+        onCancel={() => setShowEmptyWarning(false)}
+      />
     </div>
   );
 }
@@ -245,43 +342,5 @@ function BackButton({
       </svg>
       {previousItem?.id ? "Previous Item" : "Back to Session"}
     </button>
-  );
-}
-
-/** Wrapper to lazy-load photos for lightbox */
-function PhotoLightboxWrapper({
-  itemId,
-  initialIndex,
-  onClose,
-}: {
-  itemId: number;
-  initialIndex: number;
-  onClose: () => void;
-}) {
-  // PhotoLightbox will be created in Task 2
-  // For now, render a placeholder that will be replaced
-  const photos = useLiveQuery(
-    () => db.photos.where("itemId").equals(itemId).sortBy("sortOrder"),
-    [itemId],
-    [],
-  );
-
-  if (photos.length === 0) {
-    onClose();
-    return null;
-  }
-
-  // Dynamic import will be replaced in Task 2
-  return (
-    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-      <p className="text-white">Lightbox loading...</p>
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-4 left-4 text-white min-h-12 min-w-12 flex items-center justify-center"
-      >
-        X
-      </button>
-    </div>
   );
 }
