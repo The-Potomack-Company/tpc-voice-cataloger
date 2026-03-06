@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4 (completed 2026-03-06)
 - [x] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB (completed 2026-03-06)
 - [x] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss (completed 2026-03-06)
-- [ ] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation)
+- [x] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation) (completed 2026-03-06)
 - [ ] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement
 - [ ] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension
 - [ ] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages
@@ -75,7 +75,7 @@ Plans:
   2. User can view a gallery of all photos attached to a specific item within the session
   3. User can start a sale cataloging session, enter a receipt number in XXXXX-N format, record a description, tap "Next Item", and see a new entry with a fresh receipt number field
   4. Receipt number from sale mode is carried through to each item's record and visible in the item list
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 04-01-PLAN.md — Utility functions (image resize, receipt validation, blob URL hook), session creation/list/detail pages with routing
 - [ ] 04-02-PLAN.md — Item entry screen for both modes (photo capture, lightbox, receipt input, Next Item, back navigation)
@@ -140,7 +140,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 1. Foundation | 2/2 | Complete   | 2026-03-06 |
 | 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
-| 4. Cataloging Modes | 1/2 | In Progress|  |
+| 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 0/2 | Not started | - |
 | 6. Review, Edit, Export | 0/2 | Not started | - |
 | 7. Extension Batch Import | 0/TBD | Not started | - |

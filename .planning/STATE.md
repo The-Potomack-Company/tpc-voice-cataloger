@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 7 context gathered
-last_updated: "2026-03-06T21:18:24.326Z"
-last_activity: 2026-03-06 — Plan 04-01 complete (foundational utilities and session pages)
+status: in-progress
+stopped_at: Plan 04-02 complete
+last_updated: "2026-03-06T21:35:44Z"
+last_activity: 2026-03-06 — Plan 04-02 complete (item entry with photo capture, lightbox, receipt validation)
 progress:
   total_phases: 9
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 8
-  percent: 73
+  completed_plans: 9
+  percent: 69
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 4 Cataloging Modes in progress (1 of 2 plans done)
+**Current focus:** Phase 4 Cataloging Modes complete, ready for Phase 5 AI Pipeline
 
 ## Current Position
 
-Phase: 4 of 8 (Cataloging Modes)
-Plan: 1 of 2 in current phase
-Status: Plan 04-01 complete
-Last activity: 2026-03-06 — Plan 04-01 complete (foundational utilities and session pages)
+Phase: 5 of 8 (AI Pipeline)
+Plan: 0 of 2 in current phase
+Status: Phase 4 complete, Phase 5 not started
+Last activity: 2026-03-06 — Plan 04-02 complete (item entry with photo capture, lightbox, receipt validation)
 
-Progress: [███████---] 73% of milestone
+Progress: [██████----] 69% of milestone
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 4min
-- Total execution time: 0.53 hours
+- Total plans completed: 9
+- Average duration: 8min
+- Total execution time: 1.28 hours
 
 **By Phase:**
 
@@ -46,11 +46,11 @@ Progress: [███████---] 73% of milestone
 | 1. Foundation | 2/2 | 10min | 5min |
 | 2. Audio Capture | 2/2 | 10min | 5min |
 | 3. Session Management | 3/3 | 11min | 4min |
-| 4. Cataloging Modes | 1/2 | 3min | 3min |
+| 4. Cataloging Modes | 2/2 | 48min | 24min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (4min), 03-02 (2min), 03-03 (5min), 04-01 (3min)
-- Trend: stable
+- Last 5 plans: 03-02 (2min), 03-03 (5min), 04-01 (3min), 04-02 (45min)
+- Trend: 04-02 longer due to bug fixes during visual verification checkpoint
 
 *Updated after each plan completion*
 
@@ -86,6 +86,10 @@ Recent decisions affecting current work:
 - [04-01] ItemList uses per-row useLiveQuery for audio/photo counts (consistent with SessionCardWithCount pattern)
 - [04-01] Route param renamed from :id to :sessionId for consistency with nested item routes
 - [04-01] Image resize uses createImageBitmap + OffscreenCanvas with canvas element fallback
+- [04-02] Route consolidation: removed /item/new route, ItemEntry handles itemId='new' inline to prevent blank page on re-render
+- [04-02] RecordingsList component added to show saved recordings per item with play/delete
+- [04-02] RecordingToast simplified and recording timer moved to top-right for better UX
+- [04-02] Camera capture via hidden file input with capture='environment' attribute
 
 ### Roadmap Evolution
 
@@ -104,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T21:18:24.324Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-extension-batch-import/07-CONTEXT.md
+Last session: 2026-03-06T21:35:44Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: .planning/phases/04-cataloging-modes/04-02-SUMMARY.md
