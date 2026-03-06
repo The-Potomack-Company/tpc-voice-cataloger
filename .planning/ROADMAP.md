@@ -13,7 +13,7 @@ The TPC Speech Cataloger is built in eight phases that follow a strict dependenc
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4 (completed 2026-03-06)
-- [ ] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB
+- [x] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB (completed 2026-03-06)
 - [ ] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss
 - [ ] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation)
 - [ ] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement
@@ -46,7 +46,7 @@ Plans:
   2. Recorded audio blob is written to IndexedDB immediately when recording stops (visible in DevTools Application tab)
   3. User sees a distinct active-recording indicator (e.g., pulsing dot, timer, or color change) while recording, which clears on stop
   4. Recording, storing, and playback of audio works on an iPhone running iOS Safari and on an Android device running Chrome without errors
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 02-01-PLAN.md — Audio recording infrastructure: test scaffolds, MIME type detection, useAudioRecorder hook, recording store
 - [ ] 02-02-PLAN.md — Recording UI components (button, indicator, toast) and page integration with device verification
@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-06 |
-| 2. Audio Capture | 1/2 | In Progress|  |
+| 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
 | 3. Session Management | 0/TBD | Not started | - |
 | 4. Cataloging Modes | 0/TBD | Not started | - |
 | 5. AI Pipeline | 0/TBD | Not started | - |
