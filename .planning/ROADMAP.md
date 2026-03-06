@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Recording and navigation controls remain accessible when the phone is held in one hand
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — Scaffold Vite project, PWA config, Dexie schema, TypeScript types, test infrastructure
+- [x] 01-01-PLAN.md — Scaffold Vite project, PWA config, Dexie schema, TypeScript types, test infrastructure
 - [ ] 01-02-PLAN.md — App shell with bottom tab bar, routing, pages, install banner, walkthrough, device verification
 
 ### Phase 2: Audio Capture
@@ -121,7 +121,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/2 | Planning complete | - |
+| 1. Foundation | 1/2 | Executing | - |
 | 2. Audio Capture | 0/TBD | Not started | - |
 | 3. Session Management | 0/TBD | Not started | - |
 | 4. Cataloging Modes | 0/TBD | Not started | - |
