@@ -9,6 +9,8 @@ export interface Session {
   updatedAt: Date;
 }
 
+export type AiStatus = "pending" | "processing" | "done" | "failed";
+
 export interface HouseVisitItem {
   id?: number;
   sessionId: number;
@@ -17,6 +19,7 @@ export interface HouseVisitItem {
   condition?: string;
   estimate?: string;
   category?: string;
+  aiStatus?: AiStatus;
   sortOrder: number;
   createdAt: Date;
 }
@@ -30,6 +33,7 @@ export interface SaleItem {
   condition?: string;
   estimate?: string;
   category?: string;
+  aiStatus?: AiStatus;
   sortOrder: number;
   createdAt: Date;
 }

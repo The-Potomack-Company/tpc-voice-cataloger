@@ -45,4 +45,12 @@ db.version(2)
       });
   });
 
+db.version(3).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+});
+
 export { db };

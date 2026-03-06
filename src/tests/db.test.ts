@@ -66,6 +66,40 @@ describe("Dexie database", () => {
     expect(retrieved!.title).toBe("Antique Vase");
   });
 
+  it("has aiStatus index on houseVisitItems after v3 migration", () => {
+    const table = db.table("houseVisitItems");
+    const indexNames = table.schema.indexes.map((idx) => idx.name);
+    expect(indexNames).toContain("aiStatus");
+  });
+
+  it("has aiStatus index on saleItems after v3 migration", () => {
+    const table = db.table("saleItems");
+    const indexNames = table.schema.indexes.map((idx) => idx.name);
+    expect(indexNames).toContain("aiStatus");
+  });
+
+  it("existing items have aiStatus undefined (no forced default)", async () => {
+    const sessionId = await db.sessions.add({
+      name: "Migration Test",
+      mode: "house",
+      status: "active",
+      notes: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Session);
+
+    const itemId = await db.houseVisitItems.add({
+      sessionId: sessionId as number,
+      title: "Pre-AI Item",
+      sortOrder: 1,
+      createdAt: new Date(),
+    } as HouseVisitItem);
+
+    const retrieved = await db.houseVisitItems.get(itemId);
+    expect(retrieved).toBeDefined();
+    expect(retrieved!.aiStatus).toBeUndefined();
+  });
+
   it("can create and read a SaleItem linked to a session", async () => {
     const sessionId = await db.sessions.add({
       name: "Sale Session",
