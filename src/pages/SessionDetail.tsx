@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { useSession, useSessionItemCount } from "../hooks/useSessions";
 import { updateSession, softDeleteSession } from "../db/sessions";
-import { db } from "../db";
 import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import type { HouseVisitItem, SaleItem } from "../db/types";
+import { ItemList } from "../components/ItemList";
 
 function formatRelativeTime(date: Date): string {
   const now = Date.now();
@@ -37,9 +35,9 @@ function formatDate(date: Date): string {
 }
 
 export function SessionDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { sessionId: sessionIdParam } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const sessionId = Number(id);
+  const sessionId = Number(sessionIdParam);
   const session = useSession(sessionId);
   const itemCount = useSessionItemCount(sessionId);
 
@@ -57,21 +55,6 @@ export function SessionDetailPage() {
   const [confirmAction, setConfirmAction] = useState<
     "complete" | "reopen" | "delete" | null
   >(null);
-
-  // Query items for the list
-  const items = useLiveQuery(async () => {
-    if (!session) return [];
-    if (session.mode === "house") {
-      return db.houseVisitItems
-        .where("sessionId")
-        .equals(sessionId)
-        .sortBy("sortOrder");
-    }
-    return db.saleItems
-      .where("sessionId")
-      .equals(sessionId)
-      .sortBy("sortOrder");
-  }, [sessionId, session?.mode]);
 
   // Focus name input when editing starts
   useEffect(() => {
@@ -280,36 +263,7 @@ export function SessionDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
           Items ({itemCount})
         </h2>
-        {itemCount === 0 ? (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 text-center">
-            <p className="text-gray-400 dark:text-gray-500 text-sm">
-              Items will appear here as you record them.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {items?.map((item: HouseVisitItem | SaleItem) => (
-              <div
-                key={item.id}
-                className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    #{item.sortOrder}{item.title ? ` - ${item.title}` : ""}
-                  </span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
-                    {formatRelativeTime(item.createdAt)}
-                  </span>
-                </div>
-                {item.description && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                    {item.description}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <ItemList sessionId={sessionId} mode={session.mode} />
       </section>
 
       {/* Action buttons */}
@@ -370,6 +324,23 @@ export function SessionDetailPage() {
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}
       />
+
+      {/* Floating Add Item button */}
+      {session.status === "active" && (
+        <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-10">
+          <button
+            onClick={() => navigate(`/session/${sessionId}/item/new`)}
+            className="w-full bg-accent hover:bg-accent-hover text-white font-medium
+                       py-3 px-6 rounded-lg min-h-12 flex items-center justify-center gap-2
+                       shadow-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            {itemCount === 0 ? "Start Cataloging" : "Add Item"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
