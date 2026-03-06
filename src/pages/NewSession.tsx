@@ -1,4 +1,30 @@
+import { useState, useEffect } from "react";
+import { RecordButton } from "../components/RecordButton";
+import { RecordingIndicator } from "../components/RecordingIndicator";
+import { RecordingToast } from "../components/RecordingToast";
+import { db } from "../db";
+
 export function NewSessionPage() {
+  // Phase 2 demo: create an orphan HouseVisitItem for recording
+  // Phase 3 will restructure this into proper session flow
+  const [demoItemId, setDemoItemId] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    db.houseVisitItems
+      .add({
+        sessionId: 0,
+        sortOrder: 0,
+        createdAt: new Date(),
+      })
+      .then((id) => {
+        if (!cancelled) setDemoItemId(id as number);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
@@ -68,6 +94,23 @@ export function NewSessionPage() {
           </div>
         </button>
       </div>
+
+      {/* Quick Record section */}
+      <div className="mt-8">
+        <div className="border-t border-gray-200 dark:border-gray-700 mb-6" />
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">
+          Quick Record
+        </h2>
+        <div className="flex justify-center">
+          {demoItemId !== null && (
+            <RecordButton itemId={demoItemId} itemType="house" />
+          )}
+        </div>
+      </div>
+
+      {/* Recording overlays */}
+      <RecordingIndicator />
+      <RecordingToast />
     </div>
   );
 }
