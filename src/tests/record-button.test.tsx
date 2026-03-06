@@ -146,15 +146,15 @@ describe("RecordingToast", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("shows play button when toast is visible", () => {
+  it("shows confirmation text when toast is visible", () => {
     act(() => {
       useRecordingStore.getState().setLastSaved(42, 5000);
     });
     render(<RecordingToast />);
-    expect(screen.getByLabelText("Play recording")).toBeInTheDocument();
+    expect(screen.getByText(/Recording saved/)).toBeInTheDocument();
   });
 
-  it("auto-dismisses after 4 seconds", () => {
+  it("auto-dismisses after 3 seconds", () => {
     act(() => {
       useRecordingStore.getState().setLastSaved(42, 5000);
     });
@@ -162,7 +162,7 @@ describe("RecordingToast", () => {
     expect(screen.getByText(/Recording saved/)).toBeInTheDocument();
 
     act(() => {
-      vi.advanceTimersByTime(4000);
+      vi.advanceTimersByTime(3000);
     });
 
     expect(useRecordingStore.getState().lastSavedAudioId).toBeNull();

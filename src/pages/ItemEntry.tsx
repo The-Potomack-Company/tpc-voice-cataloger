@@ -11,6 +11,7 @@ import { RecordButton } from "../components/RecordButton";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { RecordingsList } from "../components/RecordingsList";
 import type { ItemPhoto } from "../db/types";
 
 export function ItemEntryPage() {
@@ -230,8 +231,8 @@ export function ItemEntryPage() {
         <ItemCounter current={currentPosition} total={displayTotal} />
       </div>
 
-      {/* Bottom record + next item section (sticky) */}
-      <div className="sticky bottom-0 pb-4 pt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm space-y-3">
+      {/* Record button + recordings + next item */}
+      <div className="pb-4 pt-2 space-y-3">
         {numericItemId && (
           <>
             {isRecordDisabled && (
@@ -242,6 +243,9 @@ export function ItemEntryPage() {
             <div className={isRecordDisabled ? "opacity-50 pointer-events-none" : ""}>
               <RecordButton itemId={numericItemId} itemType={mode} />
             </div>
+
+            {/* Recordings list */}
+            <RecordingsList itemId={numericItemId} />
 
             {/* Next Item button */}
             <button
