@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation) (completed 2026-03-06)
 - [x] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement (completed 2026-03-06)
 - [x] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension (completed 2026-03-09)
-- [ ] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages
+- [x] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages (completed 2026-03-09)
 - [ ] **Phase 8: Offline Queue** - Audio queued locally when offline, processed automatically when connectivity returns
 
 ## Phase Details
@@ -117,11 +117,11 @@ Plans:
   2. Extension matches each item to its RFC Invaluable lot by receipt number and navigates to that lot's edit page
   3. Extension fills the title field (`#fld1`) with the ALL CAPS value and the description field (`#fld2`) with the lowercase value from the JSON, verifying the write succeeded by reading the field value back
   4. Extension processes all matched items in sequence (navigate, fill, save, advance) and reports how many succeeded vs failed
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 07-00-PLAN.md — Wave 0: ImportController test scaffold with behavioral stubs for EXT-01 through EXT-04
-- [ ] 07-01-PLAN.md — Import constants, popup Import tab with file picker, message plumbing, ImportController skeleton
-- [ ] 07-02-PLAN.md — ImportController core logic: sale mode receipt navigation, house visit walk-forward, state recovery, completion reports
+- [x] 07-00-PLAN.md — Wave 0: ImportController test scaffold with behavioral stubs for EXT-01 through EXT-04
+- [x] 07-01-PLAN.md — Import constants, popup Import tab with file picker, message plumbing, ImportController skeleton
+- [x] 07-02-PLAN.md — ImportController core logic: sale mode receipt navigation, house visit walk-forward, state recovery, completion reports
 
 ### Phase 8: Offline Queue
 **Goal**: Auctioneers at rural house visits can record audio without internet connectivity; the app queues recordings and processes them automatically when connectivity returns
@@ -147,7 +147,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 2/2 | Complete   | 2026-03-06 |
 | 6. Review, Edit, Export | 2/2 | Complete   | 2026-03-09 |
-| 7. Extension Batch Import | 1/3 | In Progress|  |
+| 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 0/TBD | Not started | - |
 
 ### Phase 9: deffered items
