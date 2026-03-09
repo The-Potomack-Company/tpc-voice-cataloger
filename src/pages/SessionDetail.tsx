@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useSession, useSessionItemCount } from "../hooks/useSessions";
 import { updateSession, softDeleteSession } from "../db/sessions";
 import { createBlankItem } from "../db/items";
+import { db } from "../db";
 import { exportSession } from "../utils/export";
 import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -44,6 +46,12 @@ export function SessionDetailPage() {
   const sessionId = Number(sessionIdParam);
   const session = useSession(sessionId);
   const itemCount = useSessionItemCount(sessionId);
+
+  const queuedCount = useLiveQuery(async () => {
+    if (!session) return 0;
+    const table = session.mode === "house" ? db.houseVisitItems : db.saleItems;
+    return table.where({ sessionId, aiStatus: "queued" }).count();
+  }, [sessionId, session?.mode], 0);
 
   const recordingSessionId = useUIStore((s) => s.recordingSessionId);
   const setRecordingSession = useUIStore((s) => s.setRecordingSession);
@@ -302,7 +310,7 @@ export function SessionDetailPage() {
         {/* Export button */}
         <button
           onClick={handleExportClick}
-          disabled={exporting}
+          disabled={exporting || queuedCount > 0}
           className="w-full min-h-12 rounded-lg border border-accent text-accent font-medium
                      hover:bg-accent/10 transition-colors flex items-center justify-center gap-2
                      disabled:opacity-50 disabled:cursor-not-allowed"
@@ -312,12 +320,14 @@ export function SessionDetailPage() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-          ) : (
+          ) : queuedCount > 0 ? null : (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
           )}
-          {exporting ? "Exporting..." : "Export Session"}
+          {queuedCount > 0
+            ? `${queuedCount} item${queuedCount === 1 ? "" : "s"} still queued`
+            : exporting ? "Exporting..." : "Export Session"}
         </button>
 
         {session.status === "active" ? (
