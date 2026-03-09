@@ -9,7 +9,7 @@ export interface Session {
   updatedAt: Date;
 }
 
-export type AiStatus = "pending" | "processing" | "done" | "failed";
+export type AiStatus = "pending" | "processing" | "done" | "failed" | "queued";
 
 export interface HouseVisitItem {
   id?: number;

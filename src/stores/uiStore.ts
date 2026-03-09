@@ -7,6 +7,8 @@ interface UIState {
   resetWalkthrough: () => void;
   recordingSessionId: number | null;
   setRecordingSession: (id: number | null) => void;
+  isOnline: boolean;
+  setOnline: (online: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -18,7 +20,15 @@ export const useUIStore = create<UIState>()(
       recordingSessionId: null,
       setRecordingSession: (id: number | null) =>
         set({ recordingSessionId: id }),
+      isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
+      setOnline: (online: boolean) => set({ isOnline: online }),
     }),
-    { name: "tpc-ui-state" },
+    {
+      name: "tpc-ui-state",
+      partialize: (state) => ({
+        hasCompletedWalkthrough: state.hasCompletedWalkthrough,
+        recordingSessionId: state.recordingSessionId,
+      }),
+    },
   ),
 );
