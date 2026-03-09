@@ -117,7 +117,10 @@ Plans:
   2. Extension matches each item to its RFC Invaluable lot by receipt number and navigates to that lot's edit page
   3. Extension fills the title field (`#fld1`) with the ALL CAPS value and the description field (`#fld2`) with the lowercase value from the JSON, verifying the write succeeded by reading the field value back
   4. Extension processes all matched items in sequence (navigate, fill, save, advance) and reports how many succeeded vs failed
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — Import constants, popup Import tab with file picker, message plumbing, ImportController skeleton
+- [ ] 07-02-PLAN.md — ImportController core logic: sale mode receipt navigation, house visit walk-forward, state recovery, completion reports
 
 ### Phase 8: Offline Queue
 **Goal**: Auctioneers at rural house visits can record audio without internet connectivity; the app queues recordings and processes them automatically when connectivity returns
@@ -133,7 +136,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -143,7 +146,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 2/2 | Complete   | 2026-03-06 |
 | 6. Review, Edit, Export | 2/2 | Complete   | 2026-03-09 |
-| 7. Extension Batch Import | 0/TBD | Not started | - |
+| 7. Extension Batch Import | 0/2 | Not started | - |
 | 8. Offline Queue | 0/TBD | Not started | - |
 
 ### Phase 9: deffered items
