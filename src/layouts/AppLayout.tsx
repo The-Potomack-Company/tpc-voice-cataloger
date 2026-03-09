@@ -1,5 +1,9 @@
+import { useEffect } from "react";
 import { Outlet, NavLink } from "react-router";
 import { InstallBanner } from "../components/InstallBanner";
+import { OfflineIndicator } from "../components/OfflineIndicator";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
+import { drainQueue } from "../services/offlineQueue";
 
 function tabClass({ isActive }: { isActive: boolean }): string {
   return `flex flex-col items-center py-3 px-4 min-h-12 min-w-12 transition-colors ${
@@ -8,12 +12,25 @@ function tabClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function AppLayout() {
+  useOnlineStatus();
+
+  useEffect(() => {
+    // Drain on mount if online (handles case: app closed with queued items, reopened with connectivity)
+    if (navigator.onLine) {
+      drainQueue();
+    }
+    const handleOnline = () => drainQueue();
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
   return (
     <div
       data-testid="app-layout"
       className="flex flex-col h-dvh bg-white dark:bg-gray-900 pt-[env(safe-area-inset-top)]"
     >
       <InstallBanner />
+      <OfflineIndicator />
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>

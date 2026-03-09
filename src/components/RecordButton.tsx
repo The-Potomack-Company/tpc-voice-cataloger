@@ -1,5 +1,6 @@
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { processAudioWithAi } from "../services/gemini";
+import { db } from "../db";
 
 interface RecordButtonProps {
   itemId: number;
@@ -17,10 +18,15 @@ export function RecordButton({ itemId, itemType }: RecordButtonProps) {
     if (isRecording) {
       const audioId = await stopRecording();
       if (audioId != null) {
-        // Fire-and-forget — do not await. Auctioneer moves on immediately.
-        processAudioWithAi(audioId, itemId, itemType).catch((err) =>
-          console.error("AI processing failed:", err)
-        );
+        if (navigator.onLine) {
+          // Fire-and-forget — do not await. Auctioneer moves on immediately.
+          processAudioWithAi(audioId, itemId, itemType).catch((err) =>
+            console.error("AI processing failed:", err)
+          );
+        } else {
+          const table = itemType === "house" ? db.houseVisitItems : db.saleItems;
+          await table.update(itemId, { aiStatus: "queued" as const });
+        }
       }
     } else if (!isRequesting) {
       startRecording(itemId, itemType);

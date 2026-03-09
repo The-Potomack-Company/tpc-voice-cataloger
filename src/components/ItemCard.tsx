@@ -19,6 +19,7 @@ interface ItemCardProps {
 export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { status, startRecording, stopRecording } = useAudioRecorder();
+  const isQueued = item.aiStatus === "queued";
 
   const audioCount = useLiveQuery(
     () => db.audio.where("itemId").equals(item.id!).count(),
@@ -52,9 +53,14 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
     if (status === "recording") {
       const audioId = await stopRecording();
       if (audioId != null) {
-        processAudioWithAi(audioId, item.id!, mode).catch((err) =>
-          console.error("AI processing failed:", err),
-        );
+        if (navigator.onLine) {
+          processAudioWithAi(audioId, item.id!, mode).catch((err) =>
+            console.error("AI processing failed:", err),
+          );
+        } else {
+          const table = mode === "house" ? db.houseVisitItems : db.saleItems;
+          await table.update(item.id!, { aiStatus: "queued" as const });
+        }
       }
     } else if (status === "idle") {
       startRecording(item.id!, mode);
@@ -63,7 +69,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
 
   return (
     <SwipeableRow onDelete={() => setShowDeleteConfirm(true)}>
-      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden${isQueued ? " opacity-50" : ""}`}>
         {/* Collapsed row - always visible (div instead of button to allow nested mic button) */}
         <div
           role="button"
@@ -112,8 +118,14 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               </span>
             )}
 
+            {isQueued && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                Queued
+              </span>
+            )}
+
             {/* Mic icon for re-record */}
-            <button
+            {!isQueued && <button
               type="button"
               onClick={handleMicClick}
               className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
@@ -142,7 +154,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
                   />
                 </svg>
               )}
-            </button>
+            </button>}
 
             {/* Chevron */}
             <svg
@@ -163,8 +175,17 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
           </div>
         </div>
 
-        {/* Expanded section */}
-        {isExpanded && (
+        {/* Expanded section -- queued waiting message */}
+        {isExpanded && isQueued && (
+          <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-6 text-center">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Waiting for connectivity to process...
+            </p>
+          </div>
+        )}
+
+        {/* Expanded section -- editable fields (non-queued only) */}
+        {isExpanded && !isQueued && (
           <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
             <EditableField
               label="Title"
