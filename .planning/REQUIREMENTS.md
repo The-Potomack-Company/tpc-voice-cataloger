@@ -62,10 +62,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Extension Batch Import
 
-- [ ] **EXT-01**: TPC Chrome extension accepts an imported JSON file from the speech cataloger app
-- [ ] **EXT-02**: Extension matches items to RFC Invaluable lots by receipt number
-- [ ] **EXT-03**: Extension fills title and description fields on each matched RFC lot page
-- [ ] **EXT-04**: Extension processes items in batch (navigate, fill, save, next) like existing batch mode
+- [x] **EXT-01**: TPC Chrome extension accepts an imported JSON file from the speech cataloger app
+- [x] **EXT-02**: Extension matches items to RFC Invaluable lots by receipt number
+- [x] **EXT-03**: Extension fills title and description fields on each matched RFC lot page
+- [x] **EXT-04**: Extension processes items in batch (navigate, fill, save, next) like existing batch mode
 
 ### Mobile UX
 
@@ -142,10 +142,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXPO-01 | Phase 6 | Complete |
 | EXPO-02 | Phase 6 | Complete |
 | EXPO-03 | Phase 6 | Complete |
-| EXT-01 | Phase 7 | Pending |
-| EXT-02 | Phase 7 | Pending |
-| EXT-03 | Phase 7 | Pending |
-| EXT-04 | Phase 7 | Pending |
+| EXT-01 | Phase 7 | Complete |
+| EXT-02 | Phase 7 | Complete |
+| EXT-03 | Phase 7 | Complete |
+| EXT-04 | Phase 7 | Complete |
 | UX-01 | Phase 1 | Complete |
 | UX-02 | Phase 1 | Complete |
 | UX-03 | Phase 1 | Complete |

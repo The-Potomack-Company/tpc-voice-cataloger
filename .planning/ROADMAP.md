@@ -117,7 +117,7 @@ Plans:
   2. Extension matches each item to its RFC Invaluable lot by receipt number and navigates to that lot's edit page
   3. Extension fills the title field (`#fld1`) with the ALL CAPS value and the description field (`#fld2`) with the lowercase value from the JSON, verifying the write succeeded by reading the field value back
   4. Extension processes all matched items in sequence (navigate, fill, save, advance) and reports how many succeeded vs failed
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 - [ ] 07-00-PLAN.md — Wave 0: ImportController test scaffold with behavioral stubs for EXT-01 through EXT-04
 - [ ] 07-01-PLAN.md — Import constants, popup Import tab with file picker, message plumbing, ImportController skeleton
@@ -147,7 +147,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 2/2 | Complete   | 2026-03-06 |
 | 6. Review, Edit, Export | 2/2 | Complete   | 2026-03-09 |
-| 7. Extension Batch Import | 0/3 | Not started | - |
+| 7. Extension Batch Import | 1/3 | In Progress|  |
 | 8. Offline Queue | 0/TBD | Not started | - |
 
 ### Phase 9: deffered items
