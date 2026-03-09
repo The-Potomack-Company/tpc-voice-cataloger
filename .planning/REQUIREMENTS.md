@@ -36,8 +36,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Review & Edit
 
 - [ ] **EDIT-01**: User can view all items in a session as a scrollable list with AI-extracted fields
-- [ ] **EDIT-02**: User can edit any field (title, description, condition, estimate, category) inline
-- [ ] **EDIT-03**: User can delete an item from the session
+- [x] **EDIT-02**: User can edit any field (title, description, condition, estimate, category) inline
+- [x] **EDIT-03**: User can delete an item from the session
 - [ ] **EDIT-04**: User can re-record audio for an item to regenerate AI fields
 
 ### Session Management
@@ -56,9 +56,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Export
 
-- [ ] **EXPO-01**: User can export a session as a JSON file matching the TPC extension schema
-- [ ] **EXPO-02**: Export includes all fields: title, description, condition, estimate, category, receipt number (if sale mode), photos (if house visit mode)
-- [ ] **EXPO-03**: User can download the export file to device storage
+- [x] **EXPO-01**: User can export a session as a JSON file matching the TPC extension schema
+- [x] **EXPO-02**: Export includes all fields: title, description, condition, estimate, category, receipt number (if sale mode), photos (if house visit mode)
+- [x] **EXPO-03**: User can download the export file to device storage
 
 ### Extension Batch Import
 
@@ -128,8 +128,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SALE-02 | Phase 4 | Complete |
 | SALE-03 | Phase 4 | Complete |
 | EDIT-01 | Phase 6 | Pending |
-| EDIT-02 | Phase 6 | Pending |
-| EDIT-03 | Phase 6 | Pending |
+| EDIT-02 | Phase 6 | Complete |
+| EDIT-03 | Phase 6 | Complete |
 | EDIT-04 | Phase 6 | Pending |
 | SESS-01 | Phase 3 | Complete |
 | SESS-02 | Phase 3 | Complete |
@@ -139,9 +139,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OFFL-02 | Phase 8 | Pending |
 | OFFL-03 | Phase 8 | Pending |
 | OFFL-04 | Phase 8 | Pending |
-| EXPO-01 | Phase 6 | Pending |
-| EXPO-02 | Phase 6 | Pending |
-| EXPO-03 | Phase 6 | Pending |
+| EXPO-01 | Phase 6 | Complete |
+| EXPO-02 | Phase 6 | Complete |
+| EXPO-03 | Phase 6 | Complete |
 | EXT-01 | Phase 7 | Pending |
 | EXT-02 | Phase 7 | Pending |
 | EXT-03 | Phase 7 | Pending |

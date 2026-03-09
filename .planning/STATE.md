@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-06T21:41:23.113Z"
-last_activity: 2026-03-06 — Plan 04-02 complete (item entry with photo capture, lightbox, receipt validation)
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-09T13:06:51.045Z"
+last_activity: 2026-03-06 — Plan 05-02 complete (processAudioWithAi pipeline, fire-and-forget wiring)
 progress:
   total_phases: 9
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
   percent: 85
 ---
 
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 5 AI Pipeline complete, ready for Phase 6 Export
+**Current focus:** Phase 6 Review/Edit/Export — data layer complete, UI and wiring next
 
 ## Current Position
 
-Phase: 5 of 8 (AI Pipeline)
-Plan: 2 of 2 in current phase
-Status: Phase 5 complete
-Last activity: 2026-03-06 — Plan 05-02 complete (processAudioWithAi pipeline, fire-and-forget wiring)
+Phase: 6 of 8 (Review/Edit/Export)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-03-09 — Plan 06-01 complete (item CRUD, export pipeline, EditableField)
 
-Progress: [████████░-] 85% of milestone
+Progress: [█████████░] 92% of milestone
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 8min
+- Total plans completed: 12
+- Average duration: 7min
 - Total execution time: 1.33 hours
 
 **By Phase:**
@@ -54,6 +54,7 @@ Progress: [████████░-] 85% of milestone
 - Trend: 05-02 fast — clear spec with TDD, service + wiring
 
 *Updated after each plan completion*
+| Phase 06 P01 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [05-01] Cloudflare Worker proxy tsconfig uses skipLibCheck and lib:ES2022 to avoid dom type conflicts
 - [05-02] Re-wrap Blob before arrayBuffer() for structured clone compatibility (IndexedDB Blobs lose prototype)
 - [05-02] AI processing wired in RecordButton (where stopRecording lives) rather than ItemEntry.tsx
+- [Phase 06]: Export excludes both id and deletedAt from session data via destructuring
+- [Phase 06]: Blob-to-base64 uses FileReader.readAsDataURL for cross-browser compatibility
+- [Phase 06]: EditableField uses blur-to-save with no-op when value unchanged
 
 ### Roadmap Evolution
 
@@ -113,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-06T21:53:34Z
-Stopped at: Completed 05-02-PLAN.md
-Resume file: .planning/phases/05-ai-pipeline/05-02-SUMMARY.md
+Last session: 2026-03-09T13:06:51.043Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None
