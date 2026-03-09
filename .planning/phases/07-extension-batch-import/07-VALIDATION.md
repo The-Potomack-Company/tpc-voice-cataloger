@@ -2,8 +2,8 @@
 phase: 7
 slug: extension-batch-import
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-09
 ---
 
@@ -38,10 +38,11 @@ created: 2026-03-09
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 7-01-01 | 01 | 1 | EXT-01 | unit | `npx jest tests/unit/content/importController.test.js -x` | ❌ W0 | ⬜ pending |
-| 7-01-02 | 01 | 1 | EXT-02 | unit | `npx jest tests/unit/content/importController.test.js -x` | ❌ W0 | ⬜ pending |
-| 7-01-03 | 01 | 1 | EXT-03 | unit | `npx jest tests/unit/content/importController.test.js -x` | ❌ W0 | ⬜ pending |
-| 7-01-04 | 01 | 1 | EXT-04 | unit | `npx jest tests/unit/content/importController.test.js -x` | ❌ W0 | ⬜ pending |
+| 7-00-01 | 00 | 0 | EXT-01..04 | scaffold | `npx jest tests/unit/content/modules/importController.test.js --no-coverage` | Created by Plan 00 | ⬜ pending |
+| 7-01-01 | 01 | 1 | EXT-01 | unit | `npx jest tests/unit/content/modules/importController.test.js --no-coverage` | Yes (W0) | ⬜ pending |
+| 7-01-02 | 01 | 1 | EXT-01 | unit | `npx jest tests/unit/content/modules/importController.test.js --no-coverage` | Yes (W0) | ⬜ pending |
+| 7-02-01 | 02 | 2 | EXT-02..04 | unit | `npx jest tests/unit/content/modules/importController.test.js --no-coverage` | Yes (W0) | ⬜ pending |
+| 7-02-02 | 02 | 2 | EXT-02..04 | manual | User verifies on live RFC site | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -49,9 +50,9 @@ created: 2026-03-09
 
 ## Wave 0 Requirements
 
-- [ ] `tests/unit/content/importController.test.js` — stubs for EXT-01 through EXT-04
-- [ ] Mock setup for chrome.storage.local, chrome.runtime.sendMessage, DOM elements (`#fld1`, `#fld2`, receipt input)
-- [ ] Jest test infrastructure already exists — no framework install needed
+- [x] `tests/unit/content/modules/importController.test.js` — stubs for EXT-01 through EXT-04 (created by Plan 00)
+- [x] Mock setup for chrome.storage.local, chrome.runtime.sendMessage, DOM elements (`#fld1`, `#fld2`, receipt input)
+- [x] Jest test infrastructure already exists — no framework install needed
 
 ---
 
@@ -67,11 +68,11 @@ created: 2026-03-09
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved
