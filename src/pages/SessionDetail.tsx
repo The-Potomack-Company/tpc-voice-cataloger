@@ -2,9 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useSession, useSessionItemCount } from "../hooks/useSessions";
 import { updateSession, softDeleteSession } from "../db/sessions";
+import { createBlankItem } from "../db/items";
+import { exportSession } from "../utils/export";
 import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ItemList } from "../components/ItemList";
+import { RecordingIndicator } from "../components/RecordingIndicator";
+import { RecordingToast } from "../components/RecordingToast";
 
 function formatRelativeTime(date: Date): string {
   const now = Date.now();
@@ -52,8 +56,10 @@ export function SessionDetailPage() {
   const [editNotes, setEditNotes] = useState<string | null>(null);
   const [showDismissedBanner, setShowDismissedBanner] = useState(false);
 
+  const [exporting, setExporting] = useState(false);
+
   const [confirmAction, setConfirmAction] = useState<
-    "complete" | "reopen" | "delete" | null
+    "complete" | "reopen" | "delete" | "export" | null
   >(null);
 
   // Focus name input when editing starts
@@ -109,6 +115,25 @@ export function SessionDetailPage() {
     setEditNotes(null);
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportSession(sessionId);
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportClick = () => {
+    if (session.status === "active") {
+      setConfirmAction("export");
+    } else {
+      handleExport();
+    }
+  };
+
   const handleConfirm = async () => {
     if (confirmAction === "complete") {
       await updateSession(sessionId, { status: "completed" });
@@ -117,8 +142,14 @@ export function SessionDetailPage() {
     } else if (confirmAction === "delete") {
       await softDeleteSession(sessionId);
       navigate("/");
+    } else if (confirmAction === "export") {
+      await handleExport();
     }
     setConfirmAction(null);
+  };
+
+  const handleAddItem = async () => {
+    await createBlankItem(sessionId, session.mode);
   };
 
   const modeLabel = session.mode === "house" ? "House Visit" : "Sale Cataloging";
@@ -268,6 +299,27 @@ export function SessionDetailPage() {
 
       {/* Action buttons */}
       <section className="space-y-3">
+        {/* Export button */}
+        <button
+          onClick={handleExportClick}
+          disabled={exporting}
+          className="w-full min-h-12 rounded-lg border border-accent text-accent font-medium
+                     hover:bg-accent/10 transition-colors flex items-center justify-center gap-2
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting ? (
+            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+          )}
+          {exporting ? "Exporting..." : "Export Session"}
+        </button>
+
         {session.status === "active" ? (
           <button
             onClick={() => setConfirmAction("complete")}
@@ -325,22 +377,33 @@ export function SessionDetailPage() {
         onCancel={() => setConfirmAction(null)}
       />
 
+      <ConfirmDialog
+        open={confirmAction === "export"}
+        title="Export Active Session"
+        message="This session is still active. Items may be incomplete. Export anyway?"
+        confirmLabel="Export Anyway"
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmAction(null)}
+      />
+
       {/* Floating Add Item button */}
-      {session.status === "active" && (
-        <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-10">
-          <button
-            onClick={() => navigate(`/session/${sessionId}/item/new`)}
-            className="w-full bg-accent hover:bg-accent-hover text-white font-medium
-                       py-3 px-6 rounded-lg min-h-12 flex items-center justify-center gap-2
-                       shadow-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            {itemCount === 0 ? "Start Cataloging" : "Add Item"}
-          </button>
-        </div>
-      )}
+      <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-10">
+        <button
+          onClick={handleAddItem}
+          className="w-full bg-accent hover:bg-accent-hover text-white font-medium
+                     py-3 px-6 rounded-lg min-h-12 flex items-center justify-center gap-2
+                     shadow-lg transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          {itemCount === 0 ? "Start Cataloging" : "Add Item"}
+        </button>
+      </div>
+
+      {/* Recording overlays for re-record from ItemList mic icons */}
+      <RecordingIndicator />
+      <RecordingToast />
     </div>
   );
 }
