@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-00-PLAN.md
-last_updated: "2026-03-09T13:57:06.905Z"
-last_activity: 2026-03-09 — Plan 07-00 complete (Wave 0 test scaffold for ImportController)
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-09T13:58:30.000Z"
+last_activity: 2026-03-09 — Plan 07-01 complete (import infrastructure: constants, popup file picker, ImportController skeleton, message plumbing)
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 16
-  completed_plans: 14
-  percent: 88
+  completed_plans: 15
+  percent: 94
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 7 Extension Batch Import — Wave 0 test scaffold complete, implementation next
+**Current focus:** Phase 7 Extension Batch Import — import infrastructure complete (Plan 01), import logic next (Plan 02)
 
 ## Current Position
 
 Phase: 7 of 8 (Chrome Extension)
-Plan: 2 of 3 in current phase
+Plan: 3 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-09 — Plan 07-00 complete (Wave 0 test scaffold for ImportController)
+Last activity: 2026-03-09 — Plan 07-01 complete (import infrastructure: constants, popup file picker, ImportController skeleton, message plumbing)
 
-Progress: [█████████░] 88% of milestone
+Progress: [█████████░] 94% of milestone
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [█████████░] 88% of milestone
 | Phase 06 P01 | 3min | 2 tasks | 6 files |
 | Phase 06 P02 | 4min | 2 tasks | 5 files |
 | Phase 07 P00 | 1min | 1 tasks | 1 files |
+| Phase 07 P01 | 3min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [06-02] ItemCard collapsed row uses div role=button to allow nested mic button (HTML validity)
 - [06-02] Expand state managed as Set<number> in local React state, not Zustand
 - [06-02] Floating Add Item calls createBlankItem directly instead of navigating to ItemEntry
+- [07-01] Import tab added as third popup tab alongside AI Catalog and Upload
+- [07-01] Import does not require API key -- no AI calls, data is pre-reviewed in PWA
 - [Phase 07]: Used test.todo() stubs for Wave 0 scaffold so Jest reports pending without failures
 
 ### Roadmap Evolution
@@ -123,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T13:57:06.903Z
-Stopped at: Completed 07-00-PLAN.md
+Last session: 2026-03-09T13:58:30Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
