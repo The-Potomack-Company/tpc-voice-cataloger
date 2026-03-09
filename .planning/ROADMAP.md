@@ -132,7 +132,10 @@ Plans:
   2. Items recorded offline appear in the session list marked as "Queued" (not yet processed by AI)
   3. When the device regains internet connectivity, queued items are sent to AI and their fields are populated automatically — the user does not need to trigger this manually
   4. User can see a clear status indicator distinguishing queued items from fully processed items at all times
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — Data layer and services: AiStatus "queued", online status hook, queue drain service with concurrency and retry
+- [ ] 08-02-PLAN.md — UI wiring: offline intercept in RecordButton/ItemCard, queued styling, OfflineIndicator, export disable, end-to-end verification
 
 ## Progress
 
@@ -148,7 +151,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 5. AI Pipeline | 2/2 | Complete   | 2026-03-06 |
 | 6. Review, Edit, Export | 2/2 | Complete   | 2026-03-09 |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
-| 8. Offline Queue | 0/TBD | Not started | - |
+| 8. Offline Queue | 0/2 | Not started | - |
 
 ### Phase 9: deffered items
 
