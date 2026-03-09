@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-09T15:01:11.133Z"
-last_activity: 2026-03-09 — Plan 07-02 complete (ImportController with sale/house import modes, verbatim filling, state recovery, 25 tests)
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-09T15:42:59.721Z"
+last_activity: 2026-03-09 — Plan 08-01 complete (offline queue data layer with drainQueue service, useOnlineStatus hook, 12 tests)
 progress:
   total_phases: 9
   completed_phases: 7
-  total_plans: 17
-  completed_plans: 16
-  percent: 100
+  total_plans: 18
+  completed_plans: 17
+  percent: 94
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 7 Extension Batch Import complete -- all 3 plans done. Ready for Phase 8 or deferred items.
+**Current focus:** Phase 8 Offline Queue -- Plan 01 complete (data layer + services). Plan 02 remaining (UI wiring).
 
 ## Current Position
 
-Phase: 7 of 8 (Chrome Extension) -- COMPLETE
-Plan: 3 of 3 in current phase (all done)
-Status: Phase 7 complete
-Last activity: 2026-03-09 — Plan 07-02 complete (ImportController with sale/house import modes, verbatim filling, state recovery, 25 tests)
+Phase: 8 of 9 (Offline Queue)
+Plan: 1 of 2 in current phase
+Status: Phase 8 in progress
+Last activity: 2026-03-09 — Plan 08-01 complete (offline queue data layer with drainQueue service, useOnlineStatus hook, 12 tests)
 
-Progress: [██████████] 100% of milestone
+Progress: [█████████░] 94% of milestone
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100% of milestone
 | Phase 07 P00 | 1min | 1 tasks | 1 files |
 | Phase 07 P01 | 3min | 2 tasks | 7 files |
 | Phase 07 P02 | 8min | 2 tasks | 3 files |
+| Phase 08 P01 | 3min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,9 @@ Recent decisions affecting current work:
 - [07-02] Verbatim .value writes bypass FormController.fillFormFields() to avoid [AI Generated] prefix
 - [07-02] Sale mode uses step-based state machine (navigate/fill/save) for page reload recovery
 - [07-02] RECEIPT_INPUT and RECEIPT_SUBMIT selectors added as placeholders pending live site verification
+- [08-01] isOnline excluded from Zustand persist via partialize -- transient state reflects live connectivity only
+- [08-01] Queue drain retries externally by resetting aiStatus to "queued" before re-calling processAudioWithAi
+- [08-01] findAudioForItem selects highest-id audio record (most recent) for processing
 
 ### Roadmap Evolution
 
@@ -130,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T14:46:29.365Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-offline-queue/08-CONTEXT.md
+Last session: 2026-03-09T15:42:59.719Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
