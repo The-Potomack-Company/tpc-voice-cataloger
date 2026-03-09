@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss (completed 2026-03-06)
 - [x] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation) (completed 2026-03-06)
 - [x] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement (completed 2026-03-06)
-- [ ] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension
+- [x] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension (completed 2026-03-09)
 - [ ] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages
 - [ ] **Phase 8: Offline Queue** - Audio queued locally when offline, processed automatically when connectivity returns
 
@@ -103,7 +103,7 @@ Plans:
   3. User can delete an item from the session; it is removed from the list and will not appear in the export
   4. User can tap "Re-record" on any item, record new audio, and have the AI fields regenerate from the new recording
   5. User can tap "Export" and receive a JSON file on their device containing all fields including receipt numbers (sale mode) and photo references (house visit mode), in the versioned TPC extension schema
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 06-01-PLAN.md — Item CRUD data layer, export pipeline, EditableField component with tests
 - [ ] 06-02-PLAN.md — Expandable item cards, inline editing UI, delete, re-record, export button on SessionDetail
@@ -142,7 +142,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 2/2 | Complete   | 2026-03-06 |
-| 6. Review, Edit, Export | 0/2 | Not started | - |
+| 6. Review, Edit, Export | 2/2 | Complete   | 2026-03-09 |
 | 7. Extension Batch Import | 0/TBD | Not started | - |
 | 8. Offline Queue | 0/TBD | Not started | - |
 

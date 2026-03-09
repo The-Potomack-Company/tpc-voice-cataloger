@@ -35,10 +35,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Review & Edit
 
-- [ ] **EDIT-01**: User can view all items in a session as a scrollable list with AI-extracted fields
+- [x] **EDIT-01**: User can view all items in a session as a scrollable list with AI-extracted fields
 - [x] **EDIT-02**: User can edit any field (title, description, condition, estimate, category) inline
 - [x] **EDIT-03**: User can delete an item from the session
-- [ ] **EDIT-04**: User can re-record audio for an item to regenerate AI fields
+- [x] **EDIT-04**: User can re-record audio for an item to regenerate AI fields
 
 ### Session Management
 
@@ -127,10 +127,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SALE-01 | Phase 4 | Complete |
 | SALE-02 | Phase 4 | Complete |
 | SALE-03 | Phase 4 | Complete |
-| EDIT-01 | Phase 6 | Pending |
+| EDIT-01 | Phase 6 | Complete |
 | EDIT-02 | Phase 6 | Complete |
 | EDIT-03 | Phase 6 | Complete |
-| EDIT-04 | Phase 6 | Pending |
+| EDIT-04 | Phase 6 | Complete |
 | SESS-01 | Phase 3 | Complete |
 | SESS-02 | Phase 3 | Complete |
 | SESS-03 | Phase 3 | Complete |

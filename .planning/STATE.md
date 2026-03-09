@@ -10,8 +10,8 @@ progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 13
-  completed_plans: 12
-  percent: 85
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -21,21 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 6 Review/Edit/Export — data layer complete, UI and wiring next
+**Current focus:** Phase 6 Review/Edit/Export complete — expandable cards, export, re-record all wired
 
 ## Current Position
 
-Phase: 6 of 8 (Review/Edit/Export)
+Phase: 7 of 8 (Chrome Extension)
 Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-03-09 — Plan 06-01 complete (item CRUD, export pipeline, EditableField)
+Status: Not started
+Last activity: 2026-03-09 — Plan 06-02 complete (expandable ItemCard, export button, re-record mic)
 
-Progress: [█████████░] 92% of milestone
+Progress: [██████████] 100% of milestone
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 7min
 - Total execution time: 1.33 hours
 
@@ -50,11 +50,12 @@ Progress: [█████████░] 92% of milestone
 | 5. AI Pipeline | 2/2 | 7min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (5min), 04-01 (3min), 04-02 (45min), 05-01 (3min), 05-02 (4min)
-- Trend: 05-02 fast — clear spec with TDD, service + wiring
+- Last 5 plans: 04-02 (45min), 05-01 (3min), 05-02 (4min), 06-01 (3min), 06-02 (4min)
+- Trend: 06-02 fast — clear spec with component refactoring and export wiring
 
 *Updated after each plan completion*
 | Phase 06 P01 | 3min | 2 tasks | 6 files |
+| Phase 06 P02 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 06]: Export excludes both id and deletedAt from session data via destructuring
 - [Phase 06]: Blob-to-base64 uses FileReader.readAsDataURL for cross-browser compatibility
 - [Phase 06]: EditableField uses blur-to-save with no-op when value unchanged
+- [06-02] ItemCard collapsed row uses div role=button to allow nested mic button (HTML validity)
+- [06-02] Expand state managed as Set<number> in local React state, not Zustand
+- [06-02] Floating Add Item calls createBlankItem directly instead of navigating to ItemEntry
 
 ### Roadmap Evolution
 
@@ -117,6 +121,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T13:06:51.043Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-03-09T13:12:05Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
