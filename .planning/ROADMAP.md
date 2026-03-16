@@ -96,6 +96,16 @@ Plans:
 - [x] 05-04-PLAN.md — Gap closure: align ROADMAP/REQUIREMENTS with CONTEXT.md deferral of TPC formatting to Phase 6
 - [ ] 05-05-PLAN.md — Gap closure: AI status indicators and retry button on ItemCard for failed processing (completed 2026-03-16)
 
+### Phase 05.1: want to add field for measurements that gets automatically formatted (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 05.1 to break down)
+
 ### Phase 6: Review, Edit, Export
 **Goal**: Auctioneers can review every AI-parsed item, correct any field inline, and export the session as a JSON file that the Chrome extension can consume
 **Depends on**: Phase 5

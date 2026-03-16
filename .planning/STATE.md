@@ -137,6 +137,7 @@ Recent decisions affecting current work:
 
 - Phase 9 added: deffered items
 - Phase 10 added: vercel deployment
+- Phase 05.1 inserted after Phase 5: want to add field for measurements that gets automatically formatted (URGENT)
 
 ### Pending Todos
 
