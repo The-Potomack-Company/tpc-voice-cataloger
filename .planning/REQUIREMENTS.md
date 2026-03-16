@@ -74,6 +74,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UX-03**: App works in both portrait and landscape orientation
 - [x] **UX-04**: Recording and navigation controls are accessible one-handed
 
+### Deployment & CI/CD
+
+- [ ] **DEPLOY-01**: App is deployed to Vercel and accessible at a production URL with auto-deploy from main branch
+- [ ] **DEPLOY-02**: CI pipeline (lint, typecheck, test, build) runs on every PR and push to main via GitHub Actions
+- [ ] **DEPLOY-03**: Cloudflare Worker CORS is restricted to the production Vercel domain (no wildcard origin)
+- [ ] **DEPLOY-04**: Branch protection on main requires CI checks to pass before merge
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -81,7 +88,7 @@ Deferred to future release. Tracked but not in current roadmap.
 ### AI Enhancements
 
 - **AI-05**: Category-aware AI prompts (furniture/books/fashion use different extraction strategies)
-- **AI-06**: Estimate extraction from natural speech ("three to five hundred" → $300–$500)
+- **AI-06**: Estimate extraction from natural speech ("three to five hundred" → $300-$500)
 - **AI-07**: Custom vocabulary injection for auctioneer-specific terminology
 
 ### Photo Enhancements
@@ -150,10 +157,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-02 | Phase 1 | Complete |
 | UX-03 | Phase 1 | Complete |
 | UX-04 | Phase 1 | Complete |
+| DEPLOY-01 | Phase 10 | Planned |
+| DEPLOY-02 | Phase 10 | Planned |
+| DEPLOY-03 | Phase 10 | Planned |
+| DEPLOY-04 | Phase 10 | Planned |
 
 **Coverage:**
-- v1 requirements: 37 total
-- Mapped to phases: 37
+- v1 requirements: 41 total
+- Mapped to phases: 41
 - Unmapped: 0 (100% coverage)
 
 **Phase breakdown:**
@@ -165,7 +176,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Phase 6 (Review, Edit, Export): EDIT-01, EDIT-02, EDIT-03, EDIT-04, EXPO-01, EXPO-02, EXPO-03 (7 requirements)
 - Phase 7 (Extension Batch Import): EXT-01, EXT-02, EXT-03, EXT-04 (4 requirements)
 - Phase 8 (Offline Queue): OFFL-01, OFFL-02, OFFL-03, OFFL-04 (4 requirements)
+- Phase 10 (Vercel Deployment): DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04 (4 requirements)
 
 ---
 *Requirements defined: 2026-03-06*
-*Last updated: 2026-03-06 after roadmap creation — traceability complete*
+*Last updated: 2026-03-16 after Phase 10 planning — deployment requirements added*

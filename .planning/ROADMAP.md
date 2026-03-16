@@ -144,7 +144,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -157,6 +157,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
 | 9. Deferred Items | 0/4 | Planning   | — |
+| 10. Vercel Deployment | 0/2 | Planning   | — |
 
 ### Phase 9: Deferred Items
 
@@ -176,12 +177,18 @@ Plans:
 - [ ] 09-03-PLAN.md — Structured estimate extraction: Gemini schema update, EstimateField component, ItemCard/export integration
 - [ ] 09-04-PLAN.md — Export history tracking, session archive CRUD, archive section in Sessions page, archive offer after export
 
-### Phase 10: vercel deployment
+### Phase 10: Vercel Deployment
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Deploy the TPC Catalog PWA to Vercel with full CI/CD pipeline, so auctioneers access the app at a production URL with auto-deploy from main and CI checks on every PR
+**Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
 **Depends on:** Phase 9
-**Plans:** 0 plans
+**Success Criteria** (what must be TRUE):
+  1. App is accessible at tpc-catalog.vercel.app (or assigned Vercel URL) with auto-deploy from main branch
+  2. CI pipeline (lint, typecheck, test, build) runs on every PR and push to main via GitHub Actions
+  3. Cloudflare Worker CORS is restricted to the production Vercel domain only
+  4. Branch protection on main requires CI checks to pass before merge
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 10 to break down)
+- [ ] 10-01-PLAN.md — Vercel config (vercel.json, security headers, SPA rewrite), conditional basicSsl, CI workflow, proxy CORS restriction
+- [ ] 10-02-PLAN.md — Vercel project setup (human), deploy verification, branch protection configuration
