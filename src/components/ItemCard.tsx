@@ -93,7 +93,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
 
   return (
     <SwipeableRow onDelete={() => setShowDeleteConfirm(true)}>
-      <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden${isQueued ? " opacity-50" : ""}`}>
+      <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg${isQueued ? " opacity-50" : ""}`}>
         {/* Collapsed row - always visible (div instead of button to allow nested mic button) */}
         <div
           role="button"

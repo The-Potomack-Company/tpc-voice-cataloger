@@ -31,8 +31,10 @@ export function SwipeableRow({
       currentXRef.current = isOpen ? SNAP_OPEN : 0;
       setIsSwiping(true);
 
-      // Capture pointer for reliable tracking
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      // Capture pointer for reliable tracking (skip when open so taps reach delete button)
+      if (!isOpen) {
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      }
     },
     [isOpen],
   );
@@ -95,7 +97,7 @@ export function SwipeableRow({
       <button
         type="button"
         onClick={handleDeleteClick}
-        className="absolute inset-y-0 right-0 flex w-[120px] items-center justify-center bg-red-500 text-white font-medium"
+        className="absolute inset-y-0 right-0 z-10 flex w-[120px] items-center justify-center bg-red-500 text-white font-medium"
       >
         {deleteLabel}
       </button>
@@ -106,7 +108,7 @@ export function SwipeableRow({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="relative bg-white dark:bg-gray-900"
+        className="bg-white dark:bg-gray-900"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isSwiping ? "none" : "transform 0.2s ease-out",
