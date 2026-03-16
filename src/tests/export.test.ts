@@ -263,9 +263,97 @@ describe("exportSession", () => {
     expect(createElementSpy).toHaveBeenCalledWith("a");
     expect(clickMock).toHaveBeenCalled();
     expect((fakeAnchor as unknown as Record<string, string>).download).toBe(
+      "Download Test.json",
+    );
+
+    createElementSpy.mockRestore();
+  });
+
+  it("sanitizes unsafe filesystem characters in session name", async () => {
+    const { exportSession } = await import("../utils/export");
+    const sessionId = (await db.sessions.add({
+      name: "Smith's Estate 3/15",
+      mode: "house" as const,
+      status: "active" as const,
+      notes: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })) as number;
+
+    const clickMock = vi.fn();
+    const fakeAnchor = {
+      href: "",
+      download: "",
+      click: clickMock,
+      style: {},
+      setAttribute: vi.fn(),
+    } as unknown as HTMLAnchorElement;
+
+    const createElementSpy = vi
+      .spyOn(document, "createElement")
+      .mockReturnValue(fakeAnchor);
+
+    await exportSession(sessionId);
+
+    expect((fakeAnchor as unknown as Record<string, string>).download).toBe(
+      "Smith's Estate 3-15.json",
+    );
+
+    createElementSpy.mockRestore();
+  });
+
+  it("falls back to ID-based filename for empty session name", async () => {
+    const { exportSession } = await import("../utils/export");
+    const sessionId = (await db.sessions.add({
+      name: "   ",
+      mode: "house" as const,
+      status: "active" as const,
+      notes: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })) as number;
+
+    const clickMock = vi.fn();
+    const fakeAnchor = {
+      href: "",
+      download: "",
+      click: clickMock,
+      style: {},
+      setAttribute: vi.fn(),
+    } as unknown as HTMLAnchorElement;
+
+    const createElementSpy = vi
+      .spyOn(document, "createElement")
+      .mockReturnValue(fakeAnchor);
+
+    await exportSession(sessionId);
+
+    expect((fakeAnchor as unknown as Record<string, string>).download).toBe(
       `tpc-session-${sessionId}.json`,
     );
 
     createElementSpy.mockRestore();
+  });
+});
+
+describe("sanitizeFilename", () => {
+  it("replaces slashes, colons, and other unsafe characters with dashes", async () => {
+    const { sanitizeFilename } = await import("../utils/export");
+    expect(sanitizeFilename("test/file:name*foo")).toBe("test-file-name-foo");
+  });
+
+  it("trims leading/trailing dots and spaces", async () => {
+    const { sanitizeFilename } = await import("../utils/export");
+    expect(sanitizeFilename("  ..hello world..  ")).toBe("hello world");
+  });
+
+  it("collapses consecutive dashes into one", async () => {
+    const { sanitizeFilename } = await import("../utils/export");
+    expect(sanitizeFilename("a///b")).toBe("a-b");
+  });
+
+  it("returns empty string for all-unsafe input", async () => {
+    const { sanitizeFilename } = await import("../utils/export");
+    expect(sanitizeFilename("///")).toBe("");
   });
 });
