@@ -57,6 +57,12 @@ export async function processAudioWithAi(
       throw new Error(`Audio record ${audioId} not found`);
     }
 
+    // Guard: ensure proxy URL is configured before doing any work
+    const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
+    if (!proxyUrl) {
+      throw new Error("VITE_GEMINI_PROXY_URL is not configured. Create a .env file from .env.example.");
+    }
+
     // Convert audio blob to base64
     const base64Audio = await blobToBase64(audioRecord.blob);
 
@@ -90,7 +96,6 @@ export async function processAudioWithAi(
     };
 
     // Send to proxy
-    const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     const response = await fetch(proxyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -99,6 +104,12 @@ export async function processAudioWithAi(
         payload: geminiPayload,
       }),
     });
+
+    // Check for non-200 response before attempting to parse
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "unknown");
+      throw new Error(`Proxy returned HTTP ${response.status}: ${errorText}`);
+    }
 
     const data = await response.json();
 
@@ -139,10 +150,14 @@ export async function processAudioWithAi(
   } catch (error) {
     // On ANY error: set aiStatus to "failed", set fallback description
     console.error("AI processing error:", error);
-    await table.update(itemId, {
-      aiStatus: "failed",
-      description:
-        "AI processing failed - audio recorded, awaiting manual review",
-    });
+    try {
+      await table.update(itemId, {
+        aiStatus: "failed",
+        description:
+          "AI processing failed - audio recorded, awaiting manual review",
+      });
+    } catch (dbError) {
+      console.error("Failed to update aiStatus to failed:", dbError);
+    }
   }
 }
