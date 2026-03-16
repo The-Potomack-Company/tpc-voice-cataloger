@@ -88,7 +88,7 @@ Plans:
   1. After recording stops, structured fields (title, description, condition, estimate, category) appear in the item record without a separate transcription step
   2. AI returns verbatim speech in structured fields (title, description, condition, estimate, category) without reformatting; TPC conventions (ALL CAPS title, formal description language) are applied downstream in Phase 6 review
   3. Fields not mentioned in the audio are stored as null — the app does not invent plausible values for unspoken details
-**Plans:** 5 plans (3 complete + 2 gap closure)
+**Plans:** 5/5 plans complete
 Plans:
 - [ ] 05-01-PLAN.md — DB migration (aiStatus), Zod schema for Gemini responses, Cloudflare Worker proxy
 - [ ] 05-02-PLAN.md — Client-side AI processing service (audio to base64, proxy call, Zod validation, Dexie write)
@@ -152,7 +152,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
-| 5. AI Pipeline | 3/5 | Gap Closure | 2026-03-16 |
+| 5. AI Pipeline | 5/5 | Complete   | 2026-03-16 |
 | 6. Review, Edit, Export | 2/3 | Gap Closure | — |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
