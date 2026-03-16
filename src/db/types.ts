@@ -72,7 +72,7 @@ export interface ExportSchema {
     condition?: string;
     estimate?: string;
     measurements?: string;
-    category?: string;
+    department?: string;
     transcript?: string;
     receiptNumber?: string;
     sortOrder: number;

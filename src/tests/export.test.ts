@@ -188,6 +188,30 @@ describe("buildExportData", () => {
     expect(data.items[0].receiptNumber).toBe("R-001");
   });
 
+  it("exports items with 'department' field instead of 'category'", async () => {
+    const { buildExportData } = await import("../utils/export");
+    const sessionId = (await db.sessions.add({
+      name: "Dept Field Test",
+      mode: "house" as const,
+      status: "active" as const,
+      notes: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })) as number;
+
+    await db.houseVisitItems.add({
+      sessionId,
+      title: "Furniture Item",
+      category: "FRN",
+      sortOrder: 0,
+      createdAt: new Date(),
+    });
+
+    const data = await buildExportData(sessionId);
+    expect(data.items[0].department).toBe("FRN");
+    expect((data.items[0] as Record<string, unknown>).category).toBeUndefined();
+  });
+
   it("handles session with zero items", async () => {
     const { buildExportData } = await import("../utils/export");
     const sessionId = (await db.sessions.add({

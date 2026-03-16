@@ -3,7 +3,7 @@
  *
  * The AI is prompted to return department codes directly, but this mapper
  * acts as a safety net to normalize any verbatim text the AI might still return.
- * Unknown/unmatched categories default to "FRN" (Furniture).
+ * Null, empty, or unrecognized input returns null (no default assignment).
  */
 
 /** All valid RFC Invaluable department codes. */
@@ -110,15 +110,15 @@ const SORTED_KEYWORDS = Object.keys(KEYWORD_TO_CODE).sort(
  * Map a raw category string to an RFC department code.
  *
  * Resolution order:
- * 1. Null/empty -> "FRN"
+ * 1. Null/empty -> null
  * 2. Direct department code match (case-insensitive) -> return uppercased
  * 3. Exact keyword match (lowercased) -> mapped code
  * 4. Substring keyword match (longest first) -> mapped code
- * 5. No match -> "FRN"
+ * 5. No match -> null
  */
-export function mapCategoryToCode(raw: string | null): string {
+export function mapCategoryToCode(raw: string | null): string | null {
   if (raw === null || raw.trim() === "") {
-    return "FRN";
+    return null;
   }
 
   // Check if it's already a valid department code
@@ -141,6 +141,6 @@ export function mapCategoryToCode(raw: string | null): string {
     }
   }
 
-  // Default fallback
-  return "FRN";
+  // No match
+  return null;
 }

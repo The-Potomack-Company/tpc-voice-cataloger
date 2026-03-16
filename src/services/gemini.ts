@@ -163,7 +163,10 @@ export async function processAudioWithAi(
     if (formattedEstimate !== null) {
       updateData.estimate = formattedEstimate;
     }
-    updateData.category = mapCategoryToCode(fields.category);
+    const mappedCategory = mapCategoryToCode(fields.category);
+    if (mappedCategory !== null) {
+      updateData.category = mappedCategory;
+    }
     if (fields.measurements !== null && fields.measurements.length > 0) {
       updateData.measurements = formatMeasurements(fields.measurements);
     }

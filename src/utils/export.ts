@@ -78,7 +78,7 @@ export async function buildExportData(
         measurements: item.measurements,
         condition: item.condition,
         estimate: item.estimate,
-        category: item.category,
+        department: item.category,
         transcript: item.transcript,
         receiptNumber:
           "receiptNumber" in item
