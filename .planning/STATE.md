@@ -142,9 +142,10 @@ n### Quick Tasks Completed
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Push everything to main branch of new tpc-app repo in The-Potomack-Company org on GitHub as private repo | 2026-03-16 | f569f39 | [1-push-everything-to-main-branch-of-new-tp](./quick/1-push-everything-to-main-branch-of-new-tp/) |
+| 3 | Fix apple-mobile-web-app-capable deprecation + add compound Dexie index | 2026-03-16 | 2667111 | [3-fix-apple-mobile-web-app-capable-depreca](./quick/3-fix-apple-mobile-web-app-capable-depreca/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T13:53:53.879Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-vercel-deployment/10-CONTEXT.md
+Last session: 2026-03-16T14:45:30Z
+Stopped at: Completed quick task 3
+Resume file: .planning/quick/3-fix-apple-mobile-web-app-capable-depreca/3-SUMMARY.md
