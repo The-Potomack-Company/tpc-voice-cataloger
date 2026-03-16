@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 Phase: 05.1 of 10 (Measurements Field)
 Plan: 2 of 2 in current phase
 Status: Phase 05.1 complete
-Last activity: 2026-03-16 - Completed quick task 10: Fix department mapping - export field rename + null fallback fix + backward-compat import
+Last activity: 2026-03-16 - Completed quick task 11: Use session title as export filename with sanitization
 
 Progress: [██████████] 100% of milestone
 
@@ -171,8 +171,9 @@ n### Quick Tasks Completed
 | 8 | Change title autoformatting from Title Case to ALL CAPS | 2026-03-16 | 1e7d551 | [8-change-the-autoformatting-for-titles-to-](./quick/8-change-the-autoformatting-for-titles-to-/) |
 | 9 | Lock down completed sessions (read-only mode) | 2026-03-16 | b4caa20 | [9-completing-a-session-doesn-t-lock-it-dow](./quick/9-completing-a-session-doesn-t-lock-it-dow/) |
 | 10 | Fix department mapping: null fallback + export field rename + backward-compat import | 2026-03-16 | ea66e74 | [10-fix-department-mapping-export-maps-all-t](./quick/10-fix-department-mapping-export-maps-all-t/) |
+| 11 | Use session title as export filename with sanitization | 2026-03-16 | 375e9b5 | [11-for-the-export-from-a-finished-session-t](./quick/11-for-the-export-from-a-finished-session-t/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:56:59Z
-Stopped at: Completed quick task 10 (fix department mapping)
+Last session: 2026-03-16T20:52:44Z
+Stopped at: Completed quick task 11 (session title export filename)
