@@ -339,6 +339,102 @@ describe("gemini pipeline", () => {
       expect(item2?.aiStatus).toBe("done");
     });
 
+    it("fails immediately when VITE_GEMINI_PROXY_URL is not configured", async () => {
+      // Stub env to empty string
+      vi.stubEnv("VITE_GEMINI_PROXY_URL", "");
+
+      // Re-import module to pick up new env
+      // Note: Vite's import.meta.env is read at call time, so stubbing works
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        mockGeminiResponse({
+          title: "test",
+          description: null,
+          condition: null,
+          estimate: null,
+          category: null,
+        }) as unknown as Response,
+      );
+
+      await processAudioWithAi(testAudioId, testItemId, "house");
+
+      // fetch should NOT have been called
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      // aiStatus should be "failed"
+      const item = await db.houseVisitItems.get(testItemId);
+      expect(item?.aiStatus).toBe("failed");
+
+      // Restore env for subsequent tests
+      vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://test-proxy.example.com/api");
+    });
+
+    it("on non-200 proxy response, aiStatus is 'failed'", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => "Internal Server Error",
+        json: async () => ({}),
+      } as unknown as Response);
+
+      await processAudioWithAi(testAudioId, testItemId, "house");
+
+      const item = await db.houseVisitItems.get(testItemId);
+      expect(item?.aiStatus).toBe("failed");
+      expect(item?.description).toBe(
+        "AI processing failed - audio recorded, awaiting manual review",
+      );
+    });
+
+    it("on response with no candidates, aiStatus is 'failed'", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => ({ error: "bad request" }),
+      } as unknown as Response);
+
+      await processAudioWithAi(testAudioId, testItemId, "house");
+
+      const item = await db.houseVisitItems.get(testItemId);
+      expect(item?.aiStatus).toBe("failed");
+      expect(item?.description).toBe(
+        "AI processing failed - audio recorded, awaiting manual review",
+      );
+    });
+
+    it("resolves even when catch block DB write fails", async () => {
+      // Mock fetch to reject
+      vi.spyOn(globalThis, "fetch").mockRejectedValue(
+        new Error("Network error"),
+      );
+
+      // Spy on console.error
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      // Make the second table.update call (in catch block) throw
+      let callCount = 0;
+      vi.spyOn(db.houseVisitItems, "update").mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          // First call: set "processing" -- succeed
+          return 1;
+        }
+        // Second call: in catch block setting "failed" -- throw
+        throw new Error("DB write failed in catch");
+      });
+
+      // Should resolve without throwing
+      await expect(
+        processAudioWithAi(testAudioId, testItemId, "house"),
+      ).resolves.toBeUndefined();
+
+      // console.error should have been called with the DB error
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to update"),
+        expect.any(Error),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
     it("audio blob is fetched from Dexie by audioId, not passed directly", async () => {
       // Spy on db.audio.get to verify it's called with audioId
       const getSpy = vi.spyOn(db.audio, "get");
