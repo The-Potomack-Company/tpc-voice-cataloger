@@ -20,6 +20,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **AI-02**: AI returns verbatim speech in structured fields; TPC formatting conventions (ALL CAPS title, formal description language) are applied in Phase 6 review
 - [x] **AI-03**: AI handles missing fields gracefully (null when not spoken, no hallucinated values)
 
+### Measurements
+
+- [ ] **MEAS-01**: AI extracts spoken measurements as structured numbers and formats them as `N x N x N in. (N x N x N cm.)` with auto cm conversion
+- [ ] **MEAS-02**: Formatting utility correctly handles inch fractions (1/4, 1/2, 3/4), cm rounding to one decimal, and 1-3 dimension counts
+- [ ] **MEAS-03**: Measurements field appears in ItemCard (editable), JSON export, and Gemini AI schema
+- [ ] **MEAS-04**: Chrome extension fills RFC Invaluable dimensions field (#dimetext/fld3) with measurements from imported JSON
+
 ### House Visit Mode
 
 - [x] **HOUSE-01**: User can start a house visit session and catalog items one by one
@@ -127,6 +134,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-01 | Phase 5 | Complete |
 | AI-02 | Phase 5 | Complete |
 | AI-03 | Phase 5 | Complete |
+| MEAS-01 | Phase 05.1 | Planned |
+| MEAS-02 | Phase 05.1 | Planned |
+| MEAS-03 | Phase 05.1 | Planned |
+| MEAS-04 | Phase 05.1 | Planned |
 | HOUSE-01 | Phase 4 | Complete |
 | HOUSE-02 | Phase 4 | Complete |
 | HOUSE-03 | Phase 4 | Complete |
@@ -163,8 +174,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEPLOY-04 | Phase 10 | Planned |
 
 **Coverage:**
-- v1 requirements: 41 total
-- Mapped to phases: 41
+- v1 requirements: 45 total
+- Mapped to phases: 45
 - Unmapped: 0 (100% coverage)
 
 **Phase breakdown:**
@@ -173,6 +184,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Phase 3 (Session Management): SESS-01, SESS-02, SESS-03, SESS-04 (4 requirements)
 - Phase 4 (Cataloging Modes): HOUSE-01, HOUSE-02, HOUSE-03, HOUSE-04, SALE-01, SALE-02, SALE-03 (7 requirements)
 - Phase 5 (AI Pipeline): AI-01, AI-02, AI-03 (3 requirements)
+- Phase 05.1 (Measurements): MEAS-01, MEAS-02, MEAS-03, MEAS-04 (4 requirements)
 - Phase 6 (Review, Edit, Export): EDIT-01, EDIT-02, EDIT-03, EDIT-04, EXPO-01, EXPO-02, EXPO-03 (7 requirements)
 - Phase 7 (Extension Batch Import): EXT-01, EXT-02, EXT-03, EXT-04 (4 requirements)
 - Phase 8 (Offline Queue): OFFL-01, OFFL-02, OFFL-03, OFFL-04 (4 requirements)
@@ -180,4 +192,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-06*
-*Last updated: 2026-03-16 after Phase 10 planning — deployment requirements added*
+*Last updated: 2026-03-16 after Phase 05.1 planning — measurements requirements added*

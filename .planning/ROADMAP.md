@@ -96,15 +96,21 @@ Plans:
 - [x] 05-04-PLAN.md — Gap closure: align ROADMAP/REQUIREMENTS with CONTEXT.md deferral of TPC formatting to Phase 6
 - [ ] 05-05-PLAN.md — Gap closure: AI status indicators and retry button on ItemCard for failed processing (completed 2026-03-16)
 
-### Phase 05.1: want to add field for measurements that gets automatically formatted (INSERTED)
+### Phase 05.1: Measurements Field with Auto-Formatting (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Auctioneers can speak item measurements during recording and have them automatically extracted, formatted as `N x N x N in. (N x N x N cm.)`, and flowed through editing, export, and Chrome extension import into RFC Invaluable's dimensions field
+**Requirements**: MEAS-01, MEAS-02, MEAS-03, MEAS-04
 **Depends on:** Phase 5
-**Plans:** 0 plans
+**Success Criteria** (what must be TRUE):
+  1. AI extracts spoken measurements as an array of numbers and the app formats them as `N x N x N in. (N x N x N cm.)` with auto cm conversion
+  2. Formatting handles inch fractions (.25/.5/.75 as 1/4, 1/2, 3/4), cm rounding to one decimal with trailing .0 dropped, and 1-3 dimension counts
+  3. Measurements field is editable in ItemCard (re-formats on save), included in JSON export, and filled into RFC Invaluable #dimetext/fld3 by the Chrome extension
+  4. If no measurements are mentioned in speech, field is null (no hallucinated values)
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 05.1 to break down)
+- [ ] 05.1-01-PLAN.md — TDD: formatMeasurements/parseMeasurements/reformatMeasurements utility, DB types + Dexie v5 migration
+- [ ] 05.1-02-PLAN.md — Gemini schema + AI processing, ItemCard UI, export, Chrome extension import
 
 ### Phase 6: Review, Edit, Export
 **Goal**: Auctioneers can review every AI-parsed item, correct any field inline, and export the session as a JSON file that the Chrome extension can consume
@@ -154,7 +160,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -163,6 +169,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 5/5 | Complete   | 2026-03-16 |
+| 5.1 Measurements | 0/2 | Planning   | — |
 | 6. Review, Edit, Export | 3/3 | Complete   | 2026-03-16 |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
