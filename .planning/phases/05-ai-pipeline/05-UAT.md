@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-ai-pipeline
 source: 05-01-SUMMARY.md, 05-02-SUMMARY.md
 started: 2026-03-16T12:00:00Z
@@ -54,5 +54,15 @@ skipped: 1
   reason: "User reported: doesn't finish processing, not sure if i need to configure anything for it to work"
   severity: major
   test: 4
-  artifacts: []
-  missing: []
+  root_cause: "Three compounding issues: (1) No .env file exists so VITE_GEMINI_PROXY_URL is undefined, fetch fails with TypeError; (2) catch block in gemini.ts does unprotected Dexie write, so if that throws, aiStatus stays stuck at processing; (3) RecordButton silently swallows errors with console.error only"
+  artifacts:
+    - path: "src/services/gemini.ts"
+      issue: "No guard against undefined proxyUrl; catch block DB write unprotected; no non-200 response checking"
+    - path: "src/components/RecordButton.tsx"
+      issue: "Silent error swallowing with console.error only"
+  missing:
+    - "Create .env from .env.example with VITE_GEMINI_PROXY_URL"
+    - "Add early guard: if (!proxyUrl) throw new Error(...)"
+    - "Wrap catch block DB write in nested try/catch"
+    - "Add non-200 response checking before parsing candidates"
+  debug_session: ".planning/debug/ai-processing-stuck.md"
