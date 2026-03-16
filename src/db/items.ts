@@ -31,21 +31,23 @@ export async function createBlankItem(
   mode: "house" | "sale",
 ): Promise<number> {
   const table = getTable(mode);
-  const count = await table.where("sessionId").equals(sessionId).count();
+  const items = await table.where("sessionId").equals(sessionId).sortBy("sortOrder");
+  const maxSort = items.length > 0 ? items[items.length - 1].sortOrder : -1;
+  const sortOrder = maxSort + 1;
   const now = new Date();
 
   if (mode === "sale") {
     return (await db.saleItems.add({
       sessionId,
       receiptNumber: "",
-      sortOrder: count,
+      sortOrder,
       createdAt: now,
     })) as number;
   }
 
   return (await db.houseVisitItems.add({
     sessionId,
-    sortOrder: count,
+    sortOrder,
     createdAt: now,
   })) as number;
 }
