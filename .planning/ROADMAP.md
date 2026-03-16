@@ -93,8 +93,8 @@ Plans:
 - [ ] 05-01-PLAN.md — DB migration (aiStatus), Zod schema for Gemini responses, Cloudflare Worker proxy
 - [ ] 05-02-PLAN.md — Client-side AI processing service (audio to base64, proxy call, Zod validation, Dexie write)
 - [ ] 05-03-PLAN.md — Gap closure: harden error handling (proxy URL guard, HTTP status check, nested try/catch)
-- [ ] 05-04-PLAN.md — Gap closure: align ROADMAP/REQUIREMENTS with CONTEXT.md deferral of TPC formatting to Phase 6
-- [ ] 05-05-PLAN.md — Gap closure: AI status indicators and retry button on ItemCard for failed processing
+- [x] 05-04-PLAN.md — Gap closure: align ROADMAP/REQUIREMENTS with CONTEXT.md deferral of TPC formatting to Phase 6
+- [ ] 05-05-PLAN.md — Gap closure: AI status indicators and retry button on ItemCard for failed processing (completed 2026-03-16)
 
 ### Phase 6: Review, Edit, Export
 **Goal**: Auctioneers can review every AI-parsed item, correct any field inline, and export the session as a JSON file that the Chrome extension can consume
@@ -106,7 +106,7 @@ Plans:
   3. User can delete an item from the session; it is removed from the list and will not appear in the export
   4. User can tap "Re-record" on any item, record new audio, and have the AI fields regenerate from the new recording
   5. User can tap "Export" and receive a JSON file on their device containing all fields including receipt numbers (sale mode) and photo references (house visit mode), in the versioned TPC extension schema
-**Plans:** 3 plans (2 complete + 1 gap closure)
+**Plans:** 3/3 plans complete
 Plans:
 - [ ] 06-01-PLAN.md — Item CRUD data layer, export pipeline, EditableField component with tests
 - [ ] 06-02-PLAN.md — Expandable item cards, inline editing UI, delete, re-record, export button on SessionDetail
@@ -153,7 +153,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 5/5 | Complete   | 2026-03-16 |
-| 6. Review, Edit, Export | 2/3 | Gap Closure | — |
+| 6. Review, Edit, Export | 3/3 | Complete   | 2026-03-16 |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
 | 9. Deferred Items | 0/4 | Planning   | — |
