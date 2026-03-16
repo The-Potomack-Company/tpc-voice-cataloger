@@ -106,10 +106,11 @@ Plans:
   3. User can delete an item from the session; it is removed from the list and will not appear in the export
   4. User can tap "Re-record" on any item, record new audio, and have the AI fields regenerate from the new recording
   5. User can tap "Export" and receive a JSON file on their device containing all fields including receipt numbers (sale mode) and photo references (house visit mode), in the versioned TPC extension schema
-**Plans:** 2/2 plans complete
+**Plans:** 3 plans (2 complete + 1 gap closure)
 Plans:
 - [ ] 06-01-PLAN.md — Item CRUD data layer, export pipeline, EditableField component with tests
 - [ ] 06-02-PLAN.md — Expandable item cards, inline editing UI, delete, re-record, export button on SessionDetail
+- [ ] 06-03-PLAN.md — Gap closure: fix swipe-to-delete stacking context and export NotAllowedError permission issue
 
 ### Phase 7: Extension Batch Import
 **Goal**: The TPC Chrome extension accepts the exported JSON file and fills title and description fields on each matched RFC Invaluable lot page in batch, without manual copy-paste
@@ -152,7 +153,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 3/5 | Gap Closure | 2026-03-16 |
-| 6. Review, Edit, Export | 2/2 | Complete   | 2026-03-09 |
+| 6. Review, Edit, Export | 2/3 | Gap Closure | — |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
 | 9. Deferred Items | 0/4 | Planning   | — |
