@@ -119,14 +119,14 @@ describe("gemini pipeline", () => {
       await processAudioWithAi(testAudioId, testItemId, "house");
 
       const item = await db.houseVisitItems.get(testItemId);
-      expect(item?.title).toBe("Oak table");
+      expect(item?.title).toBe("Oak Table");
       expect(item?.description).toBe("nice oak table, kinda beat up");
       expect(item?.condition).toBe("fair");
       expect(item?.estimate).toBe("400 - 600");
-      expect(item?.category).toBe("furniture");
+      expect(item?.category).toBe("FRN");
     });
 
-    it("fields are verbatim from Gemini (estimate post-processed)", async () => {
+    it("title gets Title Case, category maps to dept code, estimate post-processed", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
           title: "oak table, kinda beat up",
@@ -141,8 +141,8 @@ describe("gemini pipeline", () => {
       await processAudioWithAi(testAudioId, testItemId, "house");
 
       const item = await db.houseVisitItems.get(testItemId);
-      // Title should be exactly as returned, not transformed
-      expect(item?.title).toBe("oak table, kinda beat up");
+      // Title gets Title Case applied
+      expect(item?.title).toBe("Oak Table, Kinda Beat Up");
       expect(item?.description).toBe("maybe two hundred");
     });
 
@@ -161,16 +161,16 @@ describe("gemini pipeline", () => {
       await processAudioWithAi(testAudioId, testItemId, "house");
 
       const item = await db.houseVisitItems.get(testItemId);
-      expect(item?.title).toBe("Oak table");
+      expect(item?.title).toBe("Oak Table");
       // Null fields should not be stored (remain undefined)
       expect(item?.description).toBeUndefined();
       expect(item?.condition).toBeUndefined();
       expect(item?.estimate).toBeUndefined();
-      // Category defaults to "furniture" even when null
-      expect(item?.category).toBe("furniture");
+      // Category defaults to "FRN" (Furniture dept code) when null
+      expect(item?.category).toBe("FRN");
     });
 
-    it("category defaults to 'furniture' when Gemini returns null", async () => {
+    it("category defaults to 'FRN' when Gemini returns null", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
           title: "Old lamp",
@@ -185,7 +185,7 @@ describe("gemini pipeline", () => {
       await processAudioWithAi(testAudioId, testItemId, "house");
 
       const item = await db.houseVisitItems.get(testItemId);
-      expect(item?.category).toBe("furniture");
+      expect(item?.category).toBe("FRN");
     });
 
     it("on fetch failure, aiStatus is 'failed' and description gets fallback", async () => {

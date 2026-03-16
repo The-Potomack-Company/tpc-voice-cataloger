@@ -1,6 +1,8 @@
 import { db } from "../db";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
 import { formatEstimate } from "../utils/formatEstimate";
+import { mapCategoryToCode } from "../utils/categoryMapper";
+import { toTitleCase } from "../utils/toTitleCase";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -9,7 +11,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
 - description: The item description as spoken
 - condition: The condition assessment as spoken
 - estimate: The price estimate as a number or numeric range (e.g. "500" or "300 to 500"). Strip dollar signs. If the speaker says "two hundred", return "200". If they give a range like "three to five hundred", return "300 to 500"
-- category: The item category as spoken
+- category: The RFC department code matching the item category. Valid codes: AA, AMER, AWFA, ANT, AAR, 0001, ASD, ASN, ASNP, BKS, CER, IND, CLK, CNS, DEC, DRW, ENT, EA, FASH, FIS, FRN, MDF, PER, GAR, GEN, GLS, ITS, ISL, JWL, LIT, MANU, MAP, MA, MUS, NAT, TXTL, PND, PNT, PEN, MIN, REL, RUG, SPT, SIL, TAP, TRI, WINE. If uncertain, return the closest match.
 - transcript: The full verbatim transcript of everything said in the audio
 
 CRITICAL RULES:
@@ -147,7 +149,7 @@ export async function processAudioWithAi(
     };
 
     if (fields.title !== null) {
-      updateData.title = fields.title;
+      updateData.title = toTitleCase(fields.title);
     }
     if (fields.description !== null) {
       updateData.description = fields.description;
@@ -159,7 +161,7 @@ export async function processAudioWithAi(
     if (formattedEstimate !== null) {
       updateData.estimate = formattedEstimate;
     }
-    updateData.category = fields.category ?? "furniture";
+    updateData.category = mapCategoryToCode(fields.category);
     if (fields.transcript !== null) {
       // Append to existing transcript so multiple recordings accumulate
       const existing = await table.get(itemId);

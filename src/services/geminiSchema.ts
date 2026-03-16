@@ -20,7 +20,7 @@ export const catalogFieldsSchema = z.object({
   category: z
     .string()
     .nullable()
-    .describe("Category exactly as spoken, or null if not mentioned"),
+    .describe("The RFC department code that best matches the spoken category. Valid codes: AA, AMER, AWFA, ANT, AAR, 0001, ASD, ASN, ASNP, BKS, CER, IND, CLK, CNS, DEC, DRW, ENT, EA, FASH, FIS, FRN, MDF, PER, GAR, GEN, GLS, ITS, ISL, JWL, LIT, MANU, MAP, MA, MUS, NAT, TXTL, PND, PNT, PEN, MIN, REL, RUG, SPT, SIL, TAP, TRI, WINE. Return null if not mentioned."),
   transcript: z
     .string()
     .nullable()
