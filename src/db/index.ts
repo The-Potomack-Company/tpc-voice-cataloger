@@ -61,4 +61,13 @@ db.version(4).stores({
   audio: "++id, itemId",
 });
 
+// v5: Add measurements field to item types (not indexed — no store schema change needed)
+db.version(5).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+});
+
 export { db };

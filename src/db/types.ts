@@ -18,6 +18,7 @@ export interface HouseVisitItem {
   description?: string;
   condition?: string;
   estimate?: string;
+  measurements?: string;
   category?: string;
   transcript?: string;
   aiStatus?: AiStatus;
@@ -33,6 +34,7 @@ export interface SaleItem {
   description?: string;
   condition?: string;
   estimate?: string;
+  measurements?: string;
   category?: string;
   transcript?: string;
   aiStatus?: AiStatus;
@@ -69,6 +71,7 @@ export interface ExportSchema {
     description?: string;
     condition?: string;
     estimate?: string;
+    measurements?: string;
     category?: string;
     transcript?: string;
     receiptNumber?: string;
