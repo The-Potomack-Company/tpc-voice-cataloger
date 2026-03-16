@@ -17,7 +17,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### AI Processing
 
 - [x] **AI-01**: Recorded audio is sent to AI and returned as structured fields (title, description, condition, estimate, category) in a single step — no separate transcription
-- [x] **AI-02**: AI output follows TPC conventions (ALL CAPS title, lowercase "the"-starting description, formal auction language)
+- [x] **AI-02**: AI returns verbatim speech in structured fields; TPC formatting conventions (ALL CAPS title, formal description language) are applied in Phase 6 review
 - [x] **AI-03**: AI handles missing fields gracefully (null when not spoken, no hallucinated values)
 
 ### House Visit Mode
