@@ -86,7 +86,7 @@ Plans:
 **Requirements**: AI-01, AI-02, AI-03
 **Success Criteria** (what must be TRUE):
   1. After recording stops, structured fields (title, description, condition, estimate, category) appear in the item record without a separate transcription step
-  2. Title output is in ALL CAPS following the TPC format ([PERIOD/STYLE] [MATERIAL] [ITEM TYPE]); description starts with "the" in lowercase formal auction language
+  2. AI returns verbatim speech in structured fields (title, description, condition, estimate, category) without reformatting; TPC conventions (ALL CAPS title, formal description language) are applied downstream in Phase 6 review
   3. Fields not mentioned in the audio are stored as null — the app does not invent plausible values for unspoken details
 **Plans:** 5 plans (3 complete + 2 gap closure)
 Plans:
