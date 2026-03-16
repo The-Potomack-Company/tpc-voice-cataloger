@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cloudflare Workers
+proxy/.dev.vars
+proxy/.wrangler/
