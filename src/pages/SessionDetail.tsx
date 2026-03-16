@@ -64,6 +64,8 @@ export function SessionDetailPage() {
   const [editNotes, setEditNotes] = useState<string | null>(null);
   const [showDismissedBanner, setShowDismissedBanner] = useState(false);
 
+  const addItemRef = useRef<(() => Promise<void>) | null>(null);
+
   const [exporting, setExporting] = useState(false);
 
   const [confirmAction, setConfirmAction] = useState<
@@ -157,7 +159,11 @@ export function SessionDetailPage() {
   };
 
   const handleAddItem = async () => {
-    await createBlankItem(sessionId, session.mode);
+    if (addItemRef.current) {
+      await addItemRef.current();
+    } else {
+      await createBlankItem(sessionId, session.mode);
+    }
   };
 
   const modeLabel = session.mode === "house" ? "House Visit" : "Sale Cataloging";
@@ -302,7 +308,7 @@ export function SessionDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
           Items ({itemCount})
         </h2>
-        <ItemList sessionId={sessionId} mode={session.mode} />
+        <ItemList sessionId={sessionId} mode={session.mode} onAddItemRef={addItemRef} />
       </section>
 
       {/* Action buttons */}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { ItemCard } from "./ItemCard";
@@ -7,10 +7,12 @@ import { createBlankItem } from "../db/items";
 interface ItemListProps {
   sessionId: number;
   mode: "house" | "sale";
+  onAddItemRef?: React.MutableRefObject<(() => Promise<void>) | null>;
 }
 
-export function ItemList({ sessionId, mode }: ItemListProps) {
+export function ItemList({ sessionId, mode, onAddItemRef }: ItemListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [newItemId, setNewItemId] = useState<number | null>(null);
 
   const items = useLiveQuery(
     () => {
@@ -43,8 +45,35 @@ export function ItemList({ sessionId, mode }: ItemListProps) {
 
   const handleAddItem = useCallback(async () => {
     const newId = await createBlankItem(sessionId, mode);
-    setExpandedIds((prev) => new Set(prev).add(newId));
+    setExpandedIds(new Set([newId]));
+    setNewItemId(newId);
   }, [sessionId, mode]);
+
+  // Scroll to newly created item once it appears in the DOM
+  useEffect(() => {
+    if (newItemId !== null) {
+      const timer = setTimeout(() => {
+        const el = document.querySelector(`[data-item-id="${newItemId}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+        setNewItemId(null);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [newItemId, items]);
+
+  // Expose handleAddItem to parent via ref
+  useEffect(() => {
+    if (onAddItemRef) {
+      onAddItemRef.current = handleAddItem;
+    }
+    return () => {
+      if (onAddItemRef) {
+        onAddItemRef.current = null;
+      }
+    };
+  }, [onAddItemRef, handleAddItem]);
 
   if (items.length === 0) {
     return (
@@ -75,13 +104,14 @@ export function ItemList({ sessionId, mode }: ItemListProps) {
       </button>
 
       {items.map((item) => (
-        <ItemCard
-          key={item.id}
-          item={item}
-          mode={mode}
-          isExpanded={expandedIds.has(item.id!)}
-          onToggle={() => toggleExpand(item.id!)}
-        />
+        <div key={item.id} data-item-id={item.id}>
+          <ItemCard
+            item={item}
+            mode={mode}
+            isExpanded={expandedIds.has(item.id!)}
+            onToggle={() => toggleExpand(item.id!)}
+          />
+        </div>
       ))}
     </div>
   );
