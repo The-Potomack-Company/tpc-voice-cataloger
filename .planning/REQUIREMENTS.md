@@ -22,8 +22,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Measurements
 
-- [ ] **MEAS-01**: AI extracts spoken measurements as structured numbers and formats them as `N x N x N in. (N x N x N cm.)` with auto cm conversion
-- [ ] **MEAS-02**: Formatting utility correctly handles inch fractions (1/4, 1/2, 3/4), cm rounding to one decimal, and 1-3 dimension counts
+- [x] **MEAS-01**: AI extracts spoken measurements as structured numbers and formats them as `N x N x N in. (N x N x N cm.)` with auto cm conversion
+- [x] **MEAS-02**: Formatting utility correctly handles inch fractions (1/4, 1/2, 3/4), cm rounding to one decimal, and 1-3 dimension counts
 - [ ] **MEAS-03**: Measurements field appears in ItemCard (editable), JSON export, and Gemini AI schema
 - [ ] **MEAS-04**: Chrome extension fills RFC Invaluable dimensions field (#dimetext/fld3) with measurements from imported JSON
 
@@ -134,8 +134,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AI-01 | Phase 5 | Complete |
 | AI-02 | Phase 5 | Complete |
 | AI-03 | Phase 5 | Complete |
-| MEAS-01 | Phase 05.1 | Planned |
-| MEAS-02 | Phase 05.1 | Planned |
+| MEAS-01 | Phase 05.1 | Complete |
+| MEAS-02 | Phase 05.1 | Complete |
 | MEAS-03 | Phase 05.1 | Planned |
 | MEAS-04 | Phase 05.1 | Planned |
 | HOUSE-01 | Phase 4 | Complete |

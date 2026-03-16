@@ -109,7 +109,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 05.1-01-PLAN.md — TDD: formatMeasurements/parseMeasurements/reformatMeasurements utility, DB types + Dexie v5 migration
+- [x] 05.1-01-PLAN.md — TDD: formatMeasurements/parseMeasurements/reformatMeasurements utility, DB types + Dexie v5 migration
 - [ ] 05.1-02-PLAN.md — Gemini schema + AI processing, ItemCard UI, export, Chrome extension import
 
 ### Phase 6: Review, Edit, Export
@@ -169,7 +169,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 6 -> 7 -> 8 -> 
 | 3. Session Management | 3/3 | Complete   | 2026-03-06 |
 | 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
 | 5. AI Pipeline | 5/5 | Complete   | 2026-03-16 |
-| 5.1 Measurements | 0/2 | Planning   | — |
+| 5.1 Measurements | 1/2 | In Progress | — |
 | 6. Review, Edit, Export | 3/3 | Complete   | 2026-03-16 |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |

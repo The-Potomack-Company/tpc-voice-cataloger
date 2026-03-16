@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 5.1 context gathered
+stopped_at: Phase 05.1 Plan 01 complete
 last_updated: "2026-03-16T17:11:58.649Z"
 last_activity: 2026-03-16 — Plan 05-03 complete (AI pipeline gap closure - proxy URL guard, HTTP status check, nested try/catch)
 progress:
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 
 ## Current Position
 
-Phase: 9 of 9 (Deferred Items)
-Plan: 0 of 0 in current phase
-Status: Phase 5 gap closure complete, Phase 9 not yet planned
-Last activity: 2026-03-16 - Completed quick task 9: lock down completed sessions with read-only mode
+Phase: 05.1 of 10 (Measurements Field)
+Plan: 1 of 2 in current phase
+Status: Phase 05.1 Plan 01 complete, Plan 02 next
+Last activity: 2026-03-16 - Completed 05.1-01: TDD measurements formatting utility + DB types/migration
 
 Progress: [██████████] 100% of milestone
 
@@ -65,6 +65,7 @@ Progress: [██████████] 100% of milestone
 | Phase 05 P04 | 1min | 2 tasks | 2 files |
 | Phase 05 P05 | 1min | 1 tasks | 1 files |
 | Phase 06 P03 | 2min | 2 tasks | 4 files |
+| Phase 05.1 P01 | 2min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,10 @@ Recent decisions affecting current work:
 - [Phase 06]: ConfirmDialog rendered via React portal to escape overflow-hidden clipping
 - [Phase 06]: Transcript field added to Gemini schema, both item types, ItemCard, and export
 - [Phase 06]: Multiple recordings append transcripts (newline-separated) rather than overwriting
+- [05.1-01] Only .25/.5/.75 inch fractions converted to display fractions; all others stay decimal
+- [05.1-01] Cm conversion: Math.round(cm*10)/10, drop trailing .0 via modulo check
+- [05.1-01] parseMeasurements returns null for >3 dimensions or non-numeric input
+- [05.1-01] Dexie v5 migration with same indexes (measurements not indexed)
 
 ### Roadmap Evolution
 
@@ -165,6 +170,6 @@ n### Quick Tasks Completed
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:28:53Z
-Stopped at: Completed quick-9
-Resume file: .planning/phases/05.1-want-to-add-field-for-measurements-that-gets-automatically-formatted/05.1-CONTEXT.md
+Last session: 2026-03-16T17:30:43Z
+Stopped at: Completed 05.1-01-PLAN.md
+Resume file: .planning/phases/05.1-want-to-add-field-for-measurements-that-gets-automatically-formatted/05.1-02-PLAN.md
