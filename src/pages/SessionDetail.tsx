@@ -403,7 +403,7 @@ export function SessionDetailPage() {
       />
 
       {/* Floating Add Item button */}
-      <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-10">
+      <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-30">
         <button
           onClick={handleAddItem}
           className="w-full bg-accent hover:bg-accent-hover text-white font-medium
