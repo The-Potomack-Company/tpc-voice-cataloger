@@ -106,7 +106,7 @@ Plans:
   2. Formatting handles inch fractions (.25/.5/.75 as 1/4, 1/2, 3/4), cm rounding to one decimal with trailing .0 dropped, and 1-3 dimension counts
   3. Measurements field is editable in ItemCard (re-formats on save), included in JSON export, and filled into RFC Invaluable #dimetext/fld3 by the Chrome extension
   4. If no measurements are mentioned in speech, field is null (no hallucinated values)
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 05.1-01-PLAN.md — TDD: formatMeasurements/parseMeasurements/reformatMeasurements utility, DB types + Dexie v5 migration

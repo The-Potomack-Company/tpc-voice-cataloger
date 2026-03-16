@@ -24,8 +24,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **MEAS-01**: AI extracts spoken measurements as structured numbers and formats them as `N x N x N in. (N x N x N cm.)` with auto cm conversion
 - [x] **MEAS-02**: Formatting utility correctly handles inch fractions (1/4, 1/2, 3/4), cm rounding to one decimal, and 1-3 dimension counts
-- [ ] **MEAS-03**: Measurements field appears in ItemCard (editable), JSON export, and Gemini AI schema
-- [ ] **MEAS-04**: Chrome extension fills RFC Invaluable dimensions field (#dimetext/fld3) with measurements from imported JSON
+- [x] **MEAS-03**: Measurements field appears in ItemCard (editable), JSON export, and Gemini AI schema
+- [x] **MEAS-04**: Chrome extension fills RFC Invaluable dimensions field (#dimetext/fld3) with measurements from imported JSON
 
 ### House Visit Mode
 

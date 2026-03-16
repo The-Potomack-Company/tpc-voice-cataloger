@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 05.1 Plan 01 complete
+stopped_at: Phase 05.1 complete
 last_updated: "2026-03-16T17:11:58.649Z"
 last_activity: 2026-03-16 — Plan 05-03 complete (AI pipeline gap closure - proxy URL guard, HTTP status check, nested try/catch)
 progress:
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 ## Current Position
 
 Phase: 05.1 of 10 (Measurements Field)
-Plan: 1 of 2 in current phase
-Status: Phase 05.1 Plan 01 complete, Plan 02 next
-Last activity: 2026-03-16 - Completed 05.1-01: TDD measurements formatting utility + DB types/migration
+Plan: 2 of 2 in current phase
+Status: Phase 05.1 complete
+Last activity: 2026-03-16 - Completed 05.1-02: Measurements wired through Gemini, UI, export, and extension
 
 Progress: [██████████] 100% of milestone
 
@@ -66,6 +66,7 @@ Progress: [██████████] 100% of milestone
 | Phase 05 P05 | 1min | 1 tasks | 1 files |
 | Phase 06 P03 | 2min | 2 tasks | 4 files |
 | Phase 05.1 P01 | 2min | 3 tasks | 4 files |
+| Phase 05.1 P02 | 6min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,8 @@ Recent decisions affecting current work:
 - [05.1-01] Cm conversion: Math.round(cm*10)/10, drop trailing .0 via modulo check
 - [05.1-01] parseMeasurements returns null for >3 dimensions or non-numeric input
 - [05.1-01] Dexie v5 migration with same indexes (measurements not indexed)
+- [05.1-02] Measurements field placed between Description and Condition in ItemCard per user decision
+- [05.1-02] Chrome extension DIMENSIONS_FIELD targets #dimetext selector on RFC Invaluable
 
 ### Roadmap Evolution
 
@@ -170,6 +173,5 @@ n### Quick Tasks Completed
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:30:43Z
-Stopped at: Completed 05.1-01-PLAN.md
-Resume file: .planning/phases/05.1-want-to-add-field-for-measurements-that-gets-automatically-formatted/05.1-02-PLAN.md
+Last session: 2026-03-16T17:39:16Z
+Stopped at: Completed 05.1-02-PLAN.md (Phase 05.1 complete)
