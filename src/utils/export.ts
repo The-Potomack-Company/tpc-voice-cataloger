@@ -102,6 +102,14 @@ export async function buildExportData(
   };
 }
 
+export function sanitizeFilename(name: string): string {
+  return name
+    .replace(/[/\\:*?"<>|]/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^[\s.]+|[\s.]+$/g, "")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function exportSession(sessionId: number): Promise<void> {
   const data = await buildExportData(sessionId);
   const json = JSON.stringify(data, null, 2);
@@ -109,7 +117,8 @@ export async function exportSession(sessionId: number): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `tpc-session-${sessionId}.json`;
+  const sanitized = sanitizeFilename(data.session.name);
+  a.download = sanitized ? `${sanitized}.json` : `tpc-session-${sessionId}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
