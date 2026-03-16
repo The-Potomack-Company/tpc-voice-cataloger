@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 Phase: 9 of 9 (Deferred Items)
 Plan: 0 of 0 in current phase
 Status: Phase 5 gap closure complete, Phase 9 not yet planned
-Last activity: 2026-03-16 - Completed quick task 8: change the autoformatting for titles to be all caps instead of just the first letter of each word
+Last activity: 2026-03-16 - Completed quick task 9: lock down completed sessions with read-only mode
 
 Progress: [██████████] 100% of milestone
 
@@ -161,9 +161,10 @@ n### Quick Tasks Completed
 | 6 | Format AI transcription estimates consistently as ranges | 2026-03-16 | 8b076cb | [6-format-ai-transcription-estimates-consis](./quick/6-format-ai-transcription-estimates-consis/) |
 | 7 | Format AI transcription category output to RFC department codes + Title Case titles | 2026-03-16 | 19283f6 | [7-format-ai-transcription-category-output-](./quick/7-format-ai-transcription-category-output-/) |
 | 8 | Change title autoformatting from Title Case to ALL CAPS | 2026-03-16 | 1e7d551 | [8-change-the-autoformatting-for-titles-to-](./quick/8-change-the-autoformatting-for-titles-to-/) |
+| 9 | Lock down completed sessions (read-only mode) | 2026-03-16 | b4caa20 | [9-completing-a-session-doesn-t-lock-it-dow](./quick/9-completing-a-session-doesn-t-lock-it-dow/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:16:34Z
-Stopped at: Completed quick-8
+Last session: 2026-03-16T17:28:53Z
+Stopped at: Completed quick-9
 Resume file: .planning/phases/05.1-want-to-add-field-for-measurements-that-gets-automatically-formatted/05.1-CONTEXT.md
