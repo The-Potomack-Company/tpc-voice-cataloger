@@ -18,14 +18,38 @@ interface ItemCardProps {
 
 export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const { status, startRecording, stopRecording } = useAudioRecorder();
   const isQueued = item.aiStatus === "queued";
+  const isFailed = item.aiStatus === "failed";
+  const isProcessing = item.aiStatus === "processing";
 
-  const audioCount = useLiveQuery(
-    () => db.audio.where("itemId").equals(item.id!).count(),
+  const audioData = useLiveQuery(
+    async () => {
+      const audios = await db.audio.where("itemId").equals(item.id!).toArray();
+      const count = audios.length;
+      const latestAudioId = count > 0
+        ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
+        : null;
+      return { count, latestAudioId };
+    },
     [item.id],
-    0,
+    { count: 0, latestAudioId: null as number | null },
   );
+
+  const audioCount = audioData.count;
+  const latestAudioId = audioData.latestAudioId;
+
+  const handleRetryAi = () => {
+    if (!latestAudioId || retrying) return;
+    setRetrying(true);
+    processAudioWithAi(latestAudioId, item.id!, mode)
+      .then(() => setRetrying(false))
+      .catch((err) => {
+        console.error("AI retry failed:", err);
+        setRetrying(false);
+      });
+  };
 
   const photoCount = useLiveQuery(
     () =>
@@ -124,8 +148,20 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               </span>
             )}
 
+            {isFailed && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                Failed
+              </span>
+            )}
+
+            {isProcessing && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 animate-pulse">
+                Processing...
+              </span>
+            )}
+
             {/* Mic icon for re-record */}
-            {!isQueued && <button
+            {!isQueued && !isProcessing && <button
               type="button"
               onClick={handleMicClick}
               className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
@@ -226,6 +262,26 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
                 onSave={handleFieldSave("receiptNumber")}
                 placeholder="Enter receipt number"
               />
+            )}
+
+            {/* Retry AI button for failed items */}
+            {isFailed && (
+              <button
+                type="button"
+                onClick={handleRetryAi}
+                disabled={retrying || !latestAudioId}
+                title={!latestAudioId ? "No audio to retry" : undefined}
+                className="w-full text-sm text-blue-600 dark:text-blue-400 font-medium
+                           py-2 rounded-lg border border-blue-200 dark:border-blue-800
+                           hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors
+                           disabled:opacity-50"
+              >
+                {retrying ? (
+                  <span className="animate-pulse">Retrying...</span>
+                ) : (
+                  "Retry AI"
+                )}
+              </button>
             )}
 
             {/* Delete button */}
