@@ -151,9 +151,10 @@ n### Quick Tasks Completed
 | 1 | Push everything to main branch of new tpc-app repo in The-Potomack-Company org on GitHub as private repo | 2026-03-16 | f569f39 | [1-push-everything-to-main-branch-of-new-tp](./quick/1-push-everything-to-main-branch-of-new-tp/) |
 | 2 | Auto-collapse all items + scroll to new on Add Item | 2026-03-16 | f4e085f | [2-in-a-session-when-adding-items-it-should](./quick/2-in-a-session-when-adding-items-it-should/) |
 | 3 | Fix apple-mobile-web-app-capable deprecation + add compound Dexie index | 2026-03-16 | 2667111 | [3-fix-apple-mobile-web-app-capable-depreca](./quick/3-fix-apple-mobile-web-app-capable-depreca/) |
+| 4 | Fix createBlankItem sortOrder to use max+1 instead of count | 2026-03-16 | 341385c | [4-add-item-should-always-add-an-item-to-th](./quick/4-add-item-should-always-add-an-item-to-th/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T14:59:41.116Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-03-16T15:12:00Z
+Stopped at: Completed quick-4 (sortOrder fix)
 Resume file: None
