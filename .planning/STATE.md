@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 Phase: 9 of 9 (Deferred Items)
 Plan: 0 of 0 in current phase
 Status: Phase 5 gap closure complete, Phase 9 not yet planned
-Last activity: 2026-03-16 — Plan 05-03 complete (AI pipeline gap closure - proxy URL guard, HTTP status check, nested try/catch)
+Last activity: 2026-03-16 - Completed quick task 8: change the autoformatting for titles to be all caps instead of just the first letter of each word
 
 Progress: [██████████] 100% of milestone
 
