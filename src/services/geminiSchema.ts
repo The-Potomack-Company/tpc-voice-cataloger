@@ -21,6 +21,10 @@ export const catalogFieldsSchema = z.object({
     .string()
     .nullable()
     .describe("Category exactly as spoken, or null if not mentioned"),
+  transcript: z
+    .string()
+    .nullable()
+    .describe("Full verbatim transcript of everything the speaker said, or null if audio is unintelligible"),
 });
 
 export type CatalogFields = z.infer<typeof catalogFieldsSchema>;

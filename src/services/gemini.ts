@@ -9,6 +9,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
 - condition: The condition assessment as spoken
 - estimate: The price estimate as spoken
 - category: The item category as spoken
+- transcript: The full verbatim transcript of everything said in the audio
 
 CRITICAL RULES:
 1. Use the speaker's EXACT words. Do not rephrase, improve, or formalize.
@@ -99,15 +100,23 @@ export async function processAudioWithAi(
       },
     };
 
-    // Send to proxy
-    const response = await fetch(proxyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "gemini-2.5-flash",
-        payload: geminiPayload,
-      }),
-    });
+    // Send to proxy (30s timeout so a down server doesn't hang forever)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let response: Response;
+    try {
+      response = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gemini-2.5-flash",
+          payload: geminiPayload,
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     // Check for non-200 response before attempting to parse
     if (!response.ok) {
@@ -149,6 +158,14 @@ export async function processAudioWithAi(
       updateData.estimate = fields.estimate;
     }
     updateData.category = fields.category ?? "furniture";
+    if (fields.transcript !== null) {
+      // Append to existing transcript so multiple recordings accumulate
+      const existing = await table.get(itemId);
+      const prev = (existing as Record<string, unknown>)?.transcript as string | undefined;
+      updateData.transcript = prev
+        ? `${prev}\n\n${fields.transcript}`
+        : fields.transcript;
+    }
 
     await table.update(itemId, updateData);
   } catch (error) {

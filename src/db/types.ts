@@ -19,6 +19,7 @@ export interface HouseVisitItem {
   condition?: string;
   estimate?: string;
   category?: string;
+  transcript?: string;
   aiStatus?: AiStatus;
   sortOrder: number;
   createdAt: Date;
@@ -33,6 +34,7 @@ export interface SaleItem {
   condition?: string;
   estimate?: string;
   category?: string;
+  transcript?: string;
   aiStatus?: AiStatus;
   sortOrder: number;
   createdAt: Date;
@@ -68,6 +70,7 @@ export interface ExportSchema {
     condition?: string;
     estimate?: string;
     category?: string;
+    transcript?: string;
     receiptNumber?: string;
     sortOrder: number;
     createdAt: string;

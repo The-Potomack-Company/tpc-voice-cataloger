@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { ItemCard } from "./ItemCard";
 import { createBlankItem } from "../db/items";
+import { processAudioWithAi } from "../services/gemini";
 
 interface ItemListProps {
   sessionId: number;
@@ -75,6 +76,30 @@ export function ItemList({ sessionId, mode, onAddItemRef }: ItemListProps) {
     };
   }, [onAddItemRef, handleAddItem]);
 
+  const stuckItems = items.filter(
+    (i) => i.aiStatus === "processing" || i.aiStatus === "failed",
+  );
+  const [retryingAll, setRetryingAll] = useState(false);
+
+  const handleRetryAll = useCallback(async () => {
+    if (retryingAll || stuckItems.length === 0) return;
+    setRetryingAll(true);
+    try {
+      await Promise.all(
+        stuckItems.map(async (item) => {
+          const audios = await db.audio.where("itemId").equals(item.id!).toArray();
+          if (audios.length === 0) return;
+          const latestAudioId = audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!);
+          return processAudioWithAi(latestAudioId, item.id!, mode);
+        }),
+      );
+    } catch (err) {
+      console.error("Retry all failed:", err);
+    } finally {
+      setRetryingAll(false);
+    }
+  }, [retryingAll, stuckItems, mode]);
+
   if (items.length === 0) {
     return (
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 text-center">
@@ -102,6 +127,31 @@ export function ItemList({ sessionId, mode, onAddItemRef }: ItemListProps) {
         </svg>
         Add Item
       </button>
+
+      {stuckItems.length > 0 && (
+        <button
+          type="button"
+          onClick={handleRetryAll}
+          disabled={retryingAll}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg
+                     border border-amber-300 dark:border-amber-700
+                     bg-amber-50 dark:bg-amber-900/20
+                     text-sm text-amber-700 dark:text-amber-400 font-medium
+                     hover:bg-amber-100 dark:hover:bg-amber-900/40
+                     disabled:opacity-50 transition-colors"
+        >
+          {retryingAll ? (
+            <span className="animate-pulse">Retrying {stuckItems.length} items...</span>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+              </svg>
+              Retry All Stuck ({stuckItems.length})
+            </>
+          )}
+        </button>
+      )}
 
       {items.map((item) => (
         <div key={item.id} data-item-id={item.id}>

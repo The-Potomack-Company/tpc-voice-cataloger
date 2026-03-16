@@ -264,8 +264,20 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               />
             )}
 
-            {/* Retry AI button for failed items */}
-            {isFailed && (
+            {/* Raw transcript */}
+            {item.transcript && (
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Raw Transcript
+                </span>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+                  {item.transcript}
+                </p>
+              </div>
+            )}
+
+            {/* Retry AI button for failed or stuck-processing items */}
+            {(isFailed || isProcessing) && (
               <button
                 type="button"
                 onClick={handleRetryAi}
@@ -278,6 +290,8 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               >
                 {retrying ? (
                   <span className="animate-pulse">Retrying...</span>
+                ) : isProcessing ? (
+                  "Stuck? Retry Processing"
                 ) : (
                   "Retry AI"
                 )}

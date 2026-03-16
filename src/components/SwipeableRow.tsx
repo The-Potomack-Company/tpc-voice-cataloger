@@ -108,7 +108,7 @@ export function SwipeableRow({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="bg-white dark:bg-gray-900"
+        className="relative z-20 bg-white dark:bg-gray-900"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isSwiping ? "none" : "transform 0.2s ease-out",

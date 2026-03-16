@@ -90,6 +90,7 @@ describe("gemini pipeline", () => {
           condition: "good",
           estimate: "200",
           category: "furniture",
+          transcript: "This is an oak table, good condition",
         }) as unknown as Response;
       });
 
@@ -111,6 +112,7 @@ describe("gemini pipeline", () => {
           condition: "fair",
           estimate: "two hundred",
           category: "furniture",
+          transcript: "nice oak table, kinda beat up, fair condition, two hundred",
         }) as unknown as Response,
       );
 
@@ -132,6 +134,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          transcript: "oak table, kinda beat up, maybe two hundred",
         }) as unknown as Response,
       );
 
@@ -151,6 +154,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          transcript: "Oak table",
         }) as unknown as Response,
       );
 
@@ -174,6 +178,7 @@ describe("gemini pipeline", () => {
           condition: "good",
           estimate: "50",
           category: null,
+          transcript: "Old brass lamp, good condition, about fifty",
         }) as unknown as Response,
       );
 
@@ -306,6 +311,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          transcript: null,
         }) as unknown as Response,
       );
 
@@ -320,6 +326,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          transcript: null,
         }) as unknown as Response,
       );
 
@@ -352,6 +359,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          transcript: null,
         }) as unknown as Response,
       );
 
@@ -446,6 +454,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          transcript: null,
         }) as unknown as Response,
       );
 

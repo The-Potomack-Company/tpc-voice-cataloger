@@ -78,6 +78,7 @@ export async function buildExportData(
         condition: item.condition,
         estimate: item.estimate,
         category: item.category,
+        transcript: item.transcript,
         receiptNumber:
           "receiptNumber" in item
             ? (item as Record<string, unknown>).receiptNumber as
