@@ -119,14 +119,14 @@ describe("gemini pipeline", () => {
       await processAudioWithAi(testAudioId, testItemId, "house");
 
       const item = await db.houseVisitItems.get(testItemId);
-      expect(item?.title).toBe("Oak Table");
+      expect(item?.title).toBe("OAK TABLE");
       expect(item?.description).toBe("nice oak table, kinda beat up");
       expect(item?.condition).toBe("fair");
       expect(item?.estimate).toBe("400 - 600");
       expect(item?.category).toBe("FRN");
     });
 
-    it("title gets Title Case, category maps to dept code, estimate post-processed", async () => {
+    it("title gets ALL CAPS, category maps to dept code, estimate post-processed", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
           title: "oak table, kinda beat up",
@@ -141,8 +141,8 @@ describe("gemini pipeline", () => {
       await processAudioWithAi(testAudioId, testItemId, "house");
 
       const item = await db.houseVisitItems.get(testItemId);
-      // Title gets Title Case applied
-      expect(item?.title).toBe("Oak Table, Kinda Beat Up");
+      // Title gets ALL CAPS applied
+      expect(item?.title).toBe("OAK TABLE, KINDA BEAT UP");
       expect(item?.description).toBe("maybe two hundred");
     });
 
@@ -161,7 +161,7 @@ describe("gemini pipeline", () => {
       await processAudioWithAi(testAudioId, testItemId, "house");
 
       const item = await db.houseVisitItems.get(testItemId);
-      expect(item?.title).toBe("Oak Table");
+      expect(item?.title).toBe("OAK TABLE");
       // Null fields should not be stored (remain undefined)
       expect(item?.description).toBeUndefined();
       expect(item?.condition).toBeUndefined();

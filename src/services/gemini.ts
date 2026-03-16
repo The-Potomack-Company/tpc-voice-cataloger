@@ -2,7 +2,7 @@ import { db } from "../db";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
 import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
-import { toTitleCase } from "../utils/toTitleCase";
+import { toAllCaps } from "../utils/toAllCaps";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -149,7 +149,7 @@ export async function processAudioWithAi(
     };
 
     if (fields.title !== null) {
-      updateData.title = toTitleCase(fields.title);
+      updateData.title = toAllCaps(fields.title);
     }
     if (fields.description !== null) {
       updateData.description = fields.description;
