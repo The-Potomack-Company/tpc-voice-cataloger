@@ -51,7 +51,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **OFFL-01**: User can record audio when device has no internet connectivity
 - [x] **OFFL-02**: Recorded audio is queued locally and processed when connectivity returns
-- [ ] **OFFL-03**: User sees clear indication of which items are queued vs processed
+- [x] **OFFL-03**: User sees clear indication of which items are queued vs processed
 - [x] **OFFL-04**: Queued items are processed automatically when device comes back online
 
 ### Export
@@ -137,7 +137,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-04 | Phase 3 | Complete |
 | OFFL-01 | Phase 8 | Complete |
 | OFFL-02 | Phase 8 | Complete |
-| OFFL-03 | Phase 8 | Pending |
+| OFFL-03 | Phase 8 | Complete |
 | OFFL-04 | Phase 8 | Complete |
 | EXPO-01 | Phase 6 | Complete |
 | EXPO-02 | Phase 6 | Complete |
