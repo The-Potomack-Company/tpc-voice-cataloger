@@ -14,9 +14,10 @@ interface ItemCardProps {
   mode: "house" | "sale";
   isExpanded: boolean;
   onToggle: () => void;
+  readOnly?: boolean;
 }
 
-export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
+export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const { status, startRecording, stopRecording } = useAudioRecorder();
@@ -92,7 +93,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
   };
 
   return (
-    <SwipeableRow onDelete={() => setShowDeleteConfirm(true)}>
+    <SwipeableRow onDelete={() => setShowDeleteConfirm(true)} disabled={readOnly}>
       <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg${isQueued ? " opacity-50" : ""}`}>
         {/* Collapsed row - always visible (div instead of button to allow nested mic button) */}
         <div
@@ -161,7 +162,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
             )}
 
             {/* Mic icon for re-record */}
-            {!isQueued && !isProcessing && <button
+            {!readOnly && !isQueued && !isProcessing && <button
               type="button"
               onClick={handleMicClick}
               className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
@@ -228,6 +229,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               value={item.title}
               onSave={handleFieldSave("title")}
               placeholder="Enter title"
+              readOnly={readOnly}
             />
             <EditableField
               label="Description"
@@ -235,24 +237,28 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               onSave={handleFieldSave("description")}
               placeholder="Enter description"
               multiline
+              readOnly={readOnly}
             />
             <EditableField
               label="Condition"
               value={item.condition}
               onSave={handleFieldSave("condition")}
               placeholder="Enter condition"
+              readOnly={readOnly}
             />
             <EditableField
               label="Estimate"
               value={item.estimate}
               onSave={handleFieldSave("estimate")}
               placeholder="Enter estimate"
+              readOnly={readOnly}
             />
             <EditableField
               label="Category"
               value={item.category}
               onSave={handleFieldSave("category")}
               placeholder="Enter category"
+              readOnly={readOnly}
             />
 
             {mode === "sale" && (
@@ -261,6 +267,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
                 value={receiptNumber}
                 onSave={handleFieldSave("receiptNumber")}
                 placeholder="Enter receipt number"
+                readOnly={readOnly}
               />
             )}
 
@@ -277,7 +284,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
             )}
 
             {/* Retry AI button for failed or stuck-processing items */}
-            {(isFailed || isProcessing) && (
+            {!readOnly && (isFailed || isProcessing) && (
               <button
                 type="button"
                 onClick={handleRetryAi}
@@ -299,15 +306,17 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
             )}
 
             {/* Delete button */}
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full mt-2 text-sm text-red-600 dark:text-red-400 font-medium
-                         py-2 rounded-lg border border-red-200 dark:border-red-800
-                         hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            >
-              Delete Item
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full mt-2 text-sm text-red-600 dark:text-red-400 font-medium
+                           py-2 rounded-lg border border-red-200 dark:border-red-800
+                           hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                Delete Item
+              </button>
+            )}
           </div>
         )}
       </div>

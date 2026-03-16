@@ -9,9 +9,10 @@ interface ItemListProps {
   sessionId: number;
   mode: "house" | "sale";
   onAddItemRef?: React.MutableRefObject<(() => Promise<void>) | null>;
+  readOnly?: boolean;
 }
 
-export function ItemList({ sessionId, mode, onAddItemRef }: ItemListProps) {
+export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [newItemId, setNewItemId] = useState<number | null>(null);
 
@@ -113,22 +114,24 @@ export function ItemList({ sessionId, mode, onAddItemRef }: ItemListProps) {
   return (
     <div className="space-y-1.5">
       {/* Add Item button at top */}
-      <button
-        type="button"
-        onClick={handleAddItem}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg
-                   border border-dashed border-gray-300 dark:border-gray-600
-                   text-sm text-gray-600 dark:text-gray-400 font-medium
-                   hover:border-accent hover:text-accent dark:hover:border-accent dark:hover:text-accent
-                   transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Add Item
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={handleAddItem}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg
+                     border border-dashed border-gray-300 dark:border-gray-600
+                     text-sm text-gray-600 dark:text-gray-400 font-medium
+                     hover:border-accent hover:text-accent dark:hover:border-accent dark:hover:text-accent
+                     transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Item
+        </button>
+      )}
 
-      {stuckItems.length > 0 && (
+      {!readOnly && stuckItems.length > 0 && (
         <button
           type="button"
           onClick={handleRetryAll}
@@ -160,6 +163,7 @@ export function ItemList({ sessionId, mode, onAddItemRef }: ItemListProps) {
             mode={mode}
             isExpanded={expandedIds.has(item.id!)}
             onToggle={() => toggleExpand(item.id!)}
+            readOnly={readOnly}
           />
         </div>
       ))}

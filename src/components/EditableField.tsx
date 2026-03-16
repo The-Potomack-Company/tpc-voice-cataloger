@@ -6,6 +6,7 @@ interface EditableFieldProps {
   placeholder?: string;
   multiline?: boolean;
   label?: string;
+  readOnly?: boolean;
 }
 
 export function EditableField({
@@ -14,6 +15,7 @@ export function EditableField({
   placeholder,
   multiline,
   label,
+  readOnly,
 }: EditableFieldProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -77,6 +79,27 @@ export function EditableField({
 
   const displayValue = value || placeholder;
   const isPlaceholder = !value;
+
+  if (readOnly) {
+    return (
+      <div>
+        {label && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {label}
+          </span>
+        )}
+        <span
+          className={`rounded px-1 py-0.5 inline-block ${
+            isPlaceholder
+              ? "text-gray-400 dark:text-gray-500 italic"
+              : "text-gray-900 dark:text-gray-100"
+          }`}
+        >
+          {displayValue}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div>

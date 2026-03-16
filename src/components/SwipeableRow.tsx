@@ -4,6 +4,7 @@ interface SwipeableRowProps {
   children: ReactNode;
   onDelete: () => void;
   deleteLabel?: string;
+  disabled?: boolean;
 }
 
 const SNAP_OPEN = -120;
@@ -13,6 +14,7 @@ export function SwipeableRow({
   children,
   onDelete,
   deleteLabel = "Delete",
+  disabled,
 }: SwipeableRowProps) {
   const [translateX, setTranslateX] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -90,6 +92,16 @@ export function SwipeableRow({
     setIsOpen(false);
     onDelete();
   }, [onDelete]);
+
+  if (disabled) {
+    return (
+      <div className="relative overflow-hidden" style={{ touchAction: "pan-y" }}>
+        <div className="relative z-20 bg-white dark:bg-gray-900">
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden" style={{ touchAction: "pan-y" }}>
