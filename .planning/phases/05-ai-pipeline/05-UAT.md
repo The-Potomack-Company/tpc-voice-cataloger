@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 05-ai-pipeline
-source: 05-01-SUMMARY.md, 05-02-SUMMARY.md
-started: 2026-03-16T12:00:00Z
-updated: 2026-03-16T12:10:00Z
+source: 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md
+started: 2026-03-16T14:00:00Z
+updated: 2026-03-16T14:45:00Z
 ---
 
 ## Current Test
@@ -13,56 +13,56 @@ updated: 2026-03-16T12:10:00Z
 ## Tests
 
 ### 1. Cold Start Smoke Test
-expected: Kill any running dev server. Start the application fresh with `npm run dev`. The server boots without errors, the app loads in the browser, and the main page renders with no console errors related to DB migration or missing fields.
+expected: Kill any running dev server. Run `npm run dev` from scratch. The server boots without errors, the app loads in the browser, and the main page renders. No console errors related to DB migration or missing fields.
 result: pass
 
-### 2. AI Status Tracking on Items
-expected: Open browser DevTools > Application > IndexedDB. Find the app's database. Items (HouseVisitItem or SaleItem) should have an `aiStatus` field visible in the stored records (default value "pending" for new items).
+### 2. AI Status Field in IndexedDB
+expected: Open DevTools > Application > IndexedDB. Find the app's database. Items (HouseVisitItem or SaleItem) should have an `aiStatus` field visible in stored records (default "pending" for new items).
 result: pass
 
 ### 3. Recording Triggers AI Processing
-expected: Navigate to an item entry screen. Record audio using the Record button, then stop recording. After stopping, the AI pipeline should fire automatically in the background — check the Network tab for a POST request to the Gemini proxy URL. The item's aiStatus should transition from "pending" to "processing".
+expected: Navigate to an item entry screen. Record audio using the Record button, then stop. After stopping, the AI pipeline fires automatically — check the Network tab for a POST request to the Gemini proxy URL. The item's aiStatus should transition from "pending" to "processing".
 result: pass
 
 ### 4. AI-Extracted Fields Written to Item
-expected: After the AI processing completes (the proxy request returns successfully), the item's catalog fields in IndexedDB should be populated with values extracted by Gemini. The aiStatus should be "done".
-result: issue
-reported: "doesn't finish processing, not sure if i need to configure anything for it to work"
-severity: major
+expected: After AI processing completes (proxy request returns successfully), the item's catalog fields in IndexedDB should be populated with values extracted by Gemini. The aiStatus should be "done".
+result: pass
+note: Required fix during UAT — Gemini API rejects $schema and additionalProperties in responseSchema. Fixed by stripping those fields in gemini.ts before sending.
 
-### 5. AI Failure Does Not Crash App
-expected: If the Gemini proxy is unreachable or returns an error (e.g., proxy not deployed, no API key), stopping a recording should NOT crash the app or show a user-facing error. The item's aiStatus should be set to "failed" and the app continues working normally.
+### 5. Missing Proxy URL Handled Gracefully
+expected: Temporarily clear or remove VITE_GEMINI_PROXY_URL from .env (or set it to empty). Stop and restart dev server. Record and stop audio. The app should NOT crash — aiStatus should be set to "failed" and you should see a console error about missing proxy URL. No stuck "processing" state.
 result: pass
 
-### 6. Cloudflare Worker Proxy CORS
+### 6. Non-200 Proxy Response Handled
+expected: If the proxy returns an error (e.g., proxy not deployed, wrong URL), stopping a recording should NOT crash the app. The aiStatus should be set to "failed", not stuck at "processing". App continues working normally.
+result: pass
+
+### 7. Cloudflare Worker Proxy CORS
 expected: If the proxy is deployed, requests from the app's origin should succeed without CORS errors. Check the Network tab — the proxy response should include appropriate Access-Control-Allow-Origin headers.
-result: skipped
-reason: Proxy not deployed yet, cannot verify CORS headers
+result: pass
 
 ## Summary
 
-total: 6
-passed: 4
-issues: 1
+total: 7
+passed: 7
+issues: 0
 pending: 0
-skipped: 1
+skipped: 0
 
 ## Gaps
 
-- truth: "After AI processing completes, catalog fields are populated in IndexedDB and aiStatus is done"
-  status: failed
-  reason: "User reported: doesn't finish processing, not sure if i need to configure anything for it to work"
+- truth: "User can manually retry AI processing on items that failed"
+  status: missing
+  reason: "User reported: no way to retry AI processing manually from failures — need better error handling UX"
   severity: major
-  test: 4
-  root_cause: "Three compounding issues: (1) No .env file exists so VITE_GEMINI_PROXY_URL is undefined, fetch fails with TypeError; (2) catch block in gemini.ts does unprotected Dexie write, so if that throws, aiStatus stays stuck at processing; (3) RecordButton silently swallows errors with console.error only"
+  test: n/a
+  root_cause: "No retry mechanism exists in the UI; fire-and-forget pattern has no user-facing recovery path"
   artifacts:
     - path: "src/services/gemini.ts"
-      issue: "No guard against undefined proxyUrl; catch block DB write unprotected; no non-200 response checking"
+      issue: "processAudioWithAi is fire-and-forget only, no manual trigger path"
     - path: "src/components/RecordButton.tsx"
-      issue: "Silent error swallowing with console.error only"
+      issue: "Only triggers AI on recording stop, no retry button for failed items"
   missing:
-    - "Create .env from .env.example with VITE_GEMINI_PROXY_URL"
-    - "Add early guard: if (!proxyUrl) throw new Error(...)"
-    - "Wrap catch block DB write in nested try/catch"
-    - "Add non-200 response checking before parsing candidates"
-  debug_session: ".planning/debug/ai-processing-stuck.md"
+    - "UI indicator showing aiStatus (failed/processing/done) on item cards"
+    - "Retry button on items with aiStatus=failed that re-triggers processAudioWithAi"
+  debug_session: ""

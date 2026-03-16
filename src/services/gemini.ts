@@ -91,7 +91,11 @@ export async function processAudioWithAi(
       ],
       generationConfig: {
         responseMimeType: "application/json",
-        responseSchema: catalogFieldsJsonSchema,
+        responseSchema: (() => {
+          // Gemini API rejects $schema and additionalProperties fields
+          const { $schema, additionalProperties, ...clean } = catalogFieldsJsonSchema as Record<string, unknown>;
+          return clean;
+        })(),
       },
     };
 
