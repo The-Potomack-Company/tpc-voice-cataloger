@@ -103,18 +103,11 @@ export async function buildExportData(
 export async function exportSession(sessionId: number): Promise<void> {
   const data = await buildExportData(sessionId);
   const json = JSON.stringify(data, null, 2);
-  const file = new File([json], `tpc-session-${sessionId}.json`, {
-    type: "application/json",
-  });
-
-  if (navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file] });
-  } else {
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `tpc-session-${sessionId}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 }

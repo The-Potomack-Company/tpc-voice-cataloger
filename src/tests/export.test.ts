@@ -210,53 +210,7 @@ describe("buildExportData", () => {
 });
 
 describe("exportSession", () => {
-  it("calls navigator.share when canShare returns true", async () => {
-    const { exportSession } = await import("../utils/export");
-    const sessionId = (await db.sessions.add({
-      name: "Share Test",
-      mode: "house" as const,
-      status: "active" as const,
-      notes: "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })) as number;
-
-    const shareMock = vi.fn().mockResolvedValue(undefined);
-    const canShareMock = vi.fn().mockReturnValue(true);
-
-    Object.defineProperty(navigator, "share", {
-      value: shareMock,
-      writable: true,
-      configurable: true,
-    });
-    Object.defineProperty(navigator, "canShare", {
-      value: canShareMock,
-      writable: true,
-      configurable: true,
-    });
-
-    await exportSession(sessionId);
-
-    expect(canShareMock).toHaveBeenCalled();
-    expect(shareMock).toHaveBeenCalled();
-    const shareArg = shareMock.mock.calls[0][0];
-    expect(shareArg.files).toHaveLength(1);
-    expect(shareArg.files[0].name).toBe(`tpc-session-${sessionId}.json`);
-
-    // Cleanup
-    Object.defineProperty(navigator, "share", {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    });
-    Object.defineProperty(navigator, "canShare", {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    });
-  });
-
-  it("falls back to download link when canShare unavailable", async () => {
+  it("downloads JSON file via anchor click", async () => {
     const { exportSession } = await import("../utils/export");
     const sessionId = (await db.sessions.add({
       name: "Download Test",
@@ -267,32 +221,26 @@ describe("exportSession", () => {
       updatedAt: new Date(),
     })) as number;
 
-    // Ensure canShare is unavailable
-    Object.defineProperty(navigator, "canShare", {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    });
-    Object.defineProperty(navigator, "share", {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    });
-
     const clickMock = vi.fn();
+    const fakeAnchor = {
+      href: "",
+      download: "",
+      click: clickMock,
+      style: {},
+      setAttribute: vi.fn(),
+    } as unknown as HTMLAnchorElement;
+
     const createElementSpy = vi
       .spyOn(document, "createElement")
-      .mockReturnValue({
-        href: "",
-        download: "",
-        click: clickMock,
-        style: {},
-        setAttribute: vi.fn(),
-      } as unknown as HTMLAnchorElement);
+      .mockReturnValue(fakeAnchor);
 
     await exportSession(sessionId);
 
+    expect(createElementSpy).toHaveBeenCalledWith("a");
     expect(clickMock).toHaveBeenCalled();
+    expect((fakeAnchor as unknown as Record<string, string>).download).toBe(
+      `tpc-session-${sessionId}.json`,
+    );
 
     createElementSpy.mockRestore();
   });
