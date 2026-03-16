@@ -96,7 +96,7 @@ describe("deleteItem", () => {
 });
 
 describe("createBlankItem", () => {
-  it("creates a blank house item with sortOrder = existing count", async () => {
+  it("creates a blank house item with correct sortOrder", async () => {
     const { createBlankItem } = await import("../db/items");
 
     // Add 2 existing items
@@ -120,6 +120,58 @@ describe("createBlankItem", () => {
     expect(item!.sortOrder).toBe(2);
     expect(item!.sessionId).toBe(1);
     expect(item!.createdAt).toBeInstanceOf(Date);
+  });
+
+  it("assigns sortOrder after max existing sortOrder when items have been deleted", async () => {
+    const { createBlankItem } = await import("../db/items");
+
+    // Create 3 items with sortOrders 0, 1, 2
+    await db.houseVisitItems.add({
+      sessionId: 1,
+      title: "Item 0",
+      sortOrder: 0,
+      createdAt: new Date(),
+    });
+    const middleId = (await db.houseVisitItems.add({
+      sessionId: 1,
+      title: "Item 1",
+      sortOrder: 1,
+      createdAt: new Date(),
+    })) as number;
+    await db.houseVisitItems.add({
+      sessionId: 1,
+      title: "Item 2",
+      sortOrder: 2,
+      createdAt: new Date(),
+    });
+
+    // Delete the middle item (sortOrder 1)
+    await db.houseVisitItems.delete(middleId);
+
+    // Add a new item — should get sortOrder 3 (max of [0,2] + 1)
+    const newId = await createBlankItem(1, "house");
+    const item = await db.houseVisitItems.get(newId);
+    expect(item).toBeDefined();
+    expect(item!.sortOrder).toBe(3);
+  });
+
+  it("assigns sortOrder 0 when all items deleted", async () => {
+    const { createBlankItem } = await import("../db/items");
+
+    // Create and delete an item
+    const id = (await db.houseVisitItems.add({
+      sessionId: 1,
+      title: "Temp",
+      sortOrder: 0,
+      createdAt: new Date(),
+    })) as number;
+    await db.houseVisitItems.delete(id);
+
+    // Add a new item — should get sortOrder 0
+    const newId = await createBlankItem(1, "house");
+    const item = await db.houseVisitItems.get(newId);
+    expect(item).toBeDefined();
+    expect(item!.sortOrder).toBe(0);
   });
 
   it("creates a blank sale item with empty receiptNumber", async () => {
