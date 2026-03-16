@@ -16,7 +16,7 @@ export const catalogFieldsSchema = z.object({
   estimate: z
     .string()
     .nullable()
-    .describe("Price estimate exactly as spoken, or null if not mentioned"),
+    .describe("Price estimate as a numeric value or range (e.g. '500' or '300 to 500'). Strip dollar signs. Return just the number(s). Null if not mentioned."),
   category: z
     .string()
     .nullable()

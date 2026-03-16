@@ -88,7 +88,7 @@ describe("gemini pipeline", () => {
           title: "Oak table",
           description: "nice oak table",
           condition: "good",
-          estimate: "200",
+          estimate: "300 to 500",
           category: "furniture",
           transcript: "This is an oak table, good condition",
         }) as unknown as Response;
@@ -110,9 +110,9 @@ describe("gemini pipeline", () => {
           title: "Oak table",
           description: "nice oak table, kinda beat up",
           condition: "fair",
-          estimate: "two hundred",
+          estimate: "500",
           category: "furniture",
-          transcript: "nice oak table, kinda beat up, fair condition, two hundred",
+          transcript: "nice oak table, kinda beat up, fair condition, about five hundred",
         }) as unknown as Response,
       );
 
@@ -122,11 +122,11 @@ describe("gemini pipeline", () => {
       expect(item?.title).toBe("Oak table");
       expect(item?.description).toBe("nice oak table, kinda beat up");
       expect(item?.condition).toBe("fair");
-      expect(item?.estimate).toBe("two hundred");
+      expect(item?.estimate).toBe("400 - 600");
       expect(item?.category).toBe("furniture");
     });
 
-    it("fields are verbatim from Gemini (no transformation)", async () => {
+    it("fields are verbatim from Gemini (estimate post-processed)", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
           title: "oak table, kinda beat up",
@@ -176,9 +176,9 @@ describe("gemini pipeline", () => {
           title: "Old lamp",
           description: "brass lamp",
           condition: "good",
-          estimate: "50",
+          estimate: "300 to 500",
           category: null,
-          transcript: "Old brass lamp, good condition, about fifty",
+          transcript: "Old brass lamp, good condition, about three to five hundred",
         }) as unknown as Response,
       );
 

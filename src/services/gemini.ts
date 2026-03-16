@@ -1,5 +1,6 @@
 import { db } from "../db";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
+import { formatEstimate } from "../utils/formatEstimate";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -7,7 +8,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
 - title: The item name/type as spoken
 - description: The item description as spoken
 - condition: The condition assessment as spoken
-- estimate: The price estimate as spoken
+- estimate: The price estimate as a number or numeric range (e.g. "500" or "300 to 500"). Strip dollar signs. If the speaker says "two hundred", return "200". If they give a range like "three to five hundred", return "300 to 500"
 - category: The item category as spoken
 - transcript: The full verbatim transcript of everything said in the audio
 
@@ -154,8 +155,9 @@ export async function processAudioWithAi(
     if (fields.condition !== null) {
       updateData.condition = fields.condition;
     }
-    if (fields.estimate !== null) {
-      updateData.estimate = fields.estimate;
+    const formattedEstimate = formatEstimate(fields.estimate);
+    if (formattedEstimate !== null) {
+      updateData.estimate = formattedEstimate;
     }
     updateData.category = fields.category ?? "furniture";
     if (fields.transcript !== null) {
