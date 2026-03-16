@@ -170,8 +170,9 @@ n### Quick Tasks Completed
 | 7 | Format AI transcription category output to RFC department codes + Title Case titles | 2026-03-16 | 19283f6 | [7-format-ai-transcription-category-output-](./quick/7-format-ai-transcription-category-output-/) |
 | 8 | Change title autoformatting from Title Case to ALL CAPS | 2026-03-16 | 1e7d551 | [8-change-the-autoformatting-for-titles-to-](./quick/8-change-the-autoformatting-for-titles-to-/) |
 | 9 | Lock down completed sessions (read-only mode) | 2026-03-16 | b4caa20 | [9-completing-a-session-doesn-t-lock-it-dow](./quick/9-completing-a-session-doesn-t-lock-it-dow/) |
+| 10 | Fix department mapping: null fallback + export field rename + backward-compat import | 2026-03-16 | ea66e74 | [10-fix-department-mapping-export-maps-all-t](./quick/10-fix-department-mapping-export-maps-all-t/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:39:16Z
-Stopped at: Completed 05.1-02-PLAN.md (Phase 05.1 complete)
+Last session: 2026-03-16T17:56:59Z
+Stopped at: Completed quick task 10 (fix department mapping)
