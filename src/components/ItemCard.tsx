@@ -8,6 +8,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { updateItemField, deleteItem } from "../db/items";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { processAudioWithAi } from "../services/gemini";
+import { reformatMeasurements } from "../utils/formatMeasurements";
 
 interface ItemCardProps {
   item: HouseVisitItem | SaleItem;
@@ -237,6 +238,16 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
               onSave={handleFieldSave("description")}
               placeholder="Enter description"
               multiline
+              readOnly={readOnly}
+            />
+            <EditableField
+              label="Measurements"
+              value={item.measurements}
+              onSave={(val) => {
+                const reformatted = reformatMeasurements(val);
+                handleFieldSave("measurements")(reformatted);
+              }}
+              placeholder="Enter measurements"
               readOnly={readOnly}
             />
             <EditableField

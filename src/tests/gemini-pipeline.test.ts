@@ -9,7 +9,7 @@ let blobToBase64: typeof import("../services/gemini").blobToBase64;
 vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://test-proxy.example.com/api");
 
 // Helper to build a mock Gemini proxy response
-function mockGeminiResponse(fields: Record<string, string | null>) {
+function mockGeminiResponse(fields: Record<string, unknown>) {
   return {
     ok: true,
     json: async () => ({
@@ -90,6 +90,7 @@ describe("gemini pipeline", () => {
           condition: "good",
           estimate: "300 to 500",
           category: "furniture",
+          measurements: null,
           transcript: "This is an oak table, good condition",
         }) as unknown as Response;
       });
@@ -112,6 +113,7 @@ describe("gemini pipeline", () => {
           condition: "fair",
           estimate: "500",
           category: "furniture",
+          measurements: null,
           transcript: "nice oak table, kinda beat up, fair condition, about five hundred",
         }) as unknown as Response,
       );
@@ -134,6 +136,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          measurements: null,
           transcript: "oak table, kinda beat up, maybe two hundred",
         }) as unknown as Response,
       );
@@ -154,6 +157,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          measurements: null,
           transcript: "Oak table",
         }) as unknown as Response,
       );
@@ -178,6 +182,7 @@ describe("gemini pipeline", () => {
           condition: "good",
           estimate: "300 to 500",
           category: null,
+          measurements: null,
           transcript: "Old brass lamp, good condition, about three to five hundred",
         }) as unknown as Response,
       );
@@ -267,6 +272,7 @@ describe("gemini pipeline", () => {
             condition: null,
             estimate: null,
             category: null,
+            measurements: null,
           }) as unknown as Response;
         },
       );
@@ -311,6 +317,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          measurements: null,
           transcript: null,
         }) as unknown as Response,
       );
@@ -326,6 +333,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          measurements: null,
           transcript: null,
         }) as unknown as Response,
       );
@@ -359,6 +367,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          measurements: null,
           transcript: null,
         }) as unknown as Response,
       );
@@ -454,6 +463,7 @@ describe("gemini pipeline", () => {
           condition: null,
           estimate: null,
           category: null,
+          measurements: null,
           transcript: null,
         }) as unknown as Response,
       );

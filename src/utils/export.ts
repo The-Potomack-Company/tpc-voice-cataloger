@@ -75,6 +75,7 @@ export async function buildExportData(
       return {
         title: item.title,
         description: item.description,
+        measurements: item.measurements,
         condition: item.condition,
         estimate: item.estimate,
         category: item.category,
