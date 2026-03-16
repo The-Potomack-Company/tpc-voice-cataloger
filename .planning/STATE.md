@@ -142,10 +142,11 @@ n### Quick Tasks Completed
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Push everything to main branch of new tpc-app repo in The-Potomack-Company org on GitHub as private repo | 2026-03-16 | f569f39 | [1-push-everything-to-main-branch-of-new-tp](./quick/1-push-everything-to-main-branch-of-new-tp/) |
+| 2 | Auto-collapse all items + scroll to new on Add Item | 2026-03-16 | f4e085f | [2-in-a-session-when-adding-items-it-should](./quick/2-in-a-session-when-adding-items-it-should/) |
 | 3 | Fix apple-mobile-web-app-capable deprecation + add compound Dexie index | 2026-03-16 | 2667111 | [3-fix-apple-mobile-web-app-capable-depreca](./quick/3-fix-apple-mobile-web-app-capable-depreca/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T14:45:30Z
-Stopped at: Completed quick task 3
-Resume file: .planning/quick/3-fix-apple-mobile-web-app-capable-depreca/3-SUMMARY.md
+Last session: 2026-03-16T14:48:37Z
+Stopped at: Completed quick task 2
+Resume file: .planning/quick/2-in-a-session-when-adding-items-it-should/2-SUMMARY.md
