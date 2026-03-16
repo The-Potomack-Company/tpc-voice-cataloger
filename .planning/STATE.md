@@ -157,9 +157,10 @@ n### Quick Tasks Completed
 | 3 | Fix apple-mobile-web-app-capable deprecation + add compound Dexie index | 2026-03-16 | 2667111 | [3-fix-apple-mobile-web-app-capable-depreca](./quick/3-fix-apple-mobile-web-app-capable-depreca/) |
 | 4 | Fix createBlankItem sortOrder to use max+1 instead of count | 2026-03-16 | 341385c | [4-add-item-should-always-add-an-item-to-th](./quick/4-add-item-should-always-add-an-item-to-th/) |
 | 5 | Fix Add Item button z-index hidden behind SwipeableRow cards | 2026-03-16 | 2dd65e0 | [5-the-add-item-button-in-a-session-gets-hi](./quick/5-the-add-item-button-in-a-session-gets-hi/) |
+| 6 | Format AI transcription estimates consistently as ranges | 2026-03-16 | 8b076cb | [6-format-ai-transcription-estimates-consis](./quick/6-format-ai-transcription-estimates-consis/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T15:16:00Z
-Stopped at: Completed quick-5 (Add Item button z-index fix)
+Last session: 2026-03-16T16:36:00Z
+Stopped at: Completed quick-6 (format AI estimate ranges)
 Resume file: None
