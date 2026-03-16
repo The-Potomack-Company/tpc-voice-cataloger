@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-review-edit-export
 source: 06-01-SUMMARY.md, 06-02-SUMMARY.md
 started: 2026-03-16T12:00:00Z
@@ -64,17 +64,30 @@ skipped: 0
   reason: "User reported: ui issue with the swipe delete. the options popup is inside the actual item tab so its unclickable or unviewable"
   severity: major
   test: 4
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Sliding content div has position:relative (Tailwind `relative` class) creating a stacking context that paints over the absolute-positioned delete button. No z-index management. setPointerCapture may also intercept taps."
+  artifacts:
+    - path: "src/components/SwipeableRow.tsx"
+      issue: "Delete button (line 98) has no z-index; sliding content div (line 109) has `relative` class creating higher stacking context"
+    - path: "src/components/ItemCard.tsx"
+      issue: "overflow-hidden on card div (line 72) adds another clipping boundary"
+  missing:
+    - "Remove `relative` from sliding content div (transform already creates stacking context)"
+    - "Add z-10 to delete button to ensure it paints above content"
+    - "Conditionally release pointer capture when row is in open state"
+  debug_session: ".planning/debug/swipe-delete-clipped.md"
 
 - truth: "Export button generates and downloads/shares a JSON file"
   status: failed
   reason: "User reported: when i try to export it says SessionDetail.tsx:131 Export failed: NotAllowedError: Permission denied"
   severity: blocker
   test: 7
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "navigator.share() called after heavy async work (buildExportData with N+1 DB queries + base64 encoding), exhausting browser's ~5s transient user activation window required by Web Share API"
+  artifacts:
+    - path: "src/utils/export.ts"
+      issue: "exportSession (line 104) does all data prep before navigator.share() at line 111, creating async gap"
+    - path: "src/pages/SessionDetail.tsx"
+      issue: "handleExport and handleConfirm both call exportSession after async gaps (lines 128-137, 147-158)"
+  missing:
+    - "Always use download fallback (anchor click) which doesn't require transient activation"
+    - "Or split exportSession into buildExportData + shareOrDownload, calling share from fresh user gesture"
+  debug_session: ".planning/debug/export-permission-denied.md"
