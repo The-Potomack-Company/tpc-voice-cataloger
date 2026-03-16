@@ -166,6 +166,7 @@ export function SessionDetailPage() {
     }
   };
 
+  const isCompleted = session.status === "completed";
   const modeLabel = session.mode === "house" ? "House Visit" : "Sale Cataloging";
 
   return (
@@ -196,6 +197,12 @@ export function SessionDetailPage() {
                          bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100
                          focus:outline-none focus:ring-2 focus:ring-accent"
             />
+          ) : isCompleted ? (
+            <h1
+              className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate"
+            >
+              {session.name}
+            </h1>
           ) : (
             <h1
               onClick={startEditingName}
@@ -288,19 +295,27 @@ export function SessionDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
           Notes
         </h2>
-        <textarea
-          value={editNotes !== null ? editNotes : session.notes}
-          onChange={(e) => setEditNotes(e.target.value)}
-          onBlur={handleNotesSave}
-          placeholder="Add notes..."
-          rows={3}
-          className="w-full rounded-lg border border-gray-200 dark:border-gray-700
-                     bg-gray-50 dark:bg-gray-800 p-3 text-sm
-                     text-gray-900 dark:text-gray-100
-                     placeholder:text-gray-400 dark:placeholder:text-gray-500
-                     focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
-                     resize-none"
-        />
+        {isCompleted ? (
+          <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700
+                          bg-gray-50 dark:bg-gray-800 p-3 text-sm
+                          text-gray-900 dark:text-gray-100 min-h-[4.5rem]">
+            {session.notes || <span className="text-gray-400 dark:text-gray-500">No notes</span>}
+          </div>
+        ) : (
+          <textarea
+            value={editNotes !== null ? editNotes : session.notes}
+            onChange={(e) => setEditNotes(e.target.value)}
+            onBlur={handleNotesSave}
+            placeholder="Add notes..."
+            rows={3}
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-700
+                       bg-gray-50 dark:bg-gray-800 p-3 text-sm
+                       text-gray-900 dark:text-gray-100
+                       placeholder:text-gray-400 dark:placeholder:text-gray-500
+                       focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
+                       resize-none"
+          />
+        )}
       </section>
 
       {/* Item list section */}
@@ -308,7 +323,7 @@ export function SessionDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
           Items ({itemCount})
         </h2>
-        <ItemList sessionId={sessionId} mode={session.mode} onAddItemRef={addItemRef} />
+        <ItemList sessionId={sessionId} mode={session.mode} onAddItemRef={addItemRef} readOnly={isCompleted} />
       </section>
 
       {/* Action buttons */}
@@ -403,19 +418,21 @@ export function SessionDetailPage() {
       />
 
       {/* Floating Add Item button */}
-      <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-30">
-        <button
-          onClick={handleAddItem}
-          className="w-full bg-accent hover:bg-accent-hover text-white font-medium
-                     py-3 px-6 rounded-lg min-h-12 flex items-center justify-center gap-2
-                     shadow-lg transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          {itemCount === 0 ? "Start Cataloging" : "Add Item"}
-        </button>
-      </div>
+      {!isCompleted && (
+        <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-30">
+          <button
+            onClick={handleAddItem}
+            className="w-full bg-accent hover:bg-accent-hover text-white font-medium
+                       py-3 px-6 rounded-lg min-h-12 flex items-center justify-center gap-2
+                       shadow-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            {itemCount === 0 ? "Start Cataloging" : "Add Item"}
+          </button>
+        </div>
+      )}
 
       {/* Recording overlays for re-record from ItemList mic icons */}
       <RecordingIndicator />
