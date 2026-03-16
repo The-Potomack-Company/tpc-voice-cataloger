@@ -108,9 +108,9 @@ Plans:
   5. User can tap "Export" and receive a JSON file on their device containing all fields including receipt numbers (sale mode) and photo references (house visit mode), in the versioned TPC extension schema
 **Plans:** 3/3 plans complete
 Plans:
-- [ ] 06-01-PLAN.md — Item CRUD data layer, export pipeline, EditableField component with tests
-- [ ] 06-02-PLAN.md — Expandable item cards, inline editing UI, delete, re-record, export button on SessionDetail
-- [ ] 06-03-PLAN.md — Gap closure: fix swipe-to-delete stacking context and export NotAllowedError permission issue
+- [x] 06-01-PLAN.md — Item CRUD data layer, export pipeline, EditableField component with tests
+- [x] 06-02-PLAN.md — Expandable item cards, inline editing UI, delete, re-record, export button on SessionDetail
+- [x] 06-03-PLAN.md — Gap closure: fix swipe-to-delete stacking context and export NotAllowedError permission issue
 
 ### Phase 7: Extension Batch Import
 **Goal**: The TPC Chrome extension accepts the exported JSON file and fills title and description fields on each matched RFC Invaluable lot page in batch, without manual copy-paste

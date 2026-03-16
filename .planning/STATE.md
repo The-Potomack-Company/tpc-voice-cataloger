@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 5 AI pipeline gap closure complete. Phase 9 deferred items remaining.
+**Current focus:** Phase 6 complete — transcript, swipe-delete, export, and confirm dialog fixes applied. Phase 9 deferred items remaining.
 
 ## Current Position
 
@@ -128,6 +128,10 @@ Recent decisions affecting current work:
 - [Phase 05]: Combined audioCount and latestAudioId into single useLiveQuery for ItemCard retry
 - [Phase 06]: Removed Web Share API entirely -- transient activation timeout unreliable for async exports
 - [Phase 06]: Delete button z-10 above sliding content instead of relying on DOM order
+- [Phase 06]: Sliding content z-20 so delete button is hidden behind it until swiped
+- [Phase 06]: ConfirmDialog rendered via React portal to escape overflow-hidden clipping
+- [Phase 06]: Transcript field added to Gemini schema, both item types, ItemCard, and export
+- [Phase 06]: Multiple recordings append transcripts (newline-separated) rather than overwriting
 
 ### Roadmap Evolution
 

@@ -1,22 +1,14 @@
 ---
 phase: 06-review-edit-export
 verified: 2026-03-16T11:10:00Z
-status: gaps_found
-score: 14/15 must-haves verified
-re_verification: false
-gaps:
+status: passed
+score: 15/15 must-haves verified
+re_verification: true
+gaps: []
+resolved_gaps:
   - truth: "User can scroll through all items and see AI-extracted fields alongside the raw transcript"
-    status: partial
-    reason: "ROADMAP SC-1 requires a raw transcript field visible per item. No transcript field exists in HouseVisitItem, SaleItem, or ExportSchema. ItemCard shows title/description/condition/estimate/category only. SC-1 as written is not fully met. EDIT-01 in REQUIREMENTS.md does NOT require a transcript — the gap is a stale ROADMAP phrase. Resolution: either update ROADMAP SC-1 to remove the transcript clause (preferred, since CONTEXT.md and REQUIREMENTS have no transcript requirement) or add a transcript field to the schema and ItemCard."
-    artifacts:
-      - path: "src/db/types.ts"
-        issue: "No transcript field in HouseVisitItem or SaleItem interfaces"
-      - path: "src/components/ItemCard.tsx"
-        issue: "Expanded section shows 5 AI fields but no raw transcript display"
-      - path: ".planning/ROADMAP.md"
-        issue: "Phase 6 SC-1 says 'alongside the raw transcript for each item' — this was never implemented and not required by REQUIREMENTS.md EDIT-01"
-    missing:
-      - "Either update ROADMAP.md Phase 6 SC-1 to remove the transcript clause (aligning with REQUIREMENTS EDIT-01 which has no transcript requirement), OR add a transcript field to HouseVisitItem/SaleItem and display it in ItemCard expanded section"
+    status: resolved
+    resolution: "Added transcript field to HouseVisitItem/SaleItem types, Gemini schema, AI pipeline (with append-on-re-record), ItemCard expanded section display, and ExportSchema. SC-1 is now fully satisfied."
 human_verification:
   - test: "Tap a field in an expanded ItemCard to enter edit mode, change the value, blur, then re-open the card and confirm the value persisted in Dexie"
     expected: "Updated value appears after re-opening card; Dexie record contains new value"
