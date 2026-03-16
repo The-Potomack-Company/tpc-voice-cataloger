@@ -152,9 +152,10 @@ n### Quick Tasks Completed
 | 2 | Auto-collapse all items + scroll to new on Add Item | 2026-03-16 | f4e085f | [2-in-a-session-when-adding-items-it-should](./quick/2-in-a-session-when-adding-items-it-should/) |
 | 3 | Fix apple-mobile-web-app-capable deprecation + add compound Dexie index | 2026-03-16 | 2667111 | [3-fix-apple-mobile-web-app-capable-depreca](./quick/3-fix-apple-mobile-web-app-capable-depreca/) |
 | 4 | Fix createBlankItem sortOrder to use max+1 instead of count | 2026-03-16 | 341385c | [4-add-item-should-always-add-an-item-to-th](./quick/4-add-item-should-always-add-an-item-to-th/) |
+| 5 | Fix Add Item button z-index hidden behind SwipeableRow cards | 2026-03-16 | 2dd65e0 | [5-the-add-item-button-in-a-session-gets-hi](./quick/5-the-add-item-button-in-a-session-gets-hi/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T15:12:00Z
-Stopped at: Completed quick-4 (sortOrder fix)
+Last session: 2026-03-16T15:16:00Z
+Stopped at: Completed quick-5 (Add Item button z-index fix)
 Resume file: None
