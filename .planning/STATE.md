@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-06)
 Phase: 05.1 of 10 (Measurements Field)
 Plan: 2 of 2 in current phase
 Status: Phase 05.1 complete
-Last activity: 2026-03-16 - Completed 05.1-02: Measurements wired through Gemini, UI, export, and extension
+Last activity: 2026-03-16 - Completed quick task 10: Fix department mapping - export field rename + null fallback fix + backward-compat import
 
 Progress: [██████████] 100% of milestone
 
