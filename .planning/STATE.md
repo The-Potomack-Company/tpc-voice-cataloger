@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 09-01-PLAN.md
+stopped_at: Completed 09-02-PLAN.md
 last_updated: "2026-03-17T18:33:19.000Z"
-last_activity: "2026-03-17 - Completed 09-01: Schema & Archive Foundation (Dexie v6 + archive CRUD)"
+last_activity: "2026-03-17 - Completed 09-02: Receipt Number Import from CSV/XLSX (SheetJS + ImportReceiptsButton)"
 progress:
   total_phases: 11
   completed_phases: 9
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 9 in progress — Schema & Archive Foundation complete (Plan 01). Plans 02-03 remaining.
+**Current focus:** Phase 9 in progress — Schema & Archive Foundation (Plan 01) and Receipt Import (Plan 02) complete. Plan 03 remaining.
 
 ## Current Position
 
 Phase: 09 of 10 (Deferred Items)
-Plan: 1 of 3 in current phase
-Status: Plan 09-01 complete
-Last activity: 2026-03-17 - Completed 09-01: Schema & Archive Foundation (Dexie v6 + archive CRUD)
+Plan: 2 of 3 in current phase
+Status: Plan 09-02 complete
+Last activity: 2026-03-17 - Completed 09-02: Receipt Number Import from CSV/XLSX (SheetJS + ImportReceiptsButton)
 
 Progress: [██████████] 100% of milestone
 
@@ -68,6 +68,7 @@ Progress: [██████████] 100% of milestone
 | Phase 05.1 P01 | 2min | 3 tasks | 4 files |
 | Phase 05.1 P02 | 6min | 2 tasks | 8 files |
 | Phase 09 P01 | 3min | 2 tasks | 6 files |
+| Phase 09 P02 | 4min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,9 @@ Recent decisions affecting current work:
 - [09-01] Un-archiving sets status back to "active" (unlocks for editing)
 - [09-01] permanentlyDeleteSession cascades to exportHistory records
 - [09-01] AI-06 already satisfied by existing formatEstimate utility -- no changes needed
+- [09-02] SheetJS (xlsx) chosen for CSV/XLSX parsing -- single library handles both formats
+- [09-02] Import toast passed via sessionStorage to survive navigation from NewSession to SessionDetail
+- [09-02] File extension validated in ImportReceiptsButton (not utility) since iOS Safari ignores accept attribute
 
 ### Roadmap Evolution
 
@@ -180,5 +184,5 @@ n### Quick Tasks Completed
 
 ## Session Continuity
 
-Last session: 2026-03-17T18:33:19.000Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-17T18:41:02Z
+Stopped at: Completed 09-02-PLAN.md

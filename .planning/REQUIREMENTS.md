@@ -81,6 +81,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UX-03**: App works in both portrait and landscape orientation
 - [x] **UX-04**: Recording and navigation controls are accessible one-handed
 
+### Receipt Import
+
+- [x] **IMPORT-01**: Auctioneer can upload a CSV file and get receipt numbers parsed
+- [x] **IMPORT-02**: Auctioneer can upload an XLSX file and get receipt numbers parsed
+- [x] **IMPORT-03**: Invalid receipt numbers are silently skipped during import
+- [x] **IMPORT-04**: Blank items are created for each valid receipt number in a new sale session
+
 ### Deployment & CI/CD
 
 - [ ] **DEPLOY-01**: App is deployed to Vercel and accessible at a production URL with auto-deploy from main branch
@@ -168,14 +175,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-02 | Phase 1 | Complete |
 | UX-03 | Phase 1 | Complete |
 | UX-04 | Phase 1 | Complete |
+| IMPORT-01 | Phase 9 | Complete |
+| IMPORT-02 | Phase 9 | Complete |
+| IMPORT-03 | Phase 9 | Complete |
+| IMPORT-04 | Phase 9 | Complete |
 | DEPLOY-01 | Phase 10 | Planned |
 | DEPLOY-02 | Phase 10 | Planned |
 | DEPLOY-03 | Phase 10 | Planned |
 | DEPLOY-04 | Phase 10 | Planned |
 
 **Coverage:**
-- v1 requirements: 45 total
-- Mapped to phases: 45
+- v1 requirements: 49 total
+- Mapped to phases: 49
 - Unmapped: 0 (100% coverage)
 
 **Phase breakdown:**
@@ -188,6 +199,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Phase 6 (Review, Edit, Export): EDIT-01, EDIT-02, EDIT-03, EDIT-04, EXPO-01, EXPO-02, EXPO-03 (7 requirements)
 - Phase 7 (Extension Batch Import): EXT-01, EXT-02, EXT-03, EXT-04 (4 requirements)
 - Phase 8 (Offline Queue): OFFL-01, OFFL-02, OFFL-03, OFFL-04 (4 requirements)
+- Phase 9 (Deferred Items): IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04 (4 requirements)
 - Phase 10 (Vercel Deployment): DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04 (4 requirements)
 
 ---
