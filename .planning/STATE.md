@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-03-17T18:33:19.000Z"
-last_activity: "2026-03-17 - Completed 09-02: Receipt Number Import from CSV/XLSX (SheetJS + ImportReceiptsButton)"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-03-17T18:48:54.000Z"
+last_activity: "2026-03-17 - Completed 09-03: Export History & Session Archive"
 progress:
   total_phases: 11
   completed_phases: 9
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 9 in progress — Schema & Archive Foundation (Plan 01) and Receipt Import (Plan 02) complete. Plan 03 remaining.
+**Current focus:** Phase 9 complete — all 3 plans delivered (Schema & Archive Foundation, Receipt Import, Export History & Archive).
 
 ## Current Position
 
 Phase: 09 of 10 (Deferred Items)
-Plan: 2 of 3 in current phase
-Status: Plan 09-02 complete
-Last activity: 2026-03-17 - Completed 09-02: Receipt Number Import from CSV/XLSX (SheetJS + ImportReceiptsButton)
+Plan: 3 of 3 in current phase
+Status: Phase 09 complete
+Last activity: 2026-03-17 - Completed 09-03: Export History & Session Archive (versioned filenames, archive prompt, read-only archived sessions)
 
 Progress: [██████████] 100% of milestone
 
@@ -69,6 +69,7 @@ Progress: [██████████] 100% of milestone
 | Phase 05.1 P02 | 6min | 2 tasks | 8 files |
 | Phase 09 P01 | 3min | 2 tasks | 6 files |
 | Phase 09 P02 | 4min | 2 tasks | 7 files |
+| Phase 09 P03 | 4min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,10 @@ Recent decisions affecting current work:
 - [09-02] SheetJS (xlsx) chosen for CSV/XLSX parsing -- single library handles both formats
 - [09-02] Import toast passed via sessionStorage to survive navigation from NewSession to SessionDetail
 - [09-02] File extension validated in ImportReceiptsButton (not utility) since iOS Safari ignores accept attribute
+- [09-03] Re-export regenerates fresh JSON from current session state (no cached data)
+- [09-03] Archive prompt shown after every successful export via ConfirmDialog
+- [09-03] Archived sessions use isReadOnly = isCompleted || isArchived for consistent read-only behavior
+- [09-03] Archived section collapsed by default on Sessions page; delete button hidden for archived sessions
 
 ### Roadmap Evolution
 
@@ -184,5 +189,5 @@ n### Quick Tasks Completed
 
 ## Session Continuity
 
-Last session: 2026-03-17T18:41:02Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-03-17T18:48:54Z
+Stopped at: Completed 09-03-PLAN.md
