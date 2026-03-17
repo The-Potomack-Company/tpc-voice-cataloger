@@ -173,26 +173,25 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 6 -> 7 -> 8 -> 
 | 6. Review, Edit, Export | 3/3 | Complete   | 2026-03-16 |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
-| 9. Deferred Items | 0/4 | Planning   | — |
+| 9. Deferred Items | 0/3 | Planning   | — |
 | 10. Vercel Deployment | 0/2 | Planning   | — |
 
 ### Phase 9: Deferred Items
 
-**Goal:** Receipt number list import from spreadsheets, structured AI estimate extraction with dollar ranges, and export history with session archiving
+**Goal:** Receipt number list import from spreadsheets, export history with session archiving, and Dexie schema migration for new data structures
 **Requirements**: AI-06, DATA-01, IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, MIGRATE-01
 **Depends on:** Phase 8
 **Success Criteria** (what must be TRUE):
   1. Auctioneer can upload a CSV or XLSX spreadsheet to pre-populate a sale session with blank items per receipt number
-  2. AI returns structured low/high dollar ranges for spoken price estimates, displayed as "$300-$500"
-  3. Each export creates a history record; auctioneers can re-export from history
-  4. Completed sessions can be archived to declutter the main session list, and un-archived when needed
-**Plans:** 4 plans
+  2. Each export creates a history record; auctioneers can re-export from history with versioned filenames
+  3. Completed sessions can be archived to declutter the main session list, and un-archived when needed
+  4. AI estimate extraction already handled by existing formatEstimate utility (AI-06 satisfied)
+**Plans:** 3 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Dexie v4 migration, updated types (EstimateRange, ExportHistoryRecord, archivedAt), estimate utilities, Wave 0 test scaffolds
-- [ ] 09-02-PLAN.md — Receipt number list import from CSV/XLSX using SheetJS, ImportReceiptsButton, SessionDetail integration
-- [ ] 09-03-PLAN.md — Structured estimate extraction: Gemini schema update, EstimateField component, ItemCard/export integration
-- [ ] 09-04-PLAN.md — Export history tracking, session archive CRUD, archive section in Sessions page, archive offer after export
+- [ ] 09-01-PLAN.md — Dexie v6 migration (exportHistory table, archivedAt on Session), archive CRUD, useArchivedSessions hook
+- [ ] 09-02-PLAN.md — Receipt number list import from CSV/XLSX using SheetJS, ImportReceiptsButton, NewSession integration
+- [ ] 09-03-PLAN.md — Export history tracking, versioned filenames, ExportHistoryList, archive section on Sessions page, archive prompt after export
 
 ### Phase 10: Vercel Deployment
 
