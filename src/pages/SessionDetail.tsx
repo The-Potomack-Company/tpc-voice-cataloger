@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useSession, useSessionItemCount } from "../hooks/useSessions";
-import { updateSession, softDeleteSession } from "../db/sessions";
+import { updateSession, softDeleteSession, archiveSession, unarchiveSession } from "../db/sessions";
 import { createBlankItem } from "../db/items";
 import { db } from "../db";
 import { exportSession } from "../utils/export";
 import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ItemList } from "../components/ItemList";
+import { ExportHistoryList } from "../components/ExportHistoryList";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
 
@@ -72,6 +73,8 @@ export function SessionDetailPage() {
     "complete" | "reopen" | "delete" | "export" | null
   >(null);
 
+  const [showArchivePrompt, setShowArchivePrompt] = useState(false);
+
   const [importToast, setImportToast] = useState<string | null>(null);
 
   // Check for import toast from sessionStorage on mount
@@ -115,7 +118,13 @@ export function SessionDetailPage() {
     );
   }
 
+  const isArchived = !!session.archivedAt;
+  const isCompleted = session.status === "completed";
+  const isReadOnly = isCompleted || isArchived;
+  const modeLabel = session.mode === "house" ? "House Visit" : "Sale Cataloging";
+
   const startEditingName = () => {
+    if (isReadOnly) return;
     setEditName(session.name);
     setIsEditingName(true);
   };
@@ -147,6 +156,8 @@ export function SessionDetailPage() {
     setExporting(true);
     try {
       await exportSession(sessionId);
+      // After successful export, offer to archive
+      setShowArchivePrompt(true);
     } catch (err) {
       console.error("Export failed:", err);
     } finally {
@@ -155,11 +166,22 @@ export function SessionDetailPage() {
   };
 
   const handleExportClick = () => {
-    if (session.status === "active") {
+    if (session.status === "active" && !isArchived) {
       setConfirmAction("export");
     } else {
       handleExport();
     }
+  };
+
+  const handleArchive = async () => {
+    await archiveSession(sessionId);
+    setShowArchivePrompt(false);
+    navigate("/");
+  };
+
+  const handleUnarchive = async () => {
+    await unarchiveSession(sessionId);
+    // Session data refreshes via useLiveQuery -- no manual refresh needed
   };
 
   const handleConfirm = async () => {
@@ -183,9 +205,6 @@ export function SessionDetailPage() {
       await createBlankItem(sessionId, session.mode);
     }
   };
-
-  const isCompleted = session.status === "completed";
-  const modeLabel = session.mode === "house" ? "House Visit" : "Sale Cataloging";
 
   return (
     <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6 pb-24">
@@ -215,7 +234,7 @@ export function SessionDetailPage() {
                          bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100
                          focus:outline-none focus:ring-2 focus:ring-accent"
             />
-          ) : isCompleted ? (
+          ) : isReadOnly ? (
             <h1
               className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate"
             >
@@ -249,7 +268,27 @@ export function SessionDetailPage() {
         >
           {session.status === "active" ? "Active" : "Completed"}
         </span>
+        {isArchived && (
+          <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
+                           bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+            Archived
+          </span>
+        )}
       </div>
+
+      {/* Archived read-only banner */}
+      {isArchived && (
+        <div className="mb-6 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+          This session is archived and read-only.{" "}
+          <button
+            type="button"
+            onClick={handleUnarchive}
+            className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100"
+          >
+            Un-archive to edit.
+          </button>
+        </div>
+      )}
 
       {/* Interrupted recording banner */}
       {isInterrupted && !showDismissedBanner && (
@@ -313,7 +352,7 @@ export function SessionDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
           Notes
         </h2>
-        {isCompleted ? (
+        {isReadOnly ? (
           <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700
                           bg-gray-50 dark:bg-gray-800 p-3 text-sm
                           text-gray-900 dark:text-gray-100 min-h-[4.5rem]">
@@ -341,8 +380,11 @@ export function SessionDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
           Items ({itemCount})
         </h2>
-        <ItemList sessionId={sessionId} mode={session.mode} onAddItemRef={addItemRef} readOnly={isCompleted} />
+        <ItemList sessionId={sessionId} mode={session.mode} onAddItemRef={addItemRef} readOnly={isReadOnly} />
       </section>
+
+      {/* Export History */}
+      <ExportHistoryList sessionId={sessionId} />
 
       {/* Action buttons */}
       <section className="space-y-3">
@@ -369,7 +411,15 @@ export function SessionDetailPage() {
             : exporting ? "Exporting..." : "Export Session"}
         </button>
 
-        {session.status === "active" ? (
+        {isArchived ? (
+          <button
+            onClick={handleUnarchive}
+            className="w-full min-h-12 rounded-lg bg-amber-600 text-white font-medium
+                       hover:bg-amber-700 transition-colors"
+          >
+            Un-archive Session
+          </button>
+        ) : session.status === "active" ? (
           <button
             onClick={() => setConfirmAction("complete")}
             className="w-full min-h-12 rounded-lg bg-green-600 text-white font-medium
@@ -387,14 +437,16 @@ export function SessionDetailPage() {
           </button>
         )}
 
-        <button
-          onClick={() => setConfirmAction("delete")}
-          className="w-full min-h-12 rounded-lg border border-red-300 dark:border-red-700
-                     text-red-600 dark:text-red-400 font-medium
-                     hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-        >
-          Delete Session
-        </button>
+        {!isArchived && (
+          <button
+            onClick={() => setConfirmAction("delete")}
+            className="w-full min-h-12 rounded-lg border border-red-300 dark:border-red-700
+                       text-red-600 dark:text-red-400 font-medium
+                       hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          >
+            Delete Session
+          </button>
+        )}
       </section>
 
       {/* Confirmation dialogs */}
@@ -435,8 +487,19 @@ export function SessionDetailPage() {
         onCancel={() => setConfirmAction(null)}
       />
 
+      {/* Archive prompt after export */}
+      <ConfirmDialog
+        open={showArchivePrompt}
+        title="Archive this session?"
+        message="Archived sessions are hidden from the main list. You can un-archive anytime from the Sessions page."
+        confirmLabel="Archive"
+        cancelLabel="Not Now"
+        onConfirm={handleArchive}
+        onCancel={() => setShowArchivePrompt(false)}
+      />
+
       {/* Floating Add Item button */}
-      {!isCompleted && (
+      {!isReadOnly && (
         <div className="fixed bottom-20 left-0 right-0 px-4 landscape:max-w-3xl landscape:mx-auto z-30">
           <button
             onClick={handleAddItem}

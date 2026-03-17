@@ -5,8 +5,8 @@ import { Walkthrough } from "../components/Walkthrough";
 import { SessionSearch } from "../components/SessionSearch";
 import { SessionCard } from "../components/SessionCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { useActiveSessions, useCompletedSessions, useSessionItemCount } from "../hooks/useSessions";
-import { softDeleteSession, updateSession } from "../db/sessions";
+import { useActiveSessions, useCompletedSessions, useArchivedSessions, useSessionItemCount } from "../hooks/useSessions";
+import { softDeleteSession, updateSession, unarchiveSession } from "../db/sessions";
 import type { Session } from "../db/types";
 
 /** Wrapper that calls useSessionItemCount for a single session */
@@ -40,16 +40,18 @@ export function SessionsPage() {
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
   const completedSessions = useCompletedSessions();
+  const archivedSessions = useArchivedSessions();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [completedExpanded, setCompletedExpanded] = useState(true);
+  const [archivedExpanded, setArchivedExpanded] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Session | null>(null);
 
   if (!hasCompletedWalkthrough) {
     return <Walkthrough />;
   }
 
-  const totalSessions = activeSessions.length + completedSessions.length;
+  const totalSessions = activeSessions.length + completedSessions.length + archivedSessions.length;
 
   // Filter by search query
   const filterFn = (s: Session) =>
@@ -57,7 +59,8 @@ export function SessionsPage() {
 
   const filteredActive = activeSessions.filter(filterFn);
   const filteredCompleted = completedSessions.filter(filterFn);
-  const filteredTotal = filteredActive.length + filteredCompleted.length;
+  const filteredArchived = archivedSessions.filter(filterFn);
+  const filteredTotal = filteredActive.length + filteredCompleted.length + filteredArchived.length;
 
   const handleTap = (session: Session) => {
     navigate(`/session/${session.id}`);
@@ -178,6 +181,53 @@ export function SessionsPage() {
                   onDelete={() => handleDeleteRequest(session)}
                   onRename={(newName) => handleRename(session, newName)}
                 />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Archived Sessions */}
+      {filteredArchived.length > 0 && (
+        <section className="mt-8">
+          <button
+            type="button"
+            onClick={() => setArchivedExpanded(!archivedExpanded)}
+            className="flex items-center gap-2 mb-3"
+          >
+            <svg
+              className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
+                archivedExpanded ? "rotate-90" : ""
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Archived ({filteredArchived.length})
+            </h2>
+          </button>
+          {archivedExpanded && (
+            <div className="space-y-3">
+              {filteredArchived.map((session) => (
+                <div key={session.id} className="relative">
+                  <SessionCardWithCount
+                    session={session}
+                    onTap={() => handleTap(session)}
+                    onDelete={() => handleDeleteRequest(session)}
+                    onRename={(newName) => handleRename(session, newName)}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); unarchiveSession(session.id!); }}
+                    className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800 z-10"
+                  >
+                    Un-archive
+                  </button>
+                </div>
               ))}
             </div>
           )}

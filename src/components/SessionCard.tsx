@@ -122,6 +122,11 @@ export function SessionCard({
                   Completed
                 </span>
               )}
+              {session.archivedAt && (
+                <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                  Archived
+                </span>
+              )}
               {isInterrupted && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
