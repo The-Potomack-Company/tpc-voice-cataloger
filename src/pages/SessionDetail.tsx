@@ -72,6 +72,24 @@ export function SessionDetailPage() {
     "complete" | "reopen" | "delete" | "export" | null
   >(null);
 
+  const [importToast, setImportToast] = useState<string | null>(null);
+
+  // Check for import toast from sessionStorage on mount
+  useEffect(() => {
+    const msg = sessionStorage.getItem("importToast");
+    if (msg) {
+      setImportToast(msg);
+      sessionStorage.removeItem("importToast");
+    }
+  }, []);
+
+  // Auto-dismiss import toast after 3 seconds
+  useEffect(() => {
+    if (!importToast) return;
+    const timer = setTimeout(() => setImportToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [importToast]);
+
   // Focus name input when editing starts
   useEffect(() => {
     if (isEditingName) {
@@ -431,6 +449,13 @@ export function SessionDetailPage() {
             </svg>
             {itemCount === 0 ? "Start Cataloging" : "Add Item"}
           </button>
+        </div>
+      )}
+
+      {/* Import toast feedback */}
+      {importToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-3 rounded-xl shadow-lg animate-[slideUp_0.3s_ease-out]">
+          <span className="text-sm">{importToast}</span>
         </div>
       )}
 

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { createSession } from "../db/sessions";
+import { createBlankItem, updateItemField } from "../db/items";
 import { useActiveSessions } from "../hooks/useSessions";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ImportReceiptsButton } from "../components/ImportReceiptsButton";
 
 type Mode = "house" | "sale";
 
@@ -12,6 +14,8 @@ export function NewSessionPage() {
   const [notes, setNotes] = useState("");
   const [showActiveWarning, setShowActiveWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
@@ -19,6 +23,13 @@ export function NewSessionPage() {
   useEffect(() => {
     nameRef.current?.focus();
   }, []);
+
+  // Auto-dismiss toast after 3 seconds
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   const handleSubmit = async () => {
     if (!name.trim() || submitting) return;
@@ -39,6 +50,40 @@ export function NewSessionPage() {
       navigate(`/session/${newId}`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleImport = async (receipts: string[], skipped: number) => {
+    if (receipts.length === 0) {
+      setToastMessage("No valid receipt numbers found in file");
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const sessionId = await createSession(
+        name.trim(),
+        "sale",
+        notes.trim() || undefined,
+      );
+
+      for (const receipt of receipts) {
+        const itemId = await createBlankItem(sessionId, "sale");
+        await updateItemField(itemId, "sale", "receiptNumber", receipt);
+      }
+
+      // Build toast message per CONTEXT.md locked decision
+      const msg = `${receipts.length} item${receipts.length === 1 ? "" : "s"} created${skipped > 0 ? `, ${skipped} ${skipped === 1 ? "entry" : "entries"} skipped` : ""}`;
+
+      // Store in sessionStorage so SessionDetail can show it after navigation
+      sessionStorage.setItem("importToast", msg);
+
+      navigate(`/session/${sessionId}`);
+    } catch (err) {
+      console.error("Import failed:", err);
+      setToastMessage("Import failed. Please try again.");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -149,19 +194,39 @@ export function NewSessionPage() {
         rows={3}
         className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100
                    placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700
-                   focus:outline-none focus:ring-2 focus:ring-accent resize-none mb-8"
+                   focus:outline-none focus:ring-2 focus:ring-accent resize-none mb-6"
       />
+
+      {/* Import Receipt List - only in sale mode */}
+      {mode === "sale" && (
+        <div className="mb-6">
+          <ImportReceiptsButton
+            onImport={handleImport}
+            disabled={!name.trim() || importing || submitting}
+          />
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+            Upload a CSV or XLSX file with receipt numbers
+          </p>
+        </div>
+      )}
 
       {/* Submit */}
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!name.trim() || submitting}
+        disabled={!name.trim() || submitting || importing}
         className="w-full bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
                    text-white font-medium py-3 px-8 rounded-lg min-h-12 flex items-center justify-center transition-colors"
       >
         {submitting ? "Creating..." : "Start Session"}
       </button>
+
+      {/* Toast feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-3 rounded-xl shadow-lg animate-[slideUp_0.3s_ease-out]">
+          <span className="text-sm">{toastMessage}</span>
+        </div>
+      )}
 
       {/* Active session warning */}
       <ConfirmDialog
