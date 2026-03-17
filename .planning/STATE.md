@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 9 context updated
-last_updated: "2026-03-16T21:55:13.877Z"
-last_activity: "2026-03-16 - Completed quick task 11: Use session title as export filename with sanitization"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-17T18:33:19.000Z"
+last_activity: "2026-03-17 - Completed 09-01: Schema & Archive Foundation (Dexie v6 + archive CRUD)"
 progress:
   total_phases: 11
   completed_phases: 9
   total_plans: 30
-  completed_plans: 24
+  completed_plans: 25
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 6 complete — transcript, swipe-delete, export, and confirm dialog fixes applied. Phase 9 deferred items remaining.
+**Current focus:** Phase 9 in progress — Schema & Archive Foundation complete (Plan 01). Plans 02-03 remaining.
 
 ## Current Position
 
-Phase: 05.1 of 10 (Measurements Field)
-Plan: 2 of 2 in current phase
-Status: Phase 05.1 complete
-Last activity: 2026-03-16 - Completed quick task 11: Use session title as export filename with sanitization
+Phase: 09 of 10 (Deferred Items)
+Plan: 1 of 3 in current phase
+Status: Plan 09-01 complete
+Last activity: 2026-03-17 - Completed 09-01: Schema & Archive Foundation (Dexie v6 + archive CRUD)
 
 Progress: [██████████] 100% of milestone
 
@@ -67,6 +67,7 @@ Progress: [██████████] 100% of milestone
 | Phase 06 P03 | 2min | 2 tasks | 4 files |
 | Phase 05.1 P01 | 2min | 3 tasks | 4 files |
 | Phase 05.1 P02 | 6min | 2 tasks | 8 files |
+| Phase 09 P01 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,10 @@ Recent decisions affecting current work:
 - [05.1-01] Dexie v5 migration with same indexes (measurements not indexed)
 - [05.1-02] Measurements field placed between Description and Condition in ItemCard per user decision
 - [05.1-02] Chrome extension DIMENSIONS_FIELD targets #dimetext selector on RFC Invaluable
+- [09-01] Dexie v6 migration adds exportHistory table; archivedAt optional on Session (no upgrade function)
+- [09-01] Un-archiving sets status back to "active" (unlocks for editing)
+- [09-01] permanentlyDeleteSession cascades to exportHistory records
+- [09-01] AI-06 already satisfied by existing formatEstimate utility -- no changes needed
 
 ### Roadmap Evolution
 
@@ -175,5 +180,5 @@ n### Quick Tasks Completed
 
 ## Session Continuity
 
-Last session: 2026-03-16T21:55:13.867Z
-Stopped at: Phase 9 context updated
+Last session: 2026-03-17T18:33:19.000Z
+Stopped at: Completed 09-01-PLAN.md

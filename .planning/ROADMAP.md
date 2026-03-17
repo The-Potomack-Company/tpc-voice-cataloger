@@ -173,7 +173,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 6 -> 7 -> 8 -> 
 | 6. Review, Edit, Export | 3/3 | Complete   | 2026-03-16 |
 | 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
 | 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
-| 9. Deferred Items | 0/3 | Planning   | — |
+| 9. Deferred Items | 1/3 | In Progress | — |
 | 10. Vercel Deployment | 0/2 | Planning   | — |
 
 ### Phase 9: Deferred Items
@@ -189,7 +189,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 6 -> 7 -> 8 -> 
 **Plans:** 3 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Dexie v6 migration (exportHistory table, archivedAt on Session), archive CRUD, useArchivedSessions hook
+- [x] 09-01-PLAN.md — Dexie v6 migration (exportHistory table, archivedAt on Session), archive CRUD, useArchivedSessions hook
 - [ ] 09-02-PLAN.md — Receipt number list import from CSV/XLSX using SheetJS, ImportReceiptsButton, NewSession integration
 - [ ] 09-03-PLAN.md — Export history tracking, versioned filenames, ExportHistoryList, archive section on Sessions page, archive prompt after export
 
