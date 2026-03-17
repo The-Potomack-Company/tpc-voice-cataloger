@@ -1,7 +1,7 @@
 # Requirements: TPC Speech Cataloger
 
 **Defined:** 2026-03-06
-**Core Value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
+**Core Value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
 
 ## v1.0 Requirements (Shipped)
 
@@ -16,7 +16,7 @@ All v1.0 requirements completed and validated.
 
 ### AI Processing
 
-- [x] **AI-01**: Recorded audio is sent to AI and returned as structured fields (title, description, condition, estimate, category) in a single step — no separate transcription
+- [x] **AI-01**: Recorded audio is sent to AI and returned as structured fields (title, description, condition, estimate, category) in a single step -- no separate transcription
 - [x] **AI-02**: AI returns verbatim speech in structured fields; TPC formatting conventions (ALL CAPS title, formal description language) are applied in Phase 6 review
 - [x] **AI-03**: AI handles missing fields gracefully (null when not spoken, no hallucinated values)
 
@@ -168,7 +168,7 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Real-time collaboration | Small team, serialized workflow (assign → record → submit → review) eliminates need |
+| Real-time collaboration | Small team, serialized workflow (assign -> record -> submit -> review) eliminates need |
 | Photo upload to server | Photos stay in Dexie for v1.1; server handles metadata only |
 | Self-registration | Admin creates all accounts; no public signup |
 | OAuth/SSO | Username/password sufficient for 2-5 person internal team |
@@ -202,38 +202,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| ACCT-01 | — | Pending |
-| ACCT-02 | — | Pending |
-| ACCT-03 | — | Pending |
-| ACCT-04 | — | Pending |
-| ASGN-01 | — | Pending |
-| ASGN-02 | — | Pending |
-| ASGN-03 | — | Pending |
-| ASGN-04 | — | Pending |
-| LIFE-01 | — | Pending |
-| LIFE-02 | — | Pending |
-| LIFE-03 | — | Pending |
-| LIFE-04 | — | Pending |
-| LIFE-05 | — | Pending |
-| LIFE-06 | — | Pending |
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| INFRA-04 | — | Pending |
-| DEPLOY-01 | — | Pending |
-| DEPLOY-02 | — | Pending |
-| DEPLOY-03 | — | Pending |
-| DEPLOY-04 | — | Pending |
+| INFRA-01 | Phase 11 | Pending |
+| INFRA-02 | Phase 11 | Pending |
+| AUTH-01 | Phase 12 | Pending |
+| AUTH-02 | Phase 12 | Pending |
+| AUTH-03 | Phase 12 | Pending |
+| AUTH-04 | Phase 12 | Pending |
+| INFRA-04 | Phase 12 | Pending |
+| ACCT-01 | Phase 13 | Pending |
+| ACCT-02 | Phase 13 | Pending |
+| ACCT-03 | Phase 13 | Pending |
+| ACCT-04 | Phase 13 | Pending |
+| INFRA-03 | Phase 14 | Pending |
+| ASGN-01 | Phase 15 | Pending |
+| ASGN-02 | Phase 15 | Pending |
+| ASGN-03 | Phase 15 | Pending |
+| ASGN-04 | Phase 15 | Pending |
+| LIFE-01 | Phase 16 | Pending |
+| LIFE-02 | Phase 16 | Pending |
+| LIFE-03 | Phase 16 | Pending |
+| LIFE-04 | Phase 16 | Pending |
+| LIFE-05 | Phase 16 | Pending |
+| LIFE-06 | Phase 16 | Pending |
+| DEPLOY-01 | Phase 17 | Pending |
+| DEPLOY-02 | Phase 17 | Pending |
+| DEPLOY-03 | Phase 17 | Pending |
+| DEPLOY-04 | Phase 17 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-06*
-*Last updated: 2026-03-17 after v1.1 milestone requirements definition*
+*Last updated: 2026-03-17 after v1.1 roadmap creation*

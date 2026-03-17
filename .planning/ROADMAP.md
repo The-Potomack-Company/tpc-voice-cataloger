@@ -2,44 +2,124 @@
 
 ## Milestones
 
-- ✅ **v1.0 MVP** — Phases 1–9 + 5.1 (shipped 2026-03-17) — See [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
-- 🚧 **v1.1 Deploy** — Phase 10 (in progress)
+- ✅ **v1.0 MVP** -- Phases 1-9 + 5.1 (shipped 2026-03-17) -- See [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
+- 🚧 **v1.1 Accounts & Deploy** -- Phases 11-17 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 MVP (Phases 1–9 + 5.1) — SHIPPED 2026-03-17</summary>
+<summary>v1.0 MVP (Phases 1-9 + 5.1) -- SHIPPED 2026-03-17</summary>
 
-- [x] Phase 1: Foundation (2/2 plans) — completed 2026-03-06
-- [x] Phase 2: Audio Capture (2/2 plans) — completed 2026-03-06
-- [x] Phase 3: Session Management (3/3 plans) — completed 2026-03-06
-- [x] Phase 4: Cataloging Modes (2/2 plans) — completed 2026-03-06
-- [x] Phase 5: AI Pipeline (5/5 plans) — completed 2026-03-16
-- [x] Phase 5.1: Measurements Field (2/2 plans) — completed 2026-03-16 *(inserted)*
-- [x] Phase 6: Review, Edit, Export (3/3 plans) — completed 2026-03-16
-- [x] Phase 7: Extension Batch Import (3/3 plans) — completed 2026-03-09
-- [x] Phase 8: Offline Queue (2/2 plans) — completed 2026-03-16
-- [x] Phase 9: Deferred Items (3/3 plans) — completed 2026-03-17
+- [x] Phase 1: Foundation (2/2 plans) -- completed 2026-03-06
+- [x] Phase 2: Audio Capture (2/2 plans) -- completed 2026-03-06
+- [x] Phase 3: Session Management (3/3 plans) -- completed 2026-03-06
+- [x] Phase 4: Cataloging Modes (2/2 plans) -- completed 2026-03-06
+- [x] Phase 5: AI Pipeline (5/5 plans) -- completed 2026-03-16
+- [x] Phase 5.1: Measurements Field (2/2 plans) -- completed 2026-03-16 *(inserted)*
+- [x] Phase 6: Review, Edit, Export (3/3 plans) -- completed 2026-03-16
+- [x] Phase 7: Extension Batch Import (3/3 plans) -- completed 2026-03-09
+- [x] Phase 8: Offline Queue (2/2 plans) -- completed 2026-03-16
+- [x] Phase 9: Deferred Items (3/3 plans) -- completed 2026-03-17
 
 </details>
 
-### 🚧 v1.1 Deploy (In Progress)
+### 🚧 v1.1 Accounts & Deploy (In Progress)
 
-- [ ] Phase 10: Vercel Deployment (0/4 plans)
+**Milestone Goal:** Add admin/specialist accounts with session assignment workflow, then deploy to production.
 
-### Phase 10: Vercel Deployment
+- [ ] **Phase 11: Supabase Foundation** - Postgres database, auth configuration, and RLS policies
+- [ ] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix
+- [ ] **Phase 13: Account Management** - Admin creates and manages specialist accounts
+- [ ] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres
+- [ ] **Phase 15: Session Assignment** - Admin assigns sessions to specialists; specialists see scoped view
+- [ ] **Phase 16: Session Lifecycle** - Submit, review, return, and admin-only export workflow
+- [ ] **Phase 17: Deployment & CI** - Vercel deploy, GitHub Actions, CORS lockdown, branch protection
 
-**Goal**: App is deployed to Vercel at a production URL with auto-deploy from main, CI pipeline enforcing quality gates, and Cloudflare Worker CORS locked to the production domain
-**Depends on**: Phase 9
+## Phase Details
+
+### Phase 11: Supabase Foundation
+**Goal**: Supabase project is configured with Postgres schema and RLS policies ready for the application to connect
+**Depends on**: Nothing (first phase of v1.1)
+**Requirements**: INFRA-01, INFRA-02
+**Success Criteria** (what must be TRUE):
+  1. Supabase project exists with Postgres database containing tables for users, sessions, items, and export history
+  2. RLS policies are defined and enforced -- admin role can read/write all rows, specialist role can only read/write rows assigned to or created by them
+  3. Supabase client SDK is installed and configured in the app with environment variables for project URL and anon key
+**Plans**: TBD
+
+### Phase 12: Authentication
+**Goal**: Users can securely log in with email/password via Supabase Auth and unauthenticated users are blocked from the app
+**Depends on**: Phase 11
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, INFRA-04
+**Success Criteria** (what must be TRUE):
+  1. User can log in with email and password on a dedicated login page
+  2. Auth session persists across browser close and refreshes automatically (no re-login needed until explicit logout)
+  3. Unauthenticated users are redirected to the login page when accessing any app route
+  4. User can change their own password from a settings or profile area
+  5. Service worker does not cache Supabase API routes (auth and data requests always reach the server)
+**Plans**: TBD
+
+### Phase 13: Account Management
+**Goal**: Admin can create, view, and deactivate specialist accounts so that specialists exist before session assignment
+**Depends on**: Phase 12
+**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04
+**Success Criteria** (what must be TRUE):
+  1. Admin can create a new specialist account by providing a username and password
+  2. Admin can view a list of all accounts showing username, role, and active/deactivated status
+  3. Admin can deactivate a specialist account, which prevents that specialist from logging in without deleting their data
+  4. The account management page is not accessible to specialist-role users (server-enforced, not just hidden in UI)
+**Plans**: TBD
+
+### Phase 14: Data Migration
+**Goal**: Session and item metadata is server-authoritative in Supabase Postgres while Dexie retains only audio blobs and photos
+**Depends on**: Phase 12
+**Requirements**: INFRA-03
+**Success Criteria** (what must be TRUE):
+  1. SessionsPage, NewSessionPage, and SessionDetailPage read session and item data from Supabase Postgres instead of Dexie
+  2. Creating, editing, and deleting sessions and items writes to Supabase Postgres as the source of truth
+  3. Audio blobs and photos remain in Dexie (IndexedDB) and are not uploaded to the server
+  4. Zustand persist keys are scoped per user so that logging out and logging in as a different user does not leak state
+**Plans**: TBD
+
+### Phase 15: Session Assignment
+**Goal**: Admin can assign sessions to specialists, and specialists see only the sessions relevant to them
+**Depends on**: Phase 13, Phase 14
+**Requirements**: ASGN-01, ASGN-02, ASGN-03, ASGN-04
+**Success Criteria** (what must be TRUE):
+  1. Admin can select a specialist to assign when creating a new session
+  2. Specialist sees only sessions assigned to them plus sessions they created themselves
+  3. Admin can reassign an active session to a different specialist
+  4. Admin can view all sessions across all users with assignee name and current status visible
+**Plans**: TBD
+
+### Phase 16: Session Lifecycle
+**Goal**: Sessions flow through a defined lifecycle -- specialists submit completed work, admin reviews and either edits/exports or returns with notes
+**Depends on**: Phase 15
+**Requirements**: LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-05, LIFE-06
+**Success Criteria** (what must be TRUE):
+  1. Specialist can submit a completed session, changing its status to "submitted"
+  2. Submitted sessions are read-only for the specialist (locked until returned by admin)
+  3. Admin can edit item fields directly on submitted sessions during review
+  4. Admin can return a submitted session to the specialist with review notes that the specialist can see
+  5. Only admin can export session data as JSON; specialists do not see or have access to the export function
+**Plans**: TBD
+
+### Phase 17: Deployment & CI
+**Goal**: App is deployed to production on Vercel with automated quality gates and security hardening
+**Depends on**: Phase 16
 **Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
 **Success Criteria** (what must be TRUE):
-  1. App is deployed to Vercel and accessible at a production URL; pushing to main triggers an automatic deploy
-  2. GitHub Actions CI pipeline runs lint, typecheck, test, and build on every PR and push to main
-  3. Cloudflare Worker CORS origin is restricted to the production Vercel domain (no wildcard `*`)
+  1. App is deployed to Vercel at a production URL and pushing to main triggers an automatic deploy
+  2. GitHub Actions CI pipeline runs lint, typecheck, test, and build on every PR and blocks merge on failure
+  3. Cloudflare Worker CORS origin is restricted to the production Vercel domain (no wildcard)
   4. Branch protection on main requires all CI checks to pass before a PR can be merged
-**Plans:** 0/4 plans (not yet planned)
+**Plans**: TBD
 
 ## Progress
+
+**Execution Order:** Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
+
+Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoretically run in parallel, but sequential execution is safer since Phase 14 is high-risk and benefits from stable auth.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -53,4 +133,10 @@
 | 7. Extension Batch Import | v1.0 | 3/3 | Complete | 2026-03-09 |
 | 8. Offline Queue | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
-| 10. Vercel Deployment | v1.1 | 0/4 | Not started | — |
+| 11. Supabase Foundation | v1.1 | 0/? | Not started | - |
+| 12. Authentication | v1.1 | 0/? | Not started | - |
+| 13. Account Management | v1.1 | 0/? | Not started | - |
+| 14. Data Migration | v1.1 | 0/? | Not started | - |
+| 15. Session Assignment | v1.1 | 0/? | Not started | - |
+| 16. Session Lifecycle | v1.1 | 0/? | Not started | - |
+| 17. Deployment & CI | v1.1 | 0/? | Not started | - |
