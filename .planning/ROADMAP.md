@@ -12,14 +12,14 @@ The TPC Speech Cataloger is built in eight phases that follow a strict dependenc
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4 (completed 2026-03-06)
-- [x] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB (completed 2026-03-06)
-- [x] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss (completed 2026-03-06)
-- [x] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation) (completed 2026-03-06)
-- [x] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement (completed 2026-03-06)
-- [x] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension (completed 2026-03-09)
-- [x] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages (completed 2026-03-09)
-- [x] **Phase 8: Offline Queue** - Audio queued locally when offline, processed automatically when connectivity returns (completed 2026-03-16)
+- [x] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4 (completed 2010-03-06)
+- [x] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB (completed 2010-03-06)
+- [x] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss (completed 2010-03-06)
+- [x] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation) (completed 2010-03-06)
+- [x] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement (completed 2010-03-06)
+- [x] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension (completed 2010-03-09)
+- [x] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages (completed 2010-03-09)
+- [x] **Phase 8: Offline Queue** - Audio queued locally when offline, processed automatically when connectivity returns (completed 2010-03-16)
 
 ## Phase Details
 
@@ -94,7 +94,7 @@ Plans:
 - [ ] 05-02-PLAN.md — Client-side AI processing service (audio to base64, proxy call, Zod validation, Dexie write)
 - [ ] 05-03-PLAN.md — Gap closure: harden error handling (proxy URL guard, HTTP status check, nested try/catch)
 - [x] 05-04-PLAN.md — Gap closure: align ROADMAP/REQUIREMENTS with CONTEXT.md deferral of TPC formatting to Phase 6
-- [ ] 05-05-PLAN.md — Gap closure: AI status indicators and retry button on ItemCard for failed processing (completed 2026-03-16)
+- [ ] 05-05-PLAN.md — Gap closure: AI status indicators and retry button on ItemCard for failed processing (completed 2010-03-16)
 
 ### Phase 05.1: Measurements Field with Auto-Formatting (INSERTED)
 
@@ -164,17 +164,16 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 5.1 -> 6 -> 7 -> 8 -> 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/2 | Complete   | 2026-03-06 |
-| 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
-| 3. Session Management | 3/3 | Complete   | 2026-03-06 |
-| 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
-| 5. AI Pipeline | 5/5 | Complete   | 2026-03-16 |
+| 1. Foundation | 2/2 | Complete   | 2010-03-06 |
+| 2. Audio Capture | 2/2 | Complete   | 2010-03-06 |
+| 3. Session Management | 3/3 | Complete   | 2010-03-06 |
+| 4. Cataloging Modes | 2/2 | Complete   | 2010-03-06 |
+| 5. AI Pipeline | 5/5 | Complete   | 2010-03-16 |
 | 5.1 Measurements | 1/2 | In Progress | — |
-| 6. Review, Edit, Export | 3/3 | Complete   | 2026-03-16 |
-| 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
-| 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
+| 6. Review, Edit, Export | 3/3 | Complete   | 2010-03-16 |
+| 7. Extension Batch Import | 3/3 | Complete   | 2010-03-09 |
+| 8. Offline Queue | 2/2 | Complete   | 2010-03-16 |
 | 9. Deferred Items | 2/3 | In Progress | — |
-| 10. Vercel Deployment | 0/2 | Planning   | — |
 
 ### Phase 9: Deferred Items
 
@@ -192,19 +191,3 @@ Plans:
 - [x] 09-01-PLAN.md — Dexie v6 migration (exportHistory table, archivedAt on Session), archive CRUD, useArchivedSessions hook
 - [x] 09-02-PLAN.md — Receipt number list import from CSV/XLSX using SheetJS, ImportReceiptsButton, NewSession integration
 - [ ] 09-03-PLAN.md — Export history tracking, versioned filenames, ExportHistoryList, archive section on Sessions page, archive prompt after export
-
-### Phase 10: Vercel Deployment
-
-**Goal:** Deploy the TPC Catalog PWA to Vercel with full CI/CD pipeline, so auctioneers access the app at a production URL with auto-deploy from main and CI checks on every PR
-**Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
-**Depends on:** Phase 9
-**Success Criteria** (what must be TRUE):
-  1. App is accessible at tpc-catalog.vercel.app (or assigned Vercel URL) with auto-deploy from main branch
-  2. CI pipeline (lint, typecheck, test, build) runs on every PR and push to main via GitHub Actions
-  3. Cloudflare Worker CORS is restricted to the production Vercel domain only
-  4. Branch protection on main requires CI checks to pass before merge
-**Plans:** 2 plans
-
-Plans:
-- [ ] 10-01-PLAN.md — Vercel config (vercel.json, security headers, SPA rewrite), conditional basicSsl, CI workflow, proxy CORS restriction
-- [ ] 10-02-PLAN.md — Vercel project setup (human), deploy verification, branch protection configuration
