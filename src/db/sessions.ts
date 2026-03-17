@@ -42,10 +42,25 @@ export async function restoreSession(id: number): Promise<void> {
   });
 }
 
+export async function archiveSession(id: number): Promise<void> {
+  await db.sessions.update(id, {
+    archivedAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
+export async function unarchiveSession(id: number): Promise<void> {
+  await db.sessions.where("id").equals(id).modify((session) => {
+    delete session.archivedAt;
+    session.status = "active";
+    session.updatedAt = new Date();
+  });
+}
+
 export async function permanentlyDeleteSession(id: number): Promise<void> {
   await db.transaction(
     "rw",
-    [db.sessions, db.houseVisitItems, db.saleItems, db.photos, db.audio],
+    [db.sessions, db.houseVisitItems, db.saleItems, db.photos, db.audio, db.exportHistory],
     async () => {
       // Get all item IDs for this session from both tables
       const houseItems = await db.houseVisitItems
@@ -71,6 +86,9 @@ export async function permanentlyDeleteSession(id: number): Promise<void> {
       // Delete items
       await db.houseVisitItems.where("sessionId").equals(id).delete();
       await db.saleItems.where("sessionId").equals(id).delete();
+
+      // Delete export history records for this session
+      await db.exportHistory.where("sessionId").equals(id).delete();
 
       // Delete session
       await db.sessions.delete(id);

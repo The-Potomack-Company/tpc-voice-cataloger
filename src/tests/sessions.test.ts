@@ -187,3 +187,56 @@ describe("useActiveSessions hook filtering", () => {
     expect(active[0].id).toBe(activeId);
   });
 });
+
+describe("Archive/unarchive operations", () => {
+  it("archiveSession sets archivedAt to a Date", async () => {
+    const { createSession, archiveSession } = await import("../db/sessions");
+    const id = await createSession("To Archive", "house");
+    await archiveSession(id);
+
+    const session = await db.sessions.get(id);
+    expect(session!.archivedAt).toBeInstanceOf(Date);
+  });
+
+  it("archiveSession excludes session from active queries", async () => {
+    const { createSession, archiveSession } = await import("../db/sessions");
+    const activeId = await createSession("Stay Active", "house");
+    const archiveId = await createSession("Archive Me", "house");
+    await archiveSession(archiveId);
+
+    const active = await db.sessions
+      .where("status").equals("active")
+      .filter((s) => !s.deletedAt && !s.archivedAt)
+      .toArray();
+
+    expect(active.length).toBe(1);
+    expect(active[0].id).toBe(activeId);
+  });
+
+  it("unarchiveSession clears archivedAt and sets status to active", async () => {
+    const { createSession, archiveSession, unarchiveSession } = await import("../db/sessions");
+    const id = await createSession("Unarchive Me", "sale");
+    await archiveSession(id);
+
+    let session = await db.sessions.get(id);
+    expect(session!.archivedAt).toBeInstanceOf(Date);
+
+    await unarchiveSession(id);
+    session = await db.sessions.get(id);
+    expect(session!.archivedAt).toBeUndefined();
+    expect(session!.status).toBe("active");
+  });
+
+  it("unarchived session reappears in active queries", async () => {
+    const { createSession, archiveSession, unarchiveSession } = await import("../db/sessions");
+    const id = await createSession("Roundtrip", "house");
+    await archiveSession(id);
+    await unarchiveSession(id);
+
+    const active = await db.sessions
+      .where("status").equals("active")
+      .filter((s) => !s.deletedAt && !s.archivedAt)
+      .toArray();
+    expect(active.some((s) => s.id === id)).toBe(true);
+  });
+});

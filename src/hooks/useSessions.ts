@@ -7,7 +7,7 @@ export function useActiveSessions() {
       db.sessions
         .where("status")
         .equals("active")
-        .filter((s) => !s.deletedAt)
+        .filter((s) => !s.deletedAt && !s.archivedAt)
         .reverse()
         .sortBy("updatedAt"),
     [],
@@ -21,7 +21,7 @@ export function useCompletedSessions() {
       db.sessions
         .where("status")
         .equals("completed")
-        .filter((s) => !s.deletedAt)
+        .filter((s) => !s.deletedAt && !s.archivedAt)
         .reverse()
         .sortBy("updatedAt"),
     [],
@@ -36,6 +36,18 @@ export function useDeletedSessions() {
         .filter((s) => s.deletedAt !== undefined)
         .reverse()
         .sortBy("deletedAt"),
+    [],
+    [],
+  );
+}
+
+export function useArchivedSessions() {
+  return useLiveQuery(
+    () =>
+      db.sessions
+        .filter((s) => s.archivedAt !== undefined && !s.deletedAt)
+        .reverse()
+        .sortBy("archivedAt"),
     [],
     [],
   );
