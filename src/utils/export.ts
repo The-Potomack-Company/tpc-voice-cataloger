@@ -117,8 +117,30 @@ export async function exportSession(sessionId: number): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
+
+  // Versioned filename: count existing exports for this session
+  const existingExports = await db.exportHistory
+    .where("sessionId").equals(sessionId).count();
+  const version = existingExports + 1;
   const sanitized = sanitizeFilename(data.session.name);
-  a.download = sanitized ? `${sanitized}.json` : `tpc-session-${sessionId}.json`;
+  const baseName = sanitized || `tpc-session-${sessionId}`;
+  // First export: no version suffix. Subsequent: -v2, -v3, etc.
+  a.download = version === 1
+    ? `${baseName}.json`
+    : `${baseName}-v${version}.json`;
+
   a.click();
   URL.revokeObjectURL(url);
+
+  // Record export in history
+  await db.exportHistory.add({
+    sessionId,
+    sessionName: data.session.name,
+    sessionMode: data.session.mode,
+    itemCount: data.items.length,
+    exportedAt: new Date(),
+  });
 }
+
+// Re-export is identical to export -- regenerates from live data
+export const reExportSession = exportSession;
