@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Deploy
+milestone_name: Accounts & Deploy
 status: planning
-stopped_at: Completed v1.0 milestone archival
+stopped_at: Defining requirements
 last_updated: "2026-03-17T00:00:00.000Z"
-last_activity: "2026-03-17 - Archived v1.0 MVP milestone (10 phases, 27 plans)"
+last_activity: "2026-03-17 - Milestone v1.1 started"
 progress:
   total_phases: 0
   completed_phases: 0
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.0 MVP shipped — planning v1.1 Deploy (Phase 10: Vercel Deployment)
+**Current focus:** v1.1 Accounts & Deploy — adding admin/specialist accounts with session assignment, then deploying to production
 
 ## Current Position
 
-Milestone: v1.0 complete (archived)
-Next milestone: v1.1 Deploy
-Status: Planning — use `/gsd:new-milestone` to start v1.1
-Last activity: 2026-03-17 - Archived v1.0 MVP milestone (10 phases, 27 plans)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-17 — Milestone v1.1 started
 
-Progress: [██████████] 100% of milestone
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 

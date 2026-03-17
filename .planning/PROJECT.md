@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A mobile-first PWA for The Potomack Company auction house that enables auctioneers to catalog items by voice during house visits and sale prep. Two modes — house visit (sequential items + photos) and sale cataloging (receipt number + dictation) — feed a Gemini AI pipeline that extracts structured catalog fields (title, description, condition, estimate, category, measurements) and exports them as versioned JSON. A companion Chrome extension batch-imports the exported JSON into RFC Invaluable lot pages, filling title and description fields without manual copy-paste. Sessions persist across browser close, recordings queue offline and process on reconnect.
+A mobile-first PWA for The Potomack Company auction house that enables auctioneers to catalog items by voice during house visits and sale prep. Two modes — house visit (sequential items + photos) and sale cataloging (receipt number + dictation) — feed a Gemini AI pipeline that extracts structured catalog fields (title, description, condition, estimate, category, measurements) and exports them as versioned JSON. An admin/specialist account system lets the admin import receipt lists, create sessions, and assign them to specialists — specialists record and submit, admin reviews, edits, and exports. A companion Chrome extension batch-imports the exported JSON into RFC Invaluable lot pages. Sessions persist across browser close, recordings queue offline and process on reconnect.
 
 ## Core Value
 
@@ -28,6 +28,13 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 
 ### Active
 
+- [ ] Username/password authentication with admin and specialist roles
+- [ ] Admin can create and manage specialist accounts
+- [ ] Admin imports receipts, creates sessions, and assigns to specialists
+- [ ] Specialists see only assigned sessions + their own created sessions
+- [ ] Session lifecycle: Active → Submitted → Admin review (edit or send back) → Export
+- [ ] Only admin can export JSON
+- [ ] Admin can edit submitted sessions directly
 - [ ] Deploy app to Vercel with auto-deploy from main (DEPLOY-01)
 - [ ] CI pipeline: lint, typecheck, test, build via GitHub Actions (DEPLOY-02)
 - [ ] Restrict Cloudflare Worker CORS to production Vercel domain (DEPLOY-03)
@@ -38,15 +45,27 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 - Real-time collaboration between multiple users — small team, not needed
 - Video recording of items — photos sufficient
 - Direct integration with RFC API (bypassing the extension) — leverage existing extension infrastructure
-- OAuth/user accounts — internal tool for 2-5 people
+- OAuth/SSO login — simple username/password sufficient for internal team
 - On-device AI processing — model size too large for mobile; offline queue solves connectivity problem
 - Barcode/QR scanning — receipt numbers are typed, not barcoded
 - Auto-publish without review — AI errors require human review gate
+
+## Current Milestone: v1.1 Accounts & Deploy
+
+**Goal:** Add admin/specialist accounts with session assignment workflow, then deploy to production.
+
+**Target features:**
+- Username/password auth with admin + specialist roles
+- Admin session assignment (import → create → assign → review → export)
+- Specialist scoped view (assigned + own sessions only)
+- Session submission lifecycle (active → submitted → admin review)
+- Vercel deployment + CI pipeline + CORS lockdown
 
 ## Context
 
 **Current state (v1.0):** 10 phases shipped, 9,166 LOC (TS/TSX/JS), 214 commits over 11 days.
 Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexie 4 (IndexedDB) + `@google/genai` 1.x + Cloudflare Worker proxy.
+**v1.1 architecture note:** Accounts require a backend/database. Current app is fully client-side (IndexedDB). This milestone introduces server-side state for the first time.
 
 **Auction platform:** RFC Invaluable (`rfc.invaluable.com`) is where catalog entries live
 **Existing tooling:** TPC AI-Cataloging Chrome extension (Manifest V3) extended with batch import feature (Phase 7)
@@ -84,4 +103,4 @@ Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexi
 | Versioned export filenames | First export no suffix; subsequent -v2, -v3 | ✓ Good — avoids accidental overwrites |
 
 ---
-*Last updated: 2026-03-17 after v1.0 milestone*
+*Last updated: 2026-03-17 after v1.1 milestone start*
