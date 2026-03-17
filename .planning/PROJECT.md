@@ -65,7 +65,7 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 
 **Current state (v1.0):** 10 phases shipped, 9,166 LOC (TS/TSX/JS), 214 commits over 11 days.
 Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexie 4 (IndexedDB) + `@google/genai` 1.x + Cloudflare Worker proxy.
-**v1.1 architecture note:** Accounts require a backend/database. Current app is fully client-side (IndexedDB). This milestone introduces server-side state for the first time.
+**v1.1 architecture note:** Accounts require a backend/database. Current app is fully client-side (IndexedDB). This milestone introduces Supabase (Postgres + Auth + RLS) as the server-side layer. Dexie retains audio blobs and photos only. Future dashboard planned as separate repo reading from same Supabase instance.
 
 **Auction platform:** RFC Invaluable (`rfc.invaluable.com`) is where catalog entries live
 **Existing tooling:** TPC AI-Cataloging Chrome extension (Manifest V3) extended with batch import feature (Phase 7)
@@ -101,6 +101,7 @@ Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexi
 | Soft-delete sessions | Allows recovery; permanent delete is explicit | ✓ Good |
 | SheetJS for CSV/XLSX import | Single library handles both formats | ✓ Good |
 | Versioned export filenames | First export no suffix; subsequent -v2, -v3 | ✓ Good — avoids accidental overwrites |
+| Supabase over Neon+Hono+BetterAuth | User familiar with Supabase; future dashboard reads from same DB; fewer moving parts | — Pending |
 
 ---
 *Last updated: 2026-03-17 after v1.1 milestone start*

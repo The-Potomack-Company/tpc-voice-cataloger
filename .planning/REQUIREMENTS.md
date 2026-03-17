@@ -3,9 +3,9 @@
 **Defined:** 2026-03-06
 **Core Value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with entries flowing directly into RFC Invaluable.
 
-## v1 Requirements
+## v1.0 Requirements (Shipped)
 
-Requirements for initial release. Each maps to roadmap phases.
+All v1.0 requirements completed and validated.
 
 ### Voice Capture
 
@@ -88,120 +88,152 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **IMPORT-03**: Invalid receipt numbers are silently skipped during import
 - [x] **IMPORT-04**: Blank items are created for each valid receipt number in a new sale session
 
-### Deployment & CI/CD
+## v1.1 Requirements
 
-- [ ] **DEPLOY-01**: App is deployed to Vercel and accessible at a production URL with auto-deploy from main branch
-- [ ] **DEPLOY-02**: CI pipeline (lint, typecheck, test, build) runs on every PR and push to main via GitHub Actions
-- [ ] **DEPLOY-03**: Cloudflare Worker CORS is restricted to the production Vercel domain (no wildcard origin)
-- [ ] **DEPLOY-04**: Branch protection on main requires CI checks to pass before merge
+Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
-## v2 Requirements
+### Authentication
 
-Deferred to future release. Tracked but not in current roadmap.
+- [ ] **AUTH-01**: User can log in with email and password via Supabase Auth
+- [ ] **AUTH-02**: Auth session managed by Supabase (automatic token refresh)
+- [ ] **AUTH-03**: Unauthenticated users are redirected to login page
+- [ ] **AUTH-04**: User can change their own password
+
+### Account Management
+
+- [ ] **ACCT-01**: Admin can create new specialist accounts with username and password
+- [ ] **ACCT-02**: Admin can view list of all accounts with roles
+- [ ] **ACCT-03**: Admin can deactivate a specialist account (blocks login without deleting)
+- [ ] **ACCT-04**: Account management page is only accessible to admin role
+
+### Session Assignment
+
+- [ ] **ASGN-01**: Admin can assign a session to a specialist when creating it
+- [ ] **ASGN-02**: Specialist sees only sessions assigned to them and sessions they created
+- [ ] **ASGN-03**: Admin can reassign an active session to a different specialist
+- [ ] **ASGN-04**: Admin can view all sessions with assignee names and status
+
+### Session Lifecycle
+
+- [ ] **LIFE-01**: Specialist can submit a completed session to admin for review
+- [ ] **LIFE-02**: Submitted sessions are locked for the specialist (read-only unless returned)
+- [ ] **LIFE-03**: Admin can edit item fields directly on submitted sessions
+- [ ] **LIFE-04**: Admin can return a submitted session to the specialist with review notes
+- [ ] **LIFE-05**: Returned sessions show review notes to the specialist
+- [ ] **LIFE-06**: Only admin can export session data as JSON
+
+### Backend Infrastructure
+
+- [ ] **INFRA-01**: Supabase project configured with Postgres database and auth
+- [ ] **INFRA-02**: Row-level security (RLS) policies enforce role-based data access
+- [ ] **INFRA-03**: Session/item data is server-authoritative (Dexie retains audio/photos only)
+- [ ] **INFRA-04**: Service worker excludes Supabase API routes from caching
+
+### Deployment
+
+- [ ] **DEPLOY-01**: App deployed to Vercel with auto-deploy from main
+- [ ] **DEPLOY-02**: CI pipeline: lint, typecheck, test, build via GitHub Actions
+- [ ] **DEPLOY-03**: Cloudflare Worker CORS restricted to production Vercel domain
+- [ ] **DEPLOY-04**: Branch protection on main: require CI checks before merge
+
+## Future Requirements
+
+Deferred to v1.2+. Tracked but not in current roadmap.
+
+### Dashboard
+
+- **DASH-01**: Separate web app reading from Supabase for cross-app analytics
+- **DASH-02**: View session activity, specialist workload, import success rates
+
+### Bulk Operations
+
+- **BULK-01**: Bulk session assignment (split receipt list across multiple specialists)
+
+### Audit
+
+- **AUDT-01**: Activity log / audit trail for session lifecycle events
 
 ### AI Enhancements
 
 - **AI-05**: Category-aware AI prompts (furniture/books/fashion use different extraction strategies)
-- **AI-06**: Estimate extraction from natural speech ("three to five hundred" → $300-$500)
 - **AI-07**: Custom vocabulary injection for auctioneer-specific terminology
 
 ### Photo Enhancements
 
 - **PHOTO-01**: User can reorder photos per item (drag to set hero shot)
 
-### Data Management
-
-- **DATA-01**: Export history and session archive
-- **DATA-02**: Condition report templates (pre-built phrases by category)
-
 ## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Real-time streaming transcription | Incompatible with offline queue; batch processing is more reliable |
-| Multi-user collaboration | 2-5 person team doesn't need real-time collaboration |
-| User accounts / OAuth | Internal tool, no meaningful security gain |
-| Direct RFC API integration | Leverage existing extension infrastructure |
+| Real-time collaboration | Small team, serialized workflow (assign → record → submit → review) eliminates need |
+| Photo upload to server | Photos stay in Dexie for v1.1; server handles metadata only |
+| Self-registration | Admin creates all accounts; no public signup |
+| OAuth/SSO | Username/password sufficient for 2-5 person internal team |
+| Offline session creation for assigned work | Assigned sessions require server; specialists can still create personal sessions offline |
 | Video recording | Large files destroy offline queue; photos + voice sufficient |
-| Voice commands for navigation | Unreliable in noisy house environments |
-| Auto-publish without review | AI errors require human review gate |
-| Barcode/QR scanning | Receipt numbers are typed, not barcoded |
-| On-device AI processing | Model size too large for mobile; offline queue solves the connectivity problem |
+| Direct RFC API integration | Leverage existing extension infrastructure |
+| On-device AI processing | Model size too large for mobile; offline queue solves connectivity problem |
 
 ## Traceability
 
 Which phases cover which requirements. Updated during roadmap creation.
 
+### v1.0 (Complete)
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VOICE-01 | Phase 2 | Complete |
-| VOICE-02 | Phase 2 | Complete |
-| VOICE-03 | Phase 2 | Complete |
-| VOICE-04 | Phase 2 | Complete |
-| AI-01 | Phase 5 | Complete |
-| AI-02 | Phase 5 | Complete |
-| AI-03 | Phase 5 | Complete |
-| MEAS-01 | Phase 05.1 | Complete |
-| MEAS-02 | Phase 05.1 | Complete |
-| MEAS-03 | Phase 05.1 | Planned |
-| MEAS-04 | Phase 05.1 | Planned |
-| HOUSE-01 | Phase 4 | Complete |
-| HOUSE-02 | Phase 4 | Complete |
-| HOUSE-03 | Phase 4 | Complete |
-| HOUSE-04 | Phase 4 | Complete |
-| SALE-01 | Phase 4 | Complete |
-| SALE-02 | Phase 4 | Complete |
-| SALE-03 | Phase 4 | Complete |
-| EDIT-01 | Phase 6 | Complete |
-| EDIT-02 | Phase 6 | Complete |
-| EDIT-03 | Phase 6 | Complete |
-| EDIT-04 | Phase 6 | Complete |
-| SESS-01 | Phase 3 | Complete |
-| SESS-02 | Phase 3 | Complete |
-| SESS-03 | Phase 3 | Complete |
-| SESS-04 | Phase 3 | Complete |
-| OFFL-01 | Phase 8 | Complete |
-| OFFL-02 | Phase 8 | Complete |
-| OFFL-03 | Phase 8 | Complete |
-| OFFL-04 | Phase 8 | Complete |
-| EXPO-01 | Phase 6 | Complete |
-| EXPO-02 | Phase 6 | Complete |
-| EXPO-03 | Phase 6 | Complete |
-| EXT-01 | Phase 7 | Complete |
-| EXT-02 | Phase 7 | Complete |
-| EXT-03 | Phase 7 | Complete |
-| EXT-04 | Phase 7 | Complete |
-| UX-01 | Phase 1 | Complete |
-| UX-02 | Phase 1 | Complete |
-| UX-03 | Phase 1 | Complete |
-| UX-04 | Phase 1 | Complete |
-| IMPORT-01 | Phase 9 | Complete |
-| IMPORT-02 | Phase 9 | Complete |
-| IMPORT-03 | Phase 9 | Complete |
-| IMPORT-04 | Phase 9 | Complete |
-| DEPLOY-01 | Phase 10 | Planned |
-| DEPLOY-02 | Phase 10 | Planned |
-| DEPLOY-03 | Phase 10 | Planned |
-| DEPLOY-04 | Phase 10 | Planned |
+| VOICE-01..04 | Phase 2 | Complete |
+| AI-01..03 | Phase 5 | Complete |
+| MEAS-01..04 | Phase 05.1 | Complete |
+| HOUSE-01..04 | Phase 4 | Complete |
+| SALE-01..03 | Phase 4 | Complete |
+| EDIT-01..04 | Phase 6 | Complete |
+| SESS-01..04 | Phase 3 | Complete |
+| OFFL-01..04 | Phase 8 | Complete |
+| EXPO-01..03 | Phase 6 | Complete |
+| EXT-01..04 | Phase 7 | Complete |
+| UX-01..04 | Phase 1 | Complete |
+| IMPORT-01..04 | Phase 9 | Complete |
+
+### v1.1 (Current)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AUTH-01 | — | Pending |
+| AUTH-02 | — | Pending |
+| AUTH-03 | — | Pending |
+| AUTH-04 | — | Pending |
+| ACCT-01 | — | Pending |
+| ACCT-02 | — | Pending |
+| ACCT-03 | — | Pending |
+| ACCT-04 | — | Pending |
+| ASGN-01 | — | Pending |
+| ASGN-02 | — | Pending |
+| ASGN-03 | — | Pending |
+| ASGN-04 | — | Pending |
+| LIFE-01 | — | Pending |
+| LIFE-02 | — | Pending |
+| LIFE-03 | — | Pending |
+| LIFE-04 | — | Pending |
+| LIFE-05 | — | Pending |
+| LIFE-06 | — | Pending |
+| INFRA-01 | — | Pending |
+| INFRA-02 | — | Pending |
+| INFRA-03 | — | Pending |
+| INFRA-04 | — | Pending |
+| DEPLOY-01 | — | Pending |
+| DEPLOY-02 | — | Pending |
+| DEPLOY-03 | — | Pending |
+| DEPLOY-04 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 49 total
-- Mapped to phases: 49
-- Unmapped: 0 (100% coverage)
-
-**Phase breakdown:**
-- Phase 1 (Foundation): UX-01, UX-02, UX-03, UX-04 (4 requirements)
-- Phase 2 (Audio Capture): VOICE-01, VOICE-02, VOICE-03, VOICE-04 (4 requirements)
-- Phase 3 (Session Management): SESS-01, SESS-02, SESS-03, SESS-04 (4 requirements)
-- Phase 4 (Cataloging Modes): HOUSE-01, HOUSE-02, HOUSE-03, HOUSE-04, SALE-01, SALE-02, SALE-03 (7 requirements)
-- Phase 5 (AI Pipeline): AI-01, AI-02, AI-03 (3 requirements)
-- Phase 05.1 (Measurements): MEAS-01, MEAS-02, MEAS-03, MEAS-04 (4 requirements)
-- Phase 6 (Review, Edit, Export): EDIT-01, EDIT-02, EDIT-03, EDIT-04, EXPO-01, EXPO-02, EXPO-03 (7 requirements)
-- Phase 7 (Extension Batch Import): EXT-01, EXT-02, EXT-03, EXT-04 (4 requirements)
-- Phase 8 (Offline Queue): OFFL-01, OFFL-02, OFFL-03, OFFL-04 (4 requirements)
-- Phase 9 (Deferred Items): IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04 (4 requirements)
-- Phase 10 (Vercel Deployment): DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04 (4 requirements)
+- v1.1 requirements: 26 total
+- Mapped to phases: 0
+- Unmapped: 26 ⚠️
 
 ---
 *Requirements defined: 2026-03-06*
-*Last updated: 2026-03-16 after Phase 05.1 planning — measurements requirements added*
+*Last updated: 2026-03-17 after v1.1 milestone requirements definition*
