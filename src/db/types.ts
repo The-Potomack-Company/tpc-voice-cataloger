@@ -5,8 +5,18 @@ export interface Session {
   status: "active" | "completed";
   notes: string;
   deletedAt?: Date;
+  archivedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ExportHistoryRecord {
+  id?: number;
+  sessionId: number;
+  sessionName: string;
+  sessionMode: "house" | "sale";
+  itemCount: number;
+  exportedAt: Date;
 }
 
 export type AiStatus = "pending" | "processing" | "done" | "failed" | "queued";

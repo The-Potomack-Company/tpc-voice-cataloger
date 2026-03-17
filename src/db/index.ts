@@ -5,6 +5,7 @@ import type {
   SaleItem,
   ItemPhoto,
   ItemAudio,
+  ExportHistoryRecord,
 } from "./types";
 
 const db = new Dexie("TPCCatalog") as Dexie & {
@@ -13,6 +14,7 @@ const db = new Dexie("TPCCatalog") as Dexie & {
   saleItems: EntityTable<SaleItem, "id">;
   photos: EntityTable<ItemPhoto, "id">;
   audio: EntityTable<ItemAudio, "id">;
+  exportHistory: EntityTable<ExportHistoryRecord, "id">;
 };
 
 db.version(1).stores({
@@ -68,6 +70,16 @@ db.version(5).stores({
   saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
   photos: "++id, itemId, sortOrder",
   audio: "++id, itemId",
+});
+
+// v6: Add exportHistory table, archivedAt on Session (optional, no upgrade needed)
+db.version(6).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  exportHistory: "++id, sessionId, exportedAt",
 });
 
 export { db };

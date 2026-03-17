@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { db } from "../db";
-import type { Session, HouseVisitItem, SaleItem } from "../db/types";
+import type { Session, HouseVisitItem, SaleItem, ExportHistoryRecord } from "../db/types";
 
 afterEach(async () => {
   await db.delete();
@@ -8,10 +8,11 @@ afterEach(async () => {
 });
 
 describe("Dexie database", () => {
-  it("opens successfully and has 5 tables", () => {
+  it("opens successfully and has 6 tables", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toEqual([
       "audio",
+      "exportHistory",
       "houseVisitItems",
       "photos",
       "saleItems",
@@ -126,5 +127,48 @@ describe("Dexie database", () => {
     expect(retrieved!.sessionId).toBe(sessionId);
     expect(retrieved!.receiptNumber).toBe("12345-1");
     expect(retrieved!.title).toBe("OAK DINING TABLE");
+  });
+});
+
+describe("Dexie v6 migration", () => {
+  it("has 6 tables including exportHistory after v6 migration", () => {
+    const tableNames = db.tables.map((t) => t.name).sort();
+    expect(tableNames).toContain("exportHistory");
+    expect(tableNames).toHaveLength(6);
+  });
+
+  it("exportHistory table has sessionId and exportedAt indexes", () => {
+    const table = db.table("exportHistory");
+    const indexNames = table.schema.indexes.map((idx) => idx.name);
+    expect(indexNames).toContain("sessionId");
+    expect(indexNames).toContain("exportedAt");
+  });
+
+  it("can create and read an ExportHistoryRecord", async () => {
+    const id = await db.exportHistory.add({
+      sessionId: 1,
+      sessionName: "Test Session",
+      sessionMode: "house",
+      itemCount: 5,
+      exportedAt: new Date(),
+    });
+    const record = await db.exportHistory.get(id);
+    expect(record).toBeDefined();
+    expect(record!.sessionName).toBe("Test Session");
+    expect(record!.itemCount).toBe(5);
+  });
+
+  it("Session records have archivedAt as optional (undefined by default)", async () => {
+    const sessionId = await db.sessions.add({
+      name: "Archive Test",
+      mode: "house",
+      status: "active",
+      notes: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Session);
+    const session = await db.sessions.get(sessionId);
+    expect(session).toBeDefined();
+    expect(session!.archivedAt).toBeUndefined();
   });
 });
