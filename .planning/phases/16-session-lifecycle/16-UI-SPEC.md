@@ -56,20 +56,24 @@ Source: Consistent with Phase 15 UI-SPEC spacing scale. Existing `Sessions.tsx`,
 | Page title | 24px | 600 (semibold) | 1.2 | `text-2xl font-semibold` |
 | Section header | 14px | 600 (semibold) | 1.4 | `text-sm font-semibold uppercase tracking-wider` |
 | Card primary text (session name) | 16px | 600 (semibold) | 1.5 | `font-semibold text-gray-900 dark:text-gray-100` |
-| Card secondary text (item count, time, assignee) | 12px | 500 (medium) | 1.5 | `text-xs font-medium text-gray-500 dark:text-gray-400` |
-| Badge text (status pills) | 12px | 500 (medium) | 1.0 | `text-xs font-medium` |
+| Card secondary text (item count, time, assignee) | 12px | 400 (normal) | 1.5 | `text-xs text-gray-500 dark:text-gray-400` |
+| Badge text (status pills) | 12px | 600 (semibold) | 1.0 | `text-xs font-semibold` |
 | Banner heading ("Returned by Admin") | 14px | 600 (semibold) | 1.5 | `text-sm font-semibold` |
-| Banner body (review notes text, status description) | 14px | 500 (medium) | 1.5 | `text-sm` |
-| Button text | 16px | 500 (medium) | 1.5 | `font-medium` |
-| Dialog title | 18px | 600 (semibold) | 1.3 | `text-lg font-semibold` |
+| Banner body (review notes text, status description) | 14px | 400 (normal) | 1.5 | `text-sm` |
+| Button text | 16px | 600 (semibold) | 1.5 | `font-semibold` |
+| Dialog title | 16px | 600 (semibold) | 1.5 | `text-base font-semibold` |
 | Dialog body | 14px | 400 (normal) | 1.5 | `text-sm text-gray-600 dark:text-gray-400` |
 | Textarea placeholder | 14px | 400 (normal) | 1.5 | `text-sm placeholder:text-gray-400` |
 
-**Declared weights: 2 primary**
-- **500 (medium)** -- All secondary text: badges, button text, card metadata, banner body text.
-- **600 (semibold)** -- All primary/heading text: page titles, section headers, card names, banner headings, dialog titles.
+**Declared sizes: 4**
+- **12px** (`text-xs`) -- Card metadata, badge text.
+- **14px** (`text-sm`) -- Section headers, banner text, dialog body, textarea placeholder.
+- **16px** (`text-base`) -- Card primary text, button text, dialog titles.
+- **24px** (`text-2xl`) -- Page titles.
 
-Note: Dialog body and textarea placeholder use 400 (normal) weight -- these are inherited from the existing `ConfirmDialog.tsx` pattern (`text-gray-600 dark:text-gray-400` without explicit weight class). This is pre-existing code, not newly introduced.
+**Declared weights: 2**
+- **400 (normal)** -- All secondary/body text: card metadata, banner body, dialog body, textarea placeholder.
+- **600 (semibold)** -- All primary/heading text: page titles, section headers, card names, banner headings, dialog titles, button text, badge text.
 
 Source: Consistent with Phase 15 UI-SPEC. Existing `ConfirmDialog.tsx`, `SessionDetail.tsx`, `Sessions.tsx` patterns.
 
@@ -227,7 +231,7 @@ SessionSearch
 **New status pill rendering (replaces the existing `session.status === "completed"` badge):**
 ```html
 <!-- Rendered when session.status is not 'active' -->
-<span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+<span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full
              {status-specific colors from Status Pill Colors table}">
   {Submitted | Returned | Exported}
 </span>
@@ -255,14 +259,14 @@ SessionSearch
 ```html
 <!-- Disabled state (items still processing) -->
 <button disabled
-  class="w-full min-h-12 rounded-lg bg-accent text-white font-medium
+  class="w-full min-h-12 rounded-lg bg-accent text-white font-semibold
          opacity-50 cursor-not-allowed">
   3 items still processing
 </button>
 
 <!-- Enabled state -->
 <button
-  class="w-full min-h-12 rounded-lg bg-accent text-white font-medium
+  class="w-full min-h-12 rounded-lg bg-accent text-white font-semibold
          hover:opacity-90 transition-opacity">
   Submit for Review
 </button>
@@ -271,8 +275,8 @@ SessionSearch
 **Confirmation dialog:** Reuses existing `ConfirmDialog` component.
 - Title: "Submit for Review?"
 - Message: "{session.name} will be locked for editing until returned or approved by admin."
-- Confirm label: "Submit"
-- Cancel label: "Cancel"
+- Confirm label: "Lock & Submit"
+- Cancel label: "Keep Editing"
 - `destructive: false` (accent-colored confirm button, not red)
 
 **Post-submit:** Session status updates optimistically to `'submitted'`. Submit button disappears. Status banner appears. Fields become read-only.
@@ -306,7 +310,7 @@ SessionSearch
             bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800
             px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
   <div class="flex items-start gap-2">
-    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
       <!-- Warning triangle icon -->
       <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
     </svg>
@@ -356,7 +360,7 @@ const isReadOnly = isLifecycleLocked;
 ```html
 <!-- Export button (admin only, any status except exported) -->
 <button
-  class="w-full min-h-12 rounded-lg border border-accent text-accent font-medium
+  class="w-full min-h-12 rounded-lg border border-accent text-accent font-semibold
          hover:bg-accent/10 transition-colors flex items-center justify-center gap-2
          disabled:opacity-50 disabled:cursor-not-allowed">
   <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -368,7 +372,7 @@ const isReadOnly = isLifecycleLocked;
 <!-- Return to Specialist button (admin only, when status is 'submitted') -->
 <button
   class="w-full min-h-12 rounded-lg border border-amber-300 dark:border-amber-700
-         text-amber-700 dark:text-amber-400 font-medium
+         text-amber-700 dark:text-amber-400 font-semibold
          hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
   Return to Specialist
 </button>
@@ -399,7 +403,7 @@ Note: "Mark Complete" and "Reopen Session" buttons from v1.0 are removed entirel
 ```html
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
   <div class="mx-4 w-full max-w-sm rounded-xl bg-white p-6 dark:bg-gray-800">
-    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">
       Return to Specialist
     </h3>
     <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -416,9 +420,9 @@ Note: "Mark Complete" and "Reopen Session" buttons from v1.0 are removed entirel
              resize-none" />
     <div class="mt-4 flex justify-end gap-3">
       <button class="min-h-12 rounded-lg px-4 py-3 text-gray-700 dark:text-gray-300">
-        Cancel
+        Keep Submitted
       </button>
-      <button class="min-h-12 rounded-lg px-4 py-3 font-medium text-white bg-amber-600 hover:bg-amber-700">
+      <button class="min-h-12 rounded-lg px-4 py-3 font-semibold text-white bg-amber-600 hover:bg-amber-700">
         Return Session
       </button>
     </div>
@@ -444,7 +448,7 @@ Note: "Mark Complete" and "Reopen Session" buttons from v1.0 are removed entirel
 // Export button: admin-only, hidden entirely from specialist
 {isAdmin && (
   <button onClick={handleExportClick} disabled={exporting || queuedCount > 0}
-    className="w-full min-h-12 rounded-lg border border-accent text-accent font-medium
+    className="w-full min-h-12 rounded-lg border border-accent text-accent font-semibold
                hover:bg-accent/10 transition-colors flex items-center justify-center gap-2
                disabled:opacity-50 disabled:cursor-not-allowed">
     {/* ... icon and text ... */}
@@ -500,8 +504,8 @@ Note: "Mark Complete" and "Reopen Session" buttons from v1.0 are removed entirel
 | Primary CTA disabled (queued items) | "{N} items still processing" |
 | Submit confirmation title | "Submit for Review?" |
 | Submit confirmation message | "{session.name} will be locked for editing until returned or approved by admin." |
-| Submit confirmation confirm label | "Submit" |
-| Submit confirmation cancel label | "Cancel" |
+| Submit confirmation confirm label | "Lock & Submit" |
+| Submit confirmation cancel label | "Keep Editing" |
 | Submitted status banner (specialist) | "Submitted -- awaiting admin review" |
 | Returned banner heading (specialist) | "Returned by Admin" |
 | Returned banner body (specialist) | "{session.review_notes}" (verbatim from admin's notes) |
@@ -510,7 +514,7 @@ Note: "Mark Complete" and "Reopen Session" buttons from v1.0 are removed entirel
 | Return dialog message (admin) | "Return \"{session.name}\" with notes for the specialist." |
 | Return dialog textarea placeholder | "Review notes (optional)" |
 | Return dialog confirm label | "Return Session" |
-| Return dialog cancel label | "Cancel" |
+| Return dialog cancel label | "Keep Submitted" |
 | Export button (admin) | "Export Session" |
 | Export button loading (admin) | "Exporting..." |
 | Export button queued (admin) | "{N} item{s} still queued" |
