@@ -89,7 +89,12 @@ Plans:
   2. Creating, editing, and deleting sessions and items writes to Supabase Postgres as the source of truth
   3. Audio blobs and photos remain in Dexie (IndexedDB) and are not uploaded to the server
   4. Zustand persist keys are scoped per user so that logging out and logging in as a different user does not leak state
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 14-01-PLAN.md -- Dexie v7 schema, types, Zustand sessionStore, per-user persist scoping, ID mapping utilities
+- [ ] 14-02-PLAN.md -- Rewrite data access layer (sessions.ts, items.ts, useSessions.ts) and services (gemini, export, offline queue)
+- [ ] 14-03-PLAN.md -- One-time Dexie-to-Supabase migration, MigrationSplash UI, and write-ahead queue for offline writes
+- [ ] 14-04-PLAN.md -- Update all pages and components from Dexie to Zustand/Supabase, human verification
 
 ### Phase 15: Session Assignment
 **Goal**: Admin can assign sessions to specialists, and specialists see only the sessions relevant to them
@@ -145,8 +150,18 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
 | 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
-| 13. Account Management | 2/2 | Complete    | 2026-03-18 | - |
-| 14. Data Migration | v1.1 | 0/? | Not started | - |
+| 13. Account Management | v1.1 | 2/2 | Complete | 2026-03-18 |
+| 14. Data Migration | v1.1 | 0/4 | Not started | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
 | 16. Session Lifecycle | v1.1 | 0/? | Not started | - |
 | 17. Deployment & CI | v1.1 | 0/? | Not started | - |
+
+### Phase 18: Update tutorial/walkthrough to be thorough
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 17
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 18 to break down)
