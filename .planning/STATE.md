@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: in_progress
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-03-18T17:09:48Z"
-last_activity: 2026-03-18 -- Completed Phase 13 Plan 01 (Admin Backend Infrastructure)
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-03-18T17:19:33Z"
+last_activity: 2026-03-18 -- Completed Phase 13 Plan 02 (Account Management UI)
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 13 (Account Management) in progress
+**Current focus:** v1.1 Accounts & Deploy -- Phase 13 (Account Management) complete
 
 ## Current Position
 
 Phase: 13 of 17 (Account Management)
-Plan: 1 of 2
-Status: Plan 01 complete, Plan 02 remaining
-Last activity: 2026-03-18 -- Completed Phase 13 Plan 01 (Admin Backend Infrastructure)
+Plan: 2 of 2
+Status: Phase 13 complete (all plans finished)
+Last activity: 2026-03-18 -- Completed Phase 13 Plan 02 (Account Management UI)
 
-Progress: [========= ] 86%
+Progress: [==========] 100%
 
 ## Performance Metrics
 
@@ -72,6 +72,9 @@ Recent decisions affecting current work:
 - [13-01] Email column added to profiles (nullable) for efficient account listing
 - [13-01] AdminRouteGuard queries profiles directly rather than extending authStore with profile data
 - [13-01] Dual-layer deactivation: ban_duration on auth.users + is_active on profiles for defense in depth
+- [13-02] Optimistic toggle updates with error revert for deactivation/reactivation
+- [13-02] Settings queries profiles table for admin role detection (same pattern as AdminRouteGuard)
+- [13-02] Inline expandable form with Discard toggle for specialist account creation
 
 ### Pending Todos
 
@@ -89,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T17:09:48Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-03-18T17:19:33Z
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None

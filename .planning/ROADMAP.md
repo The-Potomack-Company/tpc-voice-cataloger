@@ -29,7 +29,7 @@
 
 - [x] **Phase 11: Supabase Foundation** - Postgres database, auth configuration, and RLS policies (completed 2026-03-18)
 - [x] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix (completed 2026-03-18)
-- [ ] **Phase 13: Account Management** - Admin creates and manages specialist accounts
+- [x] **Phase 13: Account Management** - Admin creates and manages specialist accounts (completed 2026-03-18)
 - [ ] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres
 - [ ] **Phase 15: Session Assignment** - Admin assigns sessions to specialists; specialists see scoped view
 - [ ] **Phase 16: Session Lifecycle** - Submit, review, return, and admin-only export workflow
@@ -75,7 +75,7 @@ Plans:
   2. Admin can view a list of all accounts showing username, role, and active/deactivated status
   3. Admin can deactivate a specialist account, which prevents that specialist from logging in without deleting their data
   4. The account management page is not accessible to specialist-role users (server-enforced, not just hidden in UI)
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 13-01-PLAN.md -- Edge Functions, DB migration, admin API service layer, and admin route guard
 - [ ] 13-02-PLAN.md -- Account Management page UI, AccountRow component, Settings admin section, and route wiring
@@ -145,7 +145,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
 | 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
-| 13. Account Management | v1.1 | 1/2 | In progress | - |
+| 13. Account Management | 2/2 | Complete   | 2026-03-18 | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
 | 16. Session Lifecycle | v1.1 | 0/? | Not started | - |
