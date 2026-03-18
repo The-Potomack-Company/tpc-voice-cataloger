@@ -108,7 +108,7 @@ export function ItemEntryPage() {
   // Sync receipt value from DB
   useEffect(() => {
     if (mode === "sale" && item && "receiptNumber" in item) {
-      setReceiptValue(item.receiptNumber ?? "");
+      setReceiptValue((item as { receiptNumber?: string }).receiptNumber ?? "");
     }
   }, [mode, item]);
 
@@ -306,15 +306,15 @@ function BackButton({
   const navigate = useNavigate();
 
   const previousItem = useLiveQuery(
-    () => {
+    async () => {
       if (!currentItem || currentItem.sortOrder === 0) return undefined;
       const table = mode === "house" ? db.houseVisitItems : db.saleItems;
-      return table
+      const items = await table
         .where("sessionId")
         .equals(sessionId)
         .filter((i) => i.sortOrder < currentItem.sortOrder)
-        .sortBy("sortOrder")
-        .then((items) => items[items.length - 1]);
+        .sortBy("sortOrder");
+      return items[items.length - 1];
     },
     [sessionId, currentItem?.sortOrder, mode],
   );

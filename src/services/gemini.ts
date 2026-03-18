@@ -173,7 +173,7 @@ export async function processAudioWithAi(
     if (fields.transcript !== null) {
       // Append to existing transcript so multiple recordings accumulate
       const existing = await table.get(itemId);
-      const prev = (existing as Record<string, unknown>)?.transcript as string | undefined;
+      const prev = (existing as unknown as Record<string, unknown>)?.transcript as string | undefined;
       updateData.transcript = prev
         ? `${prev}\n\n${fields.transcript}`
         : fields.transcript;

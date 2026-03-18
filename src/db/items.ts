@@ -62,12 +62,13 @@ export async function appendToItemField(
   await table
     .where("id")
     .equals(id)
-    .modify((item: Record<string, unknown>) => {
-      const existing = item[field] as string | undefined;
+    .modify((item) => {
+      const rec = item as unknown as Record<string, unknown>;
+      const existing = rec[field] as string | undefined;
       if (existing) {
-        item[field] = existing + "\n" + newContent;
+        rec[field] = existing + "\n" + newContent;
       } else {
-        item[field] = newContent;
+        rec[field] = newContent;
       }
     });
 }
