@@ -40,7 +40,7 @@ describe('AdminRouteGuard', () => {
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
-          <Route element={<AdminRouteGuard />}>
+          <Route path="/admin" element={<AdminRouteGuard />}>
             <Route index element={<div>Admin Content</div>} />
           </Route>
           <Route path="/" element={<div>Home Page</div>} />
@@ -70,7 +70,7 @@ describe('AdminRouteGuard', () => {
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
-          <Route element={<AdminRouteGuard />}>
+          <Route path="/admin" element={<AdminRouteGuard />}>
             <Route index element={<div>Admin Content</div>} />
           </Route>
           <Route path="/" element={<div>Home Page</div>} />
@@ -95,10 +95,10 @@ describe('AdminRouteGuard', () => {
     const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
     mockFrom.mockReturnValue({ select: mockSelect });
 
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
-          <Route element={<AdminRouteGuard />}>
+          <Route path="/admin" element={<AdminRouteGuard />}>
             <Route index element={<div>Admin Content</div>} />
           </Route>
           <Route path="/" element={<div>Home Page</div>} />
