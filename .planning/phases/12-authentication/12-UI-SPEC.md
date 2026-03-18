@@ -51,8 +51,10 @@ Exceptions: Touch targets use `min-h-12` (48px) on all interactive elements per 
 |------|------|--------|-------------|----------------|
 | Body | 16px (1rem) | 400 (normal) | 1.5 | `text-base` (default) |
 | Label | 14px (0.875rem) | 600 (semibold) | 1.25 | `text-sm font-semibold` |
-| Heading | 24px (1.5rem) | 700 (bold) | 1.2 | `text-2xl font-bold` |
+| Heading | 24px (1.5rem) | 600 (semibold) | 1.2 | `text-2xl font-semibold` |
 | Section Header | 14px (0.875rem) | 600 (semibold) | 1.25 | `text-sm font-semibold uppercase tracking-wider` |
+
+2-weight system: 400 (body) + 600 (labels, headers, heading). The 24px Heading size provides sufficient visual differentiation from 14px labels without requiring a third weight.
 
 Source: Established patterns from `Settings.tsx`, `AppLayout.tsx`, `ConfirmDialog.tsx`.
 
@@ -136,7 +138,7 @@ Source: `src/index.css` custom theme (`--color-accent: #2563eb`), `ConfirmDialog
 **Specifications:**
 - Container: `flex items-center justify-center h-dvh bg-white dark:bg-gray-900`
 - Card: `w-full max-w-sm mx-4` (no visible card border -- clean flat layout matching app aesthetic)
-- App title: `text-2xl font-bold text-gray-900 dark:text-gray-100 text-center`
+- App title: `text-2xl font-semibold text-gray-900 dark:text-gray-100 text-center`
 - Subtitle: `text-sm text-gray-500 dark:text-gray-400 text-center mt-1 mb-8`
 - Input labels: `text-sm font-medium text-gray-700 dark:text-gray-300`
 - Input fields: `w-full min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none`
@@ -185,7 +187,8 @@ ACCOUNT (section header)
    |                              |
    | (inline error text)          |
    |                              |
-   | [Cancel]  [Update Password]  |
+   | [Discard Changes]            |
+   |          [Update Password]   |
    +------------------------------+
 ```
 
@@ -198,7 +201,7 @@ ACCOUNT (section header)
 - Gap between fields: `mb-4` (16px)
 - Error text: `text-sm text-red-600 dark:text-red-400 mt-2`
 - Success text: `text-sm text-green-600 dark:text-green-400 mt-2`
-- Cancel button: `min-h-12 rounded-lg px-4 py-3 text-gray-700 dark:text-gray-300`
+- Discard Changes button: `min-h-12 rounded-lg px-4 py-3 text-gray-700 dark:text-gray-300`
 - Update Password button: `min-h-12 rounded-lg px-4 py-3 font-medium text-white bg-accent disabled:opacity-50`
 - Button row: `flex justify-end gap-3 mt-4`
 
@@ -230,7 +233,7 @@ ACCOUNT (section header)
 | State | Visual |
 |-------|--------|
 | Collapsed | Row shows "Change Password" with right-chevron |
-| Expanded | Form reveals with 3 password fields, Cancel and Update Password buttons |
+| Expanded | Form reveals with 3 password fields, Discard Changes and Update Password buttons |
 | Validating | "Update Password" button shows spinner, disabled |
 | Validation error | Red text below fields: "Passwords do not match" or "Current password is incorrect" |
 | Success | Green text: "Password updated successfully". Form collapses after 2 seconds. |
@@ -242,7 +245,7 @@ ACCOUNT (section header)
 |-------|--------|
 | Tap "Sign Out" | `ConfirmDialog` appears with title "Sign Out", message, and destructive confirm button |
 | Confirm | Auth session ends, redirect to `/login` |
-| Cancel | Dialog closes, no action |
+| Stay Signed In | Dialog closes, no action |
 
 ### ProtectedRoute
 
@@ -276,12 +279,12 @@ ACCOUNT (section header)
 | Password too short | "Password must be at least 6 characters" |
 | Password update success | "Password updated successfully" |
 | Password update CTA | "Update Password" |
-| Cancel button | "Cancel" |
+| Discard changes button | "Discard Changes" |
 | Sign Out button | "Sign Out" |
 | Sign Out dialog title | "Sign Out" |
 | Sign Out dialog message | "Sign out of your account? Your local data will be preserved." |
 | Sign Out confirm label | "Sign Out" |
-| Sign Out cancel label | "Cancel" |
+| Sign Out dismiss label | "Stay Signed In" |
 
 ---
 
