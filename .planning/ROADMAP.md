@@ -27,7 +27,7 @@
 
 **Milestone Goal:** Add admin/specialist accounts with session assignment workflow, then deploy to production.
 
-- [ ] **Phase 11: Supabase Foundation** - Postgres database, auth configuration, and RLS policies
+- [x] **Phase 11: Supabase Foundation** - Postgres database, auth configuration, and RLS policies (completed 2026-03-18)
 - [ ] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix
 - [ ] **Phase 13: Account Management** - Admin creates and manages specialist accounts
 - [ ] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres
@@ -45,10 +45,10 @@
   1. Supabase project exists with Postgres database containing tables for users, sessions, items, and export history
   2. RLS policies are defined and enforced -- admin role can read/write all rows, specialist role can only read/write rows assigned to or created by them
   3. Supabase client SDK is installed and configured in the app with environment variables for project URL and anon key
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 11-01-PLAN.md -- SQL migrations, SDK install, client singleton, placeholder types, and unit tests
-- [ ] 11-02-PLAN.md -- Cloud project setup, migration push, type generation, and RLS verification
+- [x] 11-01-PLAN.md -- SQL migrations, SDK install, client singleton, placeholder types, and unit tests
+- [x] 11-02-PLAN.md -- Cloud project setup, migration push, type generation, and RLS verification
 
 ### Phase 12: Authentication
 **Goal**: Users can securely log in with email/password via Supabase Auth and unauthenticated users are blocked from the app
@@ -140,7 +140,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 7. Extension Batch Import | v1.0 | 3/3 | Complete | 2026-03-09 |
 | 8. Offline Queue | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
-| 11. Supabase Foundation | 1/2 | In Progress|  | - |
+| 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 12. Authentication | v1.1 | 0/3 | Not started | - |
 | 13. Account Management | v1.1 | 0/? | Not started | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |

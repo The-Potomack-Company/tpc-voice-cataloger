@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-18T13:51:47.590Z"
-last_activity: 2026-03-18 -- Completed Phase 11 Plan 01 (Supabase schema, RLS, client)
+stopped_at: Completed 11-02-PLAN.md (Phase 11 complete)
+last_updated: "2026-03-18T14:52:04.788Z"
+last_activity: 2026-03-18 -- Completed Phase 11 Plan 02 (Cloud deploy, type generation, RLS verification)
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 1
-  percent: 7
+  completed_plans: 2
+  percent: 40
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 11 (Supabase Foundation) Plan 01 complete
+**Current focus:** v1.1 Accounts & Deploy -- Phase 11 (Supabase Foundation) complete, ready for Phase 12
 
 ## Current Position
 
-Phase: 11 of 17 (Supabase Foundation) -- first phase of v1.1
-Plan: 2 of 2
-Status: Executing
-Last activity: 2026-03-18 -- Completed Phase 11 Plan 01 (Supabase schema, RLS, client)
+Phase: 11 of 17 (Supabase Foundation) -- COMPLETE
+Plan: 2 of 2 (phase complete)
+Status: Phase 11 complete, ready for Phase 12
+Last activity: 2026-03-18 -- Completed Phase 11 Plan 02 (Cloud deploy, type generation, RLS verification)
 
-Progress: [=░░░░░░░░░] 7%
+Progress: [====......] 40%
 
 ## Performance Metrics
 
@@ -59,6 +59,9 @@ Recent decisions affecting current work:
 - [11-01] CHECK constraints on text columns for status/mode/role (no Postgres ENUMs)
 - [11-01] Indexes on sessions.created_by, sessions.assigned_to, items.session_id for RLS performance
 - [11-01] vi.stubEnv for Vitest env var mocking (esbuild transform limitation with import.meta.env assignment)
+- [11-02] --linked flag required for supabase gen types when project is CLI-linked
+- [11-02] Insertable/Updatable type aliases appended to generated types for backward compatibility
+- [11-02] Consolidated .env into .env.local (all env vars in one gitignored file)
 
 ### Pending Todos
 
@@ -76,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T13:51:47.588Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-18T14:52:04.786Z
+Stopped at: Completed 11-02-PLAN.md (Phase 11 complete)
 Resume file: None
