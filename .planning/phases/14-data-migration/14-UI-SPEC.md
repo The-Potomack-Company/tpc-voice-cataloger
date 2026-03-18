@@ -53,9 +53,8 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Major section breaks |
 | 3xl | 64px | Page-level spacing |
 
-Exceptions: none
-
-Source: Existing components use Tailwind's default 4px-based scale. ConfirmDialog uses `p-6`, SessionCard uses `p-4`, gap values are `gap-2` and `gap-3`. No custom spacing tokens defined.
+Exceptions:
+- `py-0.5` (2px) on inline badge elements: Approved. The existing codebase uses `px-2 py-0.5 rounded-full` as the standard badge pattern across SessionCard, AccountRow, ItemCard, and Settings (8+ instances). Changing to `py-1` (4px) would be inconsistent with every other badge in the app. Phase 14's Unsynced Indicator badge inherits this established pattern.
 
 ---
 
@@ -64,10 +63,12 @@ Source: Existing components use Tailwind's default 4px-based scale. ConfirmDialo
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 16px (`text-base`) | 400 (normal) | 1.5 |
-| Label | 14px (`text-sm`) | 500 (`font-medium`) | 1.43 |
+| Label | 14px (`text-sm`) | 400 (normal) | 1.43 |
 | Heading | 24px (`text-2xl`) | 600 (`font-semibold`) | 1.33 |
 
-Source: Login page uses `text-2xl font-semibold` for heading, `text-sm font-medium` for labels, default body text at 16px. ConfirmDialog uses `text-lg font-semibold` for dialog titles. Three sizes are sufficient for this phase's minimal UI surface.
+Labels are differentiated from body text by size (14px vs 16px), not by weight. Only two weights are used in this phase's contract: 400 and 600.
+
+Source: Login page uses `text-2xl font-semibold` for heading, `text-sm` for labels, default body text at 16px. Three sizes are sufficient for this phase's minimal UI surface.
 
 Phase-specific typography:
 
@@ -75,7 +76,7 @@ Phase-specific typography:
 |---------|------|--------|-------|
 | Migration splash heading | 24px (`text-2xl`) | 600 (`font-semibold`) | "Migrating your data..." |
 | Migration progress text | 14px (`text-sm`) | 400 (normal) | "12 of 45 items" counter |
-| Unsynced badge text | 12px (`text-xs`) | 500 (`font-medium`) | Matches existing badge pattern (SessionCard mode badge) |
+| Unsynced badge text | 12px (`text-xs`) | 400 (normal) | Differentiated by size and color, not weight |
 | Offline banner text | 14px (`text-sm`) | 400 (normal) | Matches OfflineIndicator pattern |
 
 ---
@@ -123,7 +124,7 @@ Source: All colors derived from existing component patterns. ConfirmDialog, Sess
 | Error state heading | Migration incomplete |
 | Error state body | {count} items could not be migrated. Your data is safe -- you can retry now or continue and retry later from Settings. |
 | Error retry CTA | Retry Migration |
-| Error continue CTA | Continue |
+| Error continue CTA | Skip and Continue |
 
 ### Unsynced Indicator
 
@@ -160,6 +161,8 @@ No new destructive actions in this phase. Session delete already exists and cont
 
 ### MigrationSplash
 
+Primary visual anchor is the `<h2>` heading -- all other elements (body text, progress bar, counter, buttons) support it.
+
 ```
 Layout:
 - Full-screen overlay, centered content (flexbox)
@@ -179,7 +182,7 @@ Structure:
 States:
   1. In progress: heading + body + animated progress bar + counter
   2. Complete: heading changes to "Migration complete", body changes, progress bar at 100%
-  3. Error: heading changes, body shows skip count, two buttons (Retry + Continue)
+  3. Error: heading changes, body shows skip count, two buttons (Retry + Skip and Continue)
 
 Auto-dismiss: After success state shown for 1500ms, overlay fades out (opacity transition 300ms)
 ```
@@ -191,10 +194,13 @@ Placement: Inside ItemCard, after existing badges (mode badge, status badge)
 Condition: Shown when item has a pending write-ahead queue entry
 
 Structure:
-  <span>  -- inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full
+  <span>  -- inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
             bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
     <svg>   -- w-3 h-3, rotating refresh/sync icon (2-arrow circular)
     "Pending sync"
+
+Spacing exception: py-0.5 (2px) used here to match the established badge pattern
+across SessionCard, AccountRow, ItemCard, and Settings (see Spacing Scale exceptions).
 
 Matches: Identical class pattern to "Recording interrupted" badge in SessionCard
 Disappears: When write-ahead queue entry is processed and server confirms
@@ -228,9 +234,9 @@ Matches: Extends the existing OfflineIndicator pattern with explanatory text
 3. MigrationSplash renders immediately, blocking all interaction
 4. Progress bar advances as items migrate: `{current} of {total} items`
 5. On success: splash shows "Migration complete" for 1500ms, then fades out
-6. On partial failure: splash shows error state with Retry and Continue buttons
+6. On partial failure: splash shows error state with Retry and Skip and Continue buttons
 7. Retry: restarts migration for failed items only
-8. Continue: dismisses splash; failed items remain in Dexie (user can retry from Settings later)
+8. Skip and Continue: dismisses splash; failed items remain in Dexie (user can retry from Settings later)
 9. Migration never triggers again once ID mapping entries exist
 
 ### Offline Write Flow
