@@ -145,7 +145,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
 | 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
-| 13. Account Management | 2/2 | Complete   | 2026-03-18 | - |
+| 13. Account Management | 2/2 | Complete    | 2026-03-18 | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
 | 16. Session Lifecycle | v1.1 | 0/? | Not started | - |
