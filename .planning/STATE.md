@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: in-progress
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-18T15:36:16.742Z"
-last_activity: 2026-03-18 -- Completed Phase 12 Plan 01 (Auth infrastructure)
+status: completed
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-03-18T15:40:53Z"
+last_activity: 2026-03-18 -- Completed Phase 12 Plan 03 (Settings Account & Sign Out)
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 3
-  percent: 60
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 12 of 17 (Authentication)
-Plan: 1 of 3
-Status: Plan 01 complete, ready for Plan 02
-Last activity: 2026-03-18 -- Completed Phase 12 Plan 01 (Auth infrastructure)
+Plan: 2 of 3
+Status: Plan 02 complete, ready for Plan 03
+Last activity: 2026-03-18 -- Completed Phase 12 Plan 02 (Login page)
 
-Progress: [======....] 60%
+Progress: [========..] 80%
 
 ## Performance Metrics
 
@@ -65,6 +65,8 @@ Recent decisions affecting current work:
 - [12-01] vi.hoisted() for mock variable hoisting in Vitest (required for vi.mock factory pattern)
 - [12-01] Auth store uses no persist middleware (Supabase handles its own localStorage session persistence)
 - [12-01] PWA config tests in separate pwa-config.test.ts alongside existing pwa-manifest.test.ts
+- [12-02] useAuthStore selector pattern (s) => s.signIn for minimal re-renders in LoginPage
+- [12-02] Error text displayed verbatim from Supabase -- no error type differentiation (Pitfall 4)
 
 ### Pending Todos
 
@@ -82,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T15:36:16.740Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-03-18T15:42:00.361Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None

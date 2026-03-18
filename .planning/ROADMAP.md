@@ -28,7 +28,7 @@
 **Milestone Goal:** Add admin/specialist accounts with session assignment workflow, then deploy to production.
 
 - [x] **Phase 11: Supabase Foundation** - Postgres database, auth configuration, and RLS policies (completed 2026-03-18)
-- [ ] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix
+- [x] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix (completed 2026-03-18)
 - [ ] **Phase 13: Account Management** - Admin creates and manages specialist accounts
 - [ ] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres
 - [ ] **Phase 15: Session Assignment** - Admin assigns sessions to specialists; specialists see scoped view
@@ -60,7 +60,7 @@ Plans:
   3. Unauthenticated users are redirected to the login page when accessing any app route
   4. User can change their own password from a settings or profile area
   5. Service worker does not cache Supabase API routes (auth and data requests always reach the server)
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [ ] 12-01-PLAN.md -- Auth store, ProtectedRoute, App.tsx route wiring, main.tsx init, and service worker Supabase exclusion
 - [ ] 12-02-PLAN.md -- Login page with email/password form, error handling, and loading state
@@ -141,7 +141,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 8. Offline Queue | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
 | 11. Supabase Foundation | v1.1 | Complete    | 2026-03-18 | 2026-03-18 |
-| 12. Authentication | 1/3 | In Progress|  | - |
+| 12. Authentication | 3/3 | Complete   | 2026-03-18 | - |
 | 13. Account Management | v1.1 | 0/? | Not started | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
