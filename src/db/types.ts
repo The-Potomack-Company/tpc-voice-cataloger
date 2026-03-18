@@ -72,6 +72,22 @@ export interface ItemAudio {
   createdAt: Date;
 }
 
+export interface IdMapping {
+  id?: number;
+  oldId: number;
+  newId: string;
+  type: "session" | "item";
+}
+
+export interface WriteAheadEntry {
+  id?: number;
+  table: "sessions" | "items";
+  operation: "insert" | "update" | "delete";
+  payload: Record<string, unknown>;
+  tempId?: string;
+  createdAt: Date;
+}
+
 export interface ExportSchema {
   version: 1;
   exportedAt: string;

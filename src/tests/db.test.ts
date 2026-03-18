@@ -8,15 +8,17 @@ afterEach(async () => {
 });
 
 describe("Dexie database", () => {
-  it("opens successfully and has 6 tables", () => {
+  it("opens successfully and has 8 tables", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toEqual([
       "audio",
       "exportHistory",
       "houseVisitItems",
+      "idMapping",
       "photos",
       "saleItems",
       "sessions",
+      "writeAheadQueue",
     ]);
   });
 
@@ -131,10 +133,12 @@ describe("Dexie database", () => {
 });
 
 describe("Dexie v6 migration", () => {
-  it("has 6 tables including exportHistory after v6 migration", () => {
+  it("has 8 tables including exportHistory after v7 migration", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toContain("exportHistory");
-    expect(tableNames).toHaveLength(6);
+    expect(tableNames).toContain("idMapping");
+    expect(tableNames).toContain("writeAheadQueue");
+    expect(tableNames).toHaveLength(8);
   });
 
   it("exportHistory table has sessionId and exportedAt indexes", () => {

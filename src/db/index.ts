@@ -6,6 +6,8 @@ import type {
   ItemPhoto,
   ItemAudio,
   ExportHistoryRecord,
+  IdMapping,
+  WriteAheadEntry,
 } from "./types";
 
 const db = new Dexie("TPCCatalog") as Dexie & {
@@ -15,6 +17,8 @@ const db = new Dexie("TPCCatalog") as Dexie & {
   photos: EntityTable<ItemPhoto, "id">;
   audio: EntityTable<ItemAudio, "id">;
   exportHistory: EntityTable<ExportHistoryRecord, "id">;
+  idMapping: EntityTable<IdMapping, "id">;
+  writeAheadQueue: EntityTable<WriteAheadEntry, "id">;
 };
 
 db.version(1).stores({
@@ -80,6 +84,18 @@ db.version(6).stores({
   photos: "++id, itemId, sortOrder",
   audio: "++id, itemId",
   exportHistory: "++id, sessionId, exportedAt",
+});
+
+// v7: Add idMapping and writeAheadQueue tables for Supabase migration
+db.version(7).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type]",
+  writeAheadQueue: "++id, createdAt",
 });
 
 export { db };
