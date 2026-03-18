@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: completed
-stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-03-18T15:48:20.597Z"
-last_activity: 2026-03-18 -- Completed Phase 12 Plan 03 (Settings Account & Sign Out)
+status: in_progress
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-03-18T17:09:48Z"
+last_activity: 2026-03-18 -- Completed Phase 13 Plan 01 (Admin Backend Infrastructure)
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_plans: 7
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 12 (Authentication) complete
+**Current focus:** v1.1 Accounts & Deploy -- Phase 13 (Account Management) in progress
 
 ## Current Position
 
-Phase: 12 of 17 (Authentication)
-Plan: 3 of 3
-Status: Phase 12 complete, all plans done
-Last activity: 2026-03-18 -- Completed Phase 12 Plan 03 (Settings Account & Sign Out)
+Phase: 13 of 17 (Account Management)
+Plan: 1 of 2
+Status: Plan 01 complete, Plan 02 remaining
+Last activity: 2026-03-18 -- Completed Phase 13 Plan 01 (Admin Backend Infrastructure)
 
-Progress: [==========] 100%
+Progress: [========= ] 86%
 
 ## Performance Metrics
 
@@ -68,6 +68,10 @@ Recent decisions affecting current work:
 - [12-02] useAuthStore selector pattern (s) => s.signIn for minimal re-renders in LoginPage
 - [12-02] Error text displayed verbatim from Supabase -- no error type differentiation (Pitfall 4)
 - [12-03] Validation order: min length check before password match check (fail fast on simpler condition)
+- [13-01] Separate Edge Functions per operation (create, update, list) for independent deployability
+- [13-01] Email column added to profiles (nullable) for efficient account listing
+- [13-01] AdminRouteGuard queries profiles directly rather than extending authStore with profile data
+- [13-01] Dual-layer deactivation: ban_duration on auth.users + is_active on profiles for defense in depth
 
 ### Pending Todos
 
@@ -85,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T15:40:53Z
-Stopped at: Completed 12-03-PLAN.md
+Last session: 2026-03-18T17:09:48Z
+Stopped at: Completed 13-01-PLAN.md
 Resume file: None

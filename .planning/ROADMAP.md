@@ -77,7 +77,7 @@ Plans:
   4. The account management page is not accessible to specialist-role users (server-enforced, not just hidden in UI)
 **Plans:** 2 plans
 Plans:
-- [ ] 13-01-PLAN.md -- Edge Functions, DB migration, admin API service layer, and admin route guard
+- [x] 13-01-PLAN.md -- Edge Functions, DB migration, admin API service layer, and admin route guard
 - [ ] 13-02-PLAN.md -- Account Management page UI, AccountRow component, Settings admin section, and route wiring
 
 ### Phase 14: Data Migration
@@ -145,7 +145,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
 | 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
-| 13. Account Management | v1.1 | 0/2 | Not started | - |
+| 13. Account Management | v1.1 | 1/2 | In progress | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
 | 16. Session Lifecycle | v1.1 | 0/? | Not started | - |

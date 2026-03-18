@@ -101,10 +101,10 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
 ### Account Management
 
-- [ ] **ACCT-01**: Admin can create new specialist accounts with username and password
+- [x] **ACCT-01**: Admin can create new specialist accounts with username and password
 - [ ] **ACCT-02**: Admin can view list of all accounts with roles
-- [ ] **ACCT-03**: Admin can deactivate a specialist account (blocks login without deleting)
-- [ ] **ACCT-04**: Account management page is only accessible to admin role
+- [x] **ACCT-03**: Admin can deactivate a specialist account (blocks login without deleting)
+- [x] **ACCT-04**: Account management page is only accessible to admin role
 
 ### Session Assignment
 
@@ -209,10 +209,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-03 | Phase 12 | Complete |
 | AUTH-04 | Phase 12 | Complete |
 | INFRA-04 | Phase 12 | Complete |
-| ACCT-01 | Phase 13 | Pending |
+| ACCT-01 | Phase 13 | Complete |
 | ACCT-02 | Phase 13 | Pending |
-| ACCT-03 | Phase 13 | Pending |
-| ACCT-04 | Phase 13 | Pending |
+| ACCT-03 | Phase 13 | Complete |
+| ACCT-04 | Phase 13 | Complete |
 | INFRA-03 | Phase 14 | Pending |
 | ASGN-01 | Phase 15 | Pending |
 | ASGN-02 | Phase 15 | Pending |
