@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { useUIStore } from "../stores/uiStore";
+import { useAuthStore } from "../stores/authStore";
 import { useDeletedSessions } from "../hooks/useSessions";
 import { restoreSession, permanentlyDeleteSession } from "../db/sessions";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -25,6 +27,85 @@ export function SettingsPage() {
   const resetWalkthrough = useUIStore((s) => s.resetWalkthrough);
   const deletedSessions = useDeletedSessions();
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  // Auth store hooks
+  const user = useAuthStore((s) => s.user);
+  const signIn = useAuthStore((s) => s.signIn);
+  const signOut = useAuthStore((s) => s.signOut);
+  const updatePassword = useAuthStore((s) => s.updatePassword);
+  const navigate = useNavigate();
+
+  // Password change form state
+  const [passwordExpanded, setPasswordExpanded] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+
+  // Sign out state
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+
+    setPasswordSubmitting(true);
+
+    // Verify current password by re-authenticating
+    const { error: verifyError } = await signIn(user!.email!, currentPassword);
+    if (verifyError) {
+      setPasswordError("Current password is incorrect");
+      setPasswordSubmitting(false);
+      return;
+    }
+
+    // Update password
+    const { error: updateError } = await updatePassword(newPassword);
+    if (updateError) {
+      setPasswordError(updateError.message);
+      setPasswordSubmitting(false);
+      return;
+    }
+
+    setPasswordSuccess(true);
+    setPasswordSubmitting(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    // Collapse after 2 seconds
+    setTimeout(() => {
+      setPasswordExpanded(false);
+      setPasswordSuccess(false);
+    }, 2000);
+  };
+
+  const handleDiscardPasswordChange = () => {
+    setPasswordExpanded(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError(null);
+    setPasswordSuccess(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   const handlePermanentDelete = async () => {
     if (confirmDeleteId !== null) {
@@ -67,6 +148,127 @@ export function SettingsPage() {
             </span>
           </div>
         </div>
+      </section>
+
+      {/* Account section */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+          Account
+        </h2>
+
+        {/* Change Password expandable row */}
+        {!passwordExpanded ? (
+          <button
+            onClick={() => setPasswordExpanded(true)}
+            className="w-full bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left text-gray-900 dark:text-gray-100 min-h-12 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+          >
+            <span>Change Password</span>
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+              />
+            </svg>
+          </button>
+        ) : (
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <form onSubmit={handlePasswordChange}>
+              <div className="mb-4">
+                <label
+                  htmlFor="currentPassword"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Current Password
+                </label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  className="w-full min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label
+                  htmlFor="newPassword"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  New Password
+                </label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  className="w-full min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Confirm New Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="w-full min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
+                />
+              </div>
+
+              {passwordError && (
+                <p
+                  role="alert"
+                  className="text-sm text-red-600 dark:text-red-400 mt-2"
+                >
+                  {passwordError}
+                </p>
+              )}
+
+              {passwordSuccess && (
+                <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                  Password updated successfully
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={handleDiscardPasswordChange}
+                  className="min-h-12 rounded-lg px-4 py-3 text-gray-700 dark:text-gray-300"
+                >
+                  Discard Changes
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordSubmitting}
+                  className="min-h-12 rounded-lg px-4 py-3 font-medium text-white bg-accent disabled:opacity-50"
+                >
+                  {passwordSubmitting ? (
+                    <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full inline-block" />
+                  ) : (
+                    "Update Password"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </section>
 
       {/* Deleted Sessions section */}
@@ -138,6 +340,12 @@ export function SettingsPage() {
         >
           Reset Walkthrough
         </button>
+        <button
+          onClick={() => setShowSignOutConfirm(true)}
+          className="w-full bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left text-red-600 dark:text-red-400 min-h-12 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mt-3"
+        >
+          Sign Out
+        </button>
       </section>
 
       {/* Permanent delete confirmation */}
@@ -149,6 +357,18 @@ export function SettingsPage() {
         destructive
         onConfirm={handlePermanentDelete}
         onCancel={() => setConfirmDeleteId(null)}
+      />
+
+      {/* Sign out confirmation */}
+      <ConfirmDialog
+        open={showSignOutConfirm}
+        title="Sign Out"
+        message="Sign out of your account? Your local data will be preserved."
+        confirmLabel="Sign Out"
+        cancelLabel="Stay Signed In"
+        destructive
+        onConfirm={handleSignOut}
+        onCancel={() => setShowSignOutConfirm(false)}
       />
     </div>
   );
