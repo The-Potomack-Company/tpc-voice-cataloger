@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useUIStore } from "../stores/uiStore";
 import { useAuthStore } from "../stores/authStore";
 import { useDeletedSessions } from "../hooks/useSessions";
 import { restoreSession, permanentlyDeleteSession } from "../db/sessions";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { supabase } from "../lib/supabase";
 
 function formatRelativeTime(date: Date): string {
   const now = Date.now();
@@ -46,6 +47,20 @@ export function SettingsPage() {
 
   // Sign out state
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+
+  // Admin role detection
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.role === "admin") setIsAdmin(true);
+      });
+  }, [user]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +149,34 @@ export function SettingsPage() {
           </p>
         </div>
       </section>
+
+      {/* Admin section (admin-only) */}
+      {isAdmin && (
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+            Admin
+          </h2>
+          <button
+            onClick={() => navigate("/admin/accounts")}
+            className="w-full bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left text-gray-900 dark:text-gray-100 min-h-12 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+          >
+            <span>Account Management</span>
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+              />
+            </svg>
+          </button>
+        </section>
+      )}
 
       {/* Storage section */}
       <section className="mb-8">
