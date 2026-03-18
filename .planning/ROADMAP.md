@@ -62,9 +62,9 @@ Plans:
   5. Service worker does not cache Supabase API routes (auth and data requests always reach the server)
 **Plans:** 3/3 plans complete
 Plans:
-- [ ] 12-01-PLAN.md -- Auth store, ProtectedRoute, App.tsx route wiring, main.tsx init, and service worker Supabase exclusion
-- [ ] 12-02-PLAN.md -- Login page with email/password form, error handling, and loading state
-- [ ] 12-03-PLAN.md -- Settings page Account section (Change Password) and Sign Out button
+- [x] 12-01-PLAN.md -- Auth store, ProtectedRoute, App.tsx route wiring, main.tsx init, and service worker Supabase exclusion
+- [x] 12-02-PLAN.md -- Login page with email/password form, error handling, and loading state
+- [x] 12-03-PLAN.md -- Settings page Account section (Change Password) and Sign Out button
 
 ### Phase 13: Account Management
 **Goal**: Admin can create, view, and deactivate specialist accounts so that specialists exist before session assignment
@@ -75,7 +75,10 @@ Plans:
   2. Admin can view a list of all accounts showing username, role, and active/deactivated status
   3. Admin can deactivate a specialist account, which prevents that specialist from logging in without deleting their data
   4. The account management page is not accessible to specialist-role users (server-enforced, not just hidden in UI)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 13-01-PLAN.md -- Edge Functions, DB migration, admin API service layer, and admin route guard
+- [ ] 13-02-PLAN.md -- Account Management page UI, AccountRow component, Settings admin section, and route wiring
 
 ### Phase 14: Data Migration
 **Goal**: Session and item metadata is server-authoritative in Supabase Postgres while Dexie retains only audio blobs and photos
@@ -140,9 +143,9 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 7. Extension Batch Import | v1.0 | 3/3 | Complete | 2026-03-09 |
 | 8. Offline Queue | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
-| 11. Supabase Foundation | v1.1 | Complete    | 2026-03-18 | 2026-03-18 |
-| 12. Authentication | 3/3 | Complete    | 2026-03-18 | - |
-| 13. Account Management | v1.1 | 0/? | Not started | - |
+| 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
+| 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
+| 13. Account Management | v1.1 | 0/2 | Not started | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
 | 16. Session Lifecycle | v1.1 | 0/? | Not started | - |
