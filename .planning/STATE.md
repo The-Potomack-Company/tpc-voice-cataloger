@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: executing
-stopped_at: Phase 13 context gathered
-last_updated: "2026-03-18T13:51:20.181Z"
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-18T13:51:47.590Z"
 last_activity: 2026-03-18 -- Completed Phase 11 Plan 01 (Supabase schema, RLS, client)
 progress:
   total_phases: 7
@@ -56,6 +56,9 @@ Recent decisions affecting current work:
 - [v1.1] Dexie retains audio blobs and photos only; all session/item metadata moves to Supabase Postgres
 - [v1.1] Supabase Auth handles login, sessions, roles (replaces Better Auth)
 - [v1.1] RLS policies enforce role-based access server-side (replaces Hono middleware)
+- [11-01] CHECK constraints on text columns for status/mode/role (no Postgres ENUMs)
+- [11-01] Indexes on sessions.created_by, sessions.assigned_to, items.session_id for RLS performance
+- [11-01] vi.stubEnv for Vitest env var mocking (esbuild transform limitation with import.meta.env assignment)
 
 ### Pending Todos
 
@@ -73,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T13:51:20.179Z
-Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-account-management/13-CONTEXT.md
+Last session: 2026-03-18T13:51:47.588Z
+Stopped at: Completed 11-01-PLAN.md
+Resume file: None

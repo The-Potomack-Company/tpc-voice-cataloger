@@ -124,8 +124,8 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
 ### Backend Infrastructure
 
-- [ ] **INFRA-01**: Supabase project configured with Postgres database and auth
-- [ ] **INFRA-02**: Row-level security (RLS) policies enforce role-based data access
+- [x] **INFRA-01**: Supabase project configured with Postgres database and auth
+- [x] **INFRA-02**: Row-level security (RLS) policies enforce role-based data access
 - [ ] **INFRA-03**: Session/item data is server-authoritative (Dexie retains audio/photos only)
 - [ ] **INFRA-04**: Service worker excludes Supabase API routes from caching
 
@@ -202,8 +202,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 11 | Pending |
-| INFRA-02 | Phase 11 | Pending |
+| INFRA-01 | Phase 11 | Complete |
+| INFRA-02 | Phase 11 | Complete |
 | AUTH-01 | Phase 12 | Pending |
 | AUTH-02 | Phase 12 | Pending |
 | AUTH-03 | Phase 12 | Pending |

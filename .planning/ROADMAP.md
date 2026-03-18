@@ -45,7 +45,7 @@
   1. Supabase project exists with Postgres database containing tables for users, sessions, items, and export history
   2. RLS policies are defined and enforced -- admin role can read/write all rows, specialist role can only read/write rows assigned to or created by them
   3. Supabase client SDK is installed and configured in the app with environment variables for project URL and anon key
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 11-01-PLAN.md -- SQL migrations, SDK install, client singleton, placeholder types, and unit tests
 - [ ] 11-02-PLAN.md -- Cloud project setup, migration push, type generation, and RLS verification
@@ -140,7 +140,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 7. Extension Batch Import | v1.0 | 3/3 | Complete | 2026-03-09 |
 | 8. Offline Queue | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
-| 11. Supabase Foundation | v1.1 | 0/2 | Not started | - |
+| 11. Supabase Foundation | 1/2 | In Progress|  | - |
 | 12. Authentication | v1.1 | 0/3 | Not started | - |
 | 13. Account Management | v1.1 | 0/? | Not started | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |
