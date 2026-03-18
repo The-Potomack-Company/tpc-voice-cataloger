@@ -42,6 +42,7 @@ Progress: [=========~] 91%
 **Recent Trend:**
 - v1.0 averaged ~5 min/plan across 27 plans
 - 14-01: 6 min (2 tasks, 8 files)
+- 14-02: 7 min (2 tasks, 11 files)
 - 14-03: 5 min (2 tasks, 7 files)
 - Trend: Stable
 
@@ -80,6 +81,10 @@ Recent decisions affecting current work:
 - [14-01] Compound index [newId+type] on idMapping for efficient lookup queries
 - [14-01] Optimistic updates with revert-on-error pattern for all sessionStore mutation actions
 - [14-01] Per-user persist scoping via setOptions + rehydrate (not store recreation)
+- [14-02] getSessionById is synchronous (reads from in-memory Zustand store, not async Dexie query)
+- [14-02] Removed soft-delete/archive functions; useDeletedSessions and useArchivedSessions return empty arrays
+- [14-02] processAudioWithAi signature changed to (audioId, itemId: string, sessionId: string) for UUID compatibility
+- [14-02] Export reads session/items from Supabase, photos/audio from Dexie via getDexieItemId bridge
 - [14-03] Migration skips soft-deleted sessions; continues on individual item insert errors
 - [14-03] Write-ahead queue stops on first failure to preserve FIFO ordering
 - [14-03] AppLayout processes write-ahead queue BEFORE audio queue on reconnect
