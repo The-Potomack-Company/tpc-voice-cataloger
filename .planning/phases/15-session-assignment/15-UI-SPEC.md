@@ -34,7 +34,7 @@ Declared values (must be multiples of 4):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px (`gap-1`, `mt-1`) | Badge gaps, inline vertical nudges |
-| sm | 8px (`gap-2`, `py-2`, `px-2`, `mb-2`) | Compact element spacing, badge padding, chevron-to-text gap, specialist group header bottom margin |
+| sm | 8px (`gap-2`, `py-2`, `px-2`, `mb-2`, `space-y-2`) | Compact element spacing, badge padding, chevron-to-text gap, specialist group header bottom margin, card-to-card spacing within specialist groups, loading skeleton card spacing |
 | md | 16px (`p-4`, `px-4`, `mt-4`) | Default card padding, page horizontal padding (portrait), spacing between specialist groups within a section |
 | lg | 24px (`gap-6`, `py-6`, `mb-6`) | Page vertical padding, section bottom margin |
 | xl | 32px (`mb-8`, `px-8`, `mt-8`) | Section breaks between Active/Completed/Archived, landscape horizontal padding |
@@ -44,12 +44,15 @@ Declared values (must be multiples of 4):
 Exceptions:
 - `min-h-12` (48px) on all interactive elements for thumb-zone accessibility (UX-02 requirement).
 
-Note on inherited off-grid values: Existing `Sessions.tsx` uses `mb-3` (12px) on section headers and `space-y-3` (12px) between cards. These are inherited from prior phases and are not part of this declared spacing scale. New elements introduced in Phase 15 stay on the standard grid:
-- **Specialist group headers** use `mb-2` (8px) instead of `mb-3` (12px).
-- **Card spacing within specialist groups** reuses the existing `space-y-3` for visual consistency with the surrounding list -- this is inherited code, not a newly declared value.
-- **Spacing between specialist groups** uses `mt-4` (16px), which is on-grid.
+Note on inherited off-grid values: Existing `Sessions.tsx` uses `mb-3` (12px) on section headers and `space-y-3` (12px) between cards. These are inherited from prior phases (31 occurrences of 12px spacing across 10 source files) and are not part of this declared spacing scale. **All new elements introduced in Phase 15 use on-grid values only:**
+- **Specialist group headers** use `mb-2` (8px).
+- **Card spacing within specialist groups** uses `space-y-2` (8px).
+- **Loading skeleton card spacing** uses `space-y-2` (8px).
+- **Spacing between specialist groups** uses `mt-4` (16px).
 
-Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `NewSession.tsx`, `SessionDetail.tsx` patterns.
+Existing `mb-3` on section headers (Active/Completed/Archived) in Sessions.tsx is pre-existing code that Phase 15 does not modify. Refactoring 31 off-grid occurrences is a project-wide cleanup task, not a Phase 15 concern.
+
+Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `NewSession.tsx`, `SessionDetail.tsx` patterns. Grep scan of `space-y-3`, `mb-3`, `gap-3` across `src/`.
 
 ---
 
@@ -57,30 +60,35 @@ Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `NewSession.tsx`, `SessionDe
 
 | Role | Size | Weight | Line Height | Tailwind Classes |
 |------|------|--------|-------------|-----------------|
-| Page title | 24px | 700 (bold) | 1.2 | `text-2xl font-bold` |
+| Page title | 24px | 600 (semibold) | 1.2 | `text-2xl font-semibold` |
 | Section header | 14px | 600 (semibold) | 1.4 | `text-sm font-semibold uppercase tracking-wider` |
 | Card primary text (session name) | 16px | 600 (semibold) | 1.5 | `font-semibold text-gray-900 dark:text-gray-100` |
-| Card secondary text (item count, time, assignee) | 12px | (default) | 1.5 | `text-xs text-gray-500 dark:text-gray-400` |
-| Badge text | 12px | 600 (semibold) | 1.0 | `text-xs font-semibold` |
-| Form input | 16px | (default) | 1.5 | `text-base` (16px prevents iOS zoom on focus) |
+| Card secondary text (item count, time, assignee) | 12px | 500 (medium) | 1.5 | `text-xs font-medium text-gray-500 dark:text-gray-400` |
+| Badge text | 12px | 500 (medium) | 1.0 | `text-xs font-medium` |
+| Form label | 14px | 500 (medium) | 1.5 | `text-sm font-medium text-gray-700 dark:text-gray-300` |
+| Form input | 16px | 500 (medium) | 1.5 | `text-base font-medium` |
+| Button text | 16px | 500 (medium) | 1.5 | `font-medium` |
+| Assignee field value | 14px | 500 (medium) | 1.5 | `text-sm font-medium text-gray-900 dark:text-gray-100` |
 
 **Declared weights: 2**
-- **semibold (600)** -- Card titles, section headers, specialist group headers, badge text, buttons, metadata values
-- **bold (700)** -- Page-level headings (`text-2xl font-bold`), session name on detail page
+- **500 (medium)** -- All secondary text: form labels, form inputs, badges, button text, card metadata (item count, time, assignee name), assignee field values. This is the workhorse weight for readable, non-heading text. Using 500 for form inputs maintains visual consistency with adjacent labels while the 16px size already prevents iOS auto-zoom.
+- **600 (semibold)** -- All primary/heading text: page titles, section headers, specialist group headers, card session names. This is the emphasis weight for hierarchy landmarks.
 
-Body text and card secondary text render at the browser default weight (400) via Tailwind's `text-sm` / `text-xs` without an explicit weight class. This is implicit behavior, not a declared weight in the contract. Form inputs likewise use default weight.
-
-Note on existing codebase `font-medium` usage: `SessionCard.tsx` currently uses `font-medium` (500) on mode badges and the CTA button on `Sessions.tsx` uses `font-medium`. New Phase 15 elements (status badges, specialist group headers, assignee field values) use `font-semibold` (600) exclusively, matching the `AccountRow.tsx` badge pattern. Existing `font-medium` instances are inherited code outside this phase's scope of change.
-
-Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `AccountRow.tsx`, `NewSession.tsx`, `SessionDetail.tsx`.
+Rationale for weight selection:
+- **500 (medium)** covers ~40 existing `font-medium` occurrences in the codebase (form labels, button text, badge text, CTA buttons). Phase 15 new elements (status badges, assignee card text, assignee field values) also use medium.
+- **600 (semibold)** covers ~40 existing `font-semibold` occurrences (section headers, card names, AccountRow badges). Phase 15 new elements (specialist group headers) also use semibold.
+- **700 (bold) removed.** The existing codebase uses `font-bold` for page titles in Settings.tsx, NewSession.tsx, and SessionDetail.tsx (6 occurrences). Phase 15's new/modified views use `font-semibold` for page titles instead. The visual difference between 600 and 700 at 24px is minimal, and this consolidation keeps the contract at exactly 2 weights. Existing `font-bold` page titles outside Phase 15's scope of change are inherited code, not newly introduced.
+- **400 (normal) removed.** Only 1 occurrence exists in the codebase (`font-normal` in AccountRow.tsx). Phase 15 does not introduce any 400-weight text. All secondary text uses 500 (medium) explicitly.
 
 ### Phase-Specific Typography Rules
 
 - **Specialist group header**: `text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider` (matches existing section headers in Sessions.tsx line 134)
-- **Assignee name on SessionCard**: `text-xs text-gray-500 dark:text-gray-400` (matches item count text in SessionCard.tsx line 117, no explicit weight)
-- **Status badge text**: `text-xs font-semibold` (matches AccountRow.tsx badge pattern -- uses semibold to stay within the 2-weight contract)
-- **Assignee field label on SessionDetail**: `text-sm text-gray-500 dark:text-gray-400` (matches metadata labels, no explicit weight)
-- **Assignee field value on SessionDetail**: `text-sm font-semibold text-gray-900 dark:text-gray-100` (matches heading emphasis at this size)
+- **Assignee name on SessionCard**: `text-xs font-medium text-gray-500 dark:text-gray-400` (matches item count text styling)
+- **Status badge text**: `text-xs font-medium` (matches existing badge pattern in SessionCard.tsx line 114)
+- **Assignee field label on SessionDetail**: `text-sm text-gray-500 dark:text-gray-400` (no explicit weight -- inherits from parent)
+- **Assignee field value on SessionDetail**: `text-sm font-medium text-gray-900 dark:text-gray-100` (medium weight for metadata values)
+
+Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `NewSession.tsx`, `SessionDetail.tsx`. Grep scan of `font-bold` (6 hits), `font-semibold` (~40 hits), `font-medium` (~40 hits), `font-normal` (1 hit).
 
 ---
 
@@ -112,11 +120,11 @@ These are the session lifecycle status badges shown on `SessionCard` in admin vi
 | Returned | `bg-orange-100 text-orange-700` | `dark:bg-orange-900/30 dark:text-orange-400` | Orange = returned for corrections, slightly more urgent than submitted. |
 | Exported | `bg-green-100 text-green-700` | `dark:bg-green-900/30 dark:text-green-400` | Green = done, successfully exported. Consistent with existing "Completed" badge color. |
 
-Badge class pattern (all status badges): `inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full`
+Badge class pattern (all status badges): `inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full`
 
-This matches the badge class pattern in `AccountRow.tsx` (role/status badges using `font-semibold`).
+This matches the existing badge class pattern in `SessionCard.tsx` (line 114: mode badge, line 121: completed badge) which use `font-medium`.
 
-Source: `--color-accent: #2563eb` from `src/index.css`. Status badge colors from CONTEXT.md Claude's Discretion. Existing badge patterns from `AccountRow.tsx`.
+Source: `--color-accent: #2563eb` from `src/index.css`. Status badge colors from CONTEXT.md Claude's Discretion. Existing badge patterns from `SessionCard.tsx`.
 
 ---
 
@@ -146,7 +154,7 @@ Unchanged from existing implementation. The specialist's focal point is the sess
 
 **Role detection:** Use `useUserRole()` hook (queries `profiles.role` for current user). Show loading state until role is resolved. Then render admin view or specialist view based on result.
 
-**Loading state (role detection):** Search bar renders immediately. Below it, show 3 skeleton cards: `bg-white dark:bg-gray-800 rounded-xl p-4 h-[72px] animate-pulse border border-gray-200 dark:border-gray-700` with `space-y-3` between them.
+**Loading state (role detection):** Search bar renders immediately. Below it, show 3 skeleton cards: `bg-white dark:bg-gray-800 rounded-xl p-4 h-[72px] animate-pulse border border-gray-200 dark:border-gray-700` with `space-y-2` (8px) between them.
 
 **Admin view structure:**
 ```
@@ -197,9 +205,9 @@ SVG: `<path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />`
 
 **Toggle behavior:** Click to collapse/expand with chevron rotation. Same implementation as existing Completed/Archived toggles.
 
-**Content spacing:** `space-y-3` between session cards within the group (inherited from existing pattern for visual consistency).
+**Content spacing:** `space-y-2` (8px) between session cards within the group.
 
-**Group spacing:** `mt-4` between specialist groups within a section.
+**Group spacing:** `mt-4` (16px) between specialist groups within a section.
 
 **Group ordering:** Specialist groups ordered alphabetically by display name within each section.
 
@@ -226,16 +234,16 @@ interface SessionCardProps {
 
 **Assignee name placement:** After the item count span, before any status badge. Shown as plain text (not a badge pill).
 ```html
-<span class="text-xs text-gray-500 dark:text-gray-400">
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400">
   Assigned to Sarah
 </span>
 ```
 
-The prefix "Assigned to" is included for clarity in the list scanning context. The `text-xs text-gray-500` matches the existing item count styling on line 117.
+The prefix "Assigned to" is included for clarity in the list scanning context. The `text-xs font-medium text-gray-500` matches the existing item count styling.
 
 **Status badge placement:** After the assignee name, inline in the same `flex-wrap` row. Uses status-specific colors from the Color section.
 ```html
-<span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+<span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
   Active
 </span>
 ```
@@ -261,7 +269,7 @@ The prefix "Assigned to" is included for clarity in the list scanning context. T
 
 **Label:**
 ```html
-<label class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+<label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
   Assign To
 </label>
 ```
@@ -273,10 +281,10 @@ The prefix "Assigned to" is included for clarity in the list scanning context. T
 w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100
 border border-gray-200 dark:border-gray-700
 focus:outline-none focus:ring-2 focus:ring-accent min-h-12
-appearance-none
+appearance-none font-medium
 ```
 
-These classes match the existing text input styling in `NewSession.tsx` (session name input, line 107). The `appearance-none` ensures consistent cross-browser styling.
+These classes match the existing text input styling in `NewSession.tsx` (session name input, line 107). The `appearance-none` ensures consistent cross-browser styling. The `font-medium` ensures consistent weight with the contract's 500 weight for form inputs.
 
 **Select wrapper (for custom chevron):**
 ```html
@@ -313,7 +321,7 @@ These classes match the existing text input styling in `NewSession.tsx` (session
 ```html
 <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 mb-6">
   <span class="text-sm text-gray-500 dark:text-gray-400">Assigned to</span>
-  <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-accent transition-colors"
+  <span class="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-accent transition-colors"
         title="Tap to reassign">
     Sarah
   </span>
@@ -329,7 +337,7 @@ The `bg-gray-50 dark:bg-gray-800 rounded-lg` container provides visual distincti
 <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 mb-6">
   <span class="text-sm text-gray-500 dark:text-gray-400">Assigned to</span>
   <select autoFocus
-    class="text-sm rounded border border-gray-300 dark:border-gray-600
+    class="text-sm font-medium rounded border border-gray-300 dark:border-gray-600
            bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
            px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent">
     <option value="uuid-1">Sarah</option>
@@ -367,7 +375,7 @@ The `bg-gray-50 dark:bg-gray-800 rounded-lg` container provides visual distincti
 
 | Scenario | Visual Treatment |
 |----------|-----------------|
-| Role detection (Sessions page) | Search bar visible immediately; below it, 3 skeleton cards: `bg-white dark:bg-gray-800 rounded-xl p-4 h-[72px] animate-pulse border border-gray-200 dark:border-gray-700` with `space-y-3` |
+| Role detection (Sessions page) | Search bar visible immediately; below it, 3 skeleton cards: `bg-white dark:bg-gray-800 rounded-xl p-4 h-[72px] animate-pulse border border-gray-200 dark:border-gray-700` with `space-y-2` (8px) |
 | Role detection (NewSession page) | Form fields render normally; dropdown area is empty until role resolves (no flash) |
 | Role detection (SessionDetail page) | Page renders normally; assignee row is absent until role resolves (appears after load) |
 | Specialist list loading (NewSession dropdown) | Disabled `<select>` with "Loading..." option, `opacity-50` wrapper |
