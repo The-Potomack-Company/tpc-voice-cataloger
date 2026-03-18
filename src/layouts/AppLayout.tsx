@@ -4,6 +4,10 @@ import { InstallBanner } from "../components/InstallBanner";
 import { OfflineIndicator } from "../components/OfflineIndicator";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { drainQueue } from "../services/offlineQueue";
+import {
+  useWriteAheadQueue,
+  processWriteAheadQueue,
+} from "../hooks/useWriteAheadQueue";
 
 function tabClass({ isActive }: { isActive: boolean }): string {
   return `flex flex-col items-center py-3 px-4 min-h-12 min-w-12 transition-colors ${
@@ -13,13 +17,18 @@ function tabClass({ isActive }: { isActive: boolean }): string {
 
 export function AppLayout() {
   useOnlineStatus();
+  useWriteAheadQueue();
 
   useEffect(() => {
+    const handleReconnect = async () => {
+      await processWriteAheadQueue(); // Write-ahead first (items must exist before AI can update)
+      drainQueue(); // Then audio queue
+    };
     // Drain on mount if online (handles case: app closed with queued items, reopened with connectivity)
     if (navigator.onLine) {
-      drainQueue();
+      handleReconnect();
     }
-    const handleOnline = () => drainQueue();
+    const handleOnline = () => handleReconnect();
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, []);
