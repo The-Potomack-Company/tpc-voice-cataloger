@@ -1,4 +1,6 @@
 import { db } from "../db";
+import { supabase } from "../lib/supabase";
+import { getDexieItemId } from "../db/idMapping";
 import { processAudioWithAi } from "./gemini";
 
 const CONCURRENCY = 4;
@@ -7,47 +9,52 @@ const MAX_RETRIES = 2;
 let draining = false;
 
 export interface QueuedItem {
-  id: number;
+  id: string;
   itemType: "house" | "sale";
+  sessionId: string;
   createdAt: Date;
 }
 
 /**
- * Query all items with aiStatus="queued" from both houseVisitItems and saleItems,
- * merged and sorted by createdAt ascending (FIFO).
+ * Query all items with ai_status='queued' from Supabase,
+ * sorted by created_at ascending (FIFO).
  */
 export async function getQueuedItems(): Promise<QueuedItem[]> {
-  const houseItems = await db.houseVisitItems
-    .where("aiStatus")
-    .equals("queued")
-    .toArray();
-  const saleItems = await db.saleItems
-    .where("aiStatus")
-    .equals("queued")
-    .toArray();
+  const { data, error } = await supabase
+    .from("items")
+    .select("id, mode, session_id, created_at")
+    .eq("ai_status", "queued")
+    .order("created_at", { ascending: true });
 
-  const all: QueuedItem[] = [
-    ...houseItems.map((i) => ({
-      id: i.id!,
-      itemType: "house" as const,
-      createdAt: i.createdAt,
-    })),
-    ...saleItems.map((i) => ({
-      id: i.id!,
-      itemType: "sale" as const,
-      createdAt: i.createdAt,
-    })),
-  ];
+  if (error || !data) return [];
 
-  return all.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  return data.map((item) => ({
+    id: item.id,
+    itemType: item.mode as "house" | "sale",
+    sessionId: item.session_id,
+    createdAt: new Date(item.created_at),
+  }));
 }
 
 /**
  * Find the most recent audio record for a given item.
+ * Uses getDexieItemId to bridge Supabase UUID to Dexie integer ID.
  * Returns the audio ID or null if no audio exists.
  */
-async function findAudioForItem(itemId: number): Promise<number | null> {
-  const audios = await db.audio.where("itemId").equals(itemId).toArray();
+async function findAudioForItem(itemId: string): Promise<number | null> {
+  // Try via ID mapping first (migrated items: UUID -> legacy integer)
+  const dexieId = await getDexieItemId(itemId);
+  let audios;
+
+  if (dexieId !== null) {
+    audios = await db.audio.where("itemId").equals(dexieId).toArray();
+  }
+
+  // If no results from mapping, try direct UUID lookup (post-migration items)
+  if (!audios || audios.length === 0) {
+    audios = await db.audio.where("itemId").equals(itemId as unknown as number).toArray();
+  }
+
   if (audios.length === 0) return null;
   // Return the highest id (most recent)
   return audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!);
@@ -61,24 +68,26 @@ async function findAudioForItem(itemId: number): Promise<number | null> {
 async function processWithRetry(item: QueuedItem): Promise<void> {
   const audioId = await findAudioForItem(item.id);
   if (audioId === null) {
-    // No audio found -- mark as failed
-    const table =
-      item.itemType === "house" ? db.houseVisitItems : db.saleItems;
-    await table.update(item.id, { aiStatus: "failed" });
+    // No audio found -- mark as failed via Supabase
+    await supabase
+      .from("items")
+      .update({ ai_status: "failed" })
+      .eq("id", item.id);
     return;
   }
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (!navigator.onLine) return; // Pause if offline
     try {
-      await processAudioWithAi(audioId, item.id, item.itemType);
+      await processAudioWithAi(audioId, item.id, item.sessionId);
       return; // Success
     } catch {
       if (attempt < MAX_RETRIES) {
         // Reset status to queued before retrying (processAudioWithAi sets "failed" on error)
-        const table =
-          item.itemType === "house" ? db.houseVisitItems : db.saleItems;
-        await table.update(item.id, { aiStatus: "queued" });
+        await supabase
+          .from("items")
+          .update({ ai_status: "queued" })
+          .eq("id", item.id);
       }
       // On final attempt, processAudioWithAi already set "failed"
     }

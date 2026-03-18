@@ -1,4 +1,5 @@
 import { db } from "../db";
+import { supabase } from "../lib/supabase";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
 import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
@@ -40,24 +41,28 @@ export async function blobToBase64(blob: Blob): Promise<string> {
 
 /**
  * Full AI processing pipeline: fetch audio from Dexie, send to Gemini via proxy,
- * validate response with Zod, write structured fields back to item record.
+ * validate response with Zod, write structured fields back to Supabase items table.
  *
  * Designed to be called fire-and-forget after recording stops.
  * Uses captured itemId in closure to prevent race conditions.
+ *
+ * @param audioId - Dexie integer ID for the audio blob
+ * @param itemId - Supabase UUID string for the item
+ * @param sessionId - Supabase UUID string for the session (for potential store refresh)
  */
 export async function processAudioWithAi(
   audioId: number,
-  itemId: number,
-  itemType: "house" | "sale",
+  itemId: string,
+  sessionId: string,
 ): Promise<void> {
-  const table =
-    itemType === "house" ? db.houseVisitItems : db.saleItems;
-
   try {
-    // Set aiStatus to "processing"
-    await table.update(itemId, { aiStatus: "processing" });
+    // Set ai_status to "processing" via Supabase
+    await supabase
+      .from("items")
+      .update({ ai_status: "processing" })
+      .eq("id", itemId);
 
-    // Fetch audio record from Dexie
+    // Fetch audio record from Dexie (blobs stay in IndexedDB)
     const audioRecord = await db.audio.get(audioId);
     if (!audioRecord) {
       throw new Error(`Audio record ${audioId} not found`);
@@ -143,54 +148,62 @@ export async function processAudioWithAi(
 
     const fields = result.data;
 
-    // Write fields to item record
-    // Use undefined for null fields so Dexie doesn't store them
-    // Category defaults to "furniture" if null
-    const updateData: Record<string, unknown> = {
-      aiStatus: "done",
+    // Write fields to Supabase items table
+    const supabaseUpdate: Record<string, unknown> = {
+      ai_status: "done",
     };
 
     if (fields.title !== null) {
-      updateData.title = toAllCaps(fields.title);
+      supabaseUpdate.title = toAllCaps(fields.title);
     }
     if (fields.description !== null) {
-      updateData.description = fields.description;
+      supabaseUpdate.description = fields.description;
     }
     if (fields.condition !== null) {
-      updateData.condition = fields.condition;
+      supabaseUpdate.condition = fields.condition;
     }
     const formattedEstimate = formatEstimate(fields.estimate);
     if (formattedEstimate !== null) {
-      updateData.estimate = formattedEstimate;
+      supabaseUpdate.estimate = formattedEstimate;
     }
     const mappedCategory = mapCategoryToCode(fields.category);
     if (mappedCategory !== null) {
-      updateData.category = mappedCategory;
+      supabaseUpdate.category = mappedCategory;
     }
     if (fields.measurements !== null && fields.measurements.length > 0) {
-      updateData.measurements = formatMeasurements(fields.measurements);
+      supabaseUpdate.measurements = formatMeasurements(fields.measurements);
     }
     if (fields.transcript !== null) {
-      // Append to existing transcript so multiple recordings accumulate
-      const existing = await table.get(itemId);
-      const prev = (existing as unknown as Record<string, unknown>)?.transcript as string | undefined;
-      updateData.transcript = prev
+      // For transcript append, read current value from Supabase first
+      const { data: currentItem } = await supabase
+        .from("items")
+        .select("transcript")
+        .eq("id", itemId)
+        .single();
+      const prev = currentItem?.transcript;
+      supabaseUpdate.transcript = prev
         ? `${prev}\n\n${fields.transcript}`
         : fields.transcript;
     }
 
-    await table.update(itemId, updateData);
+    await supabase
+      .from("items")
+      .update(supabaseUpdate)
+      .eq("id", itemId);
   } catch (error) {
-    // On ANY error: set aiStatus to "failed", set fallback description
+    // On ANY error: set ai_status to "failed", set fallback description
     console.error("AI processing error:", error);
     try {
-      await table.update(itemId, {
-        aiStatus: "failed",
-        description:
-          "AI processing failed - audio recorded, awaiting manual review",
-      });
+      await supabase
+        .from("items")
+        .update({
+          ai_status: "failed",
+          description:
+            "AI processing failed - audio recorded, awaiting manual review",
+        })
+        .eq("id", itemId);
     } catch (dbError) {
-      console.error("Failed to update aiStatus to failed:", dbError);
+      console.error("Failed to update ai_status to failed:", dbError);
     }
   }
 }
