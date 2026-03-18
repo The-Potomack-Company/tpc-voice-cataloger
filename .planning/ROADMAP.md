@@ -60,7 +60,11 @@ Plans:
   3. Unauthenticated users are redirected to the login page when accessing any app route
   4. User can change their own password from a settings or profile area
   5. Service worker does not cache Supabase API routes (auth and data requests always reach the server)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 12-01-PLAN.md -- Auth store, ProtectedRoute, App.tsx route wiring, main.tsx init, and service worker Supabase exclusion
+- [ ] 12-02-PLAN.md -- Login page with email/password form, error handling, and loading state
+- [ ] 12-03-PLAN.md -- Settings page Account section (Change Password) and Sign Out button
 
 ### Phase 13: Account Management
 **Goal**: Admin can create, view, and deactivate specialist accounts so that specialists exist before session assignment
@@ -137,7 +141,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 8. Offline Queue | v1.0 | 2/2 | Complete | 2026-03-16 |
 | 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
 | 11. Supabase Foundation | v1.1 | 0/2 | Not started | - |
-| 12. Authentication | v1.1 | 0/? | Not started | - |
+| 12. Authentication | v1.1 | 0/3 | Not started | - |
 | 13. Account Management | v1.1 | 0/? | Not started | - |
 | 14. Data Migration | v1.1 | 0/? | Not started | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
