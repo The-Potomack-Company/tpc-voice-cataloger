@@ -12,6 +12,10 @@ import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { RecordingsList } from "../components/RecordingsList";
+import { useSession } from "../hooks/useSessions";
+import { useSessionStore } from "../stores/sessionStore";
+import { createBlankItem, updateItemField } from "../db/items";
+import { getDexieItemId } from "../db/idMapping";
 import type { ItemPhoto } from "../db/types";
 
 export function ItemEntryPage() {
@@ -25,16 +29,24 @@ export function ItemEntryPage() {
   const [showEmptyWarning, setShowEmptyWarning] = useState(false);
   const isCreatingNext = useRef(false);
 
-  const numericSessionId = Number(sessionId);
+  // Load session from Zustand
+  const session = useSession(sessionId!);
+  const fetchItems = useSessionStore(s => s.fetchItems);
 
-  // Load session
-  const session = useLiveQuery(
-    () => db.sessions.get(numericSessionId),
-    [numericSessionId],
-  );
+  // Fetch items for this session on mount
+  useEffect(() => {
+    if (sessionId) {
+      fetchItems(sessionId);
+    }
+  }, [sessionId, fetchItems]);
 
-  const mode = session?.mode ?? "house";
+  const mode = session?.mode === "sale" ? "sale" : "house";
   const isNewItem = itemId === "new";
+
+  // Get items from Zustand store
+  const items = useSessionStore(s => s.itemsBySession[sessionId!] ?? []);
+  const item = isNewItem ? undefined : items.find(i => i.id === itemId);
+  const totalItems = items.length;
 
   // Reset creation ref when itemId changes (navigated to a different item)
   useEffect(() => {
@@ -49,56 +61,26 @@ export function ItemEntryPage() {
     creatingRef.current = true;
 
     const createItem = async () => {
-      const table = mode === "house" ? db.houseVisitItems : db.saleItems;
-      const existingCount = await table
-        .where("sessionId")
-        .equals(numericSessionId)
-        .count();
-
-      const newItem = {
-        sessionId: numericSessionId,
-        sortOrder: existingCount,
-        createdAt: new Date(),
-        ...(mode === "sale" ? { receiptNumber: "" } : {}),
-      };
-
-      const newId = await table.add(newItem as never);
+      const newId = await createBlankItem(sessionId!, mode);
       navigate(`/session/${sessionId}/item/${newId}`, { replace: true });
     };
 
     createItem().catch(console.error);
-  }, [isNewItem, session, mode, numericSessionId, navigate, sessionId]);
+  }, [isNewItem, session, mode, sessionId, navigate]);
 
-  const numericItemId = isNewItem ? undefined : Number(itemId);
+  // Photos query STAYS Dexie but needs ID mapping for migrated items
+  const [dexieItemId, setDexieItemId] = useState<number | string | null>(null);
+  useEffect(() => {
+    if (!itemId || isNewItem) return;
+    getDexieItemId(itemId).then(id => setDexieItemId(id ?? itemId));
+  }, [itemId, isNewItem]);
 
-  // Load current item
-  const item = useLiveQuery(
-    () => {
-      if (!numericItemId) return undefined;
-      return mode === "house"
-        ? db.houseVisitItems.get(numericItemId)
-        : db.saleItems.get(numericItemId);
-    },
-    [numericItemId, mode],
-  );
-
-  // Load total item count
-  const totalItems = useLiveQuery(
-    () => {
-      const table = mode === "house" ? db.houseVisitItems : db.saleItems;
-      return table.where("sessionId").equals(numericSessionId).count();
-    },
-    [numericSessionId, mode],
-    0,
-  );
-
-  // Load photos for lightbox (house mode)
   const photos = useLiveQuery(
     () => {
-      if (!numericItemId || mode !== "house") return [] as ItemPhoto[];
-      return db.photos.where("itemId").equals(numericItemId).sortBy("sortOrder");
+      if (dexieItemId == null || mode !== "house") return [] as ItemPhoto[];
+      return db.photos.where("itemId").equals(dexieItemId).sortBy("sortOrder");
     },
-    [numericItemId, mode],
+    [dexieItemId, mode],
     [] as ItemPhoto[],
   );
 
@@ -107,8 +89,8 @@ export function ItemEntryPage() {
 
   // Sync receipt value from DB
   useEffect(() => {
-    if (mode === "sale" && item && "receiptNumber" in item) {
-      setReceiptValue((item as { receiptNumber?: string }).receiptNumber ?? "");
+    if (mode === "sale" && item) {
+      setReceiptValue(item.receipt_number ?? "");
     }
   }, [mode, item]);
 
@@ -117,16 +99,13 @@ export function ItemEntryPage() {
   };
 
   const handleReceiptBlur = useCallback(() => {
-    if (numericItemId && mode === "sale") {
-      db.saleItems
-        .update(numericItemId, { receiptNumber: receiptValue })
-        .catch(console.error);
+    if (itemId && !isNewItem && mode === "sale" && sessionId) {
+      updateItemField(itemId, sessionId, "receipt_number", receiptValue).catch(console.error);
     }
-  }, [numericItemId, mode, receiptValue]);
+  }, [itemId, isNewItem, mode, sessionId, receiptValue]);
 
   // Determine current item position (1-based)
-  // When item is loaded, use its sortOrder; ensure total is at least current position
-  const currentPosition = item ? item.sortOrder + 1 : 1;
+  const currentPosition = item ? (item.sort_order + 1) : 1;
   const displayTotal = Math.max(totalItems, currentPosition);
 
   // Check if record button should be disabled (sale mode: no valid receipt)
@@ -135,16 +114,17 @@ export function ItemEntryPage() {
 
   // Next Item handler
   const handleNextItem = useCallback(async () => {
-    if (!numericItemId || isCreatingNext.current) return;
+    if (!itemId || isNewItem || isCreatingNext.current) return;
 
-    // Check if item is empty
+    // Check if item is empty using Dexie for blobs
+    const lookupId = dexieItemId ?? itemId;
     const audioCount = await db.audio
       .where("itemId")
-      .equals(numericItemId)
+      .equals(lookupId)
       .count();
     const photoCount =
       mode === "house"
-        ? await db.photos.where("itemId").equals(numericItemId).count()
+        ? await db.photos.where("itemId").equals(lookupId).count()
         : 0;
     const hasReceipt =
       mode === "sale" && isValidReceiptNumber(receiptValue);
@@ -160,7 +140,7 @@ export function ItemEntryPage() {
     }
 
     proceedToNextItem();
-  }, [numericItemId, mode, receiptValue, sessionId, navigate]);
+  }, [itemId, isNewItem, dexieItemId, mode, receiptValue, sessionId, navigate]);
 
   const proceedToNextItem = useCallback(() => {
     if (isCreatingNext.current) return;
@@ -182,7 +162,7 @@ export function ItemEntryPage() {
   );
 
   // Loading state
-  if (!session || (isNewItem && !numericItemId)) {
+  if (!session || (isNewItem && !item)) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-gray-400 dark:text-gray-500">Loading...</div>
@@ -190,7 +170,7 @@ export function ItemEntryPage() {
     );
   }
 
-  if (!item && numericItemId) {
+  if (!item && !isNewItem) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-gray-400 dark:text-gray-500">Loading item...</div>
@@ -203,17 +183,17 @@ export function ItemEntryPage() {
       {/* Back button */}
       <div className="py-2">
         <BackButton
-          sessionId={numericSessionId}
+          sessionId={sessionId!}
           currentItem={item}
-          mode={mode}
+          items={items}
         />
       </div>
 
       {/* Mode-specific top section */}
       <div className="flex-1 py-2 space-y-3">
-        {mode === "house" && numericItemId && (
+        {mode === "house" && itemId && !isNewItem && (
           <PhotoCapture
-            itemId={numericItemId}
+            itemId={itemId}
             onOpenLightbox={(index) => setLightboxIndex(index)}
           />
         )}
@@ -233,7 +213,7 @@ export function ItemEntryPage() {
 
       {/* Record button + recordings + next item */}
       <div className="pb-4 pt-2 space-y-3">
-        {numericItemId && (
+        {itemId && !isNewItem && (
           <>
             {isRecordDisabled && (
               <p className="text-center text-sm text-gray-400 dark:text-gray-500 mb-2">
@@ -241,11 +221,11 @@ export function ItemEntryPage() {
               </p>
             )}
             <div className={isRecordDisabled ? "opacity-50 pointer-events-none" : ""}>
-              <RecordButton itemId={numericItemId} itemType={mode} />
+              <RecordButton itemId={itemId} sessionId={sessionId!} />
             </div>
 
             {/* Recordings list */}
-            <RecordingsList itemId={numericItemId} />
+            <RecordingsList itemId={itemId} />
 
             {/* Next Item button */}
             <button
@@ -297,27 +277,21 @@ export function ItemEntryPage() {
 function BackButton({
   sessionId,
   currentItem,
-  mode,
+  items,
 }: {
-  sessionId: number;
-  currentItem: { sortOrder: number } | undefined;
-  mode: "house" | "sale";
+  sessionId: string;
+  currentItem: { sort_order: number } | undefined;
+  items: { id: string; sort_order: number }[];
 }) {
   const navigate = useNavigate();
 
-  const previousItem = useLiveQuery(
-    async () => {
-      if (!currentItem || currentItem.sortOrder === 0) return undefined;
-      const table = mode === "house" ? db.houseVisitItems : db.saleItems;
-      const items = await table
-        .where("sessionId")
-        .equals(sessionId)
-        .filter((i) => i.sortOrder < currentItem.sortOrder)
-        .sortBy("sortOrder");
-      return items[items.length - 1];
-    },
-    [sessionId, currentItem?.sortOrder, mode],
-  );
+  // Find the previous item by sort_order from Zustand items
+  const previousItem = (() => {
+    if (!currentItem || currentItem.sort_order === 0) return undefined;
+    const before = items.filter(i => i.sort_order < currentItem.sort_order);
+    if (before.length === 0) return undefined;
+    return before.reduce((best, i) => i.sort_order > best.sort_order ? i : best, before[0]);
+  })();
 
   const handleBack = () => {
     if (previousItem?.id) {

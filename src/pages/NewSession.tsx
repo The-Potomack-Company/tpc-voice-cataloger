@@ -69,7 +69,7 @@ export function NewSessionPage() {
 
       for (const receipt of receipts) {
         const itemId = await createBlankItem(sessionId, "sale");
-        await updateItemField(itemId, "sale", "receiptNumber", receipt);
+        await updateItemField(itemId, sessionId, "receipt_number", receipt);
       }
 
       // Build toast message per CONTEXT.md locked decision
@@ -232,7 +232,7 @@ export function NewSessionPage() {
       <ConfirmDialog
         open={showActiveWarning}
         title="Active Session Exists"
-        message="You have an open session — start a new one anyway?"
+        message="You have an open session -- start a new one anyway?"
         confirmLabel="Start New"
         cancelLabel="Go Back"
         onConfirm={() => {

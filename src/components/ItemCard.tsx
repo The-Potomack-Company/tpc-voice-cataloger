@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
-import type { HouseVisitItem, SaleItem } from "../db/types";
+import type { Tables } from "../db/database.types";
 import { EditableField } from "./EditableField";
 import { SwipeableRow } from "./SwipeableRow";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -9,33 +9,50 @@ import { updateItemField, deleteItem } from "../db/items";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { processAudioWithAi } from "../services/gemini";
 import { reformatMeasurements } from "../utils/formatMeasurements";
+import { getDexieItemId } from "../db/idMapping";
+import { hasPendingForItem } from "../hooks/useWriteAheadQueue";
+
+type SupabaseItem = Tables<"items">;
 
 interface ItemCardProps {
-  item: HouseVisitItem | SaleItem;
-  mode: "house" | "sale";
+  item: SupabaseItem;
+  sessionId: string;
   isExpanded: boolean;
   onToggle: () => void;
   readOnly?: boolean;
 }
 
-export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCardProps) {
+export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: ItemCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const { status, startRecording, stopRecording } = useAudioRecorder();
-  const isQueued = item.aiStatus === "queued";
-  const isFailed = item.aiStatus === "failed";
-  const isProcessing = item.aiStatus === "processing";
+  const isQueued = item.ai_status === "queued";
+  const isFailed = item.ai_status === "failed";
+  const isProcessing = item.ai_status === "processing";
+
+  // ID mapping for Dexie blob lookups
+  const [dexieItemId, setDexieItemId] = useState<number | string | null>(null);
+  useEffect(() => {
+    getDexieItemId(item.id).then(id => setDexieItemId(id ?? item.id));
+  }, [item.id]);
+
+  // Pending sync badge
+  const [isPending, setIsPending] = useState(false);
+  useEffect(() => {
+    hasPendingForItem(item.id).then(setIsPending);
+  }, [item.id]);
 
   const audioData = useLiveQuery(
     async () => {
-      const audios = await db.audio.where("itemId").equals(item.id!).toArray();
+      if (dexieItemId == null) return { count: 0, latestAudioId: null as number | null };
+      const audios = await db.audio.where("itemId").equals(dexieItemId).toArray();
       const count = audios.length;
       const latestAudioId = count > 0
         ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
         : null;
       return { count, latestAudioId };
     },
-    [item.id],
+    [dexieItemId],
     { count: 0, latestAudioId: null as number | null },
   );
 
@@ -45,7 +62,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
   const handleRetryAi = () => {
     if (!latestAudioId || retrying) return;
     setRetrying(true);
-    processAudioWithAi(latestAudioId, item.id!, mode)
+    processAudioWithAi(latestAudioId, item.id, sessionId)
       .then(() => setRetrying(false))
       .catch((err) => {
         console.error("AI retry failed:", err);
@@ -54,23 +71,22 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
   };
 
   const photoCount = useLiveQuery(
-    () =>
-      mode === "house"
-        ? db.photos.where("itemId").equals(item.id!).count()
-        : Promise.resolve(0),
-    [item.id, mode],
+    () => {
+      if (dexieItemId == null) return Promise.resolve(0);
+      return item.mode === "house"
+        ? db.photos.where("itemId").equals(dexieItemId).count()
+        : Promise.resolve(0);
+    },
+    [dexieItemId, item.mode],
     0,
   );
 
-  const receiptNumber =
-    mode === "sale" ? (item as SaleItem).receiptNumber : undefined;
-
   const handleFieldSave = (field: string) => (value: string) => {
-    updateItemField(item.id!, mode, field, value);
+    updateItemField(item.id, sessionId, field, value);
   };
 
   const handleDelete = async () => {
-    await deleteItem(item.id!, mode);
+    await deleteItem(item.id, sessionId);
     setShowDeleteConfirm(false);
   };
 
@@ -80,16 +96,15 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
       const audioId = await stopRecording();
       if (audioId != null) {
         if (navigator.onLine) {
-          processAudioWithAi(audioId, item.id!, mode).catch((err) =>
+          processAudioWithAi(audioId, item.id, sessionId).catch((err) =>
             console.error("AI processing failed:", err),
           );
         } else {
-          const table = mode === "house" ? db.houseVisitItems : db.saleItems;
-          await table.update(item.id!, { aiStatus: "queued" as const });
+          updateItemField(item.id, sessionId, "ai_status", "queued").catch(console.error);
         }
       }
     } else if (status === "idle") {
-      startRecording(item.id!, mode);
+      startRecording(item.id, sessionId);
     }
   };
 
@@ -107,10 +122,10 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
           {/* Item number + title preview */}
           <div className="flex-1 min-w-0">
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate block">
-              {mode === "sale" && receiptNumber
-                ? `#${receiptNumber}`
-                : `Item ${item.sortOrder + 1}`}
-              {item.title ? ` — ${item.title}` : ""}
+              {item.mode === "sale" && item.receipt_number
+                ? `#${item.receipt_number}`
+                : `Item ${item.sort_order + 1}`}
+              {item.title ? ` \u2014 ${item.title}` : ""}
             </span>
             {item.description && (
               <span className="text-xs text-gray-500 dark:text-gray-400 truncate block mt-0.5">
@@ -121,6 +136,16 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
 
           {/* Indicator icons */}
           <div className="flex items-center gap-2 shrink-0">
+            {isPending && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                    aria-label="This change will sync when you reconnect">
+                <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 12a8 8 0 0116 0M20 12a8 8 0 01-16 0" />
+                </svg>
+                Pending sync
+              </span>
+            )}
+
             {audioCount > 0 && (
               <svg
                 className="w-4 h-4 text-green-600 dark:text-green-400"
@@ -131,7 +156,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
               </svg>
             )}
 
-            {mode === "house" && photoCount > 0 && (
+            {item.mode === "house" && photoCount > 0 && (
               <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -227,14 +252,14 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
           <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
             <EditableField
               label="Title"
-              value={item.title}
+              value={item.title ?? undefined}
               onSave={handleFieldSave("title")}
               placeholder="Enter title"
               readOnly={readOnly}
             />
             <EditableField
               label="Description"
-              value={item.description}
+              value={item.description ?? undefined}
               onSave={handleFieldSave("description")}
               placeholder="Enter description"
               multiline
@@ -242,7 +267,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
             />
             <EditableField
               label="Measurements"
-              value={item.measurements}
+              value={item.measurements ?? undefined}
               onSave={(val) => {
                 const reformatted = reformatMeasurements(val);
                 handleFieldSave("measurements")(reformatted);
@@ -252,31 +277,31 @@ export function ItemCard({ item, mode, isExpanded, onToggle, readOnly }: ItemCar
             />
             <EditableField
               label="Condition"
-              value={item.condition}
+              value={item.condition ?? undefined}
               onSave={handleFieldSave("condition")}
               placeholder="Enter condition"
               readOnly={readOnly}
             />
             <EditableField
               label="Estimate"
-              value={item.estimate}
+              value={item.estimate ?? undefined}
               onSave={handleFieldSave("estimate")}
               placeholder="Enter estimate"
               readOnly={readOnly}
             />
             <EditableField
               label="Category"
-              value={item.category}
+              value={item.category ?? undefined}
               onSave={handleFieldSave("category")}
               placeholder="Enter category"
               readOnly={readOnly}
             />
 
-            {mode === "sale" && (
+            {item.mode === "sale" && (
               <EditableField
                 label="Receipt Number"
-                value={receiptNumber}
-                onSave={handleFieldSave("receiptNumber")}
+                value={item.receipt_number ?? undefined}
+                onSave={handleFieldSave("receipt_number")}
                 placeholder="Enter receipt number"
                 readOnly={readOnly}
               />

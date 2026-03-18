@@ -2,17 +2,20 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useUIStore } from "../stores/uiStore";
 import { useLongPress } from "../hooks/useLongPress";
 import { SwipeableRow } from "./SwipeableRow";
-import type { Session } from "../db/types";
+import type { Tables } from "../db/database.types";
+
+type SupabaseSession = Tables<"sessions">;
 
 interface SessionCardProps {
-  session: Session;
+  session: SupabaseSession;
   itemCount: number;
   onTap: () => void;
   onDelete: () => void;
   onRename: (newName: string) => void;
 }
 
-function formatRelativeTime(date: Date): string {
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
   const now = Date.now();
   const diffMs = now - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
@@ -122,11 +125,6 @@ export function SessionCard({
                   Completed
                 </span>
               )}
-              {session.archivedAt && (
-                <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                  Archived
-                </span>
-              )}
               {isInterrupted && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -143,7 +141,7 @@ export function SessionCard({
           </div>
 
           <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap shrink-0 mt-1">
-            {formatRelativeTime(session.updatedAt)}
+            {formatRelativeTime(session.updated_at)}
           </span>
         </div>
       </div>

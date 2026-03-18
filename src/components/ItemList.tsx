@@ -1,39 +1,24 @@
 import { useState, useCallback, useEffect } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useSessionStore } from "../stores/sessionStore";
 import { db } from "../db";
 import { ItemCard } from "./ItemCard";
 import { createBlankItem } from "../db/items";
 import { processAudioWithAi } from "../services/gemini";
 
 interface ItemListProps {
-  sessionId: number;
+  sessionId: string;
   mode: "house" | "sale";
   onAddItemRef?: React.MutableRefObject<(() => Promise<void>) | null>;
   readOnly?: boolean;
 }
 
 export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListProps) {
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [newItemId, setNewItemId] = useState<number | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [newItemId, setNewItemId] = useState<string | null>(null);
 
-  const items = useLiveQuery(
-    () => {
-      if (mode === "house") {
-        return db.houseVisitItems
-          .where("sessionId")
-          .equals(sessionId)
-          .sortBy("sortOrder");
-      }
-      return db.saleItems
-        .where("sessionId")
-        .equals(sessionId)
-        .sortBy("sortOrder");
-    },
-    [sessionId, mode],
-    [],
-  );
+  const items = useSessionStore(s => s.itemsBySession[sessionId] ?? []);
 
-  const toggleExpand = useCallback((itemId: number) => {
+  const toggleExpand = useCallback((itemId: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
@@ -78,7 +63,7 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
   }, [onAddItemRef, handleAddItem]);
 
   const stuckItems = items.filter(
-    (i) => i.aiStatus === "processing" || i.aiStatus === "failed",
+    (i) => i.ai_status === "processing" || i.ai_status === "failed",
   );
   const [retryingAll, setRetryingAll] = useState(false);
 
@@ -88,10 +73,10 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
     try {
       await Promise.all(
         stuckItems.map(async (item) => {
-          const audios = await db.audio.where("itemId").equals(item.id!).toArray();
+          const audios = await db.audio.where("itemId").equals(item.id).toArray();
           if (audios.length === 0) return;
           const latestAudioId = audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!);
-          return processAudioWithAi(latestAudioId, item.id!, mode);
+          return processAudioWithAi(latestAudioId, item.id, sessionId);
         }),
       );
     } catch (err) {
@@ -99,7 +84,7 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
     } finally {
       setRetryingAll(false);
     }
-  }, [retryingAll, stuckItems, mode]);
+  }, [retryingAll, stuckItems, sessionId]);
 
   if (items.length === 0) {
     return (
@@ -160,9 +145,9 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
         <div key={item.id} data-item-id={item.id}>
           <ItemCard
             item={item}
-            mode={mode}
-            isExpanded={expandedIds.has(item.id!)}
-            onToggle={() => toggleExpand(item.id!)}
+            sessionId={sessionId}
+            isExpanded={expandedIds.has(item.id)}
+            onToggle={() => toggleExpand(item.id)}
             readOnly={readOnly}
           />
         </div>

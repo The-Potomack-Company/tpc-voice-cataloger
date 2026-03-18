@@ -1,13 +1,13 @@
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { processAudioWithAi } from "../services/gemini";
-import { db } from "../db";
+import { updateItemField } from "../db/items";
 
 interface RecordButtonProps {
-  itemId: number;
-  itemType: "house" | "sale";
+  itemId: string;
+  sessionId: string;
 }
 
-export function RecordButton({ itemId, itemType }: RecordButtonProps) {
+export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
   const { status, error, startRecording, stopRecording } = useAudioRecorder();
 
   const isRecording = status === "recording";
@@ -19,17 +19,16 @@ export function RecordButton({ itemId, itemType }: RecordButtonProps) {
       const audioId = await stopRecording();
       if (audioId != null) {
         if (navigator.onLine) {
-          // Fire-and-forget — do not await. Auctioneer moves on immediately.
-          processAudioWithAi(audioId, itemId, itemType).catch((err) =>
+          // Fire-and-forget -- do not await. Auctioneer moves on immediately.
+          processAudioWithAi(audioId, itemId, sessionId).catch((err) =>
             console.error("AI processing failed:", err)
           );
         } else {
-          const table = itemType === "house" ? db.houseVisitItems : db.saleItems;
-          await table.update(itemId, { aiStatus: "queued" as const });
+          await updateItemField(itemId, sessionId, "ai_status", "queued");
         }
       }
     } else if (!isRequesting) {
-      startRecording(itemId, itemType);
+      startRecording(itemId, sessionId);
     }
   };
 
@@ -83,7 +82,7 @@ export function RecordButton({ itemId, itemType }: RecordButtonProps) {
           <p className="text-sm text-red-500">{error}</p>
           <button
             type="button"
-            onClick={() => startRecording(itemId, itemType)}
+            onClick={() => startRecording(itemId, sessionId)}
             className="text-sm text-red-500 underline mt-1"
           >
             Try Again

@@ -6,8 +6,10 @@ import { SessionSearch } from "../components/SessionSearch";
 import { SessionCard } from "../components/SessionCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useActiveSessions, useCompletedSessions, useArchivedSessions, useSessionItemCount } from "../hooks/useSessions";
-import { softDeleteSession, updateSession, unarchiveSession } from "../db/sessions";
-import type { Session } from "../db/types";
+import { deleteSession, updateSession } from "../db/sessions";
+import type { Tables } from "../db/database.types";
+
+type SupabaseSession = Tables<"sessions">;
 
 /** Wrapper that calls useSessionItemCount for a single session */
 function SessionCardWithCount({
@@ -16,12 +18,12 @@ function SessionCardWithCount({
   onDelete,
   onRename,
 }: {
-  session: Session;
+  session: SupabaseSession;
   onTap: () => void;
   onDelete: () => void;
   onRename: (newName: string) => void;
 }) {
-  const itemCount = useSessionItemCount(session.id!);
+  const itemCount = useSessionItemCount(session.id);
   return (
     <SessionCard
       session={session}
@@ -37,6 +39,7 @@ export function SessionsPage() {
   const hasCompletedWalkthrough = useUIStore(
     (s) => s.hasCompletedWalkthrough,
   );
+  const isOnline = useUIStore((s) => s.isOnline);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
   const completedSessions = useCompletedSessions();
@@ -45,7 +48,7 @@ export function SessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [completedExpanded, setCompletedExpanded] = useState(true);
   const [archivedExpanded, setArchivedExpanded] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Session | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SupabaseSession | null>(null);
 
   if (!hasCompletedWalkthrough) {
     return <Walkthrough />;
@@ -54,7 +57,7 @@ export function SessionsPage() {
   const totalSessions = activeSessions.length + completedSessions.length + archivedSessions.length;
 
   // Filter by search query
-  const filterFn = (s: Session) =>
+  const filterFn = (s: SupabaseSession) =>
     !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase());
 
   const filteredActive = activeSessions.filter(filterFn);
@@ -62,28 +65,28 @@ export function SessionsPage() {
   const filteredArchived = archivedSessions.filter(filterFn);
   const filteredTotal = filteredActive.length + filteredCompleted.length + filteredArchived.length;
 
-  const handleTap = (session: Session) => {
+  const handleTap = (session: SupabaseSession) => {
     navigate(`/session/${session.id}`);
   };
 
-  const handleDeleteRequest = (session: Session) => {
+  const handleDeleteRequest = (session: SupabaseSession) => {
     setDeleteTarget(session);
   };
 
   const handleDeleteConfirm = async () => {
     if (deleteTarget?.id) {
-      await softDeleteSession(deleteTarget.id);
+      await deleteSession(deleteTarget.id);
     }
     setDeleteTarget(null);
   };
 
-  const handleRename = async (session: Session, newName: string) => {
+  const handleRename = async (session: SupabaseSession, newName: string) => {
     if (session.id) {
       await updateSession(session.id, { name: newName });
     }
   };
 
-  // Empty state — no sessions at all
+  // Empty state -- no sessions at all
   if (totalSessions === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-full portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-12">
@@ -118,6 +121,16 @@ export function SessionsPage() {
 
   return (
     <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-2 py-2 px-4 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg" role="status" aria-live="polite">
+          <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 010 12.728M5.636 5.636a9 9 0 000 12.728M3.757 3.757l16.486 16.486" />
+          </svg>
+          <span className="text-sm text-gray-500 dark:text-gray-400">You're offline. Changes will sync when you reconnect.</span>
+        </div>
+      )}
+
       {/* Search */}
       <SessionSearch onSearch={setSearchQuery} />
 
@@ -187,7 +200,7 @@ export function SessionsPage() {
         </section>
       )}
 
-      {/* Archived Sessions */}
+      {/* Archived Sessions -- currently always empty */}
       {filteredArchived.length > 0 && (
         <section className="mt-8">
           <button
@@ -213,21 +226,13 @@ export function SessionsPage() {
           {archivedExpanded && (
             <div className="space-y-3">
               {filteredArchived.map((session) => (
-                <div key={session.id} className="relative">
-                  <SessionCardWithCount
-                    session={session}
-                    onTap={() => handleTap(session)}
-                    onDelete={() => handleDeleteRequest(session)}
-                    onRename={(newName) => handleRename(session, newName)}
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); unarchiveSession(session.id!); }}
-                    className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800 z-10"
-                  >
-                    Un-archive
-                  </button>
-                </div>
+                <SessionCardWithCount
+                  key={session.id}
+                  session={session}
+                  onTap={() => handleTap(session)}
+                  onDelete={() => handleDeleteRequest(session)}
+                  onRename={(newName) => handleRename(session, newName)}
+                />
               ))}
             </div>
           )}
@@ -238,7 +243,7 @@ export function SessionsPage() {
       <ConfirmDialog
         open={deleteTarget !== null}
         title="Delete session?"
-        message="This session and all its items will be moved to trash. You can recover it from Settings."
+        message="This session and all its items will be permanently deleted."
         confirmLabel="Delete"
         cancelLabel="Cancel"
         destructive

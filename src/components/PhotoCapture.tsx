@@ -1,12 +1,13 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import type { ItemPhoto } from "../db/types";
 import { resizeImage } from "../utils/image";
 import { useBlobUrl } from "../hooks/useBlobUrl";
+import { getDexieItemId } from "../db/idMapping";
 
 interface PhotoCaptureProps {
-  itemId: number;
+  itemId: string;
   onOpenLightbox: (index: number) => void;
 }
 
@@ -46,9 +47,18 @@ export function PhotoCapture({ itemId, onOpenLightbox }: PhotoCaptureProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // ID mapping for migrated items
+  const [dexieItemId, setDexieItemId] = useState<number | string | null>(null);
+  useEffect(() => {
+    getDexieItemId(itemId).then(id => setDexieItemId(id ?? itemId));
+  }, [itemId]);
+
   const photos = useLiveQuery(
-    () => db.photos.where("itemId").equals(itemId).sortBy("sortOrder"),
-    [itemId],
+    () => {
+      if (dexieItemId == null) return [] as ItemPhoto[];
+      return db.photos.where("itemId").equals(dexieItemId).sortBy("sortOrder");
+    },
+    [dexieItemId],
     [] as ItemPhoto[],
   );
 
@@ -76,8 +86,10 @@ export function PhotoCapture({ itemId, onOpenLightbox }: PhotoCaptureProps) {
         resizeImage(previewFile, 200),
       ]);
 
+      // Use Supabase UUID directly for new items (post-migration)
+      const storeId = dexieItemId ?? itemId;
       await db.photos.add({
-        itemId,
+        itemId: storeId as number, // Dexie accepts both number and string
         itemType: "house",
         blob: fullBlob,
         thumbnail: thumbBlob,

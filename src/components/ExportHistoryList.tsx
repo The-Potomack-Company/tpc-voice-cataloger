@@ -1,27 +1,28 @@
-import { useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 import { reExportSession } from "../utils/export";
+import type { Tables } from "../db/database.types";
 
 interface ExportHistoryListProps {
-  sessionId: number;
+  sessionId: string;
 }
 
 export function ExportHistoryList({ sessionId }: ExportHistoryListProps) {
   const [expanded, setExpanded] = useState(false);
+  const [exports, setExports] = useState<Tables<"export_history">[]>([]);
 
-  const exports = useLiveQuery(
-    () =>
-      db.exportHistory
-        .where("sessionId")
-        .equals(sessionId)
-        .reverse()
-        .sortBy("exportedAt"),
-    [sessionId],
-    [],
-  );
+  useEffect(() => {
+    supabase
+      .from("export_history")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("exported_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setExports(data);
+      });
+  }, [sessionId]);
 
-  if (!exports || exports.length === 0) return null;
+  if (exports.length === 0) return null;
 
   return (
     <section className="mb-6">
@@ -53,12 +54,12 @@ export function ExportHistoryList({ sessionId }: ExportHistoryListProps) {
               className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-2"
             >
               <div className="text-sm text-gray-700 dark:text-gray-300">
-                {record.exportedAt.toLocaleDateString("en-US", {
+                {new Date(record.exported_at).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
                 })}{" "}
-                &mdash; {record.itemCount} item{record.itemCount !== 1 ? "s" : ""}
+                &mdash; {record.item_count} item{record.item_count !== 1 ? "s" : ""}
               </div>
               <button
                 type="button"
