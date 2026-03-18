@@ -34,19 +34,20 @@ Declared values (must be multiples of 4):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px (`gap-1`, `mt-1`) | Badge gaps, inline vertical nudges |
-| sm | 8px (`gap-2`, `py-2`, `px-2`) | Compact element spacing, badge padding, chevron-to-text gap |
-| md | 16px (`p-4`, `px-4`) | Default card padding, page horizontal padding (portrait) |
+| sm | 8px (`gap-2`, `py-2`, `px-2`, `mb-2`) | Compact element spacing, badge padding, chevron-to-text gap, specialist group header bottom margin |
+| md | 16px (`p-4`, `px-4`, `mt-4`) | Default card padding, page horizontal padding (portrait), spacing between specialist groups within a section |
 | lg | 24px (`gap-6`, `py-6`, `mb-6`) | Page vertical padding, section bottom margin |
 | xl | 32px (`mb-8`, `px-8`, `mt-8`) | Section breaks between Active/Completed/Archived, landscape horizontal padding |
 | 2xl | 48px (`min-h-12`) | Touch target minimum height |
 | 3xl | 64px | Not used in this phase |
 
 Exceptions:
-- `gap-3` (12px) is used between session cards within a section (`space-y-3`) and between specialist group content -- established project pattern.
 - `min-h-12` (48px) on all interactive elements for thumb-zone accessibility (UX-02 requirement).
-- `mb-3` (12px) below section headers and specialist group headers -- established project pattern.
-- `mt-6` (24px) above the first section (Active Sessions) after the search bar.
-- `mt-4` (16px) between specialist groups within a section.
+
+Note on inherited off-grid values: Existing `Sessions.tsx` uses `mb-3` (12px) on section headers and `space-y-3` (12px) between cards. These are inherited from prior phases and are not part of this declared spacing scale. New elements introduced in Phase 15 stay on the standard grid:
+- **Specialist group headers** use `mb-2` (8px) instead of `mb-3` (12px).
+- **Card spacing within specialist groups** reuses the existing `space-y-3` for visual consistency with the surrounding list -- this is inherited code, not a newly declared value.
+- **Spacing between specialist groups** uses `mt-4` (16px), which is on-grid.
 
 Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `NewSession.tsx`, `SessionDetail.tsx` patterns.
 
@@ -59,22 +60,27 @@ Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `NewSession.tsx`, `SessionDe
 | Page title | 24px | 700 (bold) | 1.2 | `text-2xl font-bold` |
 | Section header | 14px | 600 (semibold) | 1.4 | `text-sm font-semibold uppercase tracking-wider` |
 | Card primary text (session name) | 16px | 600 (semibold) | 1.5 | `font-semibold text-gray-900 dark:text-gray-100` |
-| Card secondary text (item count, time, assignee) | 12px | 500 (medium) | 1.5 | `text-xs text-gray-500 dark:text-gray-400` |
-| Badge text | 12px | 500 (medium) | 1.0 | `text-xs font-medium` |
-| Form label | 14px | 500 (medium) | 1.5 | `text-sm font-medium text-gray-700 dark:text-gray-300` |
-| Form input | 16px | 400 (normal) | 1.5 | `text-base` (16px prevents iOS zoom on focus) |
+| Card secondary text (item count, time, assignee) | 12px | (default) | 1.5 | `text-xs text-gray-500 dark:text-gray-400` |
+| Badge text | 12px | 600 (semibold) | 1.0 | `text-xs font-semibold` |
+| Form input | 16px | (default) | 1.5 | `text-base` (16px prevents iOS zoom on focus) |
 
-Font weights used: **3 total** -- 400 (normal) for body text and form inputs; 500 (medium) for badges, labels, and secondary card text; 600-700 (semibold/bold) for headings, section headers, and session names. Matches the established project convention.
+**Declared weights: 2**
+- **semibold (600)** -- Card titles, section headers, specialist group headers, badge text, buttons, metadata values
+- **bold (700)** -- Page-level headings (`text-2xl font-bold`), session name on detail page
+
+Body text and card secondary text render at the browser default weight (400) via Tailwind's `text-sm` / `text-xs` without an explicit weight class. This is implicit behavior, not a declared weight in the contract. Form inputs likewise use default weight.
+
+Note on existing codebase `font-medium` usage: `SessionCard.tsx` currently uses `font-medium` (500) on mode badges and the CTA button on `Sessions.tsx` uses `font-medium`. New Phase 15 elements (status badges, specialist group headers, assignee field values) use `font-semibold` (600) exclusively, matching the `AccountRow.tsx` badge pattern. Existing `font-medium` instances are inherited code outside this phase's scope of change.
+
+Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `AccountRow.tsx`, `NewSession.tsx`, `SessionDetail.tsx`.
 
 ### Phase-Specific Typography Rules
 
 - **Specialist group header**: `text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider` (matches existing section headers in Sessions.tsx line 134)
-- **Assignee name on SessionCard**: `text-xs text-gray-500 dark:text-gray-400` (matches item count text in SessionCard.tsx line 117)
-- **Status badge text**: `text-xs font-medium` (matches existing badge pattern in SessionCard.tsx line 114)
-- **Assignee field label on SessionDetail**: `text-sm text-gray-500 dark:text-gray-400` (matches metadata labels)
-- **Assignee field value on SessionDetail**: `text-sm font-medium text-gray-900 dark:text-gray-100` (matches metadata values)
-
-Source: Existing `Sessions.tsx`, `SessionCard.tsx`, `NewSession.tsx`, `SessionDetail.tsx`.
+- **Assignee name on SessionCard**: `text-xs text-gray-500 dark:text-gray-400` (matches item count text in SessionCard.tsx line 117, no explicit weight)
+- **Status badge text**: `text-xs font-semibold` (matches AccountRow.tsx badge pattern -- uses semibold to stay within the 2-weight contract)
+- **Assignee field label on SessionDetail**: `text-sm text-gray-500 dark:text-gray-400` (matches metadata labels, no explicit weight)
+- **Assignee field value on SessionDetail**: `text-sm font-semibold text-gray-900 dark:text-gray-100` (matches heading emphasis at this size)
 
 ---
 
@@ -106,17 +112,33 @@ These are the session lifecycle status badges shown on `SessionCard` in admin vi
 | Returned | `bg-orange-100 text-orange-700` | `dark:bg-orange-900/30 dark:text-orange-400` | Orange = returned for corrections, slightly more urgent than submitted. |
 | Exported | `bg-green-100 text-green-700` | `dark:bg-green-900/30 dark:text-green-400` | Green = done, successfully exported. Consistent with existing "Completed" badge color. |
 
-Badge class pattern (all status badges): `inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full`
+Badge class pattern (all status badges): `inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full`
 
-This matches the existing badge class pattern in `SessionCard.tsx` (line 114: mode badge, line 121: completed badge) and `AccountRow.tsx` (role/status badges).
+This matches the badge class pattern in `AccountRow.tsx` (role/status badges using `font-semibold`).
 
-Source: `--color-accent: #2563eb` from `src/index.css`. Status badge colors from CONTEXT.md Claude's Discretion. Existing badge patterns from `SessionCard.tsx` and `AccountRow.tsx`.
+Source: `--color-accent: #2563eb` from `src/index.css`. Status badge colors from CONTEXT.md Claude's Discretion. Existing badge patterns from `AccountRow.tsx`.
+
+---
+
+## Visual Hierarchy & Focal Point
+
+### Admin Sessions Screen -- Focal Point Declaration
+
+The admin Sessions screen renders a specialist-grouped, multi-section list. The visual rendering hierarchy (what draws the eye first):
+
+1. **Primary focal point: Active section specialist group headers.** The uppercase, semibold, tracking-wider group headers (e.g., "SARAH (3)") are the first scanning landmarks. They answer "whose sessions am I looking at?" -- the admin's primary question. Active is the first section rendered and always expanded.
+2. **Secondary focal point: Status badges on SessionCards.** The colored badge pills (blue Active, yellow Submitted, orange Returned, green Exported) provide at-a-glance status recognition against the neutral card background. They answer "what state is each session in?" -- the admin's second question.
+3. **Tertiary focal point: "New Session" CTA button.** Rendered in the accent color (`bg-accent text-white`) at the top of the page. It is the primary action affordance but tertiary in scanning order because the admin typically reviews existing sessions before creating new ones.
+
+This hierarchy ensures the admin scans: specialist groups (who) -> status badges (what state) -> create new (action).
+
+### Specialist Sessions Screen -- Focal Point Declaration
+
+Unchanged from existing implementation. The specialist's focal point is the session card list in the Active section -- a flat list with no grouping, no assignee info, no status badges.
 
 ---
 
 ## Component Inventory
-
-**Focal point:** The primary focal point is the session list on the Sessions page -- this is where admin and specialist roles diverge visually. The admin sees specialist-grouped collapsible sections with extended session cards; the specialist sees the unchanged flat list. Secondary focal points are the specialist dropdown on NewSession (admin-only) and the assignee field on SessionDetail (admin-only).
 
 ### 1. Sessions Page -- Admin View (`Sessions.tsx`)
 
@@ -153,10 +175,10 @@ SessionSearch
 
 **Classes:**
 ```
-flex items-center gap-2 mb-3 ml-1
+flex items-center gap-2 mb-2 ml-1
 ```
 
-The `ml-1` (4px) provides a subtle indent to visually distinguish the specialist sub-group from the parent section header.
+The `ml-1` (4px) provides a subtle indent to visually distinguish the specialist sub-group from the parent section header. The `mb-2` (8px) is on the standard spacing grid.
 
 **Chevron icon:** Same SVG as existing collapsible sections in Sessions.tsx (lines 159-167).
 ```
@@ -175,7 +197,7 @@ SVG: `<path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />`
 
 **Toggle behavior:** Click to collapse/expand with chevron rotation. Same implementation as existing Completed/Archived toggles.
 
-**Content spacing:** `space-y-3` between session cards within the group (matches existing).
+**Content spacing:** `space-y-3` between session cards within the group (inherited from existing pattern for visual consistency).
 
 **Group spacing:** `mt-4` between specialist groups within a section.
 
@@ -213,7 +235,7 @@ The prefix "Assigned to" is included for clarity in the list scanning context. T
 
 **Status badge placement:** After the assignee name, inline in the same `flex-wrap` row. Uses status-specific colors from the Color section.
 ```html
-<span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+<span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
   Active
 </span>
 ```
@@ -239,7 +261,7 @@ The prefix "Assigned to" is included for clarity in the list scanning context. T
 
 **Label:**
 ```html
-<label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+<label class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
   Assign To
 </label>
 ```
@@ -291,7 +313,7 @@ These classes match the existing text input styling in `NewSession.tsx` (session
 ```html
 <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 mb-6">
   <span class="text-sm text-gray-500 dark:text-gray-400">Assigned to</span>
-  <span class="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-accent transition-colors"
+  <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-accent transition-colors"
         title="Tap to reassign">
     Sarah
   </span>
