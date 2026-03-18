@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 12 (Authentication) in progress
+**Current focus:** v1.1 Accounts & Deploy -- Phase 12 (Authentication) complete
 
 ## Current Position
 
 Phase: 12 of 17 (Authentication)
-Plan: 2 of 3
-Status: Plan 02 complete, ready for Plan 03
-Last activity: 2026-03-18 -- Completed Phase 12 Plan 02 (Login page)
+Plan: 3 of 3
+Status: Phase 12 complete, all plans done
+Last activity: 2026-03-18 -- Completed Phase 12 Plan 03 (Settings Account & Sign Out)
 
-Progress: [========..] 80%
+Progress: [==========] 100%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Recent decisions affecting current work:
 - [12-01] PWA config tests in separate pwa-config.test.ts alongside existing pwa-manifest.test.ts
 - [12-02] useAuthStore selector pattern (s) => s.signIn for minimal re-renders in LoginPage
 - [12-02] Error text displayed verbatim from Supabase -- no error type differentiation (Pitfall 4)
+- [12-03] Validation order: min length check before password match check (fail fast on simpler condition)
 
 ### Pending Todos
 
@@ -84,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T15:42:00.361Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-18T15:40:53Z
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None

@@ -97,7 +97,7 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 - [x] **AUTH-01**: User can log in with email and password via Supabase Auth
 - [x] **AUTH-02**: Auth session managed by Supabase (automatic token refresh)
 - [x] **AUTH-03**: Unauthenticated users are redirected to login page
-- [ ] **AUTH-04**: User can change their own password
+- [x] **AUTH-04**: User can change their own password
 
 ### Account Management
 
@@ -207,7 +207,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-01 | Phase 12 | Complete |
 | AUTH-02 | Phase 12 | Complete |
 | AUTH-03 | Phase 12 | Complete |
-| AUTH-04 | Phase 12 | Pending |
+| AUTH-04 | Phase 12 | Complete |
 | INFRA-04 | Phase 12 | Complete |
 | ACCT-01 | Phase 13 | Pending |
 | ACCT-02 | Phase 13 | Pending |
