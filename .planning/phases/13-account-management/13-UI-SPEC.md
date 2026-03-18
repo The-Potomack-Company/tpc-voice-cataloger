@@ -53,14 +53,16 @@ Source: Existing `Settings.tsx`, `SessionCard.tsx`, `AppLayout.tsx` patterns.
 
 | Role | Size | Weight | Line Height | Tailwind Classes |
 |------|------|--------|-------------|-----------------|
-| Page title | 24px | 700 (bold) | 1.2 | `text-2xl font-bold` |
+| Page title | 24px | 600 (semibold) | 1.2 | `text-2xl font-semibold` |
 | Section header | 14px | 600 (semibold) | 1.4 | `text-sm font-semibold uppercase tracking-wider` |
-| Primary text (display name) | 16px | 500 (medium) | 1.5 | `font-medium text-gray-900 dark:text-gray-100` |
+| Primary text (display name) | 16px | 400 (normal) | 1.5 | `font-normal text-gray-900 dark:text-gray-100` |
 | Secondary text (email) | 14px | 400 (normal) | 1.5 | `text-sm text-gray-500 dark:text-gray-400` |
-| Badge text | 12px | 500 (medium) | 1.0 | `text-xs font-medium` |
-| Button text | 14px | 500 (medium) | 1.5 | `text-sm font-medium` |
-| Form label | 14px | 500 (medium) | 1.5 | `text-sm font-medium text-gray-700 dark:text-gray-300` |
+| Badge text | 12px | 600 (semibold) | 1.0 | `text-xs font-semibold` |
+| Button text | 14px | 600 (semibold) | 1.5 | `text-sm font-semibold` |
+| Form label | 14px | 600 (semibold) | 1.5 | `text-sm font-semibold text-gray-700 dark:text-gray-300` |
 | Form input | 16px | 400 (normal) | 1.5 | `text-base` (16px prevents iOS zoom on focus) |
+
+Font weights used: **2 total** -- 400 (normal) for body text, secondary text, and form inputs; 600 (semibold) for headings, labels, buttons, and badge text.
 
 Source: Established in `Settings.tsx` (page title, section headers), `SessionCard.tsx` (primary/secondary text, badges).
 
@@ -99,6 +101,8 @@ Source: `--color-accent: #2563eb` from `src/index.css`. Badge colors from `Sessi
 
 ## Component Inventory
 
+**Focal point:** Primary focal point is the account list (stack of AccountRow components) -- this is the content the admin scans and acts on. Secondary focal point is the "+ Add Specialist" button as the primary entry point for creating new accounts.
+
 ### 1. Account Management Page (`AccountManagement.tsx`)
 
 **Layout:** Same page shell as `Settings.tsx` -- `portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6`.
@@ -113,20 +117,20 @@ Page Title: "Account Management"
   [Empty state -- shown when no accounts]
 ```
 
-**Back navigation:** Left-aligned row above the title. Arrow icon (Heroicons `chevron-left`, 20px) + "Settings" text link. Class: `text-sm text-accent font-medium flex items-center gap-1 mb-4`. This is a dedicated page at `/admin/accounts`, so a back link to `/settings` is needed.
+**Back navigation:** Left-aligned row above the title. Arrow icon (Heroicons `chevron-left`, 20px) + "Settings" text link. Class: `text-sm text-accent font-semibold flex items-center gap-1 mb-4`. This is a dedicated page at `/admin/accounts`, so a back link to `/settings` is needed.
 
 ### 2. Add Specialist Button
 
 **Appearance:** Full-width button at the top of the account list area.
 ```
 Classes: min-h-12 w-full rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600
-         text-accent text-sm font-medium
+         text-accent text-sm font-semibold
          hover:border-accent hover:bg-accent/5 dark:hover:border-accent dark:hover:bg-accent/5
          transition-colors flex items-center justify-center gap-2
 ```
 **Label:** "+ Add Specialist"
 **Icon:** Plus icon (Heroicons `plus`, 20px) before text.
-**Behavior:** Toggles the expandable creation form. When form is open, button changes to "Cancel" with muted styling (`text-gray-500 border-gray-300`).
+**Behavior:** Toggles the expandable creation form. When form is open, button changes to "Discard" with muted styling (`text-gray-500 border-gray-300`).
 
 ### 3. Inline Expandable Creation Form
 
@@ -144,13 +148,13 @@ Classes: min-h-12 w-full rounded-lg border-2 border-dashed border-gray-300 dark:
 
 Note: `text-base` (16px) on inputs prevents iOS Safari auto-zoom on focus.
 
-**Field labels:** `text-sm font-medium text-gray-700 dark:text-gray-300 mb-1` above each input.
+**Field labels:** `text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1` above each input.
 
 **Field spacing:** `space-y-4` between field groups (label + input).
 
 **Submit button:**
 ```
-Classes: w-full min-h-12 rounded-lg bg-accent text-white font-medium text-sm
+Classes: w-full min-h-12 rounded-lg bg-accent text-white font-semibold text-sm
          hover:bg-accent-hover transition-colors
          disabled:opacity-50 disabled:cursor-not-allowed
 Label: "Create Account"
@@ -178,21 +182,21 @@ Label: "Create Account"
   [Deactivate/Reactivate button OR nothing for own admin row]
 ```
 
-**Role badge -- Admin:** `inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300`
+**Role badge -- Admin:** `inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300`
 Label: "Admin"
 
-**Role badge -- Specialist:** `inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300`
+**Role badge -- Specialist:** `inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300`
 Label: "Specialist"
 
-**Status badge -- Active:** `inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300`
+**Status badge -- Active:** `inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300`
 Label: "Active"
 
-**Status badge -- Deactivated:** `inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300`
+**Status badge -- Deactivated:** `inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300`
 Label: "Deactivated"
 
 **Deactivate button (active accounts, not self):**
 ```
-Classes: min-h-12 px-3 py-2 rounded-lg text-sm font-medium
+Classes: min-h-12 px-3 py-2 rounded-lg text-sm font-semibold
          text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700
          hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors
          disabled:opacity-50 disabled:cursor-not-allowed
@@ -202,7 +206,7 @@ Loading label: "..."
 
 **Reactivate button (deactivated accounts):**
 ```
-Classes: min-h-12 px-3 py-2 rounded-lg text-sm font-medium
+Classes: min-h-12 px-3 py-2 rounded-lg text-sm font-semibold
          text-accent hover:bg-accent/10 transition-colors
          disabled:opacity-50 disabled:cursor-not-allowed
 Label: "Reactivate"
@@ -222,7 +226,7 @@ Uses existing `ConfirmDialog` component with `destructive` prop.
 | title | "Deactivate Account" |
 | message | "Deactivate {display_name}? They will not be able to log in until reactivated. Their sessions will not be affected." |
 | confirmLabel | "Deactivate" |
-| cancelLabel | "Cancel" |
+| cancelLabel | "Keep Active" |
 | destructive | `true` |
 
 No ConfirmDialog for reactivation (harmless action, per CONTEXT.md).
@@ -280,7 +284,7 @@ After successful account creation, re-fetch the full account list (new account n
 |---------|------|
 | Page title | "Account Management" |
 | Primary CTA | "+ Add Specialist" |
-| Cancel CTA (form open) | "Cancel" |
+| Discard CTA (form open) | "Discard" |
 | Form submit | "Create Account" |
 | Form submit loading | "Creating..." |
 | Empty state heading | "No accounts yet" |
@@ -294,6 +298,7 @@ After successful account creation, re-fetch the full account list (new account n
 | Deactivate confirmation title | "Deactivate Account" |
 | Deactivate confirmation body | "Deactivate {display_name}? They will not be able to log in until reactivated. Their sessions will not be affected." |
 | Deactivate confirmation button | "Deactivate" |
+| Deactivate confirmation cancel | "Keep Active" |
 | Back link | "Settings" |
 | Settings admin section header | "Admin" |
 | Settings admin row label | "Account Management" |
