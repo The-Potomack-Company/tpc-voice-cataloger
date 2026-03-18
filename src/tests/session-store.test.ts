@@ -40,16 +40,14 @@ vi.mock("../lib/supabase", () => ({
 
 import { useSessionStore } from "../stores/sessionStore";
 
-// Helper to set up the chain for a query
+// Helper to set up the chain for a query (fetchSessions pattern: from().select().order())
 function setupSelectChain(data: unknown[], error: unknown = null) {
-  const chain = {
-    select: mockSelect.mockReturnValue(chain),
-    order: mockOrder.mockReturnValue(chain),
-    eq: mockEq.mockReturnValue(chain),
-    then: undefined as unknown,
-  };
-  // Make it thenable (acts like a promise)
   const result = { data, error };
+  const chain = {
+    select: vi.fn(),
+    order: vi.fn(),
+    eq: vi.fn(),
+  };
   chain.select.mockReturnValue(chain);
   chain.order.mockResolvedValue(result);
   chain.eq.mockReturnValue(chain);
