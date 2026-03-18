@@ -1,73 +1,41 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db";
+import { useSessionStore } from "../stores/sessionStore";
+import type { Tables } from "../db/database.types";
 
 export function useActiveSessions() {
-  return useLiveQuery(
-    () =>
-      db.sessions
-        .where("status")
-        .equals("active")
-        .filter((s) => !s.deletedAt && !s.archivedAt)
-        .reverse()
-        .sortBy("updatedAt"),
-    [],
-    [],
+  return useSessionStore((s) =>
+    s.sessions.filter((sess) => sess.status === "active"),
   );
 }
 
 export function useCompletedSessions() {
-  return useLiveQuery(
-    () =>
-      db.sessions
-        .where("status")
-        .equals("completed")
-        .filter((s) => !s.deletedAt && !s.archivedAt)
-        .reverse()
-        .sortBy("updatedAt"),
-    [],
-    [],
+  return useSessionStore((s) =>
+    s.sessions.filter(
+      (sess) =>
+        sess.status === "completed" ||
+        sess.status === "submitted" ||
+        sess.status === "returned" ||
+        sess.status === "exported",
+    ),
   );
 }
 
 export function useDeletedSessions() {
-  return useLiveQuery(
-    () =>
-      db.sessions
-        .filter((s) => s.deletedAt !== undefined)
-        .reverse()
-        .sortBy("deletedAt"),
-    [],
-    [],
-  );
+  // No soft-delete in Supabase schema -- return empty array
+  // Postgres hard-deletes sessions; no recovery
+  return [] as Tables<"sessions">[];
 }
 
 export function useArchivedSessions() {
-  return useLiveQuery(
-    () =>
-      db.sessions
-        .filter((s) => s.archivedAt !== undefined && !s.deletedAt)
-        .reverse()
-        .sortBy("archivedAt"),
-    [],
-    [],
-  );
+  // No archive concept in Supabase schema -- return empty array
+  return [] as Tables<"sessions">[];
 }
 
-export function useSession(id: number) {
-  return useLiveQuery(() => db.sessions.get(id), [id]);
+export function useSession(id: string) {
+  return useSessionStore((s) => s.sessions.find((sess) => sess.id === id));
 }
 
-export function useSessionItemCount(sessionId: number) {
-  return useLiveQuery(
-    async () => {
-      const session = await db.sessions.get(sessionId);
-      if (!session) return 0;
-      if (session.mode === "house") {
-        return db.houseVisitItems.where("sessionId").equals(sessionId).count();
-      }
-      return db.saleItems.where("sessionId").equals(sessionId).count();
-    },
-    [sessionId],
-    0,
+export function useSessionItemCount(sessionId: string) {
+  return useSessionStore(
+    (s) => (s.itemsBySession[sessionId] ?? []).length,
   );
 }
