@@ -7,10 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:push": "npx supabase db push",
+    "db:types": "npx supabase gen types --lang=typescript --schema public > src/db/database.types.ts"
   },
   "dependencies": {
     "@google/genai": "^1.44.0",
+    "@supabase/supabase-js": "^2.99.2",
     "dexie": "^4.3.0",
     "dexie-react-hooks": "^4.2.0",
     "react": "^19.2.0",
@@ -37,6 +40,7 @@
     "fake-indexeddb": "^6.2.5",
     "globals": "^16.5.0",
     "jsdom": "^28.1.0",
+    "supabase": "^2.81.3",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
