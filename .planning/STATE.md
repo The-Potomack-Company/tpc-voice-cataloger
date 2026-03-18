@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: in-progress
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-03-18T20:14:00Z"
-last_activity: 2026-03-18 -- Completed Phase 14 Plan 01 (Foundation Layer)
+stopped_at: Completed 14-03-PLAN.md
+last_updated: "2026-03-18T20:22:30Z"
+last_activity: 2026-03-18 -- Completed Phase 14 Plan 03 (Migration & Write-Ahead Queue)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 11
-  completed_plans: 8
-  percent: 73
+  completed_plans: 10
+  percent: 91
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 14 (Data Migration) Plan 01 complete
+**Current focus:** v1.1 Accounts & Deploy -- Phase 14 (Data Migration) Plan 03 complete
 
 ## Current Position
 
 Phase: 14 of 17 (Data Migration)
-Plan: 1 of 4
-Status: Phase 14 in progress (plan 01 complete)
-Last activity: 2026-03-18 -- Completed Phase 14 Plan 01 (Foundation Layer)
+Plan: 3 of 4
+Status: Phase 14 in progress (plan 03 complete)
+Last activity: 2026-03-18 -- Completed Phase 14 Plan 03 (Migration & Write-Ahead Queue)
 
-Progress: [=======---] 73%
+Progress: [=========~] 91%
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Progress: [=======---] 73%
 **Recent Trend:**
 - v1.0 averaged ~5 min/plan across 27 plans
 - 14-01: 6 min (2 tasks, 8 files)
+- 14-03: 5 min (2 tasks, 7 files)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - [14-01] Compound index [newId+type] on idMapping for efficient lookup queries
 - [14-01] Optimistic updates with revert-on-error pattern for all sessionStore mutation actions
 - [14-01] Per-user persist scoping via setOptions + rehydrate (not store recreation)
+- [14-03] Migration skips soft-deleted sessions; continues on individual item insert errors
+- [14-03] Write-ahead queue stops on first failure to preserve FIFO ordering
+- [14-03] AppLayout processes write-ahead queue BEFORE audio queue on reconnect
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T20:14:00Z
-Stopped at: Completed 14-01-PLAN.md
-Resume file: .planning/phases/14-data-migration/14-02-PLAN.md
+Last session: 2026-03-18T20:22:30Z
+Stopped at: Completed 14-03-PLAN.md
+Resume file: .planning/phases/14-data-migration/14-04-PLAN.md
