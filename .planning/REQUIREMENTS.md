@@ -94,9 +94,9 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can log in with email and password via Supabase Auth
-- [ ] **AUTH-02**: Auth session managed by Supabase (automatic token refresh)
-- [ ] **AUTH-03**: Unauthenticated users are redirected to login page
+- [x] **AUTH-01**: User can log in with email and password via Supabase Auth
+- [x] **AUTH-02**: Auth session managed by Supabase (automatic token refresh)
+- [x] **AUTH-03**: Unauthenticated users are redirected to login page
 - [ ] **AUTH-04**: User can change their own password
 
 ### Account Management
@@ -127,7 +127,7 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 - [x] **INFRA-01**: Supabase project configured with Postgres database and auth
 - [x] **INFRA-02**: Row-level security (RLS) policies enforce role-based data access
 - [ ] **INFRA-03**: Session/item data is server-authoritative (Dexie retains audio/photos only)
-- [ ] **INFRA-04**: Service worker excludes Supabase API routes from caching
+- [x] **INFRA-04**: Service worker excludes Supabase API routes from caching
 
 ### Deployment
 
@@ -204,11 +204,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | INFRA-01 | Phase 11 | Complete |
 | INFRA-02 | Phase 11 | Complete |
-| AUTH-01 | Phase 12 | Pending |
-| AUTH-02 | Phase 12 | Pending |
-| AUTH-03 | Phase 12 | Pending |
+| AUTH-01 | Phase 12 | Complete |
+| AUTH-02 | Phase 12 | Complete |
+| AUTH-03 | Phase 12 | Complete |
 | AUTH-04 | Phase 12 | Pending |
-| INFRA-04 | Phase 12 | Pending |
+| INFRA-04 | Phase 12 | Complete |
 | ACCT-01 | Phase 13 | Pending |
 | ACCT-02 | Phase 13 | Pending |
 | ACCT-03 | Phase 13 | Pending |
