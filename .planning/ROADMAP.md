@@ -30,7 +30,7 @@
 - [x] **Phase 11: Supabase Foundation** - Postgres database, auth configuration, and RLS policies (completed 2026-03-18)
 - [x] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix (completed 2026-03-18)
 - [x] **Phase 13: Account Management** - Admin creates and manages specialist accounts (completed 2026-03-18)
-- [ ] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres
+- [x] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres (completed 2026-03-18)
 - [ ] **Phase 15: Session Assignment** - Admin assigns sessions to specialists; specialists see scoped view
 - [ ] **Phase 16: Session Lifecycle** - Submit, review, return, and admin-only export workflow
 - [ ] **Phase 17: Deployment & CI** - Vercel deploy, GitHub Actions, CORS lockdown, branch protection
@@ -89,7 +89,7 @@ Plans:
   2. Creating, editing, and deleting sessions and items writes to Supabase Postgres as the source of truth
   3. Audio blobs and photos remain in Dexie (IndexedDB) and are not uploaded to the server
   4. Zustand persist keys are scoped per user so that logging out and logging in as a different user does not leak state
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 - [x] 14-01-PLAN.md -- Dexie v7 schema, types, Zustand sessionStore, per-user persist scoping, ID mapping utilities
 - [x] 14-02-PLAN.md -- Rewrite data access layer (sessions.ts, items.ts, useSessions.ts) and services (gemini, export, offline queue)
@@ -151,7 +151,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
 | 13. Account Management | v1.1 | 2/2 | Complete | 2026-03-18 |
-| 14. Data Migration | v1.1 | 3/4 | In Progress | - |
+| 14. Data Migration | 4/4 | Complete   | 2026-03-18 | - |
 | 15. Session Assignment | v1.1 | 0/? | Not started | - |
 | 16. Session Lifecycle | v1.1 | 0/? | Not started | - |
 | 17. Deployment & CI | v1.1 | 0/? | Not started | - |
