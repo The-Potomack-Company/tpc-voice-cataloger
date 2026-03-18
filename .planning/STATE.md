@@ -2,31 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: completed
-stopped_at: Phase 18 context gathered
-last_updated: "2026-03-18T20:13:06.577Z"
-last_activity: 2026-03-18 -- Completed Phase 13 Plan 02 (Account Management UI)
+status: in-progress
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-18T20:14:00Z"
+last_activity: 2026-03-18 -- Completed Phase 14 Plan 01 (Foundation Layer)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 11
-  completed_plans: 7
----
-
----
-gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Accounts & Deploy
-status: completed
-stopped_at: Phase 15 UI-SPEC approved
-last_updated: "2026-03-18T20:09:20.435Z"
-last_activity: 2026-03-18 -- Completed Phase 13 Plan 02 (Account Management UI)
-progress:
-  total_phases: 8
-  completed_phases: 3
-  total_plans: 11
-  completed_plans: 7
-  percent: 100
+  completed_plans: 8
+  percent: 73
 ---
 
 # Project State
@@ -36,26 +21,27 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 13 (Account Management) complete
+**Current focus:** v1.1 Accounts & Deploy -- Phase 14 (Data Migration) Plan 01 complete
 
 ## Current Position
 
-Phase: 13 of 17 (Account Management)
-Plan: 2 of 2
-Status: Phase 13 complete (all plans finished)
-Last activity: 2026-03-18 -- Completed Phase 13 Plan 02 (Account Management UI)
+Phase: 14 of 17 (Data Migration)
+Plan: 1 of 4
+Status: Phase 14 in progress (plan 01 complete)
+Last activity: 2026-03-18 -- Completed Phase 14 Plan 01 (Foundation Layer)
 
-Progress: [==========] 100%
+Progress: [=======---] 73%
 
 ## Performance Metrics
 
 **Velocity (from v1.0):**
-- Total plans completed: 27
+- Total plans completed: 28
 - Average duration: ~5 min
-- Total execution time: ~2.3 hours
+- Total execution time: ~2.4 hours
 
 **Recent Trend:**
 - v1.0 averaged ~5 min/plan across 27 plans
+- 14-01: 6 min (2 tasks, 8 files)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -90,6 +76,9 @@ Recent decisions affecting current work:
 - [13-02] Optimistic toggle updates with error revert for deactivation/reactivation
 - [13-02] Settings queries profiles table for admin role detection (same pattern as AdminRouteGuard)
 - [13-02] Inline expandable form with Discard toggle for specialist account creation
+- [14-01] Compound index [newId+type] on idMapping for efficient lookup queries
+- [14-01] Optimistic updates with revert-on-error pattern for all sessionStore mutation actions
+- [14-01] Per-user persist scoping via setOptions + rehydrate (not store recreation)
 
 ### Pending Todos
 
@@ -97,7 +86,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Pre-Phase 14] Dexie-to-Supabase ID mapping strategy needs concrete design before implementation -- v1.0 Dexie uses auto-increment integers, Postgres uses its own IDs
+- ~~[Pre-Phase 14] Dexie-to-Supabase ID mapping strategy needs concrete design before implementation~~ RESOLVED in 14-01 (idMapping table + utility functions)
 - [Pre-Phase 14] Offline session display strategy needs decision -- what data is cached locally when server is unreachable
 - ~~[Pre-Phase 12] Service worker must exclude Supabase API routes from caching before first auth request reaches the browser~~ RESOLVED in 12-01
 
@@ -108,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T20:13:06.575Z
-Stopped at: Phase 18 context gathered
-Resume file: .planning/phases/18-update-tutorial-walkthrough-to-be-thorough/18-CONTEXT.md
+Last session: 2026-03-18T20:14:00Z
+Stopped at: Completed 14-01-PLAN.md
+Resume file: .planning/phases/14-data-migration/14-02-PLAN.md
