@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// --- Mocks ---
-const mockOnAuthStateChange = vi.fn();
-const mockSignInWithPassword = vi.fn();
-const mockSignOut = vi.fn();
-const mockUpdateUser = vi.fn();
+// --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
+const {
+  mockOnAuthStateChange,
+  mockSignInWithPassword,
+  mockSignOut,
+  mockUpdateUser,
+} = vi.hoisted(() => ({
+  mockOnAuthStateChange: vi.fn(),
+  mockSignInWithPassword: vi.fn(),
+  mockSignOut: vi.fn(),
+  mockUpdateUser: vi.fn(),
+}));
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
