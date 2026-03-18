@@ -53,8 +53,7 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Major section breaks |
 | 3xl | 64px | Page-level spacing |
 
-Exceptions:
-- `py-0.5` (2px) on inline badge elements: Approved. The existing codebase uses `px-2 py-0.5 rounded-full` as the standard badge pattern across SessionCard, AccountRow, ItemCard, and Settings (8+ instances). Changing to `py-1` (4px) would be inconsistent with every other badge in the app. Phase 14's Unsynced Indicator badge inherits this established pattern.
+Exceptions: none
 
 ---
 
@@ -199,8 +198,10 @@ Structure:
     <svg>   -- w-3 h-3, rotating refresh/sync icon (2-arrow circular)
     "Pending sync"
 
-Spacing exception: py-0.5 (2px) used here to match the established badge pattern
-across SessionCard, AccountRow, ItemCard, and Settings (see Spacing Scale exceptions).
+Note: The `px-2 py-0.5 rounded-full` class pattern is not a new spacing value
+introduced by Phase 14. It is an inherited codebase pattern used across 8+
+existing badge instances (SessionCard, AccountRow, ItemCard, Settings).
+Phase 14 reuses this established badge pattern without modification.
 
 Matches: Identical class pattern to "Recording interrupted" badge in SessionCard
 Disappears: When write-ahead queue entry is processed and server confirms
