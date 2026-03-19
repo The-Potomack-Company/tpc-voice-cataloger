@@ -121,10 +121,11 @@ Plans:
   3. Admin can edit item fields directly on submitted sessions during review
   4. Admin can return a submitted session to the specialist with review notes that the specialist can see
   5. Only admin can export session data as JSON; specialists do not see or have access to the export function
-**Plans:** 3 plans
+**Plans:** 4 plans
 Plans:
+- [ ] 16-00-PLAN.md -- Wave 0: test stub files for session-lifecycle, return-dialog, and use-user-role
 - [ ] 16-01-PLAN.md -- useUserRole hook, lifecycle session hooks, ReturnDialog component, SessionCard status pills, Sessions page lifecycle sections
-- [ ] 16-02-PLAN.md -- SessionDetail lifecycle controls (submit, read-only lock, admin review buttons, banners, export gating)
+- [ ] 16-02-PLAN.md -- SessionDetail lifecycle controls (submit in header, read-only lock, admin review buttons in header, banners, export gating)
 - [ ] 16-03-PLAN.md -- Human verification of complete lifecycle workflow
 
 ### Phase 17: Deployment & CI
@@ -166,7 +167,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 13. Account Management | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 14. Data Migration | 4/4 | Complete   | 2026-03-18 | - |
 | 15. Session Assignment | v1.1 | 0/3 | Not started | - |
-| 16. Session Lifecycle | v1.1 | 0/3 | Not started | - |
+| 16. Session Lifecycle | v1.1 | 0/4 | Not started | - |
 | 17. Deployment & CI | v1.1 | 0/4 | Not started | - |
 
 ### Phase 18: Update tutorial/walkthrough to be thorough
