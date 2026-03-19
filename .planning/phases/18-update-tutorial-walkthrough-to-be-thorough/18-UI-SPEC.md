@@ -53,10 +53,10 @@ Source: Existing `Walkthrough.tsx` spacing values. Consistent with Phase 16 UI-S
 
 | Role | Size | Weight | Line Height | Tailwind Classes |
 |------|------|--------|-------------|-----------------|
-| Step title | 24px | 700 (bold) | 1.2 | `text-2xl font-bold` |
+| Step title | 24px | 600 (semibold) | 1.2 | `text-2xl font-semibold` |
 | Step description | 16px | 400 (normal) | 1.625 | `text-base text-gray-600 dark:text-gray-400 leading-relaxed` |
 | Role section label | 12px | 600 (semibold) | 1.5 | `text-xs font-semibold uppercase tracking-wider text-accent` |
-| Button text | 16px | 500 (medium) | 1.5 | `text-base font-medium` |
+| Button text | 16px | 600 (semibold) | 1.5 | `text-base font-semibold` |
 | Skip link text | 14px | 400 (normal) | 1.5 | `text-sm text-gray-500 dark:text-gray-400 underline` |
 | Step counter | 14px | 400 (normal) | 1.5 | `text-sm text-gray-500 dark:text-gray-400` |
 
@@ -68,11 +68,11 @@ Source: Existing `Walkthrough.tsx` spacing values. Consistent with Phase 16 UI-S
 
 **Declared weights: 2**
 - **400 (normal)** -- Step description, skip link, step counter.
-- **600+ (semibold/bold/medium)** -- Step title (bold), role section label (semibold), button text (medium).
+- **600 (semibold)** -- Step title, role section label, button text.
 
-Note: Existing `Walkthrough.tsx` uses `font-bold` (700) for step titles and `font-medium` (500) for buttons. This contract preserves those existing weights rather than changing them. For counting purposes, these collapse to 2 weight categories: normal (400) and emphasis (500-700).
+Note: The existing `Walkthrough.tsx` uses `font-bold` (700) for step titles and `font-medium` (500) for buttons. This contract unifies all emphasis text to a single weight of 600 (semibold) for a clean 2-weight system. Step titles change from bold to semibold; buttons and role labels share the same semibold weight.
 
-Source: Existing `Walkthrough.tsx` classes. Consistent with Phase 16 UI-SPEC typography.
+Source: Existing `Walkthrough.tsx` classes, refined per checker feedback. Consistent with Phase 16 UI-SPEC typography.
 
 ---
 
@@ -113,7 +113,7 @@ Source: `--color-accent: #2563eb` from `src/index.css`. Existing `Walkthrough.ts
 Each step occupies the full viewport, centered vertically and horizontally within the walkthrough container. Visual scanning hierarchy:
 
 1. **Primary focal point: Step icon.** 64x64px Heroicon in accent color, centered at top of content area. Draws the eye first with its size and color contrast against the white/dark background.
-2. **Secondary focal point: Step title.** 24px bold text immediately below the icon. Tells the user what this step is about.
+2. **Secondary focal point: Step title.** 24px semibold text immediately below the icon. Tells the user what this step is about.
 3. **Tertiary focal point: Step description.** 16px normal-weight text below the title. Provides the explanation. Gray color (not black) to create visual hierarchy separation from the title.
 4. **Action focal point: Navigation buttons.** Full-width accent-colored primary button at bottom of content area. "Back" text button to its left (from step 2 onward).
 
@@ -160,7 +160,7 @@ This 12px uppercase accent-colored label signals that the remaining steps are ro
 </svg>
 
 <!-- Step title -->
-<h2 class="text-2xl font-bold mb-4">{step.title}</h2>
+<h2 class="text-2xl font-semibold mb-4">{step.title}</h2>
 
 <!-- Step description -->
 <p class="text-gray-600 dark:text-gray-400 mb-10 leading-relaxed">
@@ -172,14 +172,14 @@ This 12px uppercase accent-colored label signals that the remaining steps are ro
 ```html
 <div class="flex gap-3 w-full">
   <!-- Back button (hidden on step 0) -->
-  <button class="min-h-12 px-4 py-3 text-accent font-medium rounded-lg
+  <button class="min-h-12 px-4 py-3 text-accent font-semibold rounded-lg
                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
     Back
   </button>
 
   <!-- Next / final CTA button -->
   <button class="flex-1 min-h-12 bg-accent hover:bg-accent-hover text-white
-                 font-medium py-3 px-6 rounded-lg transition-colors">
+                 font-semibold py-3 px-6 rounded-lg transition-colors">
     {isLastStep ? "Start Cataloging" : "Next"}
   </button>
 </div>
@@ -196,7 +196,7 @@ This 12px uppercase accent-colored label signals that the remaining steps are ro
   </span>
 
   <!-- Progress dots -->
-  <div class="flex gap-1.5">
+  <div class="flex gap-2">
     {steps.map((_, i) => (
       <div class={`w-2 h-2 rounded-full transition-colors ${
         i <= currentStep ? "bg-accent" : "bg-gray-300 dark:bg-gray-600"
