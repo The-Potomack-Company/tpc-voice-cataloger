@@ -1,21 +1,27 @@
+import { useMemo } from "react";
 import { useSessionStore } from "../stores/sessionStore";
 import type { Tables } from "../db/database.types";
 
 export function useActiveSessions() {
-  return useSessionStore((s) =>
-    s.sessions.filter((sess) => sess.status === "active"),
+  const sessions = useSessionStore((s) => s.sessions);
+  return useMemo(
+    () => sessions.filter((sess) => sess.status === "active"),
+    [sessions],
   );
 }
 
 export function useCompletedSessions() {
-  return useSessionStore((s) =>
-    s.sessions.filter(
-      (sess) =>
-        sess.status === "completed" ||
-        sess.status === "submitted" ||
-        sess.status === "returned" ||
-        sess.status === "exported",
-    ),
+  const sessions = useSessionStore((s) => s.sessions);
+  return useMemo(
+    () =>
+      sessions.filter(
+        (sess) =>
+          sess.status === "completed" ||
+          sess.status === "submitted" ||
+          sess.status === "returned" ||
+          sess.status === "exported",
+      ),
+    [sessions],
   );
 }
 
@@ -34,8 +40,16 @@ export function useSession(id: string) {
   return useSessionStore((s) => s.sessions.find((sess) => sess.id === id));
 }
 
+const EMPTY_ITEMS: Tables<"items">[] = [];
+
+export function useSessionItems(sessionId: string) {
+  return useSessionStore(
+    (s) => s.itemsBySession[sessionId] ?? EMPTY_ITEMS,
+  );
+}
+
 export function useSessionItemCount(sessionId: string) {
   return useSessionStore(
-    (s) => (s.itemsBySession[sessionId] ?? []).length,
+    (s) => (s.itemsBySession[sessionId] ?? EMPTY_ITEMS).length,
   );
 }

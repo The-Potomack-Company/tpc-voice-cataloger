@@ -1,7 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
+import { enqueueWrite } from "../hooks/useWriteAheadQueue";
 import type { Tables } from "../db/database.types";
+
+function isNetworkError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const msg = String((err as { message?: string }).message ?? "");
+  return msg.includes("Failed to fetch") || msg.includes("ERR_INTERNET_DISCONNECTED") || msg.includes("NetworkError") || msg.includes("network");
+}
 
 type SupabaseSession = Tables<"sessions">;
 type SupabaseItem = Tables<"items">;
@@ -111,33 +118,52 @@ export const useSessionStore = create<SessionState>()(
           sessions: [tempSession, ...state.sessions],
         }));
 
-        const { data: newSession, error } = await supabase
-          .from("sessions")
-          .insert({
-            name: data.name,
-            mode: data.mode,
-            notes: data.notes ?? "",
-            created_by: userId,
-          })
-          .select()
-          .single();
+        try {
+          const { data: newSession, error } = await supabase
+            .from("sessions")
+            .insert({
+              id: tempId,
+              name: data.name,
+              mode: data.mode,
+              notes: data.notes ?? "",
+              created_by: userId,
+            })
+            .select()
+            .single();
 
-        if (error || !newSession) {
-          // Revert optimistic add
+          if (error) throw error;
+          if (!newSession) throw new Error("Failed to create session");
+
+          // Replace temp entry with server data
+          set((state) => ({
+            sessions: state.sessions.map((s) =>
+              s.id === tempId ? newSession : s,
+            ),
+          }));
+
+          return newSession.id;
+        } catch (err) {
+          if (isNetworkError(err)) {
+            // Keep optimistic session, queue for sync
+            await enqueueWrite({
+              table: "sessions",
+              operation: "insert",
+              payload: {
+                id: tempId,
+                name: data.name,
+                mode: data.mode,
+                notes: data.notes ?? "",
+                created_by: userId,
+              },
+            });
+            return tempId;
+          }
+          // Non-network error — revert optimistic add
           set((state) => ({
             sessions: state.sessions.filter((s) => s.id !== tempId),
           }));
-          throw error ?? new Error("Failed to create session");
+          throw err;
         }
-
-        // Replace temp entry with real data
-        set((state) => ({
-          sessions: state.sessions.map((s) =>
-            s.id === tempId ? newSession : s,
-          ),
-        }));
-
-        return newSession.id;
       },
 
       updateSession: async (id, changes) => {
@@ -154,12 +180,22 @@ export const useSessionStore = create<SessionState>()(
           ),
         }));
 
-        const { error } = await supabase
-          .from("sessions")
-          .update({ ...changes, updated_at: updatedAt })
-          .eq("id", id);
+        try {
+          const { error } = await supabase
+            .from("sessions")
+            .update({ ...changes, updated_at: updatedAt })
+            .eq("id", id);
 
-        if (error) {
+          if (error) throw error;
+        } catch (err) {
+          if (isNetworkError(err)) {
+            await enqueueWrite({
+              table: "sessions",
+              operation: "update",
+              payload: { id, ...changes, updated_at: updatedAt },
+            });
+            return;
+          }
           // Revert to original
           set((state) => ({
             sessions: state.sessions.map((s) =>
@@ -208,29 +244,88 @@ export const useSessionStore = create<SessionState>()(
           ? Math.max(...existingItems.map((i) => i.sort_order)) + 1
           : 0;
 
-        const { data: newItem, error } = await supabase
-          .from("items")
-          .insert({
-            session_id: sessionId,
-            mode,
-            sort_order: nextSortOrder,
-            receipt_number: receiptNumber ?? null,
-          })
-          .select()
-          .single();
+        const tempId = crypto.randomUUID();
+        const now = new Date().toISOString();
 
-        if (error || !newItem) {
-          throw error ?? new Error("Failed to create item");
-        }
+        const tempItem = {
+          id: tempId,
+          session_id: sessionId,
+          mode,
+          sort_order: nextSortOrder,
+          receipt_number: receiptNumber ?? null,
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          ai_status: "pending",
+          created_at: now,
+        } as SupabaseItem;
 
+        // Optimistic add
         set((state) => ({
           itemsBySession: {
             ...state.itemsBySession,
-            [sessionId]: [...(state.itemsBySession[sessionId] ?? []), newItem],
+            [sessionId]: [...(state.itemsBySession[sessionId] ?? []), tempItem],
           },
         }));
 
-        return newItem.id;
+        try {
+          const { data: newItem, error } = await supabase
+            .from("items")
+            .insert({
+              id: tempId,
+              session_id: sessionId,
+              mode,
+              sort_order: nextSortOrder,
+              receipt_number: receiptNumber ?? null,
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          if (!newItem) throw new Error("Failed to create item");
+
+          // Replace temp with server data
+          set((state) => ({
+            itemsBySession: {
+              ...state.itemsBySession,
+              [sessionId]: (state.itemsBySession[sessionId] ?? []).map((i) =>
+                i.id === tempId ? newItem : i,
+              ),
+            },
+          }));
+
+          return newItem.id;
+        } catch (err) {
+          if (isNetworkError(err)) {
+            // Keep optimistic item, queue for sync
+            await enqueueWrite({
+              table: "items",
+              operation: "insert",
+              payload: {
+                id: tempId,
+                session_id: sessionId,
+                mode,
+                sort_order: nextSortOrder,
+                receipt_number: receiptNumber ?? null,
+              },
+            });
+            return tempId;
+          }
+          // Non-network error — revert
+          set((state) => ({
+            itemsBySession: {
+              ...state.itemsBySession,
+              [sessionId]: (state.itemsBySession[sessionId] ?? []).filter(
+                (i) => i.id !== tempId,
+              ),
+            },
+          }));
+          throw err;
+        }
       },
 
       updateItemField: async (itemId, sessionId, field, value) => {
@@ -249,12 +344,22 @@ export const useSessionStore = create<SessionState>()(
           },
         }));
 
-        const { error } = await supabase
-          .from("items")
-          .update({ [field]: value })
-          .eq("id", itemId);
+        try {
+          const { error } = await supabase
+            .from("items")
+            .update({ [field]: value })
+            .eq("id", itemId);
 
-        if (error) {
+          if (error) throw error;
+        } catch (err) {
+          if (isNetworkError(err)) {
+            await enqueueWrite({
+              table: "items",
+              operation: "update",
+              payload: { id: itemId, [field]: value },
+            });
+            return;
+          }
           // Revert
           set((state) => ({
             itemsBySession: {
