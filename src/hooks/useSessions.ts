@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSessionStore } from "../stores/sessionStore";
+import { listAccounts } from "../services/adminApi";
 import type { Tables } from "../db/database.types";
 
 export function useActiveSessions() {
@@ -52,4 +53,18 @@ export function useSessionItemCount(sessionId: string) {
   return useSessionStore(
     (s) => (s.itemsBySession[sessionId] ?? EMPTY_ITEMS).length,
   );
+}
+
+export function useNameMap() {
+  const [nameMap, setNameMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    listAccounts()
+      .then((accounts) => {
+        setNameMap(new Map(accounts.map((a) => [a.id, a.display_name])));
+      })
+      .catch(() => {
+        /* silent fail -- UUIDs shown instead of names */
+      });
+  }, []);
+  return nameMap;
 }

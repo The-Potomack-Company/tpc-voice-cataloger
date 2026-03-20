@@ -5,13 +5,183 @@ import { Walkthrough } from "../components/Walkthrough";
 import { SessionSearch } from "../components/SessionSearch";
 import { SessionCard } from "../components/SessionCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { useActiveSessions, useCompletedSessions, useArchivedSessions, useSessionItemCount } from "../hooks/useSessions";
+import { useActiveSessions, useCompletedSessions, useArchivedSessions, useSessionItemCount, useNameMap } from "../hooks/useSessions";
+import { useUserRole } from "../hooks/useUserRole";
 import { deleteSession, updateSession } from "../db/sessions";
 import type { Tables } from "../db/database.types";
 
 type SupabaseSession = Tables<"sessions">;
 
-/** Wrapper that calls useSessionItemCount for a single session */
+/** Group sessions by assigned_to UUID, resolving names via nameMap */
+function groupByAssignee(
+  sessions: SupabaseSession[],
+  nameMap: Map<string, string>,
+): { name: string; id: string; sessions: SupabaseSession[] }[] {
+  const groups = new Map<string, SupabaseSession[]>();
+  for (const session of sessions) {
+    const key = session.assigned_to ?? "unassigned";
+    const group = groups.get(key) ?? [];
+    group.push(session);
+    groups.set(key, group);
+  }
+  return Array.from(groups.entries())
+    .map(([id, sess]) => ({
+      id,
+      name: id === "unassigned" ? "Unassigned" : (nameMap.get(id) ?? id),
+      sessions: sess,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Specialist group header with collapsible session list */
+function SpecialistGroup({
+  name,
+  sessions,
+  nameMap,
+  onTap,
+  onDelete,
+  onRename,
+  defaultExpanded = true,
+}: {
+  name: string;
+  sessions: SupabaseSession[];
+  nameMap: Map<string, string>;
+  onTap: (s: SupabaseSession) => void;
+  onDelete: (s: SupabaseSession) => void;
+  onRename: (s: SupabaseSession, n: string) => void;
+  defaultExpanded?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 mb-2 ml-1 min-h-12"
+      >
+        <svg
+          className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          {name} ({sessions.length})
+        </span>
+      </button>
+      {expanded && (
+        <div className="space-y-2">
+          {sessions.map((session) => (
+            <AdminSessionCard
+              key={session.id}
+              session={session}
+              nameMap={nameMap}
+              onTap={() => onTap(session)}
+              onDelete={() => onDelete(session)}
+              onRename={(newName) => onRename(session, newName)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Admin session card wrapper that passes assigneeName and sessionStatus */
+function AdminSessionCard({
+  session,
+  nameMap,
+  onTap,
+  onDelete,
+  onRename,
+}: {
+  session: SupabaseSession;
+  nameMap: Map<string, string>;
+  onTap: () => void;
+  onDelete: () => void;
+  onRename: (newName: string) => void;
+}) {
+  const itemCount = useSessionItemCount(session.id);
+  const assigneeName = session.assigned_to
+    ? nameMap.get(session.assigned_to) ?? "Unknown"
+    : "Unassigned";
+  return (
+    <SessionCard
+      session={session}
+      itemCount={itemCount}
+      onTap={onTap}
+      onDelete={onDelete}
+      onRename={onRename}
+      assigneeName={assigneeName}
+      sessionStatus={session.status}
+    />
+  );
+}
+
+/** Collapsible admin section (Completed, Archived) */
+function CollapsibleAdminSection({
+  title,
+  sessions,
+  groups,
+  nameMap,
+  onTap,
+  onDelete,
+  onRename,
+  defaultExpanded,
+}: {
+  title: string;
+  sessions: SupabaseSession[];
+  groups: { name: string; id: string; sessions: SupabaseSession[] }[];
+  nameMap: Map<string, string>;
+  onTap: (s: SupabaseSession) => void;
+  onDelete: (s: SupabaseSession) => void;
+  onRename: (s: SupabaseSession, n: string) => void;
+  defaultExpanded: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  return (
+    <section className="mt-8">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 mb-3"
+      >
+        <svg
+          className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          {title} ({sessions.length})
+        </h2>
+      </button>
+      {expanded && (
+        <div className="space-y-4">
+          {groups.map((g) => (
+            <SpecialistGroup
+              key={g.id}
+              name={g.name}
+              sessions={g.sessions}
+              nameMap={nameMap}
+              onTap={onTap}
+              onDelete={onDelete}
+              onRename={onRename}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Wrapper that calls useSessionItemCount for a single session (specialist view) */
 function SessionCardWithCount({
   session,
   onTap,
@@ -44,6 +214,8 @@ export function SessionsPage() {
   const activeSessions = useActiveSessions();
   const completedSessions = useCompletedSessions();
   const archivedSessions = useArchivedSessions();
+  const { isAdmin, loading: roleLoading } = useUserRole();
+  const nameMap = useNameMap();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [completedExpanded, setCompletedExpanded] = useState(true);
@@ -52,6 +224,23 @@ export function SessionsPage() {
 
   if (!hasCompletedWalkthrough) {
     return <Walkthrough />;
+  }
+
+  // Loading skeleton while role is being determined
+  if (roleLoading) {
+    return (
+      <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
+        <SessionSearch onSearch={setSearchQuery} />
+        <div className="mt-6 space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 h-[72px] animate-pulse border border-gray-200 dark:border-gray-700"
+            />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const totalSessions = activeSessions.length + completedSessions.length + archivedSessions.length;
@@ -84,6 +273,53 @@ export function SessionsPage() {
     if (session.id) {
       await updateSession(session.id, { name: newName });
     }
+  };
+
+  /** Render an admin section with specialist grouping */
+  const renderAdminSection = (
+    title: string,
+    sessions: SupabaseSession[],
+    collapsible: boolean,
+    defaultExpanded: boolean,
+  ) => {
+    if (sessions.length === 0) return null;
+    const groups = groupByAssignee(sessions, nameMap);
+
+    if (!collapsible) {
+      return (
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            {title} ({sessions.length})
+          </h2>
+          <div className="space-y-4">
+            {groups.map((g) => (
+              <SpecialistGroup
+                key={g.id}
+                name={g.name}
+                sessions={g.sessions}
+                nameMap={nameMap}
+                onTap={handleTap}
+                onDelete={handleDeleteRequest}
+                onRename={handleRename}
+              />
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    return (
+      <CollapsibleAdminSection
+        title={title}
+        sessions={sessions}
+        groups={groups}
+        nameMap={nameMap}
+        onTap={handleTap}
+        onDelete={handleDeleteRequest}
+        onRename={handleRename}
+        defaultExpanded={defaultExpanded}
+      />
+    );
   };
 
   // Empty state -- no sessions at all
@@ -141,102 +377,112 @@ export function SessionsPage() {
         </p>
       )}
 
-      {/* Active Sessions */}
-      {filteredActive.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-            Active Sessions ({filteredActive.length})
-          </h2>
-          <div className="space-y-3">
-            {filteredActive.map((session) => (
-              <SessionCardWithCount
-                key={session.id}
-                session={session}
-                onTap={() => handleTap(session)}
-                onDelete={() => handleDeleteRequest(session)}
-                onRename={(newName) => handleRename(session, newName)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Completed Sessions */}
-      {filteredCompleted.length > 0 && (
-        <section className="mt-8">
-          <button
-            type="button"
-            onClick={() => setCompletedExpanded(!completedExpanded)}
-            className="flex items-center gap-2 mb-3"
-          >
-            <svg
-              className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                completedExpanded ? "rotate-90" : ""
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Completed ({filteredCompleted.length})
-            </h2>
-          </button>
-          {completedExpanded && (
-            <div className="space-y-3">
-              {filteredCompleted.map((session) => (
-                <SessionCardWithCount
-                  key={session.id}
-                  session={session}
-                  onTap={() => handleTap(session)}
-                  onDelete={() => handleDeleteRequest(session)}
-                  onRename={(newName) => handleRename(session, newName)}
-                />
-              ))}
-            </div>
+      {isAdmin ? (
+        <>
+          {renderAdminSection("Active Sessions", filteredActive, false, true)}
+          {renderAdminSection("Completed", filteredCompleted, true, true)}
+          {renderAdminSection("Archived", filteredArchived, true, false)}
+        </>
+      ) : (
+        <>
+          {/* Active Sessions */}
+          {filteredActive.length > 0 && (
+            <section className="mt-6">
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Active Sessions ({filteredActive.length})
+              </h2>
+              <div className="space-y-3">
+                {filteredActive.map((session) => (
+                  <SessionCardWithCount
+                    key={session.id}
+                    session={session}
+                    onTap={() => handleTap(session)}
+                    onDelete={() => handleDeleteRequest(session)}
+                    onRename={(newName) => handleRename(session, newName)}
+                  />
+                ))}
+              </div>
+            </section>
           )}
-        </section>
-      )}
 
-      {/* Archived Sessions -- currently always empty */}
-      {filteredArchived.length > 0 && (
-        <section className="mt-8">
-          <button
-            type="button"
-            onClick={() => setArchivedExpanded(!archivedExpanded)}
-            className="flex items-center gap-2 mb-3"
-          >
-            <svg
-              className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                archivedExpanded ? "rotate-90" : ""
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Archived ({filteredArchived.length})
-            </h2>
-          </button>
-          {archivedExpanded && (
-            <div className="space-y-3">
-              {filteredArchived.map((session) => (
-                <SessionCardWithCount
-                  key={session.id}
-                  session={session}
-                  onTap={() => handleTap(session)}
-                  onDelete={() => handleDeleteRequest(session)}
-                  onRename={(newName) => handleRename(session, newName)}
-                />
-              ))}
-            </div>
+          {/* Completed Sessions */}
+          {filteredCompleted.length > 0 && (
+            <section className="mt-8">
+              <button
+                type="button"
+                onClick={() => setCompletedExpanded(!completedExpanded)}
+                className="flex items-center gap-2 mb-3"
+              >
+                <svg
+                  className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
+                    completedExpanded ? "rotate-90" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Completed ({filteredCompleted.length})
+                </h2>
+              </button>
+              {completedExpanded && (
+                <div className="space-y-3">
+                  {filteredCompleted.map((session) => (
+                    <SessionCardWithCount
+                      key={session.id}
+                      session={session}
+                      onTap={() => handleTap(session)}
+                      onDelete={() => handleDeleteRequest(session)}
+                      onRename={(newName) => handleRename(session, newName)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
           )}
-        </section>
+
+          {/* Archived Sessions -- currently always empty */}
+          {filteredArchived.length > 0 && (
+            <section className="mt-8">
+              <button
+                type="button"
+                onClick={() => setArchivedExpanded(!archivedExpanded)}
+                className="flex items-center gap-2 mb-3"
+              >
+                <svg
+                  className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
+                    archivedExpanded ? "rotate-90" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Archived ({filteredArchived.length})
+                </h2>
+              </button>
+              {archivedExpanded && (
+                <div className="space-y-3">
+                  {filteredArchived.map((session) => (
+                    <SessionCardWithCount
+                      key={session.id}
+                      session={session}
+                      onTap={() => handleTap(session)}
+                      onDelete={() => handleDeleteRequest(session)}
+                      onRename={(newName) => handleRename(session, newName)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
       )}
 
       {/* Delete confirmation dialog */}
