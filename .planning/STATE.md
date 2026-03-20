@@ -4,13 +4,13 @@ milestone: v1.1
 milestone_name: Accounts & Deploy
 status: verifying
 stopped_at: Phase 19 context gathered
-last_updated: "2026-03-20T18:25:22.845Z"
+last_updated: "2026-03-20T18:39:33.346Z"
 last_activity: "2026-03-20 -- Completed 16-03: Human verification of session lifecycle (all 8 scenarios + 3 UAT fixes)"
 progress:
   total_phases: 9
   completed_phases: 6
-  total_plans: 26
-  completed_plans: 19
+  total_plans: 28
+  completed_plans: 20
   percent: 83
 ---
 
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
-Phase: 16 of 17 (Session Lifecycle)
-Plan: 4 of 4
-Status: Plan 16-03 complete -- Human verification approved, 3 UAT fixes applied
-Last activity: 2026-03-20 -- Completed 16-03: Human verification of session lifecycle (all 8 scenarios + 3 UAT fixes)
+Phase: 18 of 19 (Update Tutorial Walkthrough)
+Plan: 1 of 3
+Status: Plan 18-00 complete -- Test stubs created for all WT requirements
+Last activity: 2026-03-20 -- Completed 18-00: Walkthrough test stubs (27 todo markers for WT-01 through WT-08)
 
-Progress: [████████▎░] 83%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [████████▎░] 83%
 - 16-01: 5 min (2 tasks, 5 files)
 - 16-02: 4 min (2 tasks, 3 files)
 - 16-03: 3 min (1 task, 2 files) -- human verification + UAT fixes
+- 18-00: 1 min (1 task, 3 files) -- walkthrough test stubs
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -152,6 +153,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:25:22.843Z
-Stopped at: Phase 19 context gathered
-Resume file: .planning/phases/19-photo-upload-to-supabase-storage-with-full-offline-support/19-CONTEXT.md
+Last session: 2026-03-20T18:38:53Z
+Stopped at: Completed 18-00-PLAN.md
+Resume file: .planning/phases/18-update-tutorial-walkthrough-to-be-thorough/18-01-PLAN.md
