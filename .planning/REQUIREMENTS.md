@@ -136,6 +136,17 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 - [ ] **DEPLOY-03**: Cloudflare Worker CORS restricted to production Vercel domain
 - [ ] **DEPLOY-04**: Branch protection on main: require CI checks before merge
 
+### Photo Upload (Phase 19)
+
+- [ ] **PHOTO-UPLOAD-01**: Photos upload to Supabase Storage immediately after capture (fire-and-forget, non-blocking)
+- [ ] **PHOTO-UPLOAD-02**: Dedicated photo upload queue with bounded concurrency (2) and exponential backoff retry (3 attempts)
+- [ ] **PHOTO-UPLOAD-03**: Thumbnails show sync status overlay (uploading spinner, uploaded check, failed retry icon)
+- [ ] **PHOTO-UPLOAD-04**: Existing Dexie photos migrate to Storage automatically on app load (background, non-blocking)
+- [ ] **PHOTO-UPLOAD-05**: Photos display from local Dexie blob when available, falling back to Supabase signed URL
+- [ ] **PHOTO-UPLOAD-06**: Reconnection drain order is metadata -> photos -> audio
+- [ ] **PHOTO-UPLOAD-07**: Export reads local blobs first, downloads from Storage when missing
+- [ ] **PHOTO-UPLOAD-08**: Human verification confirms end-to-end photo upload flow
+
 ## Future Requirements
 
 Deferred to v1.2+. Tracked but not in current roadmap.
@@ -169,7 +180,6 @@ Explicitly excluded. Documented to prevent scope creep.
 | Feature | Reason |
 |---------|--------|
 | Real-time collaboration | Small team, serialized workflow (assign -> record -> submit -> review) eliminates need |
-| Photo upload to server | Photos stay in Dexie for v1.1; server handles metadata only |
 | Self-registration | Admin creates all accounts; no public signup |
 | OAuth/SSO | Username/password sufficient for 2-5 person internal team |
 | Offline session creation for assigned work | Assigned sessions require server; specialists can still create personal sessions offline |
@@ -228,12 +238,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEPLOY-02 | Phase 17 | Pending |
 | DEPLOY-03 | Phase 17 | Pending |
 | DEPLOY-04 | Phase 17 | Pending |
+| PHOTO-UPLOAD-01 | Phase 19 | Pending |
+| PHOTO-UPLOAD-02 | Phase 19 | Pending |
+| PHOTO-UPLOAD-03 | Phase 19 | Pending |
+| PHOTO-UPLOAD-04 | Phase 19 | Pending |
+| PHOTO-UPLOAD-05 | Phase 19 | Pending |
+| PHOTO-UPLOAD-06 | Phase 19 | Pending |
+| PHOTO-UPLOAD-07 | Phase 19 | Pending |
+| PHOTO-UPLOAD-08 | Phase 19 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 26 total
-- Mapped to phases: 26
+- v1.1 requirements: 34 total
+- Mapped to phases: 34
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-06*
-*Last updated: 2026-03-17 after v1.1 roadmap creation*
+*Last updated: 2026-03-20 after Phase 19 planning*

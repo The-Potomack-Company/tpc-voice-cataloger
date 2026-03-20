@@ -181,7 +181,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
   3. Specialist users see shared steps plus specialist-specific steps (submit work, review notes)
   4. Walkthrough completion state is stored in Supabase profiles table (not localStorage) and follows user across devices
   5. Back navigation, skip link, and progress counter work correctly
-**Plans:** 2/3 plans executed
+**Plans:** 3 plans
 
 Plans:
 - [ ] 18-00-PLAN.md -- Wave 0: test stub files for walkthrough component and walkthrough-status hook
@@ -190,10 +190,23 @@ Plans:
 
 ### Phase 19: Photo Upload to Supabase Storage with full offline support
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Photos upload to Supabase Storage as the server-authoritative store, with local Dexie blobs as cache, a dedicated upload queue with offline support, and one-time migration of existing photos
 **Depends on:** Phase 18
-**Plans:** 0 plans
+**Requirements**: PHOTO-UPLOAD-01, PHOTO-UPLOAD-02, PHOTO-UPLOAD-03, PHOTO-UPLOAD-04, PHOTO-UPLOAD-05, PHOTO-UPLOAD-06, PHOTO-UPLOAD-07, PHOTO-UPLOAD-08
+**Success Criteria** (what must be TRUE):
+  1. Photos upload to Supabase Storage immediately after capture (fire-and-forget, non-blocking)
+  2. A dedicated photo upload queue handles offline queuing, bounded concurrency (2), and exponential backoff retry
+  3. Thumbnails show sync status overlay (spinner for uploading, check for uploaded, retry for failed)
+  4. Existing Dexie photos are migrated to Storage automatically on app load (background, non-blocking)
+  5. Photos display from local Dexie blob when available, falling back to Supabase signed URL
+  6. Reconnection drain order is metadata -> photos -> audio
+  7. Export reads local blobs first, downloads from Storage when missing
+  8. Human verification confirms end-to-end flow
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 19 to break down)
+- [ ] 19-00-PLAN.md -- Wave 0: test stub files for photo upload queue, migration, and URL fallback
+- [ ] 19-01-PLAN.md -- Supabase migration (photos table + bucket + RLS), Dexie v8 schema, photo upload queue service
+- [ ] 19-02-PLAN.md -- PhotoCapture upload trigger, AppLayout drain order, sync status overlay on thumbnails
+- [ ] 19-03-PLAN.md -- usePhotoUrl hook with signed URL fallback, export Storage download fallback
+- [ ] 19-04-PLAN.md -- Photo migration service, progress banner, human verification of end-to-end flow
