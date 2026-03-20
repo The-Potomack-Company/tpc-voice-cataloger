@@ -179,7 +179,8 @@ export async function processAudioWithAi(
         .from("items")
         .select("transcript")
         .eq("id", itemId)
-        .single();
+        .maybeSingle();
+      if (!currentItem) return; // Item deleted mid-processing, bail out
       const prev = currentItem?.transcript;
       supabaseUpdate.transcript = prev
         ? `${prev}\n\n${fields.transcript}`
