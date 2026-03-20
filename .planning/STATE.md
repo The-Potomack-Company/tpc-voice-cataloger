@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: Phase 15 plan 01 complete -- useUserRole hook, assigned_to data layer, admin dropdown, SessionCard admin variant
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-03-20T16:14:05Z"
-last_activity: 2026-03-20 -- Completed 15-01: session assignment foundation
+status: Phase 15 plan 02 complete -- role-aware Sessions page, admin grouped view, SessionDetail reassignment, 9 tests
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-03-20T16:23:00Z"
+last_activity: 2026-03-20 -- Completed 15-02: admin grouped sessions view and inline reassignment
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 23
-  completed_plans: 13
-  percent: 57
+  completed_plans: 14
+  percent: 61
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 15 (Session Assignment) Plan 01 complete
+**Current focus:** v1.1 Accounts & Deploy -- Phase 15 (Session Assignment) Plan 02 complete
 
 ## Current Position
 
 Phase: 15 of 17 (Session Assignment)
-Plan: 1 of 3
-Status: Phase 15 plan 01 complete -- useUserRole hook, assigned_to data layer, admin dropdown, SessionCard admin variant
-Last activity: 2026-03-20 -- Completed 15-01: session assignment foundation
+Plan: 2 of 3
+Status: Phase 15 plan 02 complete -- role-aware Sessions page, admin grouped view, SessionDetail reassignment, 9 tests
+Last activity: 2026-03-20 -- Completed 15-02: admin grouped sessions view and inline reassignment
 
-Progress: [█████░░░░░] 57%
+Progress: [██████░░░░] 61%
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Progress: [█████░░░░░] 57%
 - 14-04: 12 min (2 tasks, 15 files)
 - 14-05: 4 min (2 tasks, 5 files)
 - 15-01: 5 min (2 tasks, 7 files)
+- 15-02: 6 min (2 tasks, 5 files)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - [15-01] useUserRole hook extracted from AdminRouteGuard pattern for reuse across Sessions, NewSession, SessionDetail
 - [15-01] Auto-assign sessions to current user when specialist (assignedTo defaults to userId in sessions.ts)
 - [15-01] SessionCard admin variant uses optional props for backward compatibility (specialist view unchanged)
+- [15-02] useNameMap hook called unconditionally (React hook rules) -- only admin uses the result
+- [15-02] Admin reassignment uses sessionStore.updateSession directly (accepts full Partial including assigned_to)
+- [15-02] Specialist view code kept exactly as-is with no modifications to spacing or structure
 
 ### Pending Todos
 
@@ -126,6 +130,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T16:14:05Z
-Stopped at: Completed 15-01-PLAN.md
-Resume file: .planning/phases/15-session-assignment/15-01-SUMMARY.md
+Last session: 2026-03-20T16:23:00Z
+Stopped at: Completed 15-02-PLAN.md
+Resume file: .planning/phases/15-session-assignment/15-02-SUMMARY.md
