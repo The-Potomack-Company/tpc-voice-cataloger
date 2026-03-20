@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 14-data-migration
 source: 14-01-SUMMARY.md, 14-02-SUMMARY.md, 14-03-SUMMARY.md, 14-04-SUMMARY.md
 started: 2026-03-20T12:00:00Z
-updated: 2026-03-20T12:10:00Z
+updated: 2026-03-20T12:15:00Z
 ---
 
 ## Current Test
@@ -77,27 +77,40 @@ skipped: 0
   reason: "User reported: photo upload for items not visible in house visit mode"
   severity: major
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Race condition in PhotoCapture.tsx — useLiveQuery fires with dexieItemId=null before async getDexieItemId resolves, returns empty array. Save path uses fallback (dexieItemId ?? itemId) but query path bails out on null. Same bug in ItemEntry.tsx photo query."
+  artifacts:
+    - path: "src/components/PhotoCapture.tsx"
+      issue: "Line 57-58: query returns [] when dexieItemId is null instead of falling back to itemId"
+    - path: "src/pages/ItemEntry.tsx"
+      issue: "Line 80: same query pattern with same null bail-out bug"
+  missing:
+    - "Change photo query to fall back to itemId when dexieItemId is null (match save path behavior)"
+  debug_session: ".planning/debug/photos-not-visible-house-visit.md"
 
 - truth: "Deleting an item removes it from both UI and Supabase without errors"
   status: failed
   reason: "User reported: 406 (Not Acceptable) on GET items?select=transcript&id=eq.{uuid} when deleting item"
   severity: major
   test: 10
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Race condition between fire-and-forget AI pipeline and item deletion. processAudioWithAi uses .single() on gemini.ts:182 to read transcript. When item is deleted mid-processing, .single() returns 406 (PostgREST behavior for zero-row single-object request)."
+  artifacts:
+    - path: "src/services/gemini.ts"
+      issue: "Line 182: .single() causes 406 when item deleted during AI processing"
+  missing:
+    - "Replace .single() with .maybeSingle() and add null-check bail-out for deleted items"
+  debug_session: ".planning/debug/delete-item-406-transcript.md"
 
 - truth: "Marking a session as complete updates status in Supabase without errors"
   status: failed
   reason: "User reported: 400 (Bad Request) on PATCH sessions?id=eq.{uuid} when marking session complete"
   severity: major
   test: 11
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Supabase sessions table CHECK constraint only allows 'active', 'submitted', 'returned', 'exported'. Frontend sends status: 'completed' which is not in the allowed set. PostgreSQL rejects with 400."
+  artifacts:
+    - path: "supabase/migrations/20260318000001_create_sessions.sql"
+      issue: "CHECK constraint missing 'completed' value"
+    - path: "src/pages/SessionDetail.tsx"
+      issue: "Line 179: sends status 'completed' which DB rejects"
+  missing:
+    - "Add 'completed' to sessions status CHECK constraint via new migration"
+  debug_session: ".planning/debug/session-complete-400.md"
