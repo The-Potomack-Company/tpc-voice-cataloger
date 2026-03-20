@@ -2,12 +2,12 @@
 phase: 18
 slug: update-tutorial-walkthrough-to-be-thorough
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-20
 ---
 
-# Phase 18 — Validation Strategy
+# Phase 18 -- Validation Strategy
 
 > Per-phase validation contract for feedback sampling during execution.
 
@@ -38,11 +38,11 @@ created: 2026-03-20
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 18-01-01 | 01 | 1 | Migration | integration | `npx vitest run` | ❌ W0 | ⬜ pending |
-| 18-01-02 | 01 | 1 | Hook | unit | `npx vitest run` | ❌ W0 | ⬜ pending |
-| 18-02-01 | 02 | 1 | Walkthrough UI | unit | `npx vitest run` | ❌ W0 | ⬜ pending |
-| 18-02-02 | 02 | 1 | Role steps | unit | `npx vitest run` | ❌ W0 | ⬜ pending |
-| 18-03-01 | 03 | 2 | Integration | integration | `npx vitest run` | ❌ W0 | ⬜ pending |
+| 18-00-01 | 00 | 0 | WT-01..WT-08 stubs | scaffold | `npx vitest run src/tests/walkthrough.test.tsx src/tests/walkthrough-status.test.ts` | Created in W0 | ⬜ pending |
+| 18-01-01 | 01 | 1 | WT-04, WT-05 | unit | `npx vitest run src/tests/walkthrough-status.test.ts` | ✅ W0 | ⬜ pending |
+| 18-01-02 | 01 | 1 | WT-01..WT-03 | unit | `npx vitest run src/tests/walkthrough.test.tsx` | ✅ W0 | ⬜ pending |
+| 18-02-01 | 02 | 2 | WT-06..WT-08 | unit | `npx vitest run src/tests/walkthrough.test.tsx` | ✅ W0 | ⬜ pending |
+| 18-02-02 | 02 | 2 | WT-06 | unit | `npx vitest run src/tests/walkthrough-status.test.ts src/tests/persist-scoping.test.ts` | ✅ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,10 +50,11 @@ created: 2026-03-20
 
 ## Wave 0 Requirements
 
-- [ ] Test stubs for walkthrough hook and component
-- [ ] Supabase client mock utilities (if not already present)
+- [x] `src/tests/walkthrough.test.tsx` -- covers WT-01, WT-02, WT-03, WT-06, WT-07, WT-08
+- [x] `src/tests/walkthrough-status.test.ts` -- covers WT-04, WT-05
+- [ ] Existing `src/tests/persist-scoping.test.ts` may need updates if `hasCompletedWalkthrough` is removed from uiStore
 
-*Existing infrastructure covers most phase requirements — vitest is already configured.*
+*Wave 0 plan (18-00-PLAN.md) creates both test stub files with it.todo() markers.*
 
 ---
 
@@ -62,17 +63,17 @@ created: 2026-03-20
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Visual walkthrough flow | UI polish | Visual appearance cannot be automated | Step through walkthrough in browser, verify illustrations render, transitions work |
-| Role-specific steps display | Role awareness | Requires Supabase auth context | Log in as admin — verify admin steps appear; log in as specialist — verify specialist steps appear |
+| Role-specific steps display | Role awareness | Requires Supabase auth context | Log in as admin -- verify admin steps appear; log in as specialist -- verify specialist steps appear |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved
