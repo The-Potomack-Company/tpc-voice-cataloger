@@ -5,7 +5,7 @@ import { Walkthrough } from "../components/Walkthrough";
 import { SessionSearch } from "../components/SessionSearch";
 import { SessionCard } from "../components/SessionCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { useActiveSessions, useCompletedSessions, useArchivedSessions, useSessionItemCount, useNameMap } from "../hooks/useSessions";
+import { useActiveSessions, useSubmittedSessions, useReturnedSessions, useExportedSessions, useSessionItemCount, useNameMap } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
 import { deleteSession, updateSession } from "../db/sessions";
 import type { Tables } from "../db/database.types";
@@ -27,7 +27,7 @@ function groupByAssignee(
   return Array.from(groups.entries())
     .map(([id, sess]) => ({
       id,
-      name: id === "unassigned" ? "Unassigned" : (nameMap.get(id) ?? "Loading…"),
+      name: id === "unassigned" ? "Unassigned" : (nameMap.get(id) ?? "Loading\u2026"),
       sessions: sess,
     }))
     .sort((a, b) => {
@@ -117,7 +117,7 @@ function AdminSessionCard({
   );
 }
 
-/** Collapsible admin section (Completed, Archived) */
+/** Collapsible admin section with specialist grouping */
 function CollapsibleAdminSection({
   title,
   sessions,
@@ -205,14 +205,16 @@ export function SessionsPage() {
   const isOnline = useUIStore((s) => s.isOnline);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
-  const completedSessions = useCompletedSessions();
-  const archivedSessions = useArchivedSessions();
+  const submittedSessions = useSubmittedSessions();
+  const returnedSessions = useReturnedSessions();
+  const exportedSessions = useExportedSessions();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const nameMap = useNameMap();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [completedExpanded, setCompletedExpanded] = useState(true);
-  const [archivedExpanded, setArchivedExpanded] = useState(false);
+  const [submittedExpanded, setSubmittedExpanded] = useState(true);
+  const [returnedExpanded, setReturnedExpanded] = useState(true);
+  const [exportedExpanded, setExportedExpanded] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SupabaseSession | null>(null);
 
   if (!hasCompletedWalkthrough) {
@@ -224,11 +226,11 @@ export function SessionsPage() {
     return (
       <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
         <SessionSearch onSearch={setSearchQuery} />
-        <div className="mt-6 space-y-2">
+        <div className="mt-6 space-y-3">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 h-[72px] animate-pulse border border-gray-200 dark:border-gray-700"
+              className="h-[72px] rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse"
             />
           ))}
         </div>
@@ -236,16 +238,17 @@ export function SessionsPage() {
     );
   }
 
-  const totalSessions = activeSessions.length + completedSessions.length + archivedSessions.length;
+  const totalSessions = activeSessions.length + submittedSessions.length + returnedSessions.length + exportedSessions.length;
 
   // Filter by search query
   const filterFn = (s: SupabaseSession) =>
     !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase());
 
   const filteredActive = activeSessions.filter(filterFn);
-  const filteredCompleted = completedSessions.filter(filterFn);
-  const filteredArchived = archivedSessions.filter(filterFn);
-  const filteredTotal = filteredActive.length + filteredCompleted.length + filteredArchived.length;
+  const filteredSubmitted = submittedSessions.filter(filterFn);
+  const filteredReturned = returnedSessions.filter(filterFn);
+  const filteredExported = exportedSessions.filter(filterFn);
+  const filteredTotal = filteredActive.length + filteredSubmitted.length + filteredReturned.length + filteredExported.length;
 
   const handleTap = (session: SupabaseSession) => {
     navigate(`/session/${session.id}`);
@@ -370,15 +373,42 @@ export function SessionsPage() {
 
       {isAdmin ? (
         <>
+          {/* Admin view: Awaiting Review, Active, Returned, Exported */}
+          {renderAdminSection("Awaiting Review", filteredSubmitted, false, true)}
           {renderAdminSection("Active Sessions", filteredActive, false, true)}
-          {renderAdminSection("Completed", filteredCompleted, true, true)}
-          {renderAdminSection("Archived", filteredArchived, true, false)}
+          {renderAdminSection("Returned", filteredReturned, true, true)}
+          {renderAdminSection("Exported", filteredExported, true, false)}
         </>
       ) : (
         <>
-          {/* Active Sessions */}
-          {filteredActive.length > 0 && (
+          {/* Specialist view: Needs Attention, Active, Submitted, Exported */}
+
+          {/* Needs Attention (returned sessions) -- always visible, not collapsible */}
+          {filteredReturned.length > 0 && (
             <section className="mt-6">
+              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-3">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                Needs Attention ({filteredReturned.length})
+              </h2>
+              <div className="space-y-3">
+                {filteredReturned.map((session) => (
+                  <SessionCardWithCount
+                    key={session.id}
+                    session={session}
+                    onTap={() => handleTap(session)}
+                    onDelete={() => handleDeleteRequest(session)}
+                    onRename={(newName) => handleRename(session, newName)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Active Sessions -- always visible, not collapsible */}
+          {filteredActive.length > 0 && (
+            <section className={filteredReturned.length > 0 ? "mt-8" : "mt-6"}>
               <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
                 Active Sessions ({filteredActive.length})
               </h2>
@@ -396,17 +426,17 @@ export function SessionsPage() {
             </section>
           )}
 
-          {/* Completed Sessions */}
-          {filteredCompleted.length > 0 && (
+          {/* Submitted -- collapsible, expanded by default */}
+          {filteredSubmitted.length > 0 && (
             <section className="mt-8">
               <button
                 type="button"
-                onClick={() => setCompletedExpanded(!completedExpanded)}
+                onClick={() => setSubmittedExpanded(!submittedExpanded)}
                 className="flex items-center gap-2 mb-3"
               >
                 <svg
                   className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                    completedExpanded ? "rotate-90" : ""
+                    submittedExpanded ? "rotate-90" : ""
                   }`}
                   fill="none"
                   viewBox="0 0 24 24"
@@ -416,12 +446,12 @@ export function SessionsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
                 <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Completed ({filteredCompleted.length})
+                  Submitted ({filteredSubmitted.length})
                 </h2>
               </button>
-              {completedExpanded && (
+              {submittedExpanded && (
                 <div className="space-y-3">
-                  {filteredCompleted.map((session) => (
+                  {filteredSubmitted.map((session) => (
                     <SessionCardWithCount
                       key={session.id}
                       session={session}
@@ -435,17 +465,17 @@ export function SessionsPage() {
             </section>
           )}
 
-          {/* Archived Sessions -- currently always empty */}
-          {filteredArchived.length > 0 && (
+          {/* Exported -- collapsible, collapsed by default */}
+          {filteredExported.length > 0 && (
             <section className="mt-8">
               <button
                 type="button"
-                onClick={() => setArchivedExpanded(!archivedExpanded)}
+                onClick={() => setExportedExpanded(!exportedExpanded)}
                 className="flex items-center gap-2 mb-3"
               >
                 <svg
                   className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                    archivedExpanded ? "rotate-90" : ""
+                    exportedExpanded ? "rotate-90" : ""
                   }`}
                   fill="none"
                   viewBox="0 0 24 24"
@@ -455,12 +485,12 @@ export function SessionsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
                 <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Archived ({filteredArchived.length})
+                  Exported ({filteredExported.length})
                 </h2>
               </button>
-              {archivedExpanded && (
+              {exportedExpanded && (
                 <div className="space-y-3">
-                  {filteredArchived.map((session) => (
+                  {filteredExported.map((session) => (
                     <SessionCardWithCount
                       key={session.id}
                       session={session}
