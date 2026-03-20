@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: executing
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-03-20T17:19:48.000Z"
-last_activity: "2026-03-20 -- Completed 16-01: lifecycle sections, hooks, ReturnDialog, status pills"
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-03-20T17:24:00.000Z"
+last_activity: "2026-03-20 -- Completed 16-02: SessionDetail lifecycle controls, banners, read-only lock"
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 23
-  completed_plans: 17
-  percent: 74
+  completed_plans: 18
+  percent: 78
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 16 of 17 (Session Lifecycle)
-Plan: 2 of 4
-Status: Plan 16-01 complete -- lifecycle sections, hooks, ReturnDialog, status pills
-Last activity: 2026-03-20 -- Completed 16-01: lifecycle sections, hooks, ReturnDialog, status pills
+Plan: 3 of 4
+Status: Plan 16-02 complete -- SessionDetail lifecycle controls, banners, read-only lock
+Last activity: 2026-03-20 -- Completed 16-02: SessionDetail lifecycle controls, banners, read-only lock
 
-Progress: [███████▍░░] 74%
+Progress: [███████▊░░] 78%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [███████▍░░] 74%
 - 15-02: 6 min (2 tasks, 5 files)
 - 16-00: 2 min (1 task, 4 files)
 - 16-01: 5 min (2 tasks, 5 files)
+- 16-02: 4 min (2 tasks, 3 files)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -116,6 +117,10 @@ Recent decisions affecting current work:
 - [16-01] Removed useArchivedSessions entirely (no archive concept in Supabase schema)
 - [16-01] SessionCard status pills reuse statusColors/statusLabels maps instead of inline ternary chains
 - [16-01] Specialist Active section uses dynamic mt-6/mt-8 based on Needs Attention section visibility
+- [16-02] Lifecycle buttons (Submit, Export, Return) placed in SessionDetail header area; Delete remains at bottom
+- [16-02] Replaced direct db/sessions updateSession with sessionStore.updateSession for optimistic updates
+- [16-02] isLifecycleLocked: specialist + submitted/exported = locked; admin never locked by status
+- [16-02] Export skips confirmation dialog (admin-only, direct action)
 
 ### Pending Todos
 
@@ -141,6 +146,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T17:19:48Z
-Stopped at: Completed 16-01-PLAN.md
-Resume file: .planning/phases/16-session-lifecycle/16-01-SUMMARY.md
+Last session: 2026-03-20T17:24:00Z
+Stopped at: Completed 16-02-PLAN.md
+Resume file: .planning/phases/16-session-lifecycle/16-02-SUMMARY.md
