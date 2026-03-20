@@ -72,20 +72,18 @@ skipped: 0
 
 ## Gaps
 
-- truth: "Photos display correctly for items in house visit mode"
+- truth: "Users can take photos for items in house visit mode"
   status: failed
-  reason: "User reported: photo upload for items not visible in house visit mode"
+  reason: "User reported: no button to add photos to an item from session detail page. PhotoCapture only exists on ItemEntry page but there's no navigation link from ItemCard to ItemEntry."
   severity: major
   test: 6
-  root_cause: "Race condition in PhotoCapture.tsx — useLiveQuery fires with dexieItemId=null before async getDexieItemId resolves, returns empty array. Save path uses fallback (dexieItemId ?? itemId) but query path bails out on null. Same bug in ItemEntry.tsx photo query."
+  root_cause: "ItemCard expanded view has editable fields and delete button but no link to navigate to ItemEntry page (where PhotoCapture lives). Users stay on SessionDetail and never see the photo UI."
   artifacts:
-    - path: "src/components/PhotoCapture.tsx"
-      issue: "Line 57-58: query returns [] when dexieItemId is null instead of falling back to itemId"
-    - path: "src/pages/ItemEntry.tsx"
-      issue: "Line 80: same query pattern with same null bail-out bug"
+    - path: "src/components/ItemCard.tsx"
+      issue: "Expanded section has no navigation to ItemEntry page"
   missing:
-    - "Change photo query to fall back to itemId when dexieItemId is null (match save path behavior)"
-  debug_session: ".planning/debug/photos-not-visible-house-visit.md"
+    - "Add a 'View Item' or 'Photos' button in ItemCard expanded section that navigates to /session/{sessionId}/item/{itemId}"
+  debug_session: ""
 
 - truth: "Deleting an item removes it from both UI and Supabase without errors"
   status: failed
