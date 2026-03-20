@@ -118,6 +118,7 @@ export type Database = {
           id: string
           is_active: boolean
           role: string
+          walkthrough_completed: boolean
         }
         Insert: {
           created_at?: string
@@ -125,6 +126,7 @@ export type Database = {
           id: string
           is_active?: boolean
           role?: string
+          walkthrough_completed?: boolean
         }
         Update: {
           created_at?: string
@@ -132,6 +134,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           role?: string
+          walkthrough_completed?: boolean
         }
         Relationships: []
       }
