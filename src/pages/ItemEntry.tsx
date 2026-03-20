@@ -110,6 +110,34 @@ export function ItemEntryPage() {
   const currentPosition = item ? (item.sort_order + 1) : 1;
   const displayTotal = Math.max(totalItems, currentPosition);
 
+  // Prev/next item computation for left/right arrows (house mode)
+  const prevItem = item
+    ? items.filter(i => i.sort_order < item.sort_order).sort((a, b) => b.sort_order - a.sort_order)[0] ?? null
+    : null;
+  const nextItem = item
+    ? items.filter(i => i.sort_order > item.sort_order).sort((a, b) => a.sort_order - b.sort_order)[0] ?? null
+    : null;
+
+  const navigatingArrowRef = useRef(false);
+
+  const handleArrowRight = useCallback(async () => {
+    if (navigatingArrowRef.current || !sessionId) return;
+    if (nextItem) {
+      navigate(`/session/${sessionId}/item/${nextItem.id}`);
+    } else {
+      // Last item -- create new
+      navigatingArrowRef.current = true;
+      try {
+        const newId = await createBlankItem(sessionId, mode);
+        navigate(`/session/${sessionId}/item/${newId}`);
+      } catch (err) {
+        console.error("Failed to create item:", err);
+      } finally {
+        setTimeout(() => { navigatingArrowRef.current = false; }, 500);
+      }
+    }
+  }, [nextItem, sessionId, mode, navigate]);
+
   // Check if record button should be disabled (sale mode: no valid receipt)
   const isRecordDisabled =
     mode === "sale" && !isValidReceiptNumber(receiptValue);
@@ -184,11 +212,7 @@ export function ItemEntryPage() {
     <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto">
       {/* Back button */}
       <div className="py-2">
-        <BackButton
-          sessionId={sessionId!}
-          currentItem={item}
-          items={items}
-        />
+        <BackButton sessionId={sessionId!} />
       </div>
 
       {/* Mode-specific top section */}
@@ -271,42 +295,54 @@ export function ItemEntryPage() {
         onConfirm={proceedToNextItem}
         onCancel={() => setShowEmptyWarning(false)}
       />
+
+      {/* Left/right navigation arrows for house mode */}
+      {mode === "house" && item && !isNewItem && (
+        <>
+          {/* Left arrow */}
+          <button
+            type="button"
+            onClick={() => prevItem && navigate(`/session/${sessionId}/item/${prevItem.id}`)}
+            disabled={!prevItem}
+            className={`fixed top-1/2 left-1 -translate-y-1/2 w-10 h-10 rounded-full
+              bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700
+              flex items-center justify-center z-30 transition-opacity
+              ${!prevItem ? "opacity-30 pointer-events-none" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+            aria-label="Previous item"
+          >
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+
+          {/* Right arrow */}
+          <button
+            type="button"
+            onClick={handleArrowRight}
+            className="fixed top-1/2 right-1 -translate-y-1/2 w-10 h-10 rounded-full
+              bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700
+              flex items-center justify-center z-30
+              hover:bg-gray-100 dark:hover:bg-gray-700 transition-opacity"
+            aria-label={nextItem ? "Next item" : "Create new item"}
+          >
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </>
+      )}
     </div>
   );
 }
 
-/** Back button with smart navigation to previous item or session detail */
-function BackButton({
-  sessionId,
-  currentItem,
-  items,
-}: {
-  sessionId: string;
-  currentItem: { sort_order: number } | undefined;
-  items: { id: string; sort_order: number }[];
-}) {
+/** Back button -- always navigates to session detail */
+function BackButton({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate();
-
-  // Find the previous item by sort_order from Zustand items
-  const previousItem = (() => {
-    if (!currentItem || currentItem.sort_order === 0) return undefined;
-    const before = items.filter(i => i.sort_order < currentItem.sort_order);
-    if (before.length === 0) return undefined;
-    return before.reduce((best, i) => i.sort_order > best.sort_order ? i : best, before[0]);
-  })();
-
-  const handleBack = () => {
-    if (previousItem?.id) {
-      navigate(`/session/${sessionId}/item/${previousItem.id}`);
-    } else {
-      navigate(`/session/${sessionId}`);
-    }
-  };
 
   return (
     <button
       type="button"
-      onClick={handleBack}
+      onClick={() => navigate(`/session/${sessionId}`)}
       className="flex items-center gap-1 text-accent min-h-12"
     >
       <svg
@@ -322,7 +358,7 @@ function BackButton({
           d="M15.75 19.5L8.25 12l7.5-7.5"
         />
       </svg>
-      {previousItem?.id ? "Previous Item" : "Back to Session"}
+      Back to Session
     </button>
   );
 }
