@@ -63,8 +63,8 @@ export function NewSessionPage() {
   const handleSubmit = async () => {
     if (!name.trim() || submitting) return;
 
-    // Check for existing active sessions
-    if (activeSessions.length > 0 && !showActiveWarning) {
+    // Check for existing active sessions (admins always create while others are active)
+    if (!isAdmin && activeSessions.length > 0 && !showActiveWarning) {
       setShowActiveWarning(true);
       return;
     }

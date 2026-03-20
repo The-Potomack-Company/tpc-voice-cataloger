@@ -62,16 +62,13 @@ vi.mock("../components/SessionSearch", () => ({
 vi.mock("../components/SessionCard", () => ({
   SessionCard: ({
     session,
-    assigneeName,
     sessionStatus,
   }: {
     session: { name: string };
-    assigneeName?: string;
     sessionStatus?: string;
   }) => (
     <div data-testid="session-card">
       <span>{session.name}</span>
-      {assigneeName && <span data-testid="assignee-name">Assigned to {assigneeName}</span>}
       {sessionStatus && <span data-testid="status-badge">{sessionStatus}</span>}
     </div>
   ),
@@ -135,7 +132,7 @@ describe("Sessions admin view (ASGN-04)", () => {
     expect(screen.getByText("Bob (1)")).toBeInTheDocument();
   });
 
-  it("admin view shows assignee name on session cards", () => {
+  it("admin view shows specialist group header instead of per-card assignee", () => {
     mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, loading: false });
     mockUseNameMap.mockReturnValue(new Map([["user-a", "Alice"]]));
     mockUseActiveSessions.mockReturnValue([makeSession("s1", "Session 1", "user-a")]);
@@ -148,7 +145,9 @@ describe("Sessions admin view (ASGN-04)", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("assignee-name")).toHaveTextContent("Assigned to Alice");
+    // Specialist group header provides context — no per-card assignee name
+    expect(screen.getByText("Alice (1)")).toBeInTheDocument();
+    expect(screen.queryByTestId("assignee-name")).not.toBeInTheDocument();
   });
 
   it("admin view shows status badge on session cards", () => {

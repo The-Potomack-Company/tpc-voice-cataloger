@@ -47,11 +47,6 @@ const defaultProps = {
 };
 
 describe("SessionCard admin variant", () => {
-  it("renders assignee name when assigneeName prop provided", () => {
-    render(<SessionCard {...defaultProps} assigneeName="Sarah" />);
-    expect(screen.getByText("Assigned to Sarah")).toBeDefined();
-  });
-
   it("renders status badge when sessionStatus prop provided", () => {
     render(<SessionCard {...defaultProps} sessionStatus="submitted" />);
     const badge = screen.getByText("Submitted");

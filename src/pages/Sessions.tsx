@@ -27,17 +27,21 @@ function groupByAssignee(
   return Array.from(groups.entries())
     .map(([id, sess]) => ({
       id,
-      name: id === "unassigned" ? "Unassigned" : (nameMap.get(id) ?? id),
+      name: id === "unassigned" ? "Unassigned" : (nameMap.get(id) ?? "Loading…"),
       sessions: sess,
     }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      // Unassigned always at the bottom
+      if (a.id === "unassigned") return 1;
+      if (b.id === "unassigned") return -1;
+      return a.name.localeCompare(b.name);
+    });
 }
 
 /** Specialist group header with collapsible session list */
 function SpecialistGroup({
   name,
   sessions,
-  nameMap,
   onTap,
   onDelete,
   onRename,
@@ -45,7 +49,6 @@ function SpecialistGroup({
 }: {
   name: string;
   sessions: SupabaseSession[];
-  nameMap: Map<string, string>;
   onTap: (s: SupabaseSession) => void;
   onDelete: (s: SupabaseSession) => void;
   onRename: (s: SupabaseSession, n: string) => void;
@@ -78,7 +81,6 @@ function SpecialistGroup({
             <AdminSessionCard
               key={session.id}
               session={session}
-              nameMap={nameMap}
               onTap={() => onTap(session)}
               onDelete={() => onDelete(session)}
               onRename={(newName) => onRename(session, newName)}
@@ -93,21 +95,16 @@ function SpecialistGroup({
 /** Admin session card wrapper that passes assigneeName and sessionStatus */
 function AdminSessionCard({
   session,
-  nameMap,
   onTap,
   onDelete,
   onRename,
 }: {
   session: SupabaseSession;
-  nameMap: Map<string, string>;
   onTap: () => void;
   onDelete: () => void;
   onRename: (newName: string) => void;
 }) {
   const itemCount = useSessionItemCount(session.id);
-  const assigneeName = session.assigned_to
-    ? nameMap.get(session.assigned_to) ?? "Unknown"
-    : "Unassigned";
   return (
     <SessionCard
       session={session}
@@ -115,7 +112,6 @@ function AdminSessionCard({
       onTap={onTap}
       onDelete={onDelete}
       onRename={onRename}
-      assigneeName={assigneeName}
       sessionStatus={session.status}
     />
   );
@@ -126,7 +122,6 @@ function CollapsibleAdminSection({
   title,
   sessions,
   groups,
-  nameMap,
   onTap,
   onDelete,
   onRename,
@@ -135,7 +130,6 @@ function CollapsibleAdminSection({
   title: string;
   sessions: SupabaseSession[];
   groups: { name: string; id: string; sessions: SupabaseSession[] }[];
-  nameMap: Map<string, string>;
   onTap: (s: SupabaseSession) => void;
   onDelete: (s: SupabaseSession) => void;
   onRename: (s: SupabaseSession, n: string) => void;
@@ -169,7 +163,6 @@ function CollapsibleAdminSection({
               key={g.id}
               name={g.name}
               sessions={g.sessions}
-              nameMap={nameMap}
               onTap={onTap}
               onDelete={onDelete}
               onRename={onRename}
@@ -297,7 +290,6 @@ export function SessionsPage() {
                 key={g.id}
                 name={g.name}
                 sessions={g.sessions}
-                nameMap={nameMap}
                 onTap={handleTap}
                 onDelete={handleDeleteRequest}
                 onRename={handleRename}
@@ -313,7 +305,6 @@ export function SessionsPage() {
         title={title}
         sessions={sessions}
         groups={groups}
-        nameMap={nameMap}
         onTap={handleTap}
         onDelete={handleDeleteRequest}
         onRename={handleRename}

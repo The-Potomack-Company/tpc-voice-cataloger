@@ -12,7 +12,6 @@ interface SessionCardProps {
   onTap: () => void;
   onDelete: () => void;
   onRename: (newName: string) => void;
-  assigneeName?: string;
   sessionStatus?: string;
 }
 
@@ -57,7 +56,6 @@ export function SessionCard({
   onTap,
   onDelete,
   onRename,
-  assigneeName,
   sessionStatus,
 }: SessionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -141,11 +139,6 @@ export function SessionCard({
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {itemCount} item{itemCount !== 1 ? "s" : ""}
               </span>
-              {assigneeName && (
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Assigned to {assigneeName}
-                </span>
-              )}
               {sessionStatus && statusColors[sessionStatus] && (
                 <span
                   className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[sessionStatus]}`}
