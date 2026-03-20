@@ -38,7 +38,7 @@ created: 2026-03-20
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 18-00-01 | 00 | 0 | WT-01..WT-08 stubs | scaffold | `npx vitest run src/tests/walkthrough.test.tsx src/tests/walkthrough-status.test.ts` | Created in W0 | ⬜ pending |
+| 18-00-01 | 00 | 0 | WT-01..WT-08 stubs | scaffold | `npx vitest run src/tests/walkthrough.test.tsx src/tests/walkthrough-status.test.ts` | Created in W0 | ✅ green |
 | 18-01-01 | 01 | 1 | WT-04, WT-05 | unit | `npx vitest run src/tests/walkthrough-status.test.ts` | ✅ W0 | ⬜ pending |
 | 18-01-02 | 01 | 1 | WT-01..WT-03 | unit | `npx vitest run src/tests/walkthrough.test.tsx` | ✅ W0 | ⬜ pending |
 | 18-02-01 | 02 | 2 | WT-06..WT-08 | unit | `npx vitest run src/tests/walkthrough.test.tsx` | ✅ W0 | ⬜ pending |
