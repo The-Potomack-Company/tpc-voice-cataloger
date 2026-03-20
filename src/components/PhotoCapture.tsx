@@ -55,10 +55,10 @@ export function PhotoCapture({ itemId, onOpenLightbox }: PhotoCaptureProps) {
 
   const photos = useLiveQuery(
     () => {
-      if (dexieItemId == null) return [] as ItemPhoto[];
-      return db.photos.where("itemId").equals(dexieItemId).sortBy("sortOrder");
+      const lookupId = dexieItemId ?? itemId;
+      return db.photos.where("itemId").equals(lookupId).sortBy("sortOrder");
     },
-    [dexieItemId],
+    [dexieItemId, itemId],
     [] as ItemPhoto[],
   );
 

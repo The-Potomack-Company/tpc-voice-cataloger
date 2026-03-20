@@ -12,7 +12,7 @@ import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { RecordingsList } from "../components/RecordingsList";
-import { useSession } from "../hooks/useSessions";
+import { useSession, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
 import { createBlankItem, updateItemField } from "../db/items";
 import { getDexieItemId } from "../db/idMapping";
@@ -44,7 +44,7 @@ export function ItemEntryPage() {
   const isNewItem = itemId === "new";
 
   // Get items from Zustand store
-  const items = useSessionStore(s => s.itemsBySession[sessionId!] ?? []);
+  const items = useSessionItems(sessionId!);
   const item = isNewItem ? undefined : items.find(i => i.id === itemId);
   const totalItems = items.length;
 
@@ -77,10 +77,12 @@ export function ItemEntryPage() {
 
   const photos = useLiveQuery(
     () => {
-      if (dexieItemId == null || mode !== "house") return [] as ItemPhoto[];
-      return db.photos.where("itemId").equals(dexieItemId).sortBy("sortOrder");
+      if (mode !== "house") return [] as ItemPhoto[];
+      const lookupId = dexieItemId ?? itemId;
+      if (!lookupId) return [] as ItemPhoto[];
+      return db.photos.where("itemId").equals(lookupId).sortBy("sortOrder");
     },
-    [dexieItemId, mode],
+    [dexieItemId, itemId, mode],
     [] as ItemPhoto[],
   );
 

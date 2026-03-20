@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import type { Tables } from "../db/database.types";
@@ -23,6 +24,7 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: ItemCardProps) {
+  const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const { status, startRecording, stopRecording } = useAudioRecorder();
@@ -250,6 +252,21 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
         {/* Expanded section -- editable fields (non-queued only) */}
         {isExpanded && !isQueued && (
           <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
+            {item.mode === "house" && !readOnly && (
+              <button
+                type="button"
+                onClick={() => navigate(`/session/${sessionId}/item/${item.id}`)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg
+                           border border-accent text-accent text-sm font-medium
+                           hover:bg-accent/10 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                </svg>
+                Photos & Details
+              </button>
+            )}
             <EditableField
               label="Title"
               value={item.title ?? undefined}
