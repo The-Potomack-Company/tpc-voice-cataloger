@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useSessionStore, scopeSessionStore } from '../stores/sessionStore';
 import { scopeUIStore } from '../stores/uiStore';
 import { useDataMigration } from '../hooks/useDataMigration';
+import { processWriteAheadQueue } from '../hooks/useWriteAheadQueue';
 import { MigrationSplash } from './MigrationSplash';
 
 export function ProtectedRoute() {
@@ -24,10 +25,10 @@ export function ProtectedRoute() {
   // Run migration after scoping
   const migration = useDataMigration(scoped ? user?.id : undefined);
 
-  // Fetch sessions after migration completes or is not needed
+  // Drain write-ahead queue first, then fetch sessions from server
   useEffect(() => {
     if (migration.state === 'complete' || migration.state === 'not-needed') {
-      fetchSessions();
+      processWriteAheadQueue().then(() => fetchSessions());
     }
   }, [migration.state, fetchSessions]);
 

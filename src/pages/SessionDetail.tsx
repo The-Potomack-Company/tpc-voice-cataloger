@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { useSession, useSessionItemCount } from "../hooks/useSessions";
+import { useSession, useSessionItemCount, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
 import { updateSession, deleteSession } from "../db/sessions";
 import { createBlankItem } from "../db/items";
@@ -57,7 +57,7 @@ export function SessionDetailPage() {
   }, [sessionId, fetchItems]);
 
   // Get queued count from Zustand store
-  const items = useSessionStore(s => s.itemsBySession[sessionId!] ?? []);
+  const items = useSessionItems(sessionId!);
   const queuedCount = items.filter(i => i.ai_status === "queued").length;
 
   const recordingSessionId = useUIStore((s) => s.recordingSessionId);

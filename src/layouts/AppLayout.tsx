@@ -8,6 +8,7 @@ import {
   useWriteAheadQueue,
   processWriteAheadQueue,
 } from "../hooks/useWriteAheadQueue";
+import { useSessionStore } from "../stores/sessionStore";
 
 function tabClass({ isActive }: { isActive: boolean }): string {
   return `flex flex-col items-center py-3 px-4 min-h-12 min-w-12 transition-colors ${
@@ -19,9 +20,12 @@ export function AppLayout() {
   useOnlineStatus();
   useWriteAheadQueue();
 
+  const fetchSessions = useSessionStore(s => s.fetchSessions);
+
   useEffect(() => {
     const handleReconnect = async () => {
       await processWriteAheadQueue(); // Write-ahead first (items must exist before AI can update)
+      await fetchSessions(); // Re-fetch after queue drains so server data includes synced items
       drainQueue(); // Then audio queue
     };
     // Drain on mount if online (handles case: app closed with queued items, reopened with connectivity)
@@ -31,7 +35,7 @@ export function AppLayout() {
     const handleOnline = () => handleReconnect();
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
-  }, []);
+  }, [fetchSessions]);
 
   return (
     <div

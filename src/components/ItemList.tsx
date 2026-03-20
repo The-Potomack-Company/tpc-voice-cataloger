@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useSessionStore } from "../stores/sessionStore";
+import { useSessionItems } from "../hooks/useSessions";
 import { db } from "../db";
 import { ItemCard } from "./ItemCard";
 import { createBlankItem } from "../db/items";
@@ -16,7 +16,7 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [newItemId, setNewItemId] = useState<string | null>(null);
 
-  const items = useSessionStore(s => s.itemsBySession[sessionId] ?? []);
+  const items = useSessionItems(sessionId);
 
   const toggleExpand = useCallback((itemId: string) => {
     setExpandedIds((prev) => {
