@@ -5,7 +5,7 @@ milestone_name: Accounts & Deploy
 status: Phase 14 UAT gaps closed -- 4 fixes applied and migration pushed
 stopped_at: Completed 14-05-PLAN.md
 last_updated: "2026-03-20T15:04:55.098Z"
-last_activity: 2026-03-20 -- Fixed 4 UAT gaps (photo nav, race condition, 406 on delete, 400 on complete)
+last_activity: 2026-03-20 -- Completed quick task 260320-fj2: House visit mode UX overhaul
 progress:
   total_phases: 8
   completed_phases: 4
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 Phase: 14 of 17 (Data Migration)
 Plan: 5 of 5
 Status: Phase 14 UAT gaps closed -- 4 fixes applied and migration pushed
-Last activity: 2026-03-20 -- Fixed 4 UAT gaps (photo nav, race condition, 406 on delete, 400 on complete)
+Last activity: 2026-03-20 -- Completed quick task 260320-fj2: House visit mode UX overhaul
 
 Progress: [█████░░░░░] 52%
 
@@ -108,6 +108,12 @@ None yet.
 - ~~[Pre-Phase 14] Dexie-to-Supabase ID mapping strategy needs concrete design before implementation~~ RESOLVED in 14-01 (idMapping table + utility functions)
 - [Pre-Phase 14] Offline session display strategy needs decision -- what data is cached locally when server is unreachable
 - ~~[Pre-Phase 12] Service worker must exclude Supabase API routes from caching before first auth request reaches the browser~~ RESOLVED in 12-01
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260320-fj2 | House visit mode: navigate-on-tap cards, chevron read-only summary, edge navigation arrows | 2026-03-20 | 65fba78 | Verified | [260320-fj2-house-visit-mode-remove-dropdown-always-](./quick/260320-fj2-house-visit-mode-remove-dropdown-always-/) |
 
 ### Roadmap Evolution
 
