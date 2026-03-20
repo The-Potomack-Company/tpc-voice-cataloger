@@ -142,6 +142,7 @@ None yet.
 |---|-------------|------|--------|--------|-----------|
 | 260320-fj2 | House visit mode: navigate-on-tap cards, chevron read-only summary, edge navigation arrows | 2026-03-20 | 65fba78 | Verified | [260320-fj2-house-visit-mode-remove-dropdown-always-](./quick/260320-fj2-house-visit-mode-remove-dropdown-always-/) |
 | 260320-ivg | Refresh Zustand store after AI processing so ItemEntry re-renders immediately | 2026-03-20 | eb553e3 | Verified | [260320-ivg-after-ai-finishes-processing-in-house-vi](./quick/260320-ivg-after-ai-finishes-processing-in-house-vi/) |
+| 260320-jet | Smart rounding for estimate auto-formatting (log10-based magnitude-aware) | 2026-03-20 | e9d40c8 | Verified | [260320-jet-smart-rounding-for-estimate-autoformatti](./quick/260320-jet-smart-rounding-for-estimate-autoformatti/) |
 
 ### Roadmap Evolution
 
@@ -151,6 +152,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T17:56:00Z
-Stopped at: Completed 16-03-PLAN.md
-Resume file: .planning/phases/16-session-lifecycle/16-03-SUMMARY.md
+Last session: 2026-03-20T18:09:00Z
+Stopped at: Completed quick task 260320-jet
+Resume file: .planning/quick/260320-jet-smart-rounding-for-estimate-autoformatti/260320-jet-SUMMARY.md
