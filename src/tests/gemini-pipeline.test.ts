@@ -20,6 +20,14 @@ vi.mock("../lib/supabase", () => ({
   },
 }));
 
+vi.mock("../stores/sessionStore", () => ({
+  useSessionStore: {
+    getState: () => ({
+      fetchItems: vi.fn().mockResolvedValue(undefined),
+    }),
+  },
+}));
+
 // We'll dynamically import gemini.ts after setting up env
 let processAudioWithAi: typeof import("../services/gemini").processAudioWithAi;
 let blobToBase64: typeof import("../services/gemini").blobToBase64;
@@ -135,6 +143,7 @@ describe("gemini pipeline", () => {
         select: () => ({
           eq: () => ({
             single: vi.fn().mockResolvedValue({ data: null, error: null }),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
           }),
         }),
       }));
@@ -170,6 +179,10 @@ describe("gemini pipeline", () => {
         select: () => ({
           eq: () => ({
             single: vi.fn().mockResolvedValue({
+              data: { transcript: null },
+              error: null,
+            }),
+            maybeSingle: vi.fn().mockResolvedValue({
               data: { transcript: null },
               error: null,
             }),
@@ -243,6 +256,10 @@ describe("gemini pipeline", () => {
               data: { transcript: null },
               error: null,
             }),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { transcript: null },
+              error: null,
+            }),
           }),
         }),
       }));
@@ -274,6 +291,10 @@ describe("gemini pipeline", () => {
         select: () => ({
           eq: () => ({
             single: vi.fn().mockResolvedValue({
+              data: { transcript: null },
+              error: null,
+            }),
+            maybeSingle: vi.fn().mockResolvedValue({
               data: { transcript: null },
               error: null,
             }),

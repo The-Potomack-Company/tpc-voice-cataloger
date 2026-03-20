@@ -5,6 +5,7 @@ import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
 import { formatMeasurements } from "../utils/formatMeasurements";
+import { useSessionStore } from "../stores/sessionStore";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -191,6 +192,9 @@ export async function processAudioWithAi(
       .from("items")
       .update(supabaseUpdate)
       .eq("id", itemId);
+
+    // Refresh Zustand store so UI re-renders with AI results
+    useSessionStore.getState().fetchItems(sessionId).catch(() => {});
   } catch (error) {
     // On ANY error: set ai_status to "failed", set fallback description
     console.error("AI processing error:", error);
@@ -203,6 +207,9 @@ export async function processAudioWithAi(
             "AI processing failed - audio recorded, awaiting manual review",
         })
         .eq("id", itemId);
+
+      // Refresh store so UI shows "failed" status immediately
+      useSessionStore.getState().fetchItems(sessionId).catch(() => {});
     } catch (dbError) {
       console.error("Failed to update ai_status to failed:", dbError);
     }
