@@ -117,8 +117,14 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
         <div
           role="button"
           tabIndex={0}
-          onClick={onToggle}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+          onClick={() => {
+            if (item.mode === "house") {
+              navigate(`/session/${sessionId}/item/${item.id}`);
+            } else {
+              onToggle();
+            }
+          }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (item.mode === "house") { navigate(`/session/${sessionId}/item/${item.id}`); } else { onToggle(); } } }}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
         >
           {/* Item number + title preview */}
@@ -189,8 +195,8 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               </span>
             )}
 
-            {/* Mic icon for re-record */}
-            {!readOnly && !isQueued && !isProcessing && <button
+            {/* Mic icon for re-record (hidden in house mode) */}
+            {!readOnly && !isQueued && !isProcessing && item.mode !== "house" && <button
               type="button"
               onClick={handleMicClick}
               className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
@@ -221,22 +227,29 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               )}
             </button>}
 
-            {/* Chevron */}
-            <svg
-              className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${
-                isExpanded ? "rotate-90" : ""
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
+            {/* Chevron -- in house mode, stops propagation to toggle expand instead of navigating */}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggle(); }}
+              className="p-0.5 -m-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              aria-label={isExpanded ? "Collapse details" : "Expand details"}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-              />
-            </svg>
+              <svg
+                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${
+                  isExpanded ? "rotate-90" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -249,24 +262,28 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
           </div>
         )}
 
-        {/* Expanded section -- editable fields (non-queued only) */}
-        {isExpanded && !isQueued && (
+        {/* Expanded section -- house mode: read-only field summary */}
+        {isExpanded && !isQueued && item.mode === "house" && (
+          <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-2">
+            {([
+              ["Title", item.title],
+              ["Description", item.description],
+              ["Measurements", item.measurements],
+              ["Condition", item.condition],
+              ["Estimate", item.estimate],
+              ["Category", item.category],
+            ] as const).filter(([, val]) => val).map(([label, val]) => (
+              <div key={label}>
+                <span className="text-xs font-medium text-gray-500 uppercase">{label}</span>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{val}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Expanded section -- sale mode: editable fields (non-queued only) */}
+        {isExpanded && !isQueued && item.mode !== "house" && (
           <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
-            {item.mode === "house" && !readOnly && (
-              <button
-                type="button"
-                onClick={() => navigate(`/session/${sessionId}/item/${item.id}`)}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg
-                           border border-accent text-accent text-sm font-medium
-                           hover:bg-accent/10 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                </svg>
-                Photos & Details
-              </button>
-            )}
             <EditableField
               label="Title"
               value={item.title ?? undefined}
