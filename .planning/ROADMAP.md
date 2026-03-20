@@ -172,13 +172,20 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 
 ### Phase 18: Update tutorial/walkthrough to be thorough
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Expand the existing 3-step intro walkthrough into a comprehensive, role-aware tutorial that covers the full app workflow, with completion state stored per-user in Supabase
 **Depends on:** Phase 17
-**Plans:** 0 plans
+**Requirements**: WT-01, WT-02, WT-03, WT-04, WT-05, WT-06, WT-07, WT-08
+**Success Criteria** (what must be TRUE):
+  1. Walkthrough covers the full workflow: create session, choose mode, record items, review/edit, export to Chrome extension
+  2. Admin users see shared steps plus admin-specific steps (account management, session assignment, review/export, receipt import)
+  3. Specialist users see shared steps plus specialist-specific steps (submit work, review notes)
+  4. Walkthrough completion state is stored in Supabase profiles table (not localStorage) and follows user across devices
+  5. Back navigation, skip link, and progress counter work correctly
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 18 to break down)
+- [ ] 18-01-PLAN.md -- Supabase migration (walkthrough_completed + RLS), useWalkthroughStatus hook, step definitions, database types
+- [ ] 18-02-PLAN.md -- Walkthrough.tsx rewrite, Sessions.tsx gate update, Settings.tsx reset update, uiStore cleanup
 
 ### Phase 19: Photo Upload to Supabase Storage with full offline support
 
