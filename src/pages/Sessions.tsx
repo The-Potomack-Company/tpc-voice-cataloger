@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useUIStore } from "../stores/uiStore";
 import { Walkthrough } from "../components/Walkthrough";
+import { useWalkthroughStatus } from "../components/walkthrough/useWalkthroughStatus";
 import { SessionSearch } from "../components/SessionSearch";
 import { SessionCard } from "../components/SessionCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -199,9 +200,7 @@ function SessionCardWithCount({
 }
 
 export function SessionsPage() {
-  const hasCompletedWalkthrough = useUIStore(
-    (s) => s.hasCompletedWalkthrough,
-  );
+  const { walkthroughCompleted, role: walkthroughRole, loading: walkthroughLoading, completeWalkthrough } = useWalkthroughStatus();
   const isOnline = useUIStore((s) => s.isOnline);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
@@ -217,8 +216,9 @@ export function SessionsPage() {
   const [exportedExpanded, setExportedExpanded] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SupabaseSession | null>(null);
 
-  if (!hasCompletedWalkthrough) {
-    return <Walkthrough />;
+  // Gate: default to "completed" while loading to avoid flash of walkthrough for returning users
+  if (!walkthroughLoading && walkthroughCompleted === false) {
+    return <Walkthrough role={walkthroughRole} onComplete={completeWalkthrough} />;
   }
 
   // Loading skeleton while role is being determined

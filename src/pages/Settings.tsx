@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { useUIStore } from "../stores/uiStore";
 import { useAuthStore } from "../stores/authStore";
+import { useWalkthroughStatus } from "../components/walkthrough/useWalkthroughStatus";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { supabase } from "../lib/supabase";
 
 export function SettingsPage() {
-  const resetWalkthrough = useUIStore((s) => s.resetWalkthrough);
+  const { resetWalkthrough } = useWalkthroughStatus();
 
   // Auth store hooks
   const user = useAuthStore((s) => s.user);

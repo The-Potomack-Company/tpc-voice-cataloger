@@ -2,9 +2,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface UIState {
-  hasCompletedWalkthrough: boolean;
-  completeWalkthrough: () => void;
-  resetWalkthrough: () => void;
   recordingSessionId: string | null;
   setRecordingSession: (id: string | null) => void;
   isOnline: boolean;
@@ -14,9 +11,6 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
-      hasCompletedWalkthrough: false,
-      completeWalkthrough: () => set({ hasCompletedWalkthrough: true }),
-      resetWalkthrough: () => set({ hasCompletedWalkthrough: false }),
       recordingSessionId: null,
       setRecordingSession: (id: string | null) =>
         set({ recordingSessionId: id }),
@@ -26,7 +20,6 @@ export const useUIStore = create<UIState>()(
     {
       name: "tpc-ui-state",
       partialize: (state) => ({
-        hasCompletedWalkthrough: state.hasCompletedWalkthrough,
         recordingSessionId: state.recordingSessionId,
       }),
     },
