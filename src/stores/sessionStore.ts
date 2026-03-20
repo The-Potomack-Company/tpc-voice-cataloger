@@ -22,7 +22,7 @@ interface SessionState {
   fetchSessions: () => Promise<void>;
   fetchItems: (sessionId: string) => Promise<void>;
   createSession: (
-    data: { name: string; mode: string; notes?: string },
+    data: { name: string; mode: string; notes?: string; assigned_to?: string },
     userId: string,
   ) => Promise<string>;
   updateSession: (
@@ -110,7 +110,7 @@ export const useSessionStore = create<SessionState>()(
           created_by: userId,
           created_at: now,
           updated_at: now,
-          assigned_to: null,
+          assigned_to: data.assigned_to ?? null,
           review_notes: null,
         };
 
@@ -127,6 +127,7 @@ export const useSessionStore = create<SessionState>()(
               mode: data.mode,
               notes: data.notes ?? "",
               created_by: userId,
+              assigned_to: data.assigned_to ?? null,
             })
             .select()
             .single();
@@ -154,6 +155,7 @@ export const useSessionStore = create<SessionState>()(
                 mode: data.mode,
                 notes: data.notes ?? "",
                 created_by: userId,
+                assigned_to: data.assigned_to ?? null,
               },
             });
             return tempId;

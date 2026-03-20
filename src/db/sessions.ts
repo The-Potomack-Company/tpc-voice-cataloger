@@ -8,12 +8,14 @@ export async function createSession(
   name: string,
   mode: "house" | "sale",
   notes?: string,
+  assignedTo?: string,
 ): Promise<string> {
   const userId = useAuthStore.getState().user?.id;
   if (!userId) throw new Error("Not authenticated");
+  const effectiveAssignedTo = assignedTo ?? userId;
   return useSessionStore
     .getState()
-    .createSession({ name, mode, notes }, userId);
+    .createSession({ name, mode, notes, assigned_to: effectiveAssignedTo }, userId);
 }
 
 export async function updateSession(

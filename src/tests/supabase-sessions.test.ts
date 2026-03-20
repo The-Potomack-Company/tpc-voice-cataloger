@@ -49,7 +49,7 @@ describe("sessions.ts (Supabase-backed)", () => {
       const result = await createSession("Test", "house", "notes");
 
       expect(mockSessionStore.createSession).toHaveBeenCalledWith(
-        { name: "Test", mode: "house", notes: "notes" },
+        { name: "Test", mode: "house", notes: "notes", assigned_to: "user-uuid-123" },
         "user-uuid-123",
       );
       expect(typeof result).toBe("string");

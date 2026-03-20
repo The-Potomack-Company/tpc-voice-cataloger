@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import { createSession } from "../db/sessions";
 import { createBlankItem, updateItemField } from "../db/items";
 import { useActiveSessions } from "../hooks/useSessions";
+import { useUserRole } from "../hooks/useUserRole";
+import { listAccounts, type Account } from "../services/adminApi";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ImportReceiptsButton } from "../components/ImportReceiptsButton";
 
@@ -16,13 +18,40 @@ export function NewSessionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
+  const [assignedTo, setAssignedTo] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     nameRef.current?.focus();
   }, []);
+
+  // Load accounts for admin specialist dropdown
+  useEffect(() => {
+    if (!isAdmin) return;
+    setAccountsLoading(true);
+    setAccountsError(null);
+    listAccounts()
+      .then((data) => {
+        const active = data
+          .filter((a) => a.is_active)
+          .sort((a, b) => a.display_name.localeCompare(b.display_name));
+        setAccounts(active);
+      })
+      .catch(() => {
+        setAccountsError(
+          "Could not load team members. Check your connection and try again.",
+        );
+      })
+      .finally(() => {
+        setAccountsLoading(false);
+      });
+  }, [isAdmin]);
 
   // Auto-dismiss toast after 3 seconds
   useEffect(() => {
@@ -46,7 +75,12 @@ export function NewSessionPage() {
   const doCreate = async () => {
     setSubmitting(true);
     try {
-      const newId = await createSession(name.trim(), mode, notes.trim() || undefined);
+      const newId = await createSession(
+        name.trim(),
+        mode,
+        notes.trim() || undefined,
+        isAdmin ? assignedTo : undefined,
+      );
       navigate(`/session/${newId}`);
     } finally {
       setSubmitting(false);
@@ -65,6 +99,7 @@ export function NewSessionPage() {
         name.trim(),
         "sale",
         notes.trim() || undefined,
+        isAdmin ? assignedTo : undefined,
       );
 
       for (const receipt of receipts) {
@@ -197,12 +232,74 @@ export function NewSessionPage() {
                    focus:outline-none focus:ring-2 focus:ring-accent resize-none mb-6"
       />
 
+      {/* Assign To - admin only */}
+      {isAdmin && (
+        <div className="mb-6">
+          <label
+            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            htmlFor="assign-to"
+          >
+            Assign To
+          </label>
+          <div className={`relative${accountsLoading ? " opacity-50" : ""}`}>
+            <select
+              id="assign-to"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              disabled={accountsLoading}
+              className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                         border border-gray-200 dark:border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-accent min-h-12
+                         appearance-none font-medium"
+            >
+              {accountsLoading ? (
+                <option value="" disabled>
+                  Loading...
+                </option>
+              ) : (
+                <>
+                  <option value="" disabled>
+                    Select a specialist...
+                  </option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.display_name}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </div>
+          {accountsError && (
+            <p
+              className="text-sm text-red-600 dark:text-red-400 mt-1"
+              role="alert"
+            >
+              {accountsError}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Import Receipt List - only in sale mode */}
       {mode === "sale" && (
         <div className="mb-6">
           <ImportReceiptsButton
             onImport={handleImport}
-            disabled={!name.trim() || importing || submitting}
+            disabled={!name.trim() || importing || submitting || (isAdmin && !assignedTo)}
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
             Upload a CSV or XLSX file with receipt numbers
@@ -214,7 +311,7 @@ export function NewSessionPage() {
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!name.trim() || submitting || importing}
+        disabled={!name.trim() || submitting || importing || (isAdmin && !assignedTo)}
         className="w-full bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
                    text-white font-medium py-3 px-8 rounded-lg min-h-12 flex items-center justify-center transition-colors"
       >
