@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: Phase 15 plan 02 complete -- role-aware Sessions page, admin grouped view, SessionDetail reassignment, 9 tests
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-03-20T16:23:00Z"
-last_activity: 2026-03-20 -- Completed 15-02: admin grouped sessions view and inline reassignment
+status: Phase 15 complete -- all 3 plans done, human-verified all 4 ASGN requirements
+stopped_at: Completed 15-03-PLAN.md (human verification + UAT fixes)
+last_updated: "2026-03-20T17:00:00Z"
+last_activity: 2026-03-20 -- Completed 15-03: human verification with UAT feedback fixes
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 23
-  completed_plans: 14
-  percent: 61
+  completed_plans: 15
+  percent: 65
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 15 (Session Assignment) Plan 02 complete
+**Current focus:** v1.1 Accounts & Deploy -- Phase 15 (Session Assignment) complete, human-verified
 
 ## Current Position
 
 Phase: 15 of 17 (Session Assignment)
-Plan: 2 of 3
-Status: Phase 15 plan 02 complete -- role-aware Sessions page, admin grouped view, SessionDetail reassignment, 9 tests
-Last activity: 2026-03-20 -- Completed 15-02: admin grouped sessions view and inline reassignment
+Plan: 3 of 3
+Status: Phase 15 complete -- all 3 plans done, human-verified all 4 ASGN requirements
+Last activity: 2026-03-20 -- Completed 15-03: human verification with UAT feedback fixes
 
-Progress: [██████░░░░] 61%
+Progress: [██████▌░░░] 65%
 
 ## Performance Metrics
 
@@ -106,6 +106,10 @@ Recent decisions affecting current work:
 - [15-02] useNameMap hook called unconditionally (React hook rules) -- only admin uses the result
 - [15-02] Admin reassignment uses sessionStore.updateSession directly (accepts full Partial including assigned_to)
 - [15-02] Specialist view code kept exactly as-is with no modifications to spacing or structure
+- [15-03] Admins skip "active session exists" warning (they always create while others are active)
+- [15-03] "Unassigned" group sorted last in specialist grouping (not alphabetically)
+- [15-03] Removed per-card "Assigned to" label -- collapsible group headers provide context
+- [15-03] UUID-to-name resolution shows "Loading..." placeholder during fetch
 
 ### Pending Todos
 
@@ -130,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T16:23:00Z
-Stopped at: Completed 15-02-PLAN.md
-Resume file: .planning/phases/15-session-assignment/15-02-SUMMARY.md
+Last session: 2026-03-20T17:00:00Z
+Stopped at: Completed 15-03-PLAN.md (phase 15 complete)
+Resume file: .planning/phases/15-session-assignment/15-03-SUMMARY.md

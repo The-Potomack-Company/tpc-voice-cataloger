@@ -31,7 +31,7 @@
 - [x] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix (completed 2026-03-18)
 - [x] **Phase 13: Account Management** - Admin creates and manages specialist accounts (completed 2026-03-18)
 - [x] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres (completed 2026-03-18)
-- [ ] **Phase 15: Session Assignment** - Admin assigns sessions to specialists; specialists see scoped view
+- [x] **Phase 15: Session Assignment** - Admin assigns sessions to specialists; specialists see scoped view (completed 2026-03-20)
 - [ ] **Phase 16: Session Lifecycle** - Submit, review, return, and admin-only export workflow
 - [ ] **Phase 17: Deployment & CI** - Vercel deploy, GitHub Actions, CORS lockdown, branch protection
 
@@ -105,7 +105,7 @@ Plans:
   2. Specialist sees only sessions assigned to them plus sessions they created themselves
   3. Admin can reassign an active session to a different specialist
   4. Admin can view all sessions across all users with assignee name and current status visible
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 15-01-PLAN.md -- useUserRole hook, createSession assigned_to support, NewSession specialist dropdown, SessionCard admin variant
 - [ ] 15-02-PLAN.md -- Role-aware Sessions page with admin specialist-grouped view, SessionDetail reassignment field
@@ -166,7 +166,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
 | 13. Account Management | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 14. Data Migration | 5/5 | Complete    | 2026-03-20 | - |
-| 15. Session Assignment | 2/3 | In Progress|  | - |
+| 15. Session Assignment | 3/3 | Complete   | 2026-03-20 | - |
 | 16. Session Lifecycle | v1.1 | 0/4 | Not started | - |
 | 17. Deployment & CI | v1.1 | 0/4 | Not started | - |
 
