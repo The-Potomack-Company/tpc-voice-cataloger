@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: executing
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-20T17:24:00.000Z"
-last_activity: "2026-03-20 -- Completed 16-02: SessionDetail lifecycle controls, banners, read-only lock"
+stopped_at: Completed 16-03-PLAN.md
+last_updated: "2026-03-20T17:56:00.000Z"
+last_activity: "2026-03-20 -- Completed 16-03: Human verification of session lifecycle (all 8 scenarios approved + 3 UAT fixes)"
 progress:
   total_phases: 9
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 23
-  completed_plans: 18
-  percent: 78
+  completed_plans: 19
+  percent: 83
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 16 (Session Lifecycle) in progress
+**Current focus:** v1.1 Accounts & Deploy -- Phase 16 complete, Phase 17 (Deployment & CI) next
 
 ## Current Position
 
 Phase: 16 of 17 (Session Lifecycle)
-Plan: 3 of 4
-Status: Plan 16-02 complete -- SessionDetail lifecycle controls, banners, read-only lock
-Last activity: 2026-03-20 -- Completed 16-02: SessionDetail lifecycle controls, banners, read-only lock
+Plan: 4 of 4
+Status: Plan 16-03 complete -- Human verification approved, 3 UAT fixes applied
+Last activity: 2026-03-20 -- Completed 16-03: Human verification of session lifecycle (all 8 scenarios + 3 UAT fixes)
 
-Progress: [███████▊░░] 78%
+Progress: [████████▎░] 83%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [███████▊░░] 78%
 - 16-00: 2 min (1 task, 4 files)
 - 16-01: 5 min (2 tasks, 5 files)
 - 16-02: 4 min (2 tasks, 3 files)
+- 16-03: 3 min (1 task, 2 files) -- human verification + UAT fixes
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -120,7 +121,10 @@ Recent decisions affecting current work:
 - [16-02] Lifecycle buttons (Submit, Export, Return) placed in SessionDetail header area; Delete remains at bottom
 - [16-02] Replaced direct db/sessions updateSession with sessionStore.updateSession for optimistic updates
 - [16-02] isLifecycleLocked: specialist + submitted/exported = locked; admin never locked by status
-- [16-02] Export skips confirmation dialog (admin-only, direct action)
+- [16-02] ~~Export skips confirmation dialog (admin-only, direct action)~~ Reversed in 16-03 UAT
+- [16-03] Export now requires confirmation dialog (UAT feedback -- prevent accidental exports)
+- [16-03] Admin can re-export already-exported sessions (no status gate on export button)
+- [16-03] Admin can reopen exported sessions back to active status (reversal path for corrections)
 
 ### Pending Todos
 
@@ -147,6 +151,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T17:24:00Z
-Stopped at: Completed 16-02-PLAN.md
-Resume file: .planning/phases/16-session-lifecycle/16-02-SUMMARY.md
+Last session: 2026-03-20T17:56:00Z
+Stopped at: Completed 16-03-PLAN.md
+Resume file: .planning/phases/16-session-lifecycle/16-03-SUMMARY.md
