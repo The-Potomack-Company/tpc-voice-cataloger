@@ -105,9 +105,9 @@ Plans:
   2. Specialist sees only sessions assigned to them plus sessions they created themselves
   3. Admin can reassign an active session to a different specialist
   4. Admin can view all sessions across all users with assignee name and current status visible
-**Plans:** 3 plans
+**Plans:** 1/3 plans complete
 Plans:
-- [ ] 15-01-PLAN.md -- useUserRole hook, createSession assigned_to support, NewSession specialist dropdown, SessionCard admin variant
+- [x] 15-01-PLAN.md -- useUserRole hook, createSession assigned_to support, NewSession specialist dropdown, SessionCard admin variant
 - [ ] 15-02-PLAN.md -- Role-aware Sessions page with admin specialist-grouped view, SessionDetail reassignment field
 - [ ] 15-03-PLAN.md -- Human verification of all session assignment requirements
 

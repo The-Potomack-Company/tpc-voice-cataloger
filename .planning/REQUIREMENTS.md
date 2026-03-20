@@ -108,10 +108,10 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
 ### Session Assignment
 
-- [ ] **ASGN-01**: Admin can assign a session to a specialist when creating it
+- [x] **ASGN-01**: Admin can assign a session to a specialist when creating it
 - [ ] **ASGN-02**: Specialist sees only sessions assigned to them and sessions they created
 - [ ] **ASGN-03**: Admin can reassign an active session to a different specialist
-- [ ] **ASGN-04**: Admin can view all sessions with assignee names and status
+- [x] **ASGN-04**: Admin can view all sessions with assignee names and status
 
 ### Session Lifecycle
 
@@ -214,10 +214,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACCT-03 | Phase 13 | Complete |
 | ACCT-04 | Phase 13 | Complete |
 | INFRA-03 | Phase 14 | Complete |
-| ASGN-01 | Phase 15 | Pending |
+| ASGN-01 | Phase 15 | Complete |
 | ASGN-02 | Phase 15 | Pending |
 | ASGN-03 | Phase 15 | Pending |
-| ASGN-04 | Phase 15 | Pending |
+| ASGN-04 | Phase 15 | Complete |
 | LIFE-01 | Phase 16 | Pending |
 | LIFE-02 | Phase 16 | Pending |
 | LIFE-03 | Phase 16 | Pending |
