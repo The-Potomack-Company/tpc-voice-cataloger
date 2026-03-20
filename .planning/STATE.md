@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: executing
-stopped_at: Phase 14 verified and bug-fixed
-last_updated: "2026-03-19T15:00:00.000Z"
-last_activity: 2026-03-19 -- Fixed Phase 14 runtime bugs (useShallow infinite loop, ai_status constraint)
+stopped_at: Completed 14-05-PLAN.md
+last_updated: "2026-03-20T15:00:00.000Z"
+last_activity: 2026-03-20 -- Fixed 4 UAT gaps (photo nav, race condition, 406 on delete, 400 on complete)
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 22
-  completed_plans: 11
-  percent: 93
+  total_plans: 23
+  completed_plans: 12
+  percent: 52
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 14 (Data Migration) Plan 04 complete
+**Current focus:** v1.1 Accounts & Deploy -- Phase 14 (Data Migration) Plan 05 complete (gap closure)
 
 ## Current Position
 
 Phase: 14 of 17 (Data Migration)
-Plan: 4 of 4
-Status: Phase 14 verified -- runtime bugs fixed, user approved
-Last activity: 2026-03-19 -- Fixed useShallow infinite loop + ai_status constraint mismatch
+Plan: 5 of 5
+Status: Phase 14 UAT gaps closed -- 4 fixes applied and migration pushed
+Last activity: 2026-03-20 -- Fixed 4 UAT gaps (photo nav, race condition, 406 on delete, 400 on complete)
 
-Progress: [=========~] 93%
+Progress: [█████░░░░░] 52%
 
 ## Performance Metrics
 
@@ -45,7 +45,8 @@ Progress: [=========~] 93%
 - 14-02: 7 min (2 tasks, 11 files)
 - 14-03: 5 min (2 tasks, 7 files)
 - 14-04: 12 min (2 tasks, 15 files)
-- Trend: Stable (14-04 larger scope)
+- 14-05: 4 min (2 tasks, 5 files)
+- Trend: Stable (14-05 gap closure)
 
 *Updated after each plan completion*
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [14-04] Removed archive/unarchive/soft-delete UI entirely (no soft-delete in Supabase schema)
 - [14-fix] Replaced useShallow with useMemo in useSessions hooks -- useShallow causes infinite loop when persist middleware rehydrates (JSON.parse creates new object references)
 - [14-fix] Optimistic createItem uses ai_status='pending' (not 'none') to match Supabase CHECK constraint
+- [14-05] Photo queries use dexieItemId ?? itemId fallback to eliminate async race condition
+- [14-05] gemini.ts uses .maybeSingle() + null bail-out for deleted items during AI processing
 
 ### Pending Todos
 
@@ -113,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T13:51:00.187Z
-Stopped at: Phase 18 UI-SPEC approved
-Resume file: .planning/phases/18-update-tutorial-walkthrough-to-be-thorough/18-UI-SPEC.md
+Last session: 2026-03-20T15:00:00.000Z
+Stopped at: Completed 14-05-PLAN.md
+Resume file: .planning/phases/14-data-migration/14-05-SUMMARY.md
