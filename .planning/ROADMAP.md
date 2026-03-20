@@ -166,7 +166,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
 | 13. Account Management | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 14. Data Migration | 5/5 | Complete    | 2026-03-20 | - |
-| 15. Session Assignment | 3/3 | Complete   | 2026-03-20 | - |
+| 15. Session Assignment | 3/3 | Complete    | 2026-03-20 | - |
 | 16. Session Lifecycle | v1.1 | 0/4 | Not started | - |
 | 17. Deployment & CI | v1.1 | 0/4 | Not started | - |
 
@@ -179,3 +179,13 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 18 to break down)
+
+### Phase 19: Photo Upload to Supabase Storage with full offline support
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 18
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 19 to break down)
