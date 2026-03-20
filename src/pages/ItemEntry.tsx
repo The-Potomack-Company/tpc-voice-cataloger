@@ -15,7 +15,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { RecordingsList } from "../components/RecordingsList";
 import { useSession, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
-import { createBlankItem, updateItemField } from "../db/items";
+import { createBlankItem, updateItemField, deleteItem } from "../db/items";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
 import type { ItemPhoto } from "../db/types";
@@ -28,8 +28,7 @@ export function ItemEntryPage() {
   const navigate = useNavigate();
   const creatingRef = useRef(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showEmptyWarning, setShowEmptyWarning] = useState(false);
-  const isCreatingNext = useRef(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load session from Zustand
   const session = useSession(sessionId!);
@@ -144,46 +143,13 @@ export function ItemEntryPage() {
   const isRecordDisabled =
     mode === "sale" && !isValidReceiptNumber(receiptValue);
 
-  // Next Item handler
-  const handleNextItem = useCallback(async () => {
-    if (!itemId || isNewItem || isCreatingNext.current) return;
-
-    // Check if item is empty using Dexie for blobs
-    const lookupId = dexieItemId ?? itemId;
-    const audioCount = await db.audio
-      .where("itemId")
-      .equals(lookupId)
-      .count();
-    const photoCount =
-      mode === "house"
-        ? await db.photos.where("itemId").equals(lookupId).count()
-        : 0;
-    const hasReceipt =
-      mode === "sale" && isValidReceiptNumber(receiptValue);
-
-    const isEmpty =
-      audioCount === 0 &&
-      photoCount === 0 &&
-      (mode === "house" || !hasReceipt);
-
-    if (isEmpty) {
-      setShowEmptyWarning(true);
-      return;
-    }
-
-    proceedToNextItem();
-  }, [itemId, isNewItem, dexieItemId, mode, receiptValue, sessionId, navigate]);
-
-  const proceedToNextItem = useCallback(() => {
-    if (isCreatingNext.current) return;
-    isCreatingNext.current = true;
-    setShowEmptyWarning(false);
-    navigate(`/session/${sessionId}/item/new`);
-    // Reset after navigation
-    setTimeout(() => {
-      isCreatingNext.current = false;
-    }, 500);
-  }, [sessionId, navigate]);
+  // Delete item handler
+  const handleDeleteItem = useCallback(async () => {
+    if (!itemId || isNewItem || !sessionId) return;
+    setShowDeleteConfirm(false);
+    await deleteItem(itemId, sessionId);
+    navigate(`/session/${sessionId}`);
+  }, [itemId, isNewItem, sessionId, navigate]);
 
   // Lightbox delete handler
   const handleLightboxDelete = useCallback(
@@ -301,19 +267,19 @@ export function ItemEntryPage() {
             {/* Recordings list */}
             <RecordingsList itemId={itemId} />
 
-            {/* Next Item button */}
+            {/* Delete Item button */}
             <button
               type="button"
-              onClick={handleNextItem}
+              onClick={() => setShowDeleteConfirm(true)}
               className="w-full flex items-center justify-center gap-2 min-h-12 rounded-lg
-                bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                text-gray-700 dark:text-gray-300 font-medium
-                hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                border border-red-200 dark:border-red-800
+                text-red-600 dark:text-red-400 font-medium
+                hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
-              <span>Next Item</span>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
+              <span>Delete Item</span>
             </button>
           </>
         )}
@@ -333,15 +299,16 @@ export function ItemEntryPage() {
         />
       )}
 
-      {/* Empty item warning dialog */}
+      {/* Delete item confirmation */}
       <ConfirmDialog
-        open={showEmptyWarning}
-        title="Skip Item?"
-        message="This item has no recording or photos. Skip it?"
-        confirmLabel="Skip"
+        open={showDeleteConfirm}
+        title="Delete Item"
+        message="Delete this item and all its recordings and photos? This cannot be undone."
+        confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={proceedToNextItem}
-        onCancel={() => setShowEmptyWarning(false)}
+        destructive
+        onConfirm={handleDeleteItem}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
 
       {/* Left/right navigation arrows for house mode */}
