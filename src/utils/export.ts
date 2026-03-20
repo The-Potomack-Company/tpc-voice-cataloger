@@ -102,7 +102,7 @@ export async function buildExportData(
   const sessionData = {
     name: session.name,
     mode: session.mode as "house" | "sale",
-    status: session.status as "active" | "completed",
+    status: session.status as "active" | "submitted" | "returned" | "exported",
     notes: session.notes,
     createdAt: new Date(session.created_at),
     updatedAt: new Date(session.updated_at),
