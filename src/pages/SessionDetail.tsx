@@ -79,7 +79,7 @@ export function SessionDetailPage() {
   const [exporting, setExporting] = useState(false);
 
   const [confirmAction, setConfirmAction] = useState<
-    "submit" | "delete" | null
+    "submit" | "delete" | "export" | "reopen" | null
   >(null);
 
   const [showReturnDialog, setShowReturnDialog] = useState(false);
@@ -222,12 +222,16 @@ export function SessionDetailPage() {
   };
 
   const handleExportClick = () => {
-    handleExport();
+    setConfirmAction('export');
   };
 
   const handleConfirm = async () => {
     if (confirmAction === "submit") {
       await storeUpdateSession(session.id, { status: 'submitted', review_notes: null });
+    } else if (confirmAction === "export") {
+      await handleExport();
+    } else if (confirmAction === "reopen") {
+      await storeUpdateSession(session.id, { status: 'active' });
     } else if (confirmAction === "delete") {
       await useSessionStore.getState().deleteSession(session.id);
       navigate("/");
@@ -377,6 +381,18 @@ export function SessionDetailPage() {
                          hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
             >
               Return to Specialist
+            </button>
+          )}
+
+          {/* Reopen Session -- admin only, exported sessions */}
+          {isAdmin && session.status === 'exported' && (
+            <button
+              onClick={() => setConfirmAction('reopen')}
+              className="w-full min-h-12 rounded-lg border border-gray-300 dark:border-gray-600
+                         text-gray-700 dark:text-gray-300 font-semibold
+                         hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              Reopen Session
             </button>
           )}
         </div>
@@ -566,6 +582,28 @@ export function SessionDetailPage() {
         message={`${session.name} will be locked for editing until returned or approved by admin.`}
         confirmLabel="Lock & Submit"
         cancelLabel="Keep Editing"
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      {/* Export confirmation */}
+      <ConfirmDialog
+        open={confirmAction === 'export'}
+        title="Export Session?"
+        message={`Export ${session.name} as JSON? The session will be marked as exported.`}
+        confirmLabel="Export"
+        cancelLabel="Cancel"
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      {/* Reopen confirmation */}
+      <ConfirmDialog
+        open={confirmAction === 'reopen'}
+        title="Reopen Session?"
+        message={`Reopen ${session.name}? It will return to active status and be editable again.`}
+        confirmLabel="Reopen"
+        cancelLabel="Cancel"
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}
       />
