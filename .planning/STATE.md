@@ -137,6 +137,7 @@ None yet.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 260320-fj2 | House visit mode: navigate-on-tap cards, chevron read-only summary, edge navigation arrows | 2026-03-20 | 65fba78 | Verified | [260320-fj2-house-visit-mode-remove-dropdown-always-](./quick/260320-fj2-house-visit-mode-remove-dropdown-always-/) |
+| 260320-ivg | Refresh Zustand store after AI processing so ItemEntry re-renders immediately | 2026-03-20 | eb553e3 | Verified | [260320-ivg-after-ai-finishes-processing-in-house-vi](./quick/260320-ivg-after-ai-finishes-processing-in-house-vi/) |
 
 ### Roadmap Evolution
 
