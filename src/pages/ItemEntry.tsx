@@ -5,6 +5,7 @@ import { db } from "../db";
 import { isValidReceiptNumber } from "../utils/receiptNumber";
 import { PhotoCapture } from "../components/PhotoCapture";
 import { PhotoLightbox } from "../components/PhotoLightbox";
+import { EditableField } from "../components/EditableField";
 import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
 import { RecordButton } from "../components/RecordButton";
@@ -15,6 +16,7 @@ import { RecordingsList } from "../components/RecordingsList";
 import { useSession, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
 import { createBlankItem, updateItemField } from "../db/items";
+import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
 import type { ItemPhoto } from "../db/types";
 
@@ -222,6 +224,52 @@ export function ItemEntryPage() {
             itemId={itemId}
             onOpenLightbox={(index) => setLightboxIndex(index)}
           />
+        )}
+
+        {/* Editable fields for house mode */}
+        {mode === "house" && item && (
+          <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+            <EditableField
+              label="Title"
+              value={item.title ?? undefined}
+              onSave={(val) => { updateItemField(item.id, sessionId!, "title", val).catch(console.error); }}
+              placeholder="Enter title"
+            />
+            <EditableField
+              label="Description"
+              value={item.description ?? undefined}
+              onSave={(val) => { updateItemField(item.id, sessionId!, "description", val).catch(console.error); }}
+              placeholder="Enter description"
+              multiline
+            />
+            <EditableField
+              label="Measurements"
+              value={item.measurements ?? undefined}
+              onSave={(val) => {
+                const reformatted = reformatMeasurements(val);
+                updateItemField(item.id, sessionId!, "measurements", reformatted).catch(console.error);
+              }}
+              placeholder="Enter measurements"
+            />
+            <EditableField
+              label="Condition"
+              value={item.condition ?? undefined}
+              onSave={(val) => { updateItemField(item.id, sessionId!, "condition", val).catch(console.error); }}
+              placeholder="Enter condition"
+            />
+            <EditableField
+              label="Estimate"
+              value={item.estimate ?? undefined}
+              onSave={(val) => { updateItemField(item.id, sessionId!, "estimate", val).catch(console.error); }}
+              placeholder="Enter estimate"
+            />
+            <EditableField
+              label="Category"
+              value={item.category ?? undefined}
+              onSave={(val) => { updateItemField(item.id, sessionId!, "category", val).catch(console.error); }}
+              placeholder="Enter category"
+            />
+          </div>
         )}
 
         {mode === "sale" && (
