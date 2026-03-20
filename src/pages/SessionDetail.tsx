@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useSession, useSessionItemCount, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
+import { useUserRole } from "../hooks/useUserRole";
+import { listAccounts, type Account } from "../services/adminApi";
 import { updateSession, deleteSession } from "../db/sessions";
 import { createBlankItem } from "../db/items";
 import { exportSession } from "../utils/export";
@@ -80,6 +82,53 @@ export function SessionDetailPage() {
   >(null);
 
   const [importToast, setImportToast] = useState<string | null>(null);
+
+  // Admin reassignment state
+  const { isAdmin, loading: roleLoading } = useUserRole();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [editingAssignee, setEditingAssignee] = useState(false);
+  const [reassignError, setReassignError] = useState<string | null>(null);
+
+  // Fetch accounts when admin
+  useEffect(() => {
+    if (!isAdmin) return;
+    listAccounts()
+      .then((data) => {
+        setAccounts(
+          data
+            .filter((a) => a.is_active)
+            .sort((a, b) => a.display_name.localeCompare(b.display_name)),
+        );
+      })
+      .catch(() => {
+        /* silent fail */
+      });
+  }, [isAdmin]);
+
+  // Auto-clear reassign error after 5 seconds
+  useEffect(() => {
+    if (!reassignError) return;
+    const timer = setTimeout(() => setReassignError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [reassignError]);
+
+  const handleReassign = async (newAssigneeId: string) => {
+    if (!session || newAssigneeId === session.assigned_to) {
+      setEditingAssignee(false);
+      return;
+    }
+    try {
+      await useSessionStore.getState().updateSession(session.id, {
+        assigned_to: newAssigneeId,
+        updated_at: new Date().toISOString(),
+      });
+      setEditingAssignee(false);
+      setReassignError(null);
+    } catch {
+      setReassignError("Reassignment failed. Please try again.");
+      setEditingAssignee(false);
+    }
+  };
 
   // Check for import toast from sessionStorage on mount
   useEffect(() => {
@@ -259,6 +308,46 @@ export function SessionDetailPage() {
           {session.status === "active" ? "Active" : "Completed"}
         </span>
       </div>
+
+      {/* Admin-only assignee field */}
+      {isAdmin && session && (
+        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 mb-6">
+          <span className="text-sm text-gray-500 dark:text-gray-400">Assigned to</span>
+          {editingAssignee ? (
+            <select
+              autoFocus
+              value={session.assigned_to ?? ""}
+              onChange={(e) => handleReassign(e.target.value)}
+              onBlur={() => setEditingAssignee(false)}
+              className="text-sm font-medium rounded border border-gray-300 dark:border-gray-600
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                         px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.display_name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span
+              onClick={() => setEditingAssignee(true)}
+              className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer
+                         hover:text-accent transition-colors"
+              title="Tap to reassign"
+            >
+              {accounts.find((a) => a.id === session.assigned_to)?.display_name ??
+                (session.assigned_to ? "Loading..." : "Unassigned")}
+            </span>
+          )}
+        </div>
+      )}
+      {/* Reassign error */}
+      {reassignError && (
+        <p className="text-sm text-red-600 dark:text-red-400 -mt-4 mb-6" role="alert">
+          {reassignError}
+        </p>
+      )}
 
       {/* Interrupted recording banner */}
       {isInterrupted && !showDismissedBanner && (
