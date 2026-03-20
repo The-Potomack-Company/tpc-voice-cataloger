@@ -8,8 +8,9 @@ const {
   mockUseUserRole,
   mockListAccounts,
   mockUseActiveSessions,
-  mockUseCompletedSessions,
-  mockUseArchivedSessions,
+  mockUseSubmittedSessions,
+  mockUseReturnedSessions,
+  mockUseExportedSessions,
   mockUseSessionItemCount,
   mockUseNameMap,
   mockUseUIStore,
@@ -17,8 +18,9 @@ const {
   mockUseUserRole: vi.fn(),
   mockListAccounts: vi.fn(),
   mockUseActiveSessions: vi.fn(),
-  mockUseCompletedSessions: vi.fn(),
-  mockUseArchivedSessions: vi.fn(),
+  mockUseSubmittedSessions: vi.fn(),
+  mockUseReturnedSessions: vi.fn(),
+  mockUseExportedSessions: vi.fn(),
   mockUseSessionItemCount: vi.fn(),
   mockUseNameMap: vi.fn(),
   mockUseUIStore: vi.fn(),
@@ -34,8 +36,9 @@ vi.mock("../services/adminApi", () => ({
 
 vi.mock("../hooks/useSessions", () => ({
   useActiveSessions: mockUseActiveSessions,
-  useCompletedSessions: mockUseCompletedSessions,
-  useArchivedSessions: mockUseArchivedSessions,
+  useSubmittedSessions: mockUseSubmittedSessions,
+  useReturnedSessions: mockUseReturnedSessions,
+  useExportedSessions: mockUseExportedSessions,
   useSessionItemCount: mockUseSessionItemCount,
   useNameMap: mockUseNameMap,
 }));
@@ -118,8 +121,9 @@ describe("Sessions admin view (ASGN-04)", () => {
       makeSession("s2", "Session 2", "user-b"),
       makeSession("s3", "Session 3", "user-a"),
     ]);
-    mockUseCompletedSessions.mockReturnValue([]);
-    mockUseArchivedSessions.mockReturnValue([]);
+    mockUseSubmittedSessions.mockReturnValue([]);
+    mockUseReturnedSessions.mockReturnValue([]);
+    mockUseExportedSessions.mockReturnValue([]);
 
     render(
       <MemoryRouter>
@@ -136,8 +140,9 @@ describe("Sessions admin view (ASGN-04)", () => {
     mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, loading: false });
     mockUseNameMap.mockReturnValue(new Map([["user-a", "Alice"]]));
     mockUseActiveSessions.mockReturnValue([makeSession("s1", "Session 1", "user-a")]);
-    mockUseCompletedSessions.mockReturnValue([]);
-    mockUseArchivedSessions.mockReturnValue([]);
+    mockUseSubmittedSessions.mockReturnValue([]);
+    mockUseReturnedSessions.mockReturnValue([]);
+    mockUseExportedSessions.mockReturnValue([]);
 
     render(
       <MemoryRouter>
@@ -154,8 +159,9 @@ describe("Sessions admin view (ASGN-04)", () => {
     mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, loading: false });
     mockUseNameMap.mockReturnValue(new Map([["user-a", "Alice"]]));
     mockUseActiveSessions.mockReturnValue([makeSession("s1", "Session 1", "user-a", "active")]);
-    mockUseCompletedSessions.mockReturnValue([]);
-    mockUseArchivedSessions.mockReturnValue([]);
+    mockUseSubmittedSessions.mockReturnValue([]);
+    mockUseReturnedSessions.mockReturnValue([]);
+    mockUseExportedSessions.mockReturnValue([]);
 
     render(
       <MemoryRouter>
@@ -173,8 +179,9 @@ describe("Sessions admin view (ASGN-04)", () => {
       makeSession("s1", "Session 1", "user-a"),
       makeSession("s2", "Session 2", "user-b"),
     ]);
-    mockUseCompletedSessions.mockReturnValue([]);
-    mockUseArchivedSessions.mockReturnValue([]);
+    mockUseSubmittedSessions.mockReturnValue([]);
+    mockUseReturnedSessions.mockReturnValue([]);
+    mockUseExportedSessions.mockReturnValue([]);
 
     render(
       <MemoryRouter>
@@ -195,8 +202,9 @@ describe("Sessions admin view (ASGN-04)", () => {
     mockUseUserRole.mockReturnValue({ role: null, isAdmin: false, loading: true });
     mockUseNameMap.mockReturnValue(new Map());
     mockUseActiveSessions.mockReturnValue([]);
-    mockUseCompletedSessions.mockReturnValue([]);
-    mockUseArchivedSessions.mockReturnValue([]);
+    mockUseSubmittedSessions.mockReturnValue([]);
+    mockUseReturnedSessions.mockReturnValue([]);
+    mockUseExportedSessions.mockReturnValue([]);
 
     const { container } = render(
       <MemoryRouter>

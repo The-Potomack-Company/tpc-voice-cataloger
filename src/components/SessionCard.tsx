@@ -146,9 +146,11 @@ export function SessionCard({
                   {statusLabels[sessionStatus] ?? sessionStatus}
                 </span>
               )}
-              {!sessionStatus && session.status === "completed" && (
-                <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                  Completed
+              {!sessionStatus && session.status !== 'active' && statusColors[session.status] && (
+                <span
+                  className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${statusColors[session.status]}`}
+                >
+                  {statusLabels[session.status] ?? session.status.charAt(0).toUpperCase() + session.status.slice(1)}
                 </span>
               )}
               {isInterrupted && (

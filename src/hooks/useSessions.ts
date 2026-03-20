@@ -11,17 +11,26 @@ export function useActiveSessions() {
   );
 }
 
-export function useCompletedSessions() {
+export function useSubmittedSessions() {
   const sessions = useSessionStore((s) => s.sessions);
   return useMemo(
-    () =>
-      sessions.filter(
-        (sess) =>
-          sess.status === "completed" ||
-          sess.status === "submitted" ||
-          sess.status === "returned" ||
-          sess.status === "exported",
-      ),
+    () => sessions.filter((sess) => sess.status === "submitted"),
+    [sessions],
+  );
+}
+
+export function useReturnedSessions() {
+  const sessions = useSessionStore((s) => s.sessions);
+  return useMemo(
+    () => sessions.filter((sess) => sess.status === "returned"),
+    [sessions],
+  );
+}
+
+export function useExportedSessions() {
+  const sessions = useSessionStore((s) => s.sessions);
+  return useMemo(
+    () => sessions.filter((sess) => sess.status === "exported"),
     [sessions],
   );
 }
@@ -32,10 +41,6 @@ export function useDeletedSessions() {
   return [] as Tables<"sessions">[];
 }
 
-export function useArchivedSessions() {
-  // No archive concept in Supabase schema -- return empty array
-  return [] as Tables<"sessions">[];
-}
 
 export function useSession(id: string) {
   return useSessionStore((s) => s.sessions.find((sess) => sess.id === id));
