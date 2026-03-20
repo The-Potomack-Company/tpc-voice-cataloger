@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: verifying
-stopped_at: Phase 19 context gathered
-last_updated: "2026-03-20T18:39:33.346Z"
-last_activity: "2026-03-20 -- Completed 16-03: Human verification of session lifecycle (all 8 scenarios + 3 UAT fixes)"
+status: completed
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-03-20T18:43:02.756Z"
+last_activity: "2026-03-20 -- Completed 18-01: Walkthrough data layer (migration, hook, step definitions)"
 progress:
   total_phases: 9
   completed_phases: 6
-  total_plans: 28
-  completed_plans: 20
-  percent: 83
+  total_plans: 31
+  completed_plans: 21
+  percent: 71
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 18 of 19 (Update Tutorial Walkthrough)
-Plan: 1 of 3
-Status: Plan 18-00 complete -- Test stubs created for all WT requirements
-Last activity: 2026-03-20 -- Completed 18-00: Walkthrough test stubs (27 todo markers for WT-01 through WT-08)
+Plan: 2 of 3
+Status: Plan 18-01 complete -- Migration, hook, step definitions created
+Last activity: 2026-03-20 -- Completed 18-01: Walkthrough data layer (migration, hook, step definitions)
 
 Progress: [███████░░░] 71%
 
@@ -53,6 +53,7 @@ Progress: [███████░░░] 71%
 - 16-02: 4 min (2 tasks, 3 files)
 - 16-03: 3 min (1 task, 2 files) -- human verification + UAT fixes
 - 18-00: 1 min (1 task, 3 files) -- walkthrough test stubs
+- 18-01: 3 min (2 tasks, 4 files) -- walkthrough data layer
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -126,6 +127,7 @@ Recent decisions affecting current work:
 - [16-03] Export now requires confirmation dialog (UAT feedback -- prevent accidental exports)
 - [16-03] Admin can re-export already-exported sessions (no status gate on export button)
 - [16-03] Admin can reopen exported sessions back to active status (reversal path for corrections)
+- [Phase 18]: RLS self-update policy on profiles allows users to update any column on own row (acceptable: UI does not expose dangerous columns, CHECK constraints protect role values)
 
 ### Pending Todos
 
@@ -153,6 +155,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:38:53Z
-Stopped at: Completed 18-00-PLAN.md
-Resume file: .planning/phases/18-update-tutorial-walkthrough-to-be-thorough/18-01-PLAN.md
+Last session: 2026-03-20T18:42:23.865Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None
