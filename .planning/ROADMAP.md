@@ -167,7 +167,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 13. Account Management | v1.1 | 2/2 | Complete | 2026-03-18 |
 | 14. Data Migration | 5/5 | Complete    | 2026-03-20 | - |
 | 15. Session Assignment | 3/3 | Complete    | 2026-03-20 | - |
-| 16. Session Lifecycle | v1.1 | 4/4 | Complete | 2026-03-20 |
+| 16. Session Lifecycle | v1.1 | Complete    | 2026-03-20 | 2026-03-20 |
 | 17. Deployment & CI | v1.1 | 0/4 | Not started | - |
 
 ### Phase 18: Update tutorial/walkthrough to be thorough
