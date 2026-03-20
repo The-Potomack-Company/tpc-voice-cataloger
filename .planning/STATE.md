@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: verifying
-stopped_at: Completed 15-03-PLAN.md (phase 15 complete)
-last_updated: "2026-03-20T17:05:47.192Z"
-last_activity: "2026-03-20 -- Completed 15-03: human verification with UAT feedback fixes"
+status: executing
+stopped_at: Completed 16-00-PLAN.md
+last_updated: "2026-03-20T17:16:15.000Z"
+last_activity: "2026-03-20 -- Completed 16-00: stub test scaffolding for session lifecycle"
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 23
-  completed_plans: 15
-  percent: 65
+  completed_plans: 16
+  percent: 70
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 15 (Session Assignment) complete, human-verified
+**Current focus:** v1.1 Accounts & Deploy -- Phase 16 (Session Lifecycle) in progress
 
 ## Current Position
 
-Phase: 15 of 17 (Session Assignment)
-Plan: 3 of 3
-Status: Phase 15 complete -- all 3 plans done, human-verified all 4 ASGN requirements
-Last activity: 2026-03-20 -- Completed 15-03: human verification with UAT feedback fixes
+Phase: 16 of 17 (Session Lifecycle)
+Plan: 1 of 4
+Status: Plan 16-00 complete -- stub test scaffolding for LIFE-01 through LIFE-06
+Last activity: 2026-03-20 -- Completed 16-00: stub test scaffolding for session lifecycle
 
-Progress: [██████▌░░░] 65%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Progress: [██████▌░░░] 65%
 - 14-05: 4 min (2 tasks, 5 files)
 - 15-01: 5 min (2 tasks, 7 files)
 - 15-02: 6 min (2 tasks, 5 files)
+- 16-00: 2 min (1 task, 4 files)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -131,9 +132,10 @@ None yet.
 
 - Phases 11-17 added for v1.1 Accounts & Deploy milestone
 - Phase 18 added: Update tutorial/walkthrough to be thorough
+- Phase 19 added: Photo Upload to Supabase Storage with full offline support
 
 ## Session Continuity
 
-Last session: 2026-03-20T17:00:00Z
-Stopped at: Completed 15-03-PLAN.md (phase 15 complete)
-Resume file: .planning/phases/15-session-assignment/15-03-SUMMARY.md
+Last session: 2026-03-20T17:16:15Z
+Stopped at: Completed 16-00-PLAN.md
+Resume file: .planning/phases/16-session-lifecycle/16-00-SUMMARY.md

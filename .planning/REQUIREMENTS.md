@@ -115,12 +115,12 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
 ### Session Lifecycle
 
-- [ ] **LIFE-01**: Specialist can submit a completed session to admin for review
-- [ ] **LIFE-02**: Submitted sessions are locked for the specialist (read-only unless returned)
-- [ ] **LIFE-03**: Admin can edit item fields directly on submitted sessions
-- [ ] **LIFE-04**: Admin can return a submitted session to the specialist with review notes
-- [ ] **LIFE-05**: Returned sessions show review notes to the specialist
-- [ ] **LIFE-06**: Only admin can export session data as JSON
+- [x] **LIFE-01**: Specialist can submit a completed session to admin for review
+- [x] **LIFE-02**: Submitted sessions are locked for the specialist (read-only unless returned)
+- [x] **LIFE-03**: Admin can edit item fields directly on submitted sessions
+- [x] **LIFE-04**: Admin can return a submitted session to the specialist with review notes
+- [x] **LIFE-05**: Returned sessions show review notes to the specialist
+- [x] **LIFE-06**: Only admin can export session data as JSON
 
 ### Backend Infrastructure
 
@@ -218,12 +218,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASGN-02 | Phase 15 | Complete |
 | ASGN-03 | Phase 15 | Complete |
 | ASGN-04 | Phase 15 | Complete |
-| LIFE-01 | Phase 16 | Pending |
-| LIFE-02 | Phase 16 | Pending |
-| LIFE-03 | Phase 16 | Pending |
-| LIFE-04 | Phase 16 | Pending |
-| LIFE-05 | Phase 16 | Pending |
-| LIFE-06 | Phase 16 | Pending |
+| LIFE-01 | Phase 16 | Complete |
+| LIFE-02 | Phase 16 | Complete |
+| LIFE-03 | Phase 16 | Complete |
+| LIFE-04 | Phase 16 | Complete |
+| LIFE-05 | Phase 16 | Complete |
+| LIFE-06 | Phase 16 | Complete |
 | DEPLOY-01 | Phase 17 | Pending |
 | DEPLOY-02 | Phase 17 | Pending |
 | DEPLOY-03 | Phase 17 | Pending |
