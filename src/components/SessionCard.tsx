@@ -12,7 +12,26 @@ interface SessionCardProps {
   onTap: () => void;
   onDelete: () => void;
   onRename: (newName: string) => void;
+  assigneeName?: string;
+  sessionStatus?: string;
 }
+
+const statusColors: Record<string, string> = {
+  active: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+  submitted:
+    "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+  returned:
+    "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400",
+  exported:
+    "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+};
+
+const statusLabels: Record<string, string> = {
+  active: "Active",
+  submitted: "Submitted",
+  returned: "Returned",
+  exported: "Exported",
+};
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -38,6 +57,8 @@ export function SessionCard({
   onTap,
   onDelete,
   onRename,
+  assigneeName,
+  sessionStatus,
 }: SessionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(session.name);
@@ -120,7 +141,19 @@ export function SessionCard({
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {itemCount} item{itemCount !== 1 ? "s" : ""}
               </span>
-              {session.status === "completed" && (
+              {assigneeName && (
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Assigned to {assigneeName}
+                </span>
+              )}
+              {sessionStatus && statusColors[sessionStatus] && (
+                <span
+                  className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[sessionStatus]}`}
+                >
+                  {statusLabels[sessionStatus] ?? sessionStatus}
+                </span>
+              )}
+              {!sessionStatus && session.status === "completed" && (
                 <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                   Completed
                 </span>
