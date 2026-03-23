@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: in-progress
-stopped_at: Completed 19-02-PLAN.md
-last_updated: "2026-03-23T14:18:52.848Z"
-last_activity: "2026-03-23 -- Completed 19-02: UI integration (upload trigger, sync overlays, drain order)"
+stopped_at: Completed 19-03-PLAN.md
+last_updated: "2026-03-23T14:25:15.000Z"
+last_activity: "2026-03-23 -- Completed 19-03: URL fallback (signed URL display, export Storage download)"
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 31
-  completed_plans: 25
-  percent: 81
+  completed_plans: 26
+  percent: 84
 ---
 
 # Project State
@@ -26,16 +26,16 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 19 of 19 (Photo Upload to Supabase Storage)
-Plan: 4 of 5
-Status: Plan 19-02 complete -- UI integration (upload trigger, sync overlays, drain order)
-Last activity: 2026-03-23 -- Completed 19-02: UI integration
+Plan: 5 of 5
+Status: Plan 19-03 complete -- URL fallback (signed URL display, export Storage download)
+Last activity: 2026-03-23 -- Completed 19-03: URL fallback & export
 
-Progress: [████████░░] 81%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
 **Velocity (from v1.0):**
-- Total plans completed: 28
+- Total plans completed: 29
 - Average duration: ~5 min
 - Total execution time: ~2.4 hours
 
@@ -58,6 +58,7 @@ Progress: [████████░░] 81%
 - 19-00: 2 min (2 tasks, 4 files) -- photo upload test stubs
 - 19-01: 3 min (2 tasks, 5 files) -- photo upload infrastructure
 - 19-02: 3 min (2 tasks, 4 files) -- UI integration (upload trigger, sync overlays)
+- 19-03: 5 min (2 tasks, 6 files) -- URL fallback (signed URL display, export Storage download)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -139,6 +140,9 @@ Recent decisions affecting current work:
 - [19-01] Storage path convention: photos/{sessionId}/{itemId}/full-{sortOrder}.jpg
 - [19-02] Fire-and-forget upload: enqueue + drain chained with .then(), not awaited in handleKeep UI flow
 - [19-02] Failed thumbnail tap triggers retryFailedUploads instead of opening lightbox
+- [19-03] usePhotoUrl checks blob (not blobUrl) to avoid React effect timing race with useBlobUrl
+- [19-03] Export filters to upload_status='uploaded' photos only when downloading from Storage
+- [19-03] Failed Storage downloads excluded gracefully (try/catch + null filter) rather than throwing
 
 ### Pending Todos
 
@@ -166,6 +170,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:18:14Z
-Stopped at: Completed 19-02-PLAN.md
+Last session: 2026-03-23T14:25:15Z
+Stopped at: Completed 19-03-PLAN.md
 Resume file: None
