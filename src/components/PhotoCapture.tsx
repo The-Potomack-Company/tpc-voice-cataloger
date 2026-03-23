@@ -3,10 +3,10 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import type { ItemPhoto } from "../db/types";
 import { resizeImage } from "../utils/image";
-import { useBlobUrl } from "../hooks/useBlobUrl";
 import { getDexieItemId } from "../db/idMapping";
 import { enqueuePhotoUpload, drainPhotoQueue, retryFailedUploads } from "../services/photoUploadQueue";
 import { usePhotoUploadStatus } from "../hooks/usePhotoUploadStatus";
+import { usePhotoUrl } from "../hooks/usePhotoUrl";
 
 interface PhotoCaptureProps {
   itemId: string;
@@ -23,7 +23,13 @@ function Thumbnail({
   index: number;
   onTap: (index: number) => void;
 }) {
-  const url = useBlobUrl(photo.thumbnail ?? photo.blob);
+  // Look up storage thumbnail path from photoUploadQueue for signed URL fallback
+  const queueEntry = useLiveQuery(
+    () => photo.id ? db.photoUploadQueue.where('dexiePhotoId').equals(photo.id).first() : undefined,
+    [photo.id],
+    undefined,
+  );
+  const url = usePhotoUrl(photo.thumbnail ?? photo.blob, queueEntry?.thumbnailPath);
   const uploadStatus = usePhotoUploadStatus(photo.id);
 
   return (
