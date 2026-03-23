@@ -8,6 +8,7 @@ import type {
   ExportHistoryRecord,
   IdMapping,
   WriteAheadEntry,
+  PhotoUploadEntry,
 } from "./types";
 
 const db = new Dexie("TPCCatalog") as Dexie & {
@@ -19,6 +20,7 @@ const db = new Dexie("TPCCatalog") as Dexie & {
   exportHistory: EntityTable<ExportHistoryRecord, "id">;
   idMapping: EntityTable<IdMapping, "id">;
   writeAheadQueue: EntityTable<WriteAheadEntry, "id">;
+  photoUploadQueue: EntityTable<PhotoUploadEntry, "id">;
 };
 
 db.version(1).stores({
@@ -96,6 +98,19 @@ db.version(7).stores({
   exportHistory: "++id, sessionId, exportedAt",
   idMapping: "++id, oldId, newId, type, [newId+type]",
   writeAheadQueue: "++id, createdAt",
+});
+
+// v8: Add photoUploadQueue table for offline photo upload queuing
+db.version(8).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: '++id, status, dexiePhotoId, itemId, createdAt',
 });
 
 export { db };

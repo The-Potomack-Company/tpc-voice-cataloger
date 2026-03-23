@@ -88,6 +88,20 @@ export interface WriteAheadEntry {
   createdAt: Date;
 }
 
+export interface PhotoUploadEntry {
+  id?: number;
+  dexiePhotoId: number;
+  itemId: string;
+  sessionId: string;
+  sortOrder: number;
+  storagePath: string;
+  thumbnailPath: string;
+  status: 'pending' | 'uploading' | 'uploaded' | 'failed';
+  retryCount: number;
+  createdAt: Date;
+  lastAttemptAt?: Date;
+}
+
 export interface ExportSchema {
   version: 1;
   exportedAt: string;
