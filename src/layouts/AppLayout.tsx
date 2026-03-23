@@ -5,6 +5,8 @@ import { OfflineIndicator } from "../components/OfflineIndicator";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { drainQueue } from "../services/offlineQueue";
 import { drainPhotoQueue } from "../services/photoUploadQueue";
+import { migrateExistingPhotos } from "../services/photoMigration";
+import { PhotoMigrationBanner } from "../components/PhotoMigrationBanner";
 import {
   useWriteAheadQueue,
   processWriteAheadQueue,
@@ -34,6 +36,8 @@ export function AppLayout() {
     if (navigator.onLine) {
       handleReconnect();
     }
+    // Run photo migration on mount (post-auth, non-blocking)
+    migrateExistingPhotos().catch(() => {});
     const handleOnline = () => handleReconnect();
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
@@ -46,6 +50,7 @@ export function AppLayout() {
     >
       <InstallBanner />
       <OfflineIndicator />
+      <PhotoMigrationBanner />
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
