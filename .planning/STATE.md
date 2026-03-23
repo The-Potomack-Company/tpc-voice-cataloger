@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: in-progress
-stopped_at: Completed 19-00-PLAN.md
-last_updated: "2026-03-23T15:10:00.000Z"
-last_activity: "2026-03-23 -- Completed 19-00: Test stubs for photo upload"
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-03-23T14:13:01.000Z"
+last_activity: "2026-03-23 -- Completed 19-01: Photo upload infrastructure (migration, queue service)"
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 31
-  completed_plans: 23
-  percent: 74
+  completed_plans: 24
+  percent: 77
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 19 of 19 (Photo Upload to Supabase Storage)
-Plan: 2 of 5
-Status: Plan 19-00 complete -- Test stubs for photo upload
-Last activity: 2026-03-23 -- Completed 19-00: Test stubs for photo upload
+Plan: 3 of 5
+Status: Plan 19-01 complete -- Photo upload infrastructure (migration, queue service)
+Last activity: 2026-03-23 -- Completed 19-01: Photo upload infrastructure
 
-Progress: [███████░░░] 74%
+Progress: [████████░░] 77%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [███████░░░] 74%
 - 18-01: 3 min (2 tasks, 4 files) -- walkthrough data layer
 - 18-02: 4 min (3 tasks, 4 files) -- walkthrough component rewrite
 - 19-00: 2 min (2 tasks, 4 files) -- photo upload test stubs
+- 19-01: 3 min (2 tasks, 5 files) -- photo upload infrastructure
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -132,6 +133,9 @@ Recent decisions affecting current work:
 - [Phase 18]: RLS self-update policy on profiles allows users to update any column on own row (acceptable: UI does not expose dangerous columns, CHECK constraints protect role values)
 - [18-02] Walkthrough receives role and onComplete as props from Sessions.tsx (not internal hook call)
 - [18-02] Loading state defaults to showing page content (not walkthrough) to avoid flash for returning users
+- [19-01] Photo upload concurrency of 2 (lower than audio queue's 4 due to larger payload size)
+- [19-01] Exponential backoff: 4^retryCount * 1000ms (1s, 4s, 16s) with max 3 retries
+- [19-01] Storage path convention: photos/{sessionId}/{itemId}/full-{sortOrder}.jpg
 
 ### Pending Todos
 
@@ -159,6 +163,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T15:10:00Z
-Stopped at: Completed 19-00-PLAN.md
+Last session: 2026-03-23T14:13:01Z
+Stopped at: Completed 19-01-PLAN.md
 Resume file: None
