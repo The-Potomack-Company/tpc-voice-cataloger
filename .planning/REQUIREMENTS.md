@@ -138,12 +138,12 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
 ### Photo Upload (Phase 19)
 
-- [ ] **PHOTO-UPLOAD-01**: Photos upload to Supabase Storage immediately after capture (fire-and-forget, non-blocking)
-- [ ] **PHOTO-UPLOAD-02**: Dedicated photo upload queue with bounded concurrency (2) and exponential backoff retry (3 attempts)
+- [x] **PHOTO-UPLOAD-01**: Photos upload to Supabase Storage immediately after capture (fire-and-forget, non-blocking)
+- [x] **PHOTO-UPLOAD-02**: Dedicated photo upload queue with bounded concurrency (2) and exponential backoff retry (3 attempts)
 - [ ] **PHOTO-UPLOAD-03**: Thumbnails show sync status overlay (uploading spinner, uploaded check, failed retry icon)
-- [ ] **PHOTO-UPLOAD-04**: Existing Dexie photos migrate to Storage automatically on app load (background, non-blocking)
-- [ ] **PHOTO-UPLOAD-05**: Photos display from local Dexie blob when available, falling back to Supabase signed URL
-- [ ] **PHOTO-UPLOAD-06**: Reconnection drain order is metadata -> photos -> audio
+- [x] **PHOTO-UPLOAD-04**: Existing Dexie photos migrate to Storage automatically on app load (background, non-blocking)
+- [x] **PHOTO-UPLOAD-05**: Photos display from local Dexie blob when available, falling back to Supabase signed URL
+- [x] **PHOTO-UPLOAD-06**: Reconnection drain order is metadata -> photos -> audio
 - [ ] **PHOTO-UPLOAD-07**: Export reads local blobs first, downloads from Storage when missing
 - [ ] **PHOTO-UPLOAD-08**: Human verification confirms end-to-end photo upload flow
 
@@ -238,12 +238,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEPLOY-02 | Phase 17 | Pending |
 | DEPLOY-03 | Phase 17 | Pending |
 | DEPLOY-04 | Phase 17 | Pending |
-| PHOTO-UPLOAD-01 | Phase 19 | Pending |
-| PHOTO-UPLOAD-02 | Phase 19 | Pending |
+| PHOTO-UPLOAD-01 | Phase 19 | Complete |
+| PHOTO-UPLOAD-02 | Phase 19 | Complete |
 | PHOTO-UPLOAD-03 | Phase 19 | Pending |
-| PHOTO-UPLOAD-04 | Phase 19 | Pending |
-| PHOTO-UPLOAD-05 | Phase 19 | Pending |
-| PHOTO-UPLOAD-06 | Phase 19 | Pending |
+| PHOTO-UPLOAD-04 | Phase 19 | Complete |
+| PHOTO-UPLOAD-05 | Phase 19 | Complete |
+| PHOTO-UPLOAD-06 | Phase 19 | Complete |
 | PHOTO-UPLOAD-07 | Phase 19 | Pending |
 | PHOTO-UPLOAD-08 | Phase 19 | Pending |
 

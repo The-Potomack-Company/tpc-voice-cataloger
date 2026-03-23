@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: completed
-stopped_at: Completed 18-02-PLAN.md
-last_updated: "2026-03-23T14:02:08.220Z"
-last_activity: "2026-03-23 -- Completed 18-02: Walkthrough component rewrite with role-aware steps"
+status: in-progress
+stopped_at: Completed 19-00-PLAN.md
+last_updated: "2026-03-23T15:10:00.000Z"
+last_activity: "2026-03-23 -- Completed 19-00: Test stubs for photo upload"
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 31
-  completed_plans: 22
+  completed_plans: 23
   percent: 74
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 16 complete, Phase 17 (Deployment & CI) next
+**Current focus:** v1.1 Accounts & Deploy -- Phase 19 in progress (Photo Upload to Supabase Storage)
 
 ## Current Position
 
-Phase: 18 of 19 (Update Tutorial Walkthrough)
-Plan: 3 of 3
-Status: Plan 18-02 complete -- Walkthrough component rewrite with role-aware steps
-Last activity: 2026-03-23 -- Completed 18-02: Walkthrough component rewrite with role-aware steps
+Phase: 19 of 19 (Photo Upload to Supabase Storage)
+Plan: 2 of 5
+Status: Plan 19-00 complete -- Test stubs for photo upload
+Last activity: 2026-03-23 -- Completed 19-00: Test stubs for photo upload
 
 Progress: [███████░░░] 74%
 
@@ -55,6 +55,7 @@ Progress: [███████░░░] 74%
 - 18-00: 1 min (1 task, 3 files) -- walkthrough test stubs
 - 18-01: 3 min (2 tasks, 4 files) -- walkthrough data layer
 - 18-02: 4 min (3 tasks, 4 files) -- walkthrough component rewrite
+- 19-00: 2 min (2 tasks, 4 files) -- photo upload test stubs
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -158,6 +159,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T13:57:00Z
-Stopped at: Completed 18-02-PLAN.md
+Last session: 2026-03-23T15:10:00Z
+Stopped at: Completed 19-00-PLAN.md
 Resume file: None
