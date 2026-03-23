@@ -202,7 +202,7 @@ Plans:
   6. Reconnection drain order is metadata -> photos -> audio
   7. Export reads local blobs first, downloads from Storage when missing
   8. Human verification confirms end-to-end flow
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 - [ ] 19-00-PLAN.md -- Wave 0: test stub files for photo upload queue, migration, and URL fallback

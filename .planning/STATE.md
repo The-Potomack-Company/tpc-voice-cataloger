@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: in-progress
-stopped_at: Completed 19-01-PLAN.md
-last_updated: "2026-03-23T14:13:01.000Z"
-last_activity: "2026-03-23 -- Completed 19-01: Photo upload infrastructure (migration, queue service)"
+stopped_at: Completed 19-02-PLAN.md
+last_updated: "2026-03-23T14:18:52.848Z"
+last_activity: "2026-03-23 -- Completed 19-02: UI integration (upload trigger, sync overlays, drain order)"
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 31
-  completed_plans: 24
-  percent: 77
+  completed_plans: 25
+  percent: 81
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 19 of 19 (Photo Upload to Supabase Storage)
-Plan: 3 of 5
-Status: Plan 19-01 complete -- Photo upload infrastructure (migration, queue service)
-Last activity: 2026-03-23 -- Completed 19-01: Photo upload infrastructure
+Plan: 4 of 5
+Status: Plan 19-02 complete -- UI integration (upload trigger, sync overlays, drain order)
+Last activity: 2026-03-23 -- Completed 19-02: UI integration
 
-Progress: [████████░░] 77%
+Progress: [████████░░] 81%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [████████░░] 77%
 - 18-02: 4 min (3 tasks, 4 files) -- walkthrough component rewrite
 - 19-00: 2 min (2 tasks, 4 files) -- photo upload test stubs
 - 19-01: 3 min (2 tasks, 5 files) -- photo upload infrastructure
+- 19-02: 3 min (2 tasks, 4 files) -- UI integration (upload trigger, sync overlays)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -136,6 +137,8 @@ Recent decisions affecting current work:
 - [19-01] Photo upload concurrency of 2 (lower than audio queue's 4 due to larger payload size)
 - [19-01] Exponential backoff: 4^retryCount * 1000ms (1s, 4s, 16s) with max 3 retries
 - [19-01] Storage path convention: photos/{sessionId}/{itemId}/full-{sortOrder}.jpg
+- [19-02] Fire-and-forget upload: enqueue + drain chained with .then(), not awaited in handleKeep UI flow
+- [19-02] Failed thumbnail tap triggers retryFailedUploads instead of opening lightbox
 
 ### Pending Todos
 
@@ -163,6 +166,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:13:01Z
-Stopped at: Completed 19-01-PLAN.md
+Last session: 2026-03-23T14:18:14Z
+Stopped at: Completed 19-02-PLAN.md
 Resume file: None

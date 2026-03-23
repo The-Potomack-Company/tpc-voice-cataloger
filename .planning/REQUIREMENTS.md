@@ -140,7 +140,7 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 
 - [x] **PHOTO-UPLOAD-01**: Photos upload to Supabase Storage immediately after capture (fire-and-forget, non-blocking)
 - [x] **PHOTO-UPLOAD-02**: Dedicated photo upload queue with bounded concurrency (2) and exponential backoff retry (3 attempts)
-- [ ] **PHOTO-UPLOAD-03**: Thumbnails show sync status overlay (uploading spinner, uploaded check, failed retry icon)
+- [x] **PHOTO-UPLOAD-03**: Thumbnails show sync status overlay (uploading spinner, uploaded check, failed retry icon)
 - [x] **PHOTO-UPLOAD-04**: Existing Dexie photos migrate to Storage automatically on app load (background, non-blocking)
 - [x] **PHOTO-UPLOAD-05**: Photos display from local Dexie blob when available, falling back to Supabase signed URL
 - [x] **PHOTO-UPLOAD-06**: Reconnection drain order is metadata -> photos -> audio
@@ -240,7 +240,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEPLOY-04 | Phase 17 | Pending |
 | PHOTO-UPLOAD-01 | Phase 19 | Complete |
 | PHOTO-UPLOAD-02 | Phase 19 | Complete |
-| PHOTO-UPLOAD-03 | Phase 19 | Pending |
+| PHOTO-UPLOAD-03 | Phase 19 | Complete |
 | PHOTO-UPLOAD-04 | Phase 19 | Complete |
 | PHOTO-UPLOAD-05 | Phase 19 | Complete |
 | PHOTO-UPLOAD-06 | Phase 19 | Complete |
