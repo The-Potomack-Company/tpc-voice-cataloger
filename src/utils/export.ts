@@ -58,16 +58,50 @@ export async function buildExportData(
         .equals(lookupId)
         .toArray();
 
-      const photoData = await Promise.all(
-        photos.map(async (p) => ({
-          blob: await blobToBase64(
-            p.blob instanceof Blob
-              ? p.blob
-              : new Blob([p.blob as unknown as ArrayBuffer]),
-          ),
-          sortOrder: p.sortOrder,
-        })),
-      );
+      let photoData: Array<{ blob: string; sortOrder: number }>;
+
+      if (photos.length > 0) {
+        // Local Dexie blobs available -- use them (instant, works offline)
+        photoData = await Promise.all(
+          photos.map(async (p) => ({
+            blob: await blobToBase64(
+              p.blob instanceof Blob
+                ? p.blob
+                : new Blob([p.blob as unknown as ArrayBuffer]),
+            ),
+            sortOrder: p.sortOrder,
+          })),
+        );
+      } else {
+        // No local blobs -- download from Supabase Storage (admin on different device)
+        const { data: supabasePhotos } = await supabase
+          .from("photos")
+          .select("storage_path, sort_order")
+          .eq("item_id", item.id)
+          .eq("upload_status", "uploaded")
+          .order("sort_order", { ascending: true });
+
+        const downloaded = await Promise.all(
+          (supabasePhotos ?? []).map(async (sp) => {
+            try {
+              const { data: blob } = await supabase.storage
+                .from("photos")
+                .download(sp.storage_path);
+              if (!blob) return null;
+              return {
+                blob: await blobToBase64(blob),
+                sortOrder: sp.sort_order,
+              };
+            } catch {
+              return null;
+            }
+          }),
+        );
+        // Filter out nulls from failed downloads
+        photoData = downloaded.filter(
+          (p): p is NonNullable<typeof p> => p !== null,
+        );
+      }
 
       const audioData = await Promise.all(
         audioRecords.map(async (a) => ({

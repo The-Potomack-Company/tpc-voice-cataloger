@@ -10,6 +10,7 @@ const {
   mockSupabaseSingle,
   mockSupabaseInsert,
   mockSupabaseHead,
+  mockStorageDownload,
 } = vi.hoisted(() => {
   return {
     mockFrom: vi.fn(),
@@ -19,12 +20,18 @@ const {
     mockSupabaseSingle: vi.fn(),
     mockSupabaseInsert: vi.fn(),
     mockSupabaseHead: vi.fn(),
+    mockStorageDownload: vi.fn(),
   };
 });
 
 vi.mock("../lib/supabase", () => ({
   supabase: {
     from: mockFrom,
+    storage: {
+      from: vi.fn(() => ({
+        download: mockStorageDownload,
+      })),
+    },
   },
 }));
 
@@ -64,6 +71,7 @@ beforeEach(async () => {
   mockSupabaseInsert.mockReset();
   mockSupabaseHead.mockReset();
   mockGetDexieItemId.mockReset();
+  mockStorageDownload.mockReset();
 });
 
 describe("blobToBase64", () => {
@@ -130,6 +138,20 @@ describe("buildExportData", () => {
               order: vi.fn().mockResolvedValue({
                 data: items,
                 error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "photos") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                order: vi.fn().mockResolvedValue({
+                  data: [],
+                  error: null,
+                }),
               }),
             }),
           }),
@@ -334,6 +356,199 @@ describe("buildExportData", () => {
     });
 
     await expect(buildExportData("nonexistent")).rejects.toThrow();
+  });
+});
+
+describe("buildExportData - Storage download fallback", () => {
+  const session = {
+    id: "sess-uuid-1",
+    name: "Storage Test",
+    mode: "house",
+    status: "active",
+    notes: "",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    created_by: "user-uuid-123",
+    assigned_to: null,
+    review_notes: null,
+  };
+
+  const items = [
+    {
+      id: "item-uuid-1",
+      session_id: "sess-uuid-1",
+      mode: "house",
+      title: "Remote Photo",
+      description: null,
+      condition: null,
+      estimate: null,
+      measurements: null,
+      category: null,
+      transcript: null,
+      receipt_number: null,
+      sort_order: 0,
+      ai_status: "done",
+      created_at: "2026-01-01T00:00:00Z",
+    },
+  ];
+
+  function setupWithPhotosTable(
+    supabasePhotos: Array<Record<string, unknown>> | null,
+  ) {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "sessions") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({
+                data: session,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "items") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: vi.fn().mockResolvedValue({
+                data: items,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "photos") {
+        return {
+          select: () => ({
+            eq: (col: string) => {
+              if (col === "item_id") {
+                return {
+                  eq: () => ({
+                    order: vi.fn().mockResolvedValue({
+                      data: supabasePhotos,
+                      error: null,
+                    }),
+                  }),
+                };
+              }
+              return {
+                order: vi.fn().mockResolvedValue({
+                  data: supabasePhotos,
+                  error: null,
+                }),
+              };
+            },
+          }),
+        };
+      }
+      return {};
+    });
+  }
+
+  it("uses local Dexie blobs when available, skips Storage download", async () => {
+    const { buildExportData } = await import("../utils/export");
+
+    // Use setup without photos table -- Dexie has blobs
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "sessions") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: vi.fn().mockResolvedValue({ data: session, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "items") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: vi.fn().mockResolvedValue({ data: items, error: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    mockGetDexieItemId.mockResolvedValue(99);
+
+    // Add local Dexie photo
+    await db.photos.add({
+      itemId: 99,
+      itemType: "house",
+      blob: new Blob(["local-photo"], { type: "image/jpeg" }),
+      sortOrder: 0,
+      createdAt: new Date(),
+    });
+
+    const data = await buildExportData("sess-uuid-1");
+
+    expect(data.items[0].photos).toHaveLength(1);
+    expect(data.items[0].photos[0].blob).toMatch(/^data:/);
+    // Storage download should NOT have been called
+    expect(mockStorageDownload).not.toHaveBeenCalled();
+  });
+
+  it("downloads from Storage when Dexie photos are empty", async () => {
+    const { buildExportData } = await import("../utils/export");
+
+    setupWithPhotosTable([
+      { storage_path: "photos/sess/item/full-0.jpg", sort_order: 0 },
+    ]);
+
+    mockGetDexieItemId.mockResolvedValue(null);
+    mockStorageDownload.mockResolvedValue({
+      data: new Blob(["remote-photo"], { type: "image/jpeg" }),
+    });
+
+    const data = await buildExportData("sess-uuid-1");
+
+    expect(data.items[0].photos).toHaveLength(1);
+    expect(data.items[0].photos[0].blob).toMatch(/^data:/);
+    expect(data.items[0].photos[0].sortOrder).toBe(0);
+    expect(mockStorageDownload).toHaveBeenCalledWith(
+      "photos/sess/item/full-0.jpg",
+    );
+  });
+
+  it("excludes photos when Storage download fails (no crash)", async () => {
+    const { buildExportData } = await import("../utils/export");
+
+    setupWithPhotosTable([
+      { storage_path: "photos/sess/item/full-0.jpg", sort_order: 0 },
+      { storage_path: "photos/sess/item/full-1.jpg", sort_order: 1 },
+    ]);
+
+    mockGetDexieItemId.mockResolvedValue(null);
+
+    // First download succeeds, second fails
+    mockStorageDownload
+      .mockResolvedValueOnce({
+        data: new Blob(["photo-0"], { type: "image/jpeg" }),
+      })
+      .mockResolvedValueOnce({ data: null });
+
+    const data = await buildExportData("sess-uuid-1");
+
+    // Only the successful download should be in the export
+    expect(data.items[0].photos).toHaveLength(1);
+    expect(data.items[0].photos[0].sortOrder).toBe(0);
+  });
+
+  it("returns empty photos when Storage has no uploaded photos", async () => {
+    const { buildExportData } = await import("../utils/export");
+
+    setupWithPhotosTable([]);
+    mockGetDexieItemId.mockResolvedValue(null);
+
+    const data = await buildExportData("sess-uuid-1");
+
+    expect(data.items[0].photos).toHaveLength(0);
+    expect(mockStorageDownload).not.toHaveBeenCalled();
   });
 });
 
