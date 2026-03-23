@@ -188,6 +188,7 @@ export function ItemEntryPage() {
         {mode === "house" && itemId && !isNewItem && (
           <PhotoCapture
             itemId={itemId}
+            sessionId={sessionId!}
             onOpenLightbox={(index) => setLightboxIndex(index)}
           />
         )}

@@ -5,9 +5,11 @@ import type { ItemPhoto } from "../db/types";
 import { resizeImage } from "../utils/image";
 import { useBlobUrl } from "../hooks/useBlobUrl";
 import { getDexieItemId } from "../db/idMapping";
+import { enqueuePhotoUpload, drainPhotoQueue } from "../services/photoUploadQueue";
 
 interface PhotoCaptureProps {
   itemId: string;
+  sessionId: string;
   onOpenLightbox: (index: number) => void;
 }
 
@@ -41,7 +43,7 @@ function Thumbnail({
   );
 }
 
-export function PhotoCapture({ itemId, onOpenLightbox }: PhotoCaptureProps) {
+export function PhotoCapture({ itemId, sessionId, onOpenLightbox }: PhotoCaptureProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -88,7 +90,7 @@ export function PhotoCapture({ itemId, onOpenLightbox }: PhotoCaptureProps) {
 
       // Use Supabase UUID directly for new items (post-migration)
       const storeId = dexieItemId ?? itemId;
-      await db.photos.add({
+      const photoId = await db.photos.add({
         itemId: storeId as number, // Dexie accepts both number and string
         itemType: "house",
         blob: fullBlob,
@@ -96,6 +98,14 @@ export function PhotoCapture({ itemId, onOpenLightbox }: PhotoCaptureProps) {
         sortOrder: photos.length,
         createdAt: new Date(),
       });
+
+      // Fire-and-forget upload (non-blocking)
+      enqueuePhotoUpload({
+        dexiePhotoId: photoId as number,
+        itemId: itemId, // Always use Supabase UUID, not dexieItemId
+        sessionId: sessionId,
+        sortOrder: photos.length,
+      }).then(() => drainPhotoQueue()).catch(() => {});
     } catch (err) {
       console.error("Failed to save photo:", err);
     } finally {

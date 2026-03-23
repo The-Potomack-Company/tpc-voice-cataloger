@@ -4,6 +4,7 @@ import { InstallBanner } from "../components/InstallBanner";
 import { OfflineIndicator } from "../components/OfflineIndicator";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { drainQueue } from "../services/offlineQueue";
+import { drainPhotoQueue } from "../services/photoUploadQueue";
 import {
   useWriteAheadQueue,
   processWriteAheadQueue,
@@ -26,7 +27,8 @@ export function AppLayout() {
     const handleReconnect = async () => {
       await processWriteAheadQueue(); // Write-ahead first (items must exist before AI can update)
       await fetchSessions(); // Re-fetch after queue drains so server data includes synced items
-      drainQueue(); // Then audio queue
+      await drainPhotoQueue(); // Photos after metadata synced
+      drainQueue(); // Audio last
     };
     // Drain on mount if online (handles case: app closed with queued items, reopened with connectivity)
     if (navigator.onLine) {
