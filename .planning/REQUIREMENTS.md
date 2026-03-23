@@ -145,7 +145,7 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 - [x] **PHOTO-UPLOAD-05**: Photos display from local Dexie blob when available, falling back to Supabase signed URL
 - [x] **PHOTO-UPLOAD-06**: Reconnection drain order is metadata -> photos -> audio
 - [x] **PHOTO-UPLOAD-07**: Export reads local blobs first, downloads from Storage when missing
-- [ ] **PHOTO-UPLOAD-08**: Human verification confirms end-to-end photo upload flow
+- [x] **PHOTO-UPLOAD-08**: Human verification confirms end-to-end photo upload flow
 
 ## Future Requirements
 
@@ -245,7 +245,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PHOTO-UPLOAD-05 | Phase 19 | Complete |
 | PHOTO-UPLOAD-06 | Phase 19 | Complete |
 | PHOTO-UPLOAD-07 | Phase 19 | Complete |
-| PHOTO-UPLOAD-08 | Phase 19 | Pending |
+| PHOTO-UPLOAD-08 | Phase 19 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 34 total

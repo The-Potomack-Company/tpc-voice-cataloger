@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: in-progress
-stopped_at: Completed 19-03-PLAN.md
-last_updated: "2026-03-23T14:25:15.000Z"
-last_activity: "2026-03-23 -- Completed 19-03: URL fallback (signed URL display, export Storage download)"
+stopped_at: Completed 19-04-PLAN.md
+last_updated: "2026-03-23T16:20:00Z"
+last_activity: "2026-03-23 -- Completed 19-04: Photo migration service + E2E verification"
 progress:
   total_phases: 9
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 31
-  completed_plans: 26
-  percent: 84
+  completed_plans: 27
+  percent: 87
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 19 in progress (Photo Upload to Supabase Storage)
+**Current focus:** v1.1 Accounts & Deploy -- Phase 19 complete, Phase 17 (Deployment & CI) next
 
 ## Current Position
 
 Phase: 19 of 19 (Photo Upload to Supabase Storage)
-Plan: 5 of 5
-Status: Plan 19-03 complete -- URL fallback (signed URL display, export Storage download)
-Last activity: 2026-03-23 -- Completed 19-03: URL fallback & export
+Plan: 5 of 5 (Phase 19 COMPLETE)
+Status: Plan 19-04 complete -- Photo migration service + E2E verification (Phase 19 done)
+Last activity: 2026-03-23 -- Completed 19-04: Photo migration + E2E verification
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [████████░░] 84%
 - 19-01: 3 min (2 tasks, 5 files) -- photo upload infrastructure
 - 19-02: 3 min (2 tasks, 4 files) -- UI integration (upload trigger, sync overlays)
 - 19-03: 5 min (2 tasks, 6 files) -- URL fallback (signed URL display, export Storage download)
+- 19-04: 15 min (2 tasks, 7 files) -- Photo migration service + E2E verification (includes human checkpoint)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -143,6 +144,9 @@ Recent decisions affecting current work:
 - [19-03] usePhotoUrl checks blob (not blobUrl) to avoid React effect timing race with useBlobUrl
 - [19-03] Export filters to upload_status='uploaded' photos only when downloading from Storage
 - [19-03] Failed Storage downloads excluded gracefully (try/catch + null filter) rather than throwing
+- [19-04] Migration timestamp renamed 20260320100000 -> 20260320200000 to avoid conflict with walkthrough migration
+- [19-04] Storage upload upsert:true for idempotent retries (prevents 409 Conflict on retry)
+- [19-04] database.types.ts regenerated UTF-8 to fix UTF-16 encoding build issue
 
 ### Pending Todos
 
@@ -170,6 +174,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:25:15Z
-Stopped at: Completed 19-03-PLAN.md
+Last session: 2026-03-23T16:20:00Z
+Stopped at: Completed 19-04-PLAN.md (Phase 19 complete)
 Resume file: None

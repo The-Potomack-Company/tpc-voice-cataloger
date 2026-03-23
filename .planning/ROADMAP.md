@@ -202,11 +202,11 @@ Plans:
   6. Reconnection drain order is metadata -> photos -> audio
   7. Export reads local blobs first, downloads from Storage when missing
   8. Human verification confirms end-to-end flow
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
-- [ ] 19-00-PLAN.md -- Wave 0: test stub files for photo upload queue, migration, and URL fallback
-- [ ] 19-01-PLAN.md -- Supabase migration (photos table + bucket + RLS), Dexie v8 schema, photo upload queue service
-- [ ] 19-02-PLAN.md -- PhotoCapture upload trigger, AppLayout drain order, sync status overlay on thumbnails
-- [ ] 19-03-PLAN.md -- usePhotoUrl hook with signed URL fallback, export Storage download fallback
-- [ ] 19-04-PLAN.md -- Photo migration service, progress banner, human verification of end-to-end flow
+- [x] 19-00-PLAN.md -- Wave 0: test stub files for photo upload queue, migration, and URL fallback
+- [x] 19-01-PLAN.md -- Supabase migration (photos table + bucket + RLS), Dexie v8 schema, photo upload queue service
+- [x] 19-02-PLAN.md -- PhotoCapture upload trigger, AppLayout drain order, sync status overlay on thumbnails
+- [x] 19-03-PLAN.md -- usePhotoUrl hook with signed URL fallback, export Storage download fallback
+- [x] 19-04-PLAN.md -- Photo migration service, progress banner, human verification of end-to-end flow
