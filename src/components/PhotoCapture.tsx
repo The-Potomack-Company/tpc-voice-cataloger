@@ -5,7 +5,8 @@ import type { ItemPhoto } from "../db/types";
 import { resizeImage } from "../utils/image";
 import { useBlobUrl } from "../hooks/useBlobUrl";
 import { getDexieItemId } from "../db/idMapping";
-import { enqueuePhotoUpload, drainPhotoQueue } from "../services/photoUploadQueue";
+import { enqueuePhotoUpload, drainPhotoQueue, retryFailedUploads } from "../services/photoUploadQueue";
+import { usePhotoUploadStatus } from "../hooks/usePhotoUploadStatus";
 
 interface PhotoCaptureProps {
   itemId: string;
@@ -23,12 +24,13 @@ function Thumbnail({
   onTap: (index: number) => void;
 }) {
   const url = useBlobUrl(photo.thumbnail ?? photo.blob);
+  const uploadStatus = usePhotoUploadStatus(photo.id);
 
   return (
     <button
       type="button"
-      onClick={() => onTap(index)}
-      className="shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 focus:border-accent"
+      onClick={() => uploadStatus === "failed" ? retryFailedUploads() : onTap(index)}
+      className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 focus:border-accent"
     >
       {url ? (
         <img
@@ -38,6 +40,26 @@ function Thumbnail({
         />
       ) : (
         <div className="w-full h-full bg-gray-200 dark:bg-gray-700" />
+      )}
+      {/* Sync status overlay */}
+      {(uploadStatus === "pending" || uploadStatus === "uploading") && (
+        <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-white/80 flex items-center justify-center">
+          <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      {uploadStatus === "uploaded" && (
+        <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        </div>
+      )}
+      {uploadStatus === "failed" && (
+        <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+          </svg>
+        </div>
       )}
     </button>
   );
