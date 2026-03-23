@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       export_history: {
@@ -111,10 +136,49 @@ export type Database = {
           },
         ]
       }
+      photos: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          sort_order: number
+          storage_path: string
+          thumbnail_path: string
+          upload_status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          sort_order?: number
+          storage_path: string
+          thumbnail_path: string
+          upload_status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          sort_order?: number
+          storage_path?: string
+          thumbnail_path?: string
+          upload_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
           display_name: string
+          email: string | null
           id: string
           is_active: boolean
           role: string
@@ -123,6 +187,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name: string
+          email?: string | null
           id: string
           is_active?: boolean
           role?: string
@@ -131,6 +196,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string
+          email?: string | null
           id?: string
           is_active?: boolean
           role?: string
@@ -311,13 +377,10 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
-
-// Convenience aliases for simpler usage: Insertable<'table'> and Updatable<'table'>
-export type Insertable<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert'];
-export type Updatable<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update'];

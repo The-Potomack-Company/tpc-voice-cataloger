@@ -45,6 +45,7 @@ export { enqueuePhotoUpload as enqueue };
  */
 export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
   const entryId = entry.id!;
+  console.log("[photoUploadQueue] Processing entry", entryId, "dexiePhotoId:", entry.dexiePhotoId, "path:", entry.storagePath);
 
   // Mark as uploading
   await db.photoUploadQueue.update(entryId, {
@@ -55,6 +56,7 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
   // Read blob from Dexie photos table
   const photo = await db.photos.get(entry.dexiePhotoId);
   if (!photo) {
+    console.error("[photoUploadQueue] Dexie photo not found for id:", entry.dexiePhotoId);
     await db.photoUploadQueue.update(entryId, { status: "failed" });
     return;
   }
@@ -66,7 +68,7 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
       .upload(entry.storagePath, photo.blob, {
         contentType: "image/jpeg",
         cacheControl: "31536000",
-        upsert: false,
+        upsert: true,
       });
     if (fullError) throw fullError;
 
@@ -76,7 +78,7 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
       .upload(entry.thumbnailPath, photo.thumbnail!, {
         contentType: "image/jpeg",
         cacheControl: "31536000",
-        upsert: false,
+        upsert: true,
       });
     if (thumbError) throw thumbError;
 
@@ -92,7 +94,8 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
 
     // Mark queue entry as uploaded
     await db.photoUploadQueue.update(entryId, { status: "uploaded" });
-  } catch {
+  } catch (err) {
+    console.error("[photoUploadQueue] Upload failed for entry", entryId, err);
     // Increment retry count
     const newRetryCount = entry.retryCount + 1;
     if (newRetryCount >= MAX_RETRIES) {
