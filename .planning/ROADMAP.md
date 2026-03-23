@@ -184,9 +184,9 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 **Plans:** 3 plans
 
 Plans:
-- [ ] 18-00-PLAN.md -- Wave 0: test stub files for walkthrough component and walkthrough-status hook
-- [ ] 18-01-PLAN.md -- Supabase migration (walkthrough_completed + RLS), useWalkthroughStatus hook, step definitions, database types
-- [ ] 18-02-PLAN.md -- Walkthrough.tsx rewrite, Sessions.tsx gate update, Settings.tsx reset update, uiStore cleanup
+- [x] 18-00-PLAN.md -- Wave 0: test stub files for walkthrough component and walkthrough-status hook
+- [x] 18-01-PLAN.md -- Supabase migration (walkthrough_completed + RLS), useWalkthroughStatus hook, step definitions, database types
+- [x] 18-02-PLAN.md -- Walkthrough.tsx rewrite, Sessions.tsx gate update, Settings.tsx reset update, uiStore cleanup
 
 ### Phase 19: Photo Upload to Supabase Storage with full offline support
 

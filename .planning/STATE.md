@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: completed
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-03-20T18:43:02.756Z"
-last_activity: "2026-03-20 -- Completed 18-01: Walkthrough data layer (migration, hook, step definitions)"
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-03-23T13:51:52.761Z"
+last_activity: "2026-03-23 -- Completed 18-02: Walkthrough component rewrite with role-aware steps"
 progress:
   total_phases: 9
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 31
-  completed_plans: 21
-  percent: 71
+  completed_plans: 23
+  percent: 74
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 18 of 19 (Update Tutorial Walkthrough)
-Plan: 2 of 3
-Status: Plan 18-01 complete -- Migration, hook, step definitions created
-Last activity: 2026-03-20 -- Completed 18-01: Walkthrough data layer (migration, hook, step definitions)
+Plan: 3 of 3
+Status: Plan 18-02 complete -- Walkthrough component rewrite with role-aware steps
+Last activity: 2026-03-23 -- Completed 18-02: Walkthrough component rewrite with role-aware steps
 
-Progress: [███████░░░] 71%
+Progress: [███████░░░] 74%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [███████░░░] 71%
 - 16-03: 3 min (1 task, 2 files) -- human verification + UAT fixes
 - 18-00: 1 min (1 task, 3 files) -- walkthrough test stubs
 - 18-01: 3 min (2 tasks, 4 files) -- walkthrough data layer
+- 18-02: 4 min (3 tasks, 4 files) -- walkthrough component rewrite
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -128,6 +129,8 @@ Recent decisions affecting current work:
 - [16-03] Admin can re-export already-exported sessions (no status gate on export button)
 - [16-03] Admin can reopen exported sessions back to active status (reversal path for corrections)
 - [Phase 18]: RLS self-update policy on profiles allows users to update any column on own row (acceptable: UI does not expose dangerous columns, CHECK constraints protect role values)
+- [18-02] Walkthrough receives role and onComplete as props from Sessions.tsx (not internal hook call)
+- [18-02] Loading state defaults to showing page content (not walkthrough) to avoid flash for returning users
 
 ### Pending Todos
 
@@ -155,6 +158,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:42:23.865Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-03-23T13:57:00Z
+Stopped at: Completed 18-02-PLAN.md
 Resume file: None
