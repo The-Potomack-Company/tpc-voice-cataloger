@@ -231,13 +231,21 @@ Plans:
 
 ### Phase 21: more granularity with description and transcription
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Enhance the AI pipeline to support smart field merging (non-destructive re-recordings), expanded measurements (mm, weight, karats), and spoken punctuation parsing across all extracted fields
 **Depends on:** Phase 20
-**Plans:** 0 plans
+**Requirements**: GRAN-01, GRAN-02, GRAN-03, GRAN-04, GRAN-05, GRAN-06, GRAN-07, GRAN-08, GRAN-09, GRAN-10, GRAN-11, GRAN-12
+**Success Criteria** (what must be TRUE):
+  1. Measurements field is a formatted string supporting dimensions (in/mm), weight (oz/g), and karats in a single field
+  2. Re-recordings merge with existing field values by default instead of overwriting
+  3. Existing field values are passed as context to Gemini for intelligent merge decisions
+  4. Spoken punctuation words are converted to actual punctuation by the AI across all fields
+  5. All changes are prompt-level and schema-level -- no new UI pages or database migrations
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 21 to break down)
+- [ ] 21-01-PLAN.md -- Measurements schema change (array->string), SYSTEM_PROMPT update, post-processing simplification, test updates
+- [ ] 21-02-PLAN.md -- Smart field merging: existing-field read, context injection, merge rules in prompt, transcript simplification
+- [ ] 21-03-PLAN.md -- Spoken punctuation rules in SYSTEM_PROMPT, prompt verification tests
 
 ## Backlog
 
