@@ -1,9 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect, beforeEach, vi } from "vitest";
 import { AppLayout } from "../layouts/AppLayout";
 import { SessionsPage } from "../pages/Sessions";
 import { NewSessionPage } from "../pages/NewSession";
+
+vi.mock("../lib/supabase", () => ({
+  supabase: {
+    from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn(() => Promise.resolve({ data: null, error: null })), order: vi.fn(() => Promise.resolve({ data: [], error: null })) })), order: vi.fn(() => Promise.resolve({ data: [], error: null })) })) })),
+    auth: { getUser: vi.fn(() => Promise.resolve({ data: { user: { id: "test-id" } }, error: null })), onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })) },
+    channel: vi.fn(() => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn() })),
+    removeChannel: vi.fn(),
+  },
+}));
 
 // Render AppLayout with nested routes (as it expects an Outlet)
 function renderAppLayout(route = "/") {

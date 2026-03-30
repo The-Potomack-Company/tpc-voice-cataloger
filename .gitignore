@@ -36,3 +36,5 @@ supabase/.temp/
 # Cloudflare Workers
 proxy/.dev.vars
 proxy/.wrangler/
+
+.vercel
