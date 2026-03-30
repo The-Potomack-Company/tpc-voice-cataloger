@@ -2,15 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { db } from "../db";
 
 // --- Mocks ---
-const { mockFrom, mockInsert, mockUpdate, mockDelete, mockEq } = vi.hoisted(
+const { mockFrom } = vi.hoisted(
   () => {
-    const mockEq = vi.fn();
-    const mockInsert = vi.fn();
-    const mockUpdate = vi.fn();
-    const mockDelete = vi.fn();
     const mockFrom = vi.fn();
 
-    return { mockFrom, mockInsert, mockUpdate, mockDelete, mockEq };
+    return { mockFrom };
   },
 );
 

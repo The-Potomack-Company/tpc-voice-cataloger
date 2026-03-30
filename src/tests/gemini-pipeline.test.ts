@@ -51,37 +51,6 @@ function mockGeminiResponse(fields: Record<string, unknown>) {
   };
 }
 
-// Helper to set up Supabase mock chain for update calls
-function setupUpdateChain(error: unknown = null) {
-  const chain = {
-    update: mockUpdate,
-    eq: mockEq,
-  };
-  mockFrom.mockReturnValue(chain);
-  mockUpdate.mockReturnValue({ eq: mockEq });
-  mockEq.mockResolvedValue({ error });
-  return chain;
-}
-
-// Helper to set up Supabase mock chain for select calls (transcript read)
-function setupSelectSingleChain(data: unknown, error: unknown = null) {
-  mockFrom.mockImplementation((table: string) => {
-    if (table === "items") {
-      return {
-        update: mockUpdate.mockReturnValue({
-          eq: mockEq.mockResolvedValue({ error: null }),
-        }),
-        select: mockSelect.mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: mockSingle.mockResolvedValue({ data, error }),
-          }),
-        }),
-      };
-    }
-    return {};
-  });
-}
-
 describe("gemini pipeline", () => {
   let testAudioId: number;
 

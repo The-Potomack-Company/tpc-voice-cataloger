@@ -1,34 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
-const {
-  mockFrom,
-  mockSelect,
-  mockInsert,
-  mockUpdate,
-  mockDelete,
-  mockEq,
-  mockOrder,
-  mockSingle,
-} = vi.hoisted(() => {
-  const mockSingle = vi.fn();
-  const mockEq = vi.fn();
-  const mockOrder = vi.fn();
-  const mockSelect = vi.fn();
-  const mockInsert = vi.fn();
-  const mockUpdate = vi.fn();
-  const mockDelete = vi.fn();
+const { mockFrom } = vi.hoisted(() => {
   const mockFrom = vi.fn();
 
   return {
     mockFrom,
-    mockSelect,
-    mockInsert,
-    mockUpdate,
-    mockDelete,
-    mockEq,
-    mockOrder,
-    mockSingle,
   };
 });
 

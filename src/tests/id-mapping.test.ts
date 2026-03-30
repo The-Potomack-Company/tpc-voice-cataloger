@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { db } from "../db";
-import type { IdMapping, WriteAheadEntry } from "../db/types";
+// Types used for schema validation only
 import {
   getDexieItemId,
   getDexieSessionId,

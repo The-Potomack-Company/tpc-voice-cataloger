@@ -142,7 +142,7 @@ describe("photoUploadQueue", () => {
 
   describe("drainPhotoQueue", () => {
     it("processes pending entries", async () => {
-      const { drainPhotoQueue, processOneUpload, _resetDraining } =
+      const { drainPhotoQueue, _resetDraining } =
         await import("../services/photoUploadQueue");
       _resetDraining();
 

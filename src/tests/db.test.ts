@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { db } from "../db";
-import type { Session, HouseVisitItem, SaleItem, ExportHistoryRecord } from "../db/types";
+import type { Session, HouseVisitItem, SaleItem } from "../db/types";
 
 afterEach(async () => {
   await db.delete();

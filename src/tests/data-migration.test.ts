@@ -153,7 +153,7 @@ describe("data migration", () => {
     });
 
     it("inserts session to Supabase with created_by=userId, mode, name, notes, status='active'", async () => {
-      const sessId = await db.sessions.add(
+      await db.sessions.add(
         makeDexieSession({ name: "My Session", mode: "house", notes: "Notes" }),
       );
 
@@ -195,7 +195,7 @@ describe("data migration", () => {
     it("creates ID mapping entry for each migrated session (oldId -> newId, type='session')", async () => {
       const sessId = await db.sessions.add(makeDexieSession());
 
-      mockFrom.mockImplementation((table: string) => ({
+      mockFrom.mockImplementation(() => ({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
@@ -347,7 +347,7 @@ describe("data migration", () => {
         exportedAt: new Date(),
       });
 
-      mockFrom.mockImplementation((table: string) => ({
+      mockFrom.mockImplementation(() => ({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
@@ -368,7 +368,7 @@ describe("data migration", () => {
     });
 
     it("Dexie photos, audio, idMapping tables are NOT cleared after migration", async () => {
-      const sessId = await db.sessions.add(makeDexieSession());
+      await db.sessions.add(makeDexieSession());
 
       // Add some photos and audio
       await db.photos.add({
@@ -386,7 +386,7 @@ describe("data migration", () => {
         createdAt: new Date(),
       });
 
-      mockFrom.mockImplementation((table: string) => ({
+      mockFrom.mockImplementation(() => ({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({

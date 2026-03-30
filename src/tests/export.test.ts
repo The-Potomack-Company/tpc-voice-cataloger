@@ -84,36 +84,6 @@ describe("blobToBase64", () => {
 });
 
 describe("buildExportData", () => {
-  function setupSessionResponse(session: Record<string, unknown>) {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "sessions") {
-        return {
-          select: mockSupabaseSelect.mockReturnValue({
-            eq: mockSupabaseEq.mockReturnValue({
-              single: mockSupabaseSingle.mockResolvedValue({
-                data: session,
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === "items") {
-        return {
-          select: mockSupabaseSelect.mockReturnValue({
-            eq: mockSupabaseEq.mockReturnValue({
-              order: mockSupabaseOrder.mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }
-      return {};
-    });
-  }
-
   function setupFullResponse(
     session: Record<string, unknown>,
     items: Array<Record<string, unknown>>,

@@ -5,15 +5,17 @@ describe('Supabase Database Types', () => {
   it('Database type has public.Tables with all 4 tables', () => {
     // Type-level test: if this compiles, the tables exist in the type
     type PublicTables = Database['public']['Tables'];
-    type HasProfiles = PublicTables['profiles'];
-    type HasSessions = PublicTables['sessions'];
-    type HasItems = PublicTables['items'];
-    type HasExportHistory = PublicTables['export_history'];
+    // Type-level assertions: these assignments verify the types exist at compile time
+    const profiles: PublicTables['profiles'] = {} as PublicTables['profiles'];
+    const sessions: PublicTables['sessions'] = {} as PublicTables['sessions'];
+    const items: PublicTables['items'] = {} as PublicTables['items'];
+    const exportHistory: PublicTables['export_history'] = {} as PublicTables['export_history'];
 
     // Runtime assertion that the type structure is correct
-    // (using a dummy object that would fail compilation if types are wrong)
-    const check: boolean = true;
-    expect(check).toBe(true);
+    expect(profiles).toBeDefined();
+    expect(sessions).toBeDefined();
+    expect(items).toBeDefined();
+    expect(exportHistory).toBeDefined();
   });
 
   it('Tables helper extracts Row type for profiles', () => {

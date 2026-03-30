@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import Dexie from "dexie";
 import "fake-indexeddb/auto";
 import { db } from "../db";
 
@@ -157,7 +156,7 @@ describe("Item Entry Logic", () => {
         updatedAt: new Date(),
       })) as number;
 
-      const id1 = await db.houseVisitItems.add({
+      await db.houseVisitItems.add({
         sessionId,
         sortOrder: 0,
         createdAt: new Date(),
