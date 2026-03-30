@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: verifying
-stopped_at: Completed 20-02-PLAN.md
-last_updated: "2026-03-30T18:18:00.093Z"
+stopped_at: Phase 21 context gathered
+last_updated: "2026-03-30T18:28:34.110Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 11
@@ -195,6 +195,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T18:14:29.421Z
-Stopped at: Completed 20-02-PLAN.md
-Resume file: None
+Last session: 2026-03-30T18:28:34.107Z
+Stopped at: Phase 21 context gathered
+Resume file: .planning/phases/21-more-granularity-with-description-and-transcription/21-CONTEXT.md
