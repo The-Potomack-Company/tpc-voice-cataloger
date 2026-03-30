@@ -210,3 +210,21 @@ Plans:
 - [x] 19-02-PLAN.md -- PhotoCapture upload trigger, AppLayout drain order, sync status overlay on thumbnails
 - [x] 19-03-PLAN.md -- usePhotoUrl hook with signed URL fallback, export Storage download fallback
 - [x] 19-04-PLAN.md -- Photo migration service, progress banner, human verification of end-to-end flow
+
+### Phase 20: Fix house session .json import on RFC
+
+**Goal:** House session JSON import in TPC_AI_Cataloger extension fills all text fields, uploads all photos, and handles the Style dropdown -- using the proven PortalUploadController pattern for sequential photo injection
+**Depends on:** Phase 19
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07
+**Success Criteria** (what must be TRUE):
+  1. House session import fills all text fields (title, description, condition, estimate, measurements, department) on each RFC item page
+  2. House session import uploads all photos from JSON sequentially via FileInjector/UploadDetector before saving
+  3. Style dropdown is set to General (value "2") before fields are filled, handling page reload when style changes
+  4. Import walks forward using Next button, falls back to Add when Next is unavailable
+  5. Import state recovers across page reloads (style-set, photo upload mid-item, save, navigate)
+  6. Export side (TPC_App) produces correct JSON with base64 photo data URLs
+**Plans:** 2 plans
+
+Plans:
+- [ ] 20-01-PLAN.md -- Constants + manifest update, importController state machine refactor with photo upload and style handling
+- [ ] 20-02-PLAN.md -- Export-side verification, human E2E verification of full import pipeline
