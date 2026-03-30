@@ -184,7 +184,7 @@ export function ItemEntryPage() {
       </div>
 
       {/* Mode-specific top section */}
-      <div className="flex-1 py-2 space-y-3">
+      <div className="py-2 space-y-3">
         {mode === "house" && itemId && !isNewItem && (
           <PhotoCapture
             itemId={itemId}

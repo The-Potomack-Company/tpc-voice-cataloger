@@ -40,7 +40,7 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
         disabled={isRequesting}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
         className={`
-          w-18 h-18 flex items-center justify-center shadow-lg transition-all
+          w-24 h-24 flex items-center justify-center shadow-lg transition-all
           ${
             isRecording
               ? "rounded-lg bg-red-600 ring-4 ring-red-300 animate-pulse"
@@ -53,7 +53,7 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
         {isRecording ? (
           <svg
             data-testid="stop-icon"
-            className="w-7 h-7 text-white"
+            className="w-9 h-9 text-white"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -62,7 +62,7 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
         ) : (
           <svg
             data-testid="mic-icon"
-            className="w-7 h-7 text-white"
+            className="w-9 h-9 text-white"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
