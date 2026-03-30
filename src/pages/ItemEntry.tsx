@@ -49,6 +49,11 @@ export function ItemEntryPage() {
   const item = isNewItem ? undefined : items.find(i => i.id === itemId);
   const totalItems = items.length;
 
+  // Scroll to top when navigating to a different item
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [itemId]);
+
   // Reset creation ref when itemId changes (navigated to a different item)
   useEffect(() => {
     if (!isNewItem) {
