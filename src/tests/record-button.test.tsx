@@ -51,12 +51,12 @@ describe("RecordButton", () => {
     expect(screen.getByTestId("stop-icon")).toBeInTheDocument();
   });
 
-  it("has minimum dimensions of 72px (w-18 h-18)", () => {
+  it("has minimum dimensions of 96px (w-24 h-24)", () => {
     render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
-    // w-18 h-18 = 4.5rem = 72px
-    expect(button.className).toMatch(/w-18/);
-    expect(button.className).toMatch(/h-18/);
+    // w-24 h-24 = 6rem = 96px
+    expect(button.className).toMatch(/w-24/);
+    expect(button.className).toMatch(/h-24/);
   });
 
   it("calls startRecording on tap when idle", async () => {
