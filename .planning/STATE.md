@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
-status: verifying
-stopped_at: Completed 19-04-PLAN.md (Phase 19 complete)
-last_updated: "2026-03-23T16:25:24.163Z"
-last_activity: "2026-03-23 -- Completed 19-04: Photo migration + E2E verification"
+status: executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-03-30T13:24:41.001Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 31
-  completed_plans: 27
+  completed_plans: 28
   percent: 87
 ---
 
@@ -21,25 +21,27 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.1 Accounts & Deploy -- Phase 19 complete, Phase 17 (Deployment & CI) next
+**Current focus:** Phase 17 — deployment-ci
 
 ## Current Position
 
-Phase: 19 of 19 (Photo Upload to Supabase Storage)
-Plan: 5 of 5 (Phase 19 COMPLETE)
-Status: Plan 19-04 complete -- Photo migration service + E2E verification (Phase 19 done)
-Last activity: 2026-03-23 -- Completed 19-04: Photo migration + E2E verification
+Phase: 17 (deployment-ci) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-03-30
 
 Progress: [█████████░] 87%
 
 ## Performance Metrics
 
 **Velocity (from v1.0):**
+
 - Total plans completed: 29
 - Average duration: ~5 min
 - Total execution time: ~2.4 hours
 
 **Recent Trend:**
+
 - v1.0 averaged ~5 min/plan across 27 plans
 - 14-01: 6 min (2 tasks, 8 files)
 - 14-02: 7 min (2 tasks, 11 files)
@@ -147,6 +149,8 @@ Recent decisions affecting current work:
 - [19-04] Migration timestamp renamed 20260320100000 -> 20260320200000 to avoid conflict with walkthrough migration
 - [19-04] Storage upload upsert:true for idempotent retries (prevents 409 Conflict on retry)
 - [19-04] database.types.ts regenerated UTF-8 to fix UTF-16 encoding build issue
+- [Phase 17]: Derive loading state from role===undefined instead of separate boolean to avoid sync setState in effects
+- [Phase 17]: useBlobUrl rewritten with useRef+useSyncExternalStore to eliminate sync setState in effects
 
 ### Pending Todos
 
@@ -165,6 +169,7 @@ None yet.
 | 260320-fj2 | House visit mode: navigate-on-tap cards, chevron read-only summary, edge navigation arrows | 2026-03-20 | 65fba78 | Verified | [260320-fj2-house-visit-mode-remove-dropdown-always-](./quick/260320-fj2-house-visit-mode-remove-dropdown-always-/) |
 | 260320-ivg | Refresh Zustand store after AI processing so ItemEntry re-renders immediately | 2026-03-20 | eb553e3 | Verified | [260320-ivg-after-ai-finishes-processing-in-house-vi](./quick/260320-ivg-after-ai-finishes-processing-in-house-vi/) |
 | 260320-jet | Smart rounding for estimate auto-formatting (log10-based magnitude-aware) | 2026-03-20 | e9d40c8 | Verified | [260320-jet-smart-rounding-for-estimate-autoformatti](./quick/260320-jet-smart-rounding-for-estimate-autoformatti/) |
+| Phase 17 P01 | 6min | 2 tasks | 13 files |
 
 ### Roadmap Evolution
 
@@ -174,6 +179,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T16:20:00Z
-Stopped at: Completed 19-04-PLAN.md (Phase 19 complete)
+Last session: 2026-03-30T13:24:40.998Z
+Stopped at: Completed 17-01-PLAN.md
 Resume file: None

@@ -132,7 +132,7 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 ### Deployment
 
 - [ ] **DEPLOY-01**: App deployed to Vercel with auto-deploy from main
-- [ ] **DEPLOY-02**: CI pipeline: lint, typecheck, test, build via GitHub Actions
+- [x] **DEPLOY-02**: CI pipeline: lint, typecheck, test, build via GitHub Actions
 - [ ] **DEPLOY-03**: Cloudflare Worker CORS restricted to production Vercel domain
 - [ ] **DEPLOY-04**: Branch protection on main: require CI checks before merge
 
@@ -235,7 +235,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIFE-05 | Phase 16 | Complete |
 | LIFE-06 | Phase 16 | Complete |
 | DEPLOY-01 | Phase 17 | Pending |
-| DEPLOY-02 | Phase 17 | Pending |
+| DEPLOY-02 | Phase 17 | Complete |
 | DEPLOY-03 | Phase 17 | Pending |
 | DEPLOY-04 | Phase 17 | Pending |
 | PHOTO-UPLOAD-01 | Phase 19 | Complete |
