@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: verifying
-stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-03-30T13:45:56.189Z"
+stopped_at: Phase 20 context gathered
+last_updated: "2026-03-30T15:19:29.897Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 9
   total_plans: 31
   completed_plans: 31
@@ -185,9 +185,10 @@ None yet.
 - Phases 11-17 added for v1.1 Accounts & Deploy milestone
 - Phase 18 added: Update tutorial/walkthrough to be thorough
 - Phase 19 added: Photo Upload to Supabase Storage with full offline support
+- Phase 20 added: Fix house session .json import on RFC
 
 ## Session Continuity
 
-Last session: 2026-03-30T13:41:58.178Z
-Stopped at: Completed 17-04-PLAN.md
-Resume file: None
+Last session: 2026-03-30T15:19:29.891Z
+Stopped at: Phase 20 context gathered
+Resume file: .planning/phases/20-fix-house-session-json-import-on-rfc/20-CONTEXT.md
