@@ -2,4 +2,7 @@ name = "tpc-gemini-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+[vars]
+ALLOWED_ORIGINS = "https://tpc-cataloging-app.vercel.app,https://localhost:5173"
+
 # Set GEMINI_API_KEY via: npx wrangler secret put GEMINI_API_KEY
