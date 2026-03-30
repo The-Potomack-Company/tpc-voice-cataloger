@@ -44,6 +44,13 @@ vi.mock('../db/sessions', () => ({
   permanentlyDeleteSession: vi.fn(),
 }));
 
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn(() => Promise.resolve({ data: { walkthrough_completed: true }, error: null })) })) })) })),
+    auth: { getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'test-id' } }, error: null })), onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })) },
+  },
+}));
+
 function renderSettings() {
   return render(
     <MemoryRouter>
