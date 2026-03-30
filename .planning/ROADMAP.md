@@ -238,3 +238,14 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 21 to break down)
+
+## Backlog
+
+### Phase 999.1: Stream photos from Supabase Storage during extension import (BACKLOG)
+
+**Goal:** Replace base64-embedded photos in export JSON with Supabase Storage URLs fetched on demand during extension import. Current approach embeds all photos as base64, which balloons to 200-450MB for typical house visits (100-300 items × multiple photos). With Storage URLs, export JSON drops to ~500KB and photos stream one at a time during import. Requires: export emits storage paths/signed URLs instead of base64 blobs, importController fetches URL→blob→File before injection. Supabase Storage infra already exists from Phase 19.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
