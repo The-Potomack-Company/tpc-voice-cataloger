@@ -22,6 +22,7 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 - ✓ Offline support: record audio locally, process when connectivity returns — v1.0
 - ✓ Export structured JSON matching TPC extension format — v1.0
 - ✓ TPC extension batch import: accept exported file and fill items on RFC Invaluable — v1.0
+- ✓ House session import with photos, Style dropdown handling, and state recovery — Phase 20
 - ✓ Mobile-optimized UI (phone/tablet for on-site use) — v1.0
 - ✓ Session archiving and export history with versioned filenames — v1.0
 - ✓ Receipt number list import from CSV/XLSX to pre-populate sale sessions — v1.0
@@ -104,4 +105,4 @@ Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexi
 | Supabase over Neon+Hono+BetterAuth | User familiar with Supabase; future dashboard reads from same DB; fewer moving parts | — Pending |
 
 ---
-*Last updated: 2026-03-30 after Phase 17 (deployment-ci) completion*
+*Last updated: 2026-03-30 after Phase 20 (fix-house-session-json-import-on-rfc) completion*
