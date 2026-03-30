@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-03-30T13:24:41.001Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-03-30T13:31:12.070Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 31
-  completed_plans: 28
+  completed_plans: 29
   percent: 87
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 17 (deployment-ci) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -151,6 +151,9 @@ Recent decisions affecting current work:
 - [19-04] database.types.ts regenerated UTF-8 to fix UTF-16 encoding build issue
 - [Phase 17]: Derive loading state from role===undefined instead of separate boolean to avoid sync setState in effects
 - [Phase 17]: useBlobUrl rewritten with useRef+useSyncExternalStore to eliminate sync setState in effects
+- [Phase 17]: Deleted 4 stale Dexie test files rather than rewriting (session-store.test.ts covers session CRUD)
+- [Phase 17]: item-list.test.tsx fully rewritten with Supabase mock pattern (old Dexie-based test was incompatible)
+- [Phase 17]: Conditional basicSsl via defineConfig(({ command }) => ...) for production build compatibility
 
 ### Pending Todos
 
@@ -170,6 +173,7 @@ None yet.
 | 260320-ivg | Refresh Zustand store after AI processing so ItemEntry re-renders immediately | 2026-03-20 | eb553e3 | Verified | [260320-ivg-after-ai-finishes-processing-in-house-vi](./quick/260320-ivg-after-ai-finishes-processing-in-house-vi/) |
 | 260320-jet | Smart rounding for estimate auto-formatting (log10-based magnitude-aware) | 2026-03-20 | e9d40c8 | Verified | [260320-jet-smart-rounding-for-estimate-autoformatti](./quick/260320-jet-smart-rounding-for-estimate-autoformatti/) |
 | Phase 17 P01 | 6min | 2 tasks | 13 files |
+| Phase 17 P02 | 12min | 2 tasks | 23 files |
 
 ### Roadmap Evolution
 
@@ -179,6 +183,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T13:24:40.998Z
-Stopped at: Completed 17-01-PLAN.md
+Last session: 2026-03-30T13:31:12.067Z
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None

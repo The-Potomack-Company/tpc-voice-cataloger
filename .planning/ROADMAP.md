@@ -137,10 +137,10 @@ Plans:
   2. GitHub Actions CI pipeline runs lint, typecheck, test, and build on every PR and blocks merge on failure
   3. Cloudflare Worker CORS origin is restricted to the production Vercel domain (no wildcard)
   4. Branch protection on main requires all CI checks to pass before a PR can be merged
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 Plans:
 - [x] 17-01-PLAN.md -- Fix source-file ESLint and TypeScript errors (lint/type CI prerequisite)
-- [ ] 17-02-PLAN.md -- Fix test-file lint errors, delete stale tests, fix failing tests, conditional basicSsl, test script, vercel.json
+- [x] 17-02-PLAN.md -- Fix test-file lint errors, delete stale tests, fix failing tests, conditional basicSsl, test script, vercel.json
 - [ ] 17-03-PLAN.md -- GitHub Actions CI workflow and Cloudflare Worker CORS lockdown with behavioral tests
 - [ ] 17-04-PLAN.md -- Branch protection via GitHub CLI and end-to-end deployment verification
 
@@ -168,7 +168,7 @@ Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoreticall
 | 14. Data Migration | 5/5 | Complete    | 2026-03-20 | - |
 | 15. Session Assignment | 3/3 | Complete    | 2026-03-20 | - |
 | 16. Session Lifecycle | v1.1 | Complete    | 2026-03-20 | 2026-03-20 |
-| 17. Deployment & CI | v1.1 | 1/4 | In Progress|  |
+| 17. Deployment & CI | v1.1 | 2/4 | In Progress|  |
 
 ### Phase 18: Update tutorial/walkthrough to be thorough
 
