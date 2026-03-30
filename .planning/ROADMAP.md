@@ -223,8 +223,8 @@ Plans:
   4. Import walks forward using Next button, falls back to Add when Next is unavailable
   5. Import state recovers across page reloads (style-set, photo upload mid-item, save, navigate)
   6. Export side (TPC_App) produces correct JSON with base64 photo data URLs
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 20-01-PLAN.md -- Constants + manifest update, importController state machine refactor with photo upload and style handling
-- [ ] 20-02-PLAN.md -- Export-side verification, human E2E verification of full import pipeline
+- [x] 20-02-PLAN.md -- Export-side verification, human E2E verification of full import pipeline
