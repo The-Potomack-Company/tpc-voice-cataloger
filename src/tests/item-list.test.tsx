@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { db } from "../db";
+import { MemoryRouter } from "react-router";
 import { ItemList } from "../components/ItemList";
 
 // Mock useAudioRecorder to avoid MediaRecorder in component tests
@@ -19,24 +19,117 @@ vi.mock("../services/gemini", () => ({
   processAudioWithAi: vi.fn(),
 }));
 
-beforeEach(async () => {
-  await db.delete();
-  await db.open();
+// Mock sessionStore
+const { mockItems } = vi.hoisted(() => ({
+  mockItems: { current: [] as Array<Record<string, unknown>> },
+}));
+
+vi.mock("../stores/sessionStore", () => ({
+  useSessionStore: vi.fn((selector: (s: Record<string, unknown>) => unknown) => {
+    const state = {
+      itemsBySession: { "session-1": mockItems.current },
+      fetchItems: vi.fn(),
+    };
+    return selector(state);
+  }),
+}));
+
+// Mock hooks that depend on sessionStore
+vi.mock("../hooks/useSessions", () => ({
+  useSessionItems: () => mockItems.current,
+  useSessionItemCount: () => mockItems.current.length,
+}));
+
+// Mock Dexie for photo queries
+vi.mock("../db", () => ({
+  db: {
+    photos: { where: vi.fn().mockReturnValue({ equals: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }) }) },
+    audio: { where: vi.fn().mockReturnValue({ equals: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }) }) },
+  },
+}));
+
+// Mock dexie-react-hooks
+vi.mock("dexie-react-hooks", () => ({
+  useLiveQuery: (fn: () => unknown) => {
+    try { return fn(); } catch { return undefined; }
+  },
+}));
+
+// Mock useWriteAheadQueue
+vi.mock("../hooks/useWriteAheadQueue", () => ({
+  hasPendingForItem: vi.fn().mockResolvedValue(false),
+}));
+
+// Mock idMapping
+vi.mock("../db/idMapping", () => ({
+  getDexieItemId: vi.fn().mockResolvedValue(null),
+}));
+
+// Mock db/items
+vi.mock("../db/items", () => ({
+  createBlankItem: vi.fn().mockResolvedValue("new-item-uuid"),
+  updateItemField: vi.fn().mockResolvedValue(undefined),
+  deleteItem: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock photoUploadQueue
+vi.mock("../services/photoUploadQueue", () => ({
+  enqueuePhotoUpload: vi.fn(),
+  drainPhotoQueue: vi.fn(),
+}));
+
+// Mock usePhotoUrl
+vi.mock("../hooks/usePhotoUrl", () => ({
+  usePhotoUrl: () => undefined,
+}));
+
+beforeEach(() => {
+  mockItems.current = [];
 });
 
 describe("ItemList", () => {
   it("shows empty state when no items exist", () => {
-    render(<ItemList sessionId={1} mode="house" />);
+    render(<MemoryRouter><ItemList sessionId="session-1" mode="house" /></MemoryRouter>);
     expect(screen.getByText(/No items yet/)).toBeInTheDocument();
   });
 
   it("renders items as cards with correct item numbers", async () => {
-    await db.houseVisitItems.bulkAdd([
-      { sessionId: 1, title: "Antique Chair", sortOrder: 0, createdAt: new Date() },
-      { sessionId: 1, title: "Oak Table", sortOrder: 1, createdAt: new Date() },
-    ]);
+    mockItems.current = [
+      {
+        id: "item-uuid-1",
+        session_id: "session-1",
+        mode: "house",
+        title: "Antique Chair",
+        description: null,
+        condition: null,
+        estimate: null,
+        measurements: null,
+        category: null,
+        transcript: null,
+        receipt_number: null,
+        sort_order: 0,
+        ai_status: "done",
+        created_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        id: "item-uuid-2",
+        session_id: "session-1",
+        mode: "house",
+        title: "Oak Table",
+        description: null,
+        condition: null,
+        estimate: null,
+        measurements: null,
+        category: null,
+        transcript: null,
+        receipt_number: null,
+        sort_order: 1,
+        ai_status: "done",
+        created_at: "2026-01-01T00:00:00Z",
+      },
+    ];
 
-    render(<ItemList sessionId={1} mode="house" />);
+    render(<MemoryRouter><ItemList sessionId="session-1" mode="house" /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText(/Item 1/)).toBeInTheDocument();
@@ -44,23 +137,34 @@ describe("ItemList", () => {
     });
   });
 
-  it("expands a card on tap to show editable fields", async () => {
-    await db.houseVisitItems.add({
-      sessionId: 1,
-      title: "Vase",
-      description: "Blue porcelain",
-      sortOrder: 0,
-      createdAt: new Date(),
-    });
+  it("expands a sale card on tap to show editable fields", async () => {
+    mockItems.current = [
+      {
+        id: "item-uuid-1",
+        session_id: "session-1",
+        mode: "sale",
+        title: "Vase",
+        description: "Blue porcelain",
+        condition: null,
+        estimate: null,
+        measurements: null,
+        category: null,
+        transcript: null,
+        receipt_number: "12345-1",
+        sort_order: 0,
+        ai_status: "done",
+        created_at: "2026-01-01T00:00:00Z",
+      },
+    ];
 
-    render(<ItemList sessionId={1} mode="house" />);
+    render(<MemoryRouter><ItemList sessionId="session-1" mode="sale" /></MemoryRouter>);
 
     await waitFor(() => {
-      expect(screen.getByText(/Item 1/)).toBeInTheDocument();
+      expect(screen.getByText(/12345-1/)).toBeInTheDocument();
     });
 
-    // Click to expand
-    fireEvent.click(screen.getByText(/Item 1/));
+    // Click to expand (sale mode uses accordion expand, not navigation)
+    fireEvent.click(screen.getByText(/12345-1/));
 
     // Should show field labels in expanded section
     await waitFor(() => {
@@ -73,14 +177,26 @@ describe("ItemList", () => {
   });
 
   it("shows Add Item button when items exist", async () => {
-    await db.houseVisitItems.add({
-      sessionId: 1,
-      title: "Item A",
-      sortOrder: 0,
-      createdAt: new Date(),
-    });
+    mockItems.current = [
+      {
+        id: "item-uuid-1",
+        session_id: "session-1",
+        mode: "house",
+        title: "Item A",
+        description: null,
+        condition: null,
+        estimate: null,
+        measurements: null,
+        category: null,
+        transcript: null,
+        receipt_number: null,
+        sort_order: 0,
+        ai_status: "done",
+        created_at: "2026-01-01T00:00:00Z",
+      },
+    ];
 
-    render(<ItemList sessionId={1} mode="house" />);
+    render(<MemoryRouter><ItemList sessionId="session-1" mode="house" /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText("Add Item")).toBeInTheDocument();

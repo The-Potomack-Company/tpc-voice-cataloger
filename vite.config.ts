@@ -5,12 +5,12 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   server: {
     host: true,
   },
   plugins: [
-    basicSsl(),
+    command === 'serve' ? basicSsl() : null,
     react(),
     tailwindcss(),
     VitePWA({
@@ -57,10 +57,10 @@ export default defineConfig({
         ],
       },
     }),
-  ],
+  ].filter(Boolean),
   test: {
     globals: true,
     environment: "jsdom",
     setupFiles: ["src/tests/setup.ts"],
   },
-});
+}));

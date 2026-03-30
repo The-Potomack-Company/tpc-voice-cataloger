@@ -127,7 +127,7 @@ describe("Session reassignment (ASGN-03)", () => {
     mockUseSessionItemCount.mockReturnValue(5);
     mockUseSessionItems.mockReturnValue([]);
     mockUseSessionStore.mockImplementation((selector: (s: Record<string, unknown>) => unknown) =>
-      selector({ fetchItems: vi.fn() }),
+      selector({ fetchItems: vi.fn(), updateSession: mockStoreUpdateSession }),
     );
     mockUseUIStore.mockImplementation((selector: (s: Record<string, unknown>) => unknown) =>
       selector({ recordingSessionId: null, setRecordingSession: vi.fn() }),

@@ -35,7 +35,7 @@ describe("RecordButton", () => {
   });
 
   it("renders microphone icon in idle state", () => {
-    render(<RecordButton itemId={1} itemType="house" />);
+    render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute("aria-label", "Start recording");
@@ -45,14 +45,14 @@ describe("RecordButton", () => {
 
   it("renders stop icon when recording", () => {
     mockHookReturn.status = "recording";
-    render(<RecordButton itemId={1} itemType="house" />);
+    render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("aria-label", "Stop recording");
     expect(screen.getByTestId("stop-icon")).toBeInTheDocument();
   });
 
   it("has minimum dimensions of 72px (w-18 h-18)", () => {
-    render(<RecordButton itemId={1} itemType="house" />);
+    render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
     // w-18 h-18 = 4.5rem = 72px
     expect(button.className).toMatch(/w-18/);
@@ -61,16 +61,16 @@ describe("RecordButton", () => {
 
   it("calls startRecording on tap when idle", async () => {
     const user = userEvent.setup();
-    render(<RecordButton itemId={5} itemType="sale" />);
+    render(<RecordButton itemId="item-5" sessionId="session-1" />);
     const button = screen.getByRole("button");
     await user.click(button);
-    expect(mockStartRecording).toHaveBeenCalledWith(5, "sale");
+    expect(mockStartRecording).toHaveBeenCalledWith("item-5", "session-1");
   });
 
   it("calls stopRecording on tap when recording", async () => {
     mockHookReturn.status = "recording";
     const user = userEvent.setup();
-    render(<RecordButton itemId={1} itemType="house" />);
+    render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
     await user.click(button);
     expect(mockStopRecording).toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe("RecordButton", () => {
 
   it("shows disabled state while requesting", () => {
     mockHookReturn.status = "requesting";
-    render(<RecordButton itemId={1} itemType="house" />);
+    render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
     expect(button).toBeDisabled();
     expect(button.className).toMatch(/opacity-50/);
@@ -87,7 +87,7 @@ describe("RecordButton", () => {
   it("shows error message when status is error", () => {
     mockHookReturn.status = "error";
     mockHookReturn.error = "Microphone permission denied.";
-    render(<RecordButton itemId={1} itemType="house" />);
+    render(<RecordButton itemId="item-1" sessionId="session-1" />);
     expect(screen.getByText("Microphone permission denied.")).toBeInTheDocument();
     expect(screen.getByText("Try Again")).toBeInTheDocument();
   });

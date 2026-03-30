@@ -153,7 +153,7 @@ describe('AccountManagement', () => {
     // Form inputs should not be visible initially
     expect(screen.queryByLabelText('Display Name')).not.toBeInTheDocument()
 
-    await user.click(screen.getByText('+ Add Specialist'))
+    await user.click(screen.getByText('Add Specialist'))
 
     // Form inputs should be visible
     expect(screen.getByLabelText('Display Name')).toBeInTheDocument()
@@ -170,7 +170,7 @@ describe('AccountManagement', () => {
       expect(screen.getByText('Admin User')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('+ Add Specialist'))
+    await user.click(screen.getByText('Add Specialist'))
 
     await user.type(screen.getByLabelText('Display Name'), 'New User')
     await user.type(screen.getByLabelText('Email'), 'new@test.com')
