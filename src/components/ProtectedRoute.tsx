@@ -18,7 +18,7 @@ export function ProtectedRoute() {
     if (user?.id) {
       scopeUIStore(user.id);
       scopeSessionStore(user.id);
-      setScoped(true);
+      queueMicrotask(() => setScoped(true));
     }
   }, [user?.id]);
 

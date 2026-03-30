@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 function isIOS(): boolean {
   return (
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -10,12 +15,12 @@ function isIOS(): boolean {
 function isStandaloneMode(): boolean {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    ("standalone" in navigator && (navigator as any).standalone === true)
+    ("standalone" in navigator && (navigator as unknown as { standalone?: boolean }).standalone === true)
   );
 }
 
 export function InstallBanner() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem("install-banner-dismissed") === "true",
   );
@@ -25,7 +30,7 @@ export function InstallBanner() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
