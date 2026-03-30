@@ -228,3 +228,13 @@ Plans:
 Plans:
 - [x] 20-01-PLAN.md -- Constants + manifest update, importController state machine refactor with photo upload and style handling
 - [x] 20-02-PLAN.md -- Export-side verification, human E2E verification of full import pipeline
+
+### Phase 21: more granularity with description and transcription
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 20
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 21 to break down)

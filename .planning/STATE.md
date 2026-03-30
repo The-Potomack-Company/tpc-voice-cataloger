@@ -4,10 +4,10 @@ milestone: v1.1
 milestone_name: Accounts & Deploy
 status: verifying
 stopped_at: Completed 20-02-PLAN.md
-last_updated: "2026-03-30T18:14:29.424Z"
+last_updated: "2026-03-30T18:18:00.093Z"
 last_activity: 2026-03-30
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 10
   total_plans: 33
   completed_plans: 33
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
-Phase: 20 (fix-house-session-json-import-on-rfc) — EXECUTING
-Plan: 2 of 2
+Phase: 21
+Plan: Not started
 Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
@@ -191,6 +191,7 @@ None yet.
 - Phase 18 added: Update tutorial/walkthrough to be thorough
 - Phase 19 added: Photo Upload to Supabase Storage with full offline support
 - Phase 20 added: Fix house session .json import on RFC
+- Phase 21 added: more granularity with description and transcription
 
 ## Session Continuity
 
