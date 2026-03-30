@@ -212,7 +212,6 @@ export function SessionsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [submittedExpanded, setSubmittedExpanded] = useState(true);
-  const [returnedExpanded, setReturnedExpanded] = useState(true);
   const [exportedExpanded, setExportedExpanded] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SupabaseSession | null>(null);
 

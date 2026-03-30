@@ -27,7 +27,7 @@ export async function processWriteAheadQueue(): Promise<void> {
         if (entry.operation === "insert") {
           const { error } = await supabase
             .from(entry.table)
-            .insert(entry.payload);
+            .insert(entry.payload as never);
           if (error) throw error;
         } else if (entry.operation === "update") {
           const { id, ...rest } = entry.payload as {

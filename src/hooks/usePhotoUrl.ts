@@ -18,10 +18,7 @@ export function usePhotoUrl(
   useEffect(() => {
     // Check blob (not blobUrl) to avoid race: useBlobUrl returns undefined
     // on first render before its effect creates the object URL.
-    if (blob || !storagePath) {
-      setSignedUrl(undefined);
-      return;
-    }
+    if (blob || !storagePath) return;
 
     let cancelled = false;
     supabase.storage
@@ -34,7 +31,7 @@ export function usePhotoUrl(
       })
       .catch(() => {});
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; setSignedUrl(undefined); };
   }, [blob, storagePath]);
 
   return blobUrl ?? signedUrl;

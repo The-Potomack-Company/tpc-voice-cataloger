@@ -25,7 +25,7 @@ export function NewSessionPage() {
   const nameRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     nameRef.current?.focus();

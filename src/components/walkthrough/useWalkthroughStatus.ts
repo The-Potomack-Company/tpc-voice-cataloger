@@ -6,19 +6,18 @@ export function useWalkthroughStatus() {
   const user = useAuthStore((s) => s.user);
   const [walkthroughCompleted, setWalkthroughCompleted] = useState<boolean | null>(null);
   const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
+    let cancelled = false;
     supabase
       .from('profiles')
       .select('walkthrough_completed, role')
       .eq('id', user.id)
       .single()
       .then(({ data, error }) => {
+        if (cancelled) return;
         if (error) {
           // Fallback: show walkthrough on error
           setWalkthroughCompleted(false);
@@ -27,9 +26,12 @@ export function useWalkthroughStatus() {
           setWalkthroughCompleted(data?.walkthrough_completed ?? false);
           setRole(data?.role ?? 'specialist');
         }
-        setLoading(false);
+        setFetched(true);
       });
+    return () => { cancelled = true; setFetched(false); };
   }, [user]);
+
+  const loading = !!user && !fetched;
 
   const completeWalkthrough = useCallback(async () => {
     if (!user) return;

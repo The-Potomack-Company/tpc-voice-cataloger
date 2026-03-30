@@ -145,7 +145,7 @@ export function useAudioRecorder(): AudioRecorderReturn {
           setError(message);
         });
     },
-    [store, cleanupStream],
+    [store],
   );
 
   const stopRecording = useCallback((): Promise<number | undefined> => {
