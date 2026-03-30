@@ -1,0 +1,498 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
+const { mockFrom } = vi.hoisted(() => {
+  const mockFrom = vi.fn();
+
+  return {
+    mockFrom,
+  };
+});
+
+vi.mock("../lib/supabase", () => ({
+  supabase: {
+    from: mockFrom,
+  },
+}));
+
+import { useSessionStore } from "../stores/sessionStore";
+
+// Helper to set up the chain for a query (fetchSessions pattern: from().select().order())
+function setupSelectChain(data: unknown[], error: unknown = null) {
+  const result = { data, error };
+  const chain = {
+    select: vi.fn(),
+    order: vi.fn(),
+    eq: vi.fn(),
+  };
+  chain.select.mockReturnValue(chain);
+  chain.order.mockResolvedValue(result);
+  chain.eq.mockReturnValue(chain);
+  mockFrom.mockReturnValue(chain);
+  return chain;
+}
+
+function setupSelectWithEqChain(data: unknown[], error: unknown = null) {
+  const result = { data, error };
+  const chain = {
+    select: vi.fn(),
+    order: vi.fn(),
+    eq: vi.fn(),
+  };
+  chain.select.mockReturnValue(chain);
+  chain.eq.mockReturnValue(chain);
+  chain.order.mockResolvedValue(result);
+  mockFrom.mockReturnValue(chain);
+  return chain;
+}
+
+function setupInsertChain(
+  data: unknown = null,
+  error: unknown = null,
+) {
+  const chain = {
+    insert: vi.fn(),
+    select: vi.fn(),
+    single: vi.fn(),
+  };
+  chain.insert.mockReturnValue(chain);
+  chain.select.mockReturnValue(chain);
+  chain.single.mockResolvedValue({ data, error });
+  mockFrom.mockReturnValue(chain);
+  return chain;
+}
+
+function setupUpdateChain(error: unknown = null) {
+  const chain = {
+    update: vi.fn(),
+    eq: vi.fn(),
+  };
+  chain.update.mockReturnValue(chain);
+  chain.eq.mockResolvedValue({ error });
+  mockFrom.mockReturnValue(chain);
+  return chain;
+}
+
+function setupDeleteChain(error: unknown = null) {
+  const chain = {
+    delete: vi.fn(),
+    eq: vi.fn(),
+  };
+  chain.delete.mockReturnValue(chain);
+  chain.eq.mockResolvedValue({ error });
+  mockFrom.mockReturnValue(chain);
+  return chain;
+}
+
+describe("sessionStore", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset store state between tests
+    useSessionStore.setState({
+      sessions: [],
+      itemsBySession: {},
+      loading: false,
+      lastFetched: null,
+    });
+  });
+
+  describe("initial state", () => {
+    it("has sessions=[], itemsBySession={}, loading=false, lastFetched=null", () => {
+      const state = useSessionStore.getState();
+      expect(state.sessions).toEqual([]);
+      expect(state.itemsBySession).toEqual({});
+      expect(state.loading).toBe(false);
+      expect(state.lastFetched).toBeNull();
+    });
+  });
+
+  describe("fetchSessions", () => {
+    it("calls supabase.from('sessions').select('*').order('updated_at', {ascending: false}) and sets sessions + lastFetched", async () => {
+      const mockSessions = [
+        {
+          id: "uuid-1",
+          name: "Session 1",
+          mode: "house",
+          status: "active",
+          notes: "",
+          created_by: "user-1",
+          created_at: "2026-01-01",
+          updated_at: "2026-01-02",
+          assigned_to: null,
+          review_notes: null,
+        },
+      ];
+
+      setupSelectChain(mockSessions);
+
+      await useSessionStore.getState().fetchSessions();
+
+      expect(mockFrom).toHaveBeenCalledWith("sessions");
+      const state = useSessionStore.getState();
+      expect(state.sessions).toEqual(mockSessions);
+      expect(state.loading).toBe(false);
+      expect(state.lastFetched).toBeGreaterThan(0);
+    });
+  });
+
+  describe("fetchItems", () => {
+    it("calls supabase.from('items').select('*').eq('session_id', sessionId).order('sort_order', {ascending: true}) and updates itemsBySession", async () => {
+      const mockItems = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: "Vase",
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      setupSelectWithEqChain(mockItems);
+
+      await useSessionStore.getState().fetchItems("session-1");
+
+      expect(mockFrom).toHaveBeenCalledWith("items");
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"]).toEqual(mockItems);
+    });
+  });
+
+  describe("createSession", () => {
+    it("inserts to supabase with created_by=userId and returns new session id", async () => {
+      const newSession = {
+        id: "new-uuid",
+        name: "New Session",
+        mode: "house",
+        status: "active",
+        notes: "test notes",
+        created_by: "user-123",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+        assigned_to: null,
+        review_notes: null,
+      };
+
+      setupInsertChain(newSession);
+
+      const id = await useSessionStore
+        .getState()
+        .createSession(
+          { name: "New Session", mode: "house", notes: "test notes" },
+          "user-123",
+        );
+
+      expect(mockFrom).toHaveBeenCalledWith("sessions");
+      expect(id).toBe("new-uuid");
+      const state = useSessionStore.getState();
+      expect(state.sessions.some((s) => s.id === "new-uuid")).toBe(true);
+    });
+  });
+
+  describe("updateSession", () => {
+    it("does optimistic update then supabase call", async () => {
+      const originalSession = {
+        id: "uuid-1",
+        name: "Original",
+        mode: "house",
+        status: "active",
+        notes: "",
+        created_by: "user-1",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+        assigned_to: null,
+        review_notes: null,
+      };
+
+      useSessionStore.setState({ sessions: [originalSession] });
+      setupUpdateChain(null);
+
+      await useSessionStore
+        .getState()
+        .updateSession("uuid-1", { name: "Updated" });
+
+      expect(mockFrom).toHaveBeenCalledWith("sessions");
+      const state = useSessionStore.getState();
+      const updated = state.sessions.find((s) => s.id === "uuid-1");
+      expect(updated?.name).toBe("Updated");
+    });
+
+    it("on error reverts to original", async () => {
+      const originalSession = {
+        id: "uuid-1",
+        name: "Original",
+        mode: "house",
+        status: "active",
+        notes: "",
+        created_by: "user-1",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+        assigned_to: null,
+        review_notes: null,
+      };
+
+      useSessionStore.setState({ sessions: [originalSession] });
+      setupUpdateChain(new Error("Network error"));
+
+      await useSessionStore
+        .getState()
+        .updateSession("uuid-1", { name: "Updated" });
+
+      const state = useSessionStore.getState();
+      const reverted = state.sessions.find((s) => s.id === "uuid-1");
+      expect(reverted?.name).toBe("Original");
+    });
+  });
+
+  describe("deleteSession", () => {
+    it("removes from sessions array and calls supabase delete", async () => {
+      const session = {
+        id: "uuid-1",
+        name: "To Delete",
+        mode: "house",
+        status: "active",
+        notes: "",
+        created_by: "user-1",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+        assigned_to: null,
+        review_notes: null,
+      };
+
+      useSessionStore.setState({
+        sessions: [session],
+        itemsBySession: { "uuid-1": [] },
+      });
+      setupDeleteChain(null);
+
+      await useSessionStore.getState().deleteSession("uuid-1");
+
+      expect(mockFrom).toHaveBeenCalledWith("sessions");
+      const state = useSessionStore.getState();
+      expect(state.sessions).toHaveLength(0);
+      expect(state.itemsBySession["uuid-1"]).toBeUndefined();
+    });
+  });
+
+  describe("createItem", () => {
+    it("inserts to supabase items table with correct sort_order", async () => {
+      const existingItems = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      useSessionStore.setState({
+        itemsBySession: { "session-1": existingItems },
+      });
+
+      const newItem = {
+        id: "item-2",
+        session_id: "session-1",
+        mode: "house",
+        sort_order: 1,
+        title: null,
+        description: null,
+        condition: null,
+        estimate: null,
+        measurements: null,
+        category: null,
+        transcript: null,
+        receipt_number: null,
+        ai_status: "pending",
+        created_at: "2026-01-01",
+      };
+
+      setupInsertChain(newItem);
+
+      const id = await useSessionStore
+        .getState()
+        .createItem("session-1", "house");
+
+      expect(mockFrom).toHaveBeenCalledWith("items");
+      expect(id).toBe("item-2");
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"]).toHaveLength(2);
+    });
+  });
+
+  describe("updateItemField", () => {
+    it("optimistically updates item in itemsBySession then calls supabase", async () => {
+      const items = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: "Old Title",
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      useSessionStore.setState({
+        itemsBySession: { "session-1": items },
+      });
+      setupUpdateChain(null);
+
+      await useSessionStore
+        .getState()
+        .updateItemField("item-1", "session-1", "title", "New Title");
+
+      expect(mockFrom).toHaveBeenCalledWith("items");
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"][0].title).toBe("New Title");
+    });
+  });
+
+  describe("deleteItem", () => {
+    it("removes from itemsBySession[sessionId] and calls supabase delete", async () => {
+      const items = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+        {
+          id: "item-2",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 1,
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      useSessionStore.setState({
+        itemsBySession: { "session-1": items },
+      });
+      setupDeleteChain(null);
+
+      await useSessionStore
+        .getState()
+        .deleteItem("item-1", "session-1");
+
+      expect(mockFrom).toHaveBeenCalledWith("items");
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"]).toHaveLength(1);
+      expect(state.itemsBySession["session-1"][0].id).toBe("item-2");
+    });
+  });
+
+  describe("appendToItemField", () => {
+    it("appends new content to an existing field value", async () => {
+      const items = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: "existing text",
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      useSessionStore.setState({
+        itemsBySession: { "session-1": items },
+      });
+      setupUpdateChain(null);
+
+      await useSessionStore
+        .getState()
+        .appendToItemField("item-1", "session-1", "transcript", "new text");
+
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"][0].transcript).toBe(
+        "existing text\nnew text",
+      );
+    });
+
+    it("sets the field to new content when existing value is null", async () => {
+      const items = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      useSessionStore.setState({
+        itemsBySession: { "session-1": items },
+      });
+      setupUpdateChain(null);
+
+      await useSessionStore
+        .getState()
+        .appendToItemField("item-1", "session-1", "transcript", "first text");
+
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"][0].transcript).toBe("first text");
+    });
+  });
+});

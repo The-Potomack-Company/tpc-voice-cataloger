@@ -2,17 +2,38 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useUIStore } from "../stores/uiStore";
 import { useLongPress } from "../hooks/useLongPress";
 import { SwipeableRow } from "./SwipeableRow";
-import type { Session } from "../db/types";
+import type { Tables } from "../db/database.types";
+
+type SupabaseSession = Tables<"sessions">;
 
 interface SessionCardProps {
-  session: Session;
+  session: SupabaseSession;
   itemCount: number;
   onTap: () => void;
   onDelete: () => void;
   onRename: (newName: string) => void;
+  sessionStatus?: string;
 }
 
-function formatRelativeTime(date: Date): string {
+const statusColors: Record<string, string> = {
+  active: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+  submitted:
+    "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+  returned:
+    "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400",
+  exported:
+    "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+};
+
+const statusLabels: Record<string, string> = {
+  active: "Active",
+  submitted: "Submitted",
+  returned: "Returned",
+  exported: "Exported",
+};
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
   const now = Date.now();
   const diffMs = now - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
@@ -35,6 +56,7 @@ export function SessionCard({
   onTap,
   onDelete,
   onRename,
+  sessionStatus,
 }: SessionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(session.name);
@@ -117,9 +139,18 @@ export function SessionCard({
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {itemCount} item{itemCount !== 1 ? "s" : ""}
               </span>
-              {session.status === "completed" && (
-                <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                  Completed
+              {sessionStatus && statusColors[sessionStatus] && (
+                <span
+                  className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[sessionStatus]}`}
+                >
+                  {statusLabels[sessionStatus] ?? sessionStatus}
+                </span>
+              )}
+              {!sessionStatus && session.status !== 'active' && statusColors[session.status] && (
+                <span
+                  className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${statusColors[session.status]}`}
+                >
+                  {statusLabels[session.status] ?? session.status.charAt(0).toUpperCase() + session.status.slice(1)}
                 </span>
               )}
               {isInterrupted && (
@@ -138,7 +169,7 @@ export function SessionCard({
           </div>
 
           <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap shrink-0 mt-1">
-            {formatRelativeTime(session.updatedAt)}
+            {formatRelativeTime(session.updated_at)}
           </span>
         </div>
       </div>

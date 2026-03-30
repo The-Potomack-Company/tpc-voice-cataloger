@@ -1,56 +1,62 @@
 # Phase 9: Deferred Items - Context
 
-**Gathered:** 2026-03-09
+**Gathered:** 2026-03-16
 **Status:** Ready for planning
 
 <domain>
 ## Phase Boundary
 
-Three deferred enhancements that improve the cataloging workflow: (1) receipt number list import to pre-populate sale sessions from a spreadsheet, (2) AI estimate extraction to parse spoken prices into structured dollar ranges, and (3) export history with session archiving to track past exports and declutter the session list.
+Two deferred enhancements that improve the cataloging workflow: (1) receipt number list import from CSV/XLSX spreadsheets to pre-populate sale sessions on the session creation screen, and (2) export history tracking with session archiving to track past exports, re-export, and declutter the session list.
+
+**Removed from scope (already implemented):**
+- AI estimate extraction (AI-06) — handled by `formatEstimate()` utility (quick task 6)
+- Offline queue — Phase 8 complete
 
 </domain>
 
 <decisions>
 ## Implementation Decisions
 
-### Receipt Number List Import
-- Auctioneer uploads a spreadsheet (CSV/XLSX) containing one column of receipt numbers
-- On upload, blank items are auto-created in the session — one per receipt number, no preview/review step
-- Auctioneer then walks through the pre-created items and dictates each one
-- This applies to sale cataloging mode only
-- Manager-to-cataloger push (sending lists to specific catalogers) is deferred to a future milestone
+### Receipt Number Spreadsheet Import
+- Import option appears on the NewSession page **only when Sale mode is selected** — hidden for House Visit mode
+- Accepts both CSV and XLSX files containing a single column of receipt numbers in `XXXXX-N` format
+- **Instant create** — no preview step. Parse file, create session with pre-populated blank items, navigate to session detail
+- Invalid receipt numbers (wrong format, duplicates, blank rows) are silently skipped
+- After creation, show toast: "12 items created, 3 entries skipped" (skip count only if > 0)
+- Session name is always manually entered by the auctioneer — import does not auto-fill from filename
+- Auctioneer then walks through pre-created items and dictates each one
 
-### Estimate Extraction
-- AI parses spoken price estimates into a structured low/high dollar range
-- The `estimate` field changes from a free-text string to a structured `{ low: number, high: number }` representation
-- When a single value is spoken (e.g., "about five hundred"), auto-generate a ±20% spread ($400–$600)
-- When a range is spoken (e.g., "three to five hundred"), use the stated values ($300–$500)
-- Display format: "$300–$500" in the UI
-- Editable inline like all other fields (title, description, condition, category)
-- Gemini schema needs updating to return structured estimate instead of raw string
+### Export History
+- Each export creates a history record in Dexie: session ID, export date, item count
+- History displayed as expandable section at the bottom of SessionDetail page
+- Each row shows: "Mar 16, 2026 — 12 items" with a Re-export button
+- Re-export **regenerates fresh** JSON from current session state (no snapshot storage)
+- Filename uses version suffix: `tpc-session-{id}-v{n}.json` — each re-export increments so files coexist in Downloads
+- First export remains `tpc-session-{id}.json` (v1 implicit), subsequent exports add `-v2`, `-v3`, etc.
 
-### Export History & Session Archive
-- Track each export: session name, export date, item count
-- Export history list is expandable — tap to see individual items from that export
-- Re-export from history (rebuild and download the same session again)
-- Archived sessions are hidden from the main session list
-- Separate "Archive" section or tab to view archived sessions
-- Completing + exporting a session should offer to archive it
+### Session Archive
+- After a successful export, prompt "Archive this session?" via ConfirmDialog
+- Archived sessions hidden from main session list
+- **Collapsible "Archived" section** below active sessions — collapsed by default, tap to expand (consistent with existing completed sessions pattern)
+- Archived sessions are **read-only** (consistent with completed session locking from quick task 9)
+- Un-archiving moves session back to active list **and** unlocks it for editing
+- Archive implemented as `archivedAt` timestamp on Session record (similar to soft-delete `deletedAt` pattern)
 
 ### Claude's Discretion
-- Spreadsheet parsing library choice (e.g., SheetJS/xlsx vs. Papa Parse for CSV)
-- Archive UI placement (separate tab vs collapsible section vs filter toggle)
-- Export history storage schema (new Dexie table vs. metadata on session)
-- How to handle the estimate field migration (string → structured) for existing items
+- Spreadsheet parsing library choice (SheetJS/xlsx vs Papa Parse for CSV)
+- Export history Dexie table schema details
+- Archive section styling and animation
+- Toast component implementation for import feedback
 
 </decisions>
 
 <specifics>
 ## Specific Ideas
 
-- Receipt number format remains XXXXX-N as validated by existing `receiptNumber.ts` utility
-- Estimate display as dollar range like "$300–$500" — simple, no currency selector needed
-- Export history should be expandable rows, not a separate page
+- Receipt number format remains `XXXXX-N` as validated by existing `receiptNumber.ts` utility
+- Export history rows should be expandable — consistent with ItemCard expand pattern
+- Archive prompt after export should feel like a natural "done with this" moment, not intrusive
+- Collapsible archived section should match the existing completed sessions section chevron pattern
 
 </specifics>
 
@@ -58,25 +64,27 @@ Three deferred enhancements that improve the cataloging workflow: (1) receipt nu
 ## Existing Code Insights
 
 ### Reusable Assets
-- `src/utils/receiptNumber.ts`: RECEIPT_PATTERN regex and `isValidReceiptNumber()` — use for validating imported receipt numbers from spreadsheet
-- `src/utils/export.ts`: `buildExportData()` and `exportSession()` — extend for export history tracking and re-export
-- `src/components/EditableField.tsx`: Inline editing component — reuse for estimate range editing
-- `src/components/ReceiptNumberInput.tsx`: Existing receipt input component — reference for validation UX
-- `src/components/SessionCard.tsx` + `SessionSearch.tsx`: Session list components — extend with archive filter
-- `src/components/ItemCard.tsx`: Expandable item cards — pattern for expandable export history rows
+- `src/utils/receiptNumber.ts`: RECEIPT_PATTERN regex and `isValidReceiptNumber()` — validates imported receipt numbers
+- `src/utils/export.ts`: `buildExportData()` and `exportSession()` — extend for history tracking and versioned filenames
+- `src/components/ConfirmDialog.tsx`: Modal dialog — reuse for archive prompt after export
+- `src/components/EditableField.tsx`: Inline editing component — reference for export history row pattern
+- `src/components/SessionCard.tsx` + `SessionSearch.tsx`: Session list components — extend with archive section
+- `src/pages/NewSession.tsx`: Session creation page — import button integrates here conditionally for sale mode
 
 ### Established Patterns
-- Dexie/IndexedDB as sole data store — export history and archive state will use Dexie tables
-- Dexie migrations with version bumps — needed for estimate field type change and new export history table
-- `useLiveQuery` for reactive data — session list and export history will follow this pattern
-- Blob-to-base64 via FileReader for export — already handles cross-browser edge cases
+- Dexie/IndexedDB as sole data store — export history table and `archivedAt` field use Dexie
+- Dexie migrations with version bumps — needed for new export history table and archivedAt field
+- `useLiveQuery` for reactive data — session list and export history follow this pattern
+- Soft-delete with `deletedAt` field — archive follows same pattern with `archivedAt`
+- Completed sessions section with collapsible chevron — archived section mirrors this
+- Toast-style feedback used throughout — import result feedback follows same pattern
 
 ### Integration Points
-- `src/services/geminiSchema.ts`: `catalogFieldsSchema` needs estimate field updated from string to structured object
-- `src/services/gemini.ts`: Gemini prompt needs instruction to extract numeric estimates
-- `src/db/types.ts`: `estimate` field on HouseVisitItem/SaleItem changes from `string` to structured type; ExportSchema needs update
-- Session list page: needs archive filter/toggle
-- Session detail page: needs "Import Receipt Numbers" action for sale mode sessions
+- `src/pages/NewSession.tsx`: Conditional import button when sale mode selected
+- `src/pages/SessionDetail.tsx`: Export history section + archive prompt after export
+- `src/pages/Sessions.tsx` (or equivalent): Archived sessions collapsible section
+- `src/db/index.ts`: New Dexie version with export history table + archivedAt on sessions
+- `src/db/types.ts`: ExportHistoryRecord type, archivedAt on Session type
 
 </code_context>
 
@@ -98,4 +106,4 @@ Three deferred enhancements that improve the cataloging workflow: (1) receipt nu
 ---
 
 *Phase: 09-deffered-items*
-*Context gathered: 2026-03-09*
+*Context gathered: 2026-03-16*

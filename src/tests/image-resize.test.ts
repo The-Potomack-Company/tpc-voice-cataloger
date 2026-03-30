@@ -4,7 +4,7 @@ import { resizeImage } from "../utils/image";
 // Mock createImageBitmap
 const mockClose = vi.fn();
 function mockCreateImageBitmap(
-  _source: Blob,
+  _source: Blob, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<{ width: number; height: number; close: () => void }> {
   return Promise.resolve({ width: 4000, height: 3000, close: mockClose });
 }
@@ -24,7 +24,7 @@ class MockOffscreenCanvas {
     this.height = height;
   }
 
-  getContext(_type: string) {
+  getContext(_type: string) { // eslint-disable-line @typescript-eslint/no-unused-vars
     return { drawImage: mockDrawImage };
   }
 

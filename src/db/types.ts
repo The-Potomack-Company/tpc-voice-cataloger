@@ -2,11 +2,21 @@ export interface Session {
   id?: number;
   name: string;
   mode: "house" | "sale";
-  status: "active" | "completed";
+  status: "active" | "submitted" | "returned" | "exported";
   notes: string;
   deletedAt?: Date;
+  archivedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ExportHistoryRecord {
+  id?: number;
+  sessionId: number;
+  sessionName: string;
+  sessionMode: "house" | "sale";
+  itemCount: number;
+  exportedAt: Date;
 }
 
 export type AiStatus = "pending" | "processing" | "done" | "failed" | "queued";
@@ -18,7 +28,9 @@ export interface HouseVisitItem {
   description?: string;
   condition?: string;
   estimate?: string;
+  measurements?: string;
   category?: string;
+  transcript?: string;
   aiStatus?: AiStatus;
   sortOrder: number;
   createdAt: Date;
@@ -32,7 +44,9 @@ export interface SaleItem {
   description?: string;
   condition?: string;
   estimate?: string;
+  measurements?: string;
   category?: string;
+  transcript?: string;
   aiStatus?: AiStatus;
   sortOrder: number;
   createdAt: Date;
@@ -58,6 +72,36 @@ export interface ItemAudio {
   createdAt: Date;
 }
 
+export interface IdMapping {
+  id?: number;
+  oldId: number;
+  newId: string;
+  type: "session" | "item";
+}
+
+export interface WriteAheadEntry {
+  id?: number;
+  table: "sessions" | "items";
+  operation: "insert" | "update" | "delete";
+  payload: Record<string, unknown>;
+  tempId?: string;
+  createdAt: Date;
+}
+
+export interface PhotoUploadEntry {
+  id?: number;
+  dexiePhotoId: number;
+  itemId: string;
+  sessionId: string;
+  sortOrder: number;
+  storagePath: string;
+  thumbnailPath: string;
+  status: 'pending' | 'uploading' | 'uploaded' | 'failed';
+  retryCount: number;
+  createdAt: Date;
+  lastAttemptAt?: Date;
+}
+
 export interface ExportSchema {
   version: 1;
   exportedAt: string;
@@ -67,7 +111,9 @@ export interface ExportSchema {
     description?: string;
     condition?: string;
     estimate?: string;
-    category?: string;
+    measurements?: string;
+    department?: string;
+    transcript?: string;
     receiptNumber?: string;
     sortOrder: number;
     createdAt: string;

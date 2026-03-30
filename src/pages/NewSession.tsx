@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { createSession } from "../db/sessions";
+import { createBlankItem, updateItemField } from "../db/items";
 import { useActiveSessions } from "../hooks/useSessions";
+import { useUserRole } from "../hooks/useUserRole";
+import { listAccounts, type Account } from "../services/adminApi";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ImportReceiptsButton } from "../components/ImportReceiptsButton";
 
 type Mode = "house" | "sale";
 
@@ -12,19 +16,55 @@ export function NewSessionPage() {
   const [notes, setNotes] = useState("");
   const [showActiveWarning, setShowActiveWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
+  const [assignedTo, setAssignedTo] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     nameRef.current?.focus();
   }, []);
 
+  // Load accounts for admin specialist dropdown
+  useEffect(() => {
+    if (!isAdmin) return;
+    setAccountsLoading(true);
+    setAccountsError(null);
+    listAccounts()
+      .then((data) => {
+        const active = data
+          .filter((a) => a.is_active)
+          .sort((a, b) => a.display_name.localeCompare(b.display_name));
+        setAccounts(active);
+      })
+      .catch(() => {
+        setAccountsError(
+          "Could not load team members. Check your connection and try again.",
+        );
+      })
+      .finally(() => {
+        setAccountsLoading(false);
+      });
+  }, [isAdmin]);
+
+  // Auto-dismiss toast after 3 seconds
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
   const handleSubmit = async () => {
     if (!name.trim() || submitting) return;
 
-    // Check for existing active sessions
-    if (activeSessions.length > 0 && !showActiveWarning) {
+    // Check for existing active sessions (admins always create while others are active)
+    if (!isAdmin && activeSessions.length > 0 && !showActiveWarning) {
       setShowActiveWarning(true);
       return;
     }
@@ -35,10 +75,50 @@ export function NewSessionPage() {
   const doCreate = async () => {
     setSubmitting(true);
     try {
-      const newId = await createSession(name.trim(), mode, notes.trim() || undefined);
+      const newId = await createSession(
+        name.trim(),
+        mode,
+        notes.trim() || undefined,
+        isAdmin ? assignedTo : undefined,
+      );
       navigate(`/session/${newId}`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleImport = async (receipts: string[], skipped: number) => {
+    if (receipts.length === 0) {
+      setToastMessage("No valid receipt numbers found in file");
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const sessionId = await createSession(
+        name.trim(),
+        "sale",
+        notes.trim() || undefined,
+        isAdmin ? assignedTo : undefined,
+      );
+
+      for (const receipt of receipts) {
+        const itemId = await createBlankItem(sessionId, "sale");
+        await updateItemField(itemId, sessionId, "receipt_number", receipt);
+      }
+
+      // Build toast message per CONTEXT.md locked decision
+      const msg = `${receipts.length} item${receipts.length === 1 ? "" : "s"} created${skipped > 0 ? `, ${skipped} ${skipped === 1 ? "entry" : "entries"} skipped` : ""}`;
+
+      // Store in sessionStorage so SessionDetail can show it after navigation
+      sessionStorage.setItem("importToast", msg);
+
+      navigate(`/session/${sessionId}`);
+    } catch (err) {
+      console.error("Import failed:", err);
+      setToastMessage("Import failed. Please try again.");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -149,25 +229,107 @@ export function NewSessionPage() {
         rows={3}
         className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100
                    placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700
-                   focus:outline-none focus:ring-2 focus:ring-accent resize-none mb-8"
+                   focus:outline-none focus:ring-2 focus:ring-accent resize-none mb-6"
       />
+
+      {/* Assign To - admin only */}
+      {isAdmin && (
+        <div className="mb-6">
+          <label
+            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            htmlFor="assign-to"
+          >
+            Assign To
+          </label>
+          <div className={`relative${accountsLoading ? " opacity-50" : ""}`}>
+            <select
+              id="assign-to"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              disabled={accountsLoading}
+              className="w-full px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                         border border-gray-200 dark:border-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-accent min-h-12
+                         appearance-none font-medium"
+            >
+              {accountsLoading ? (
+                <option value="" disabled>
+                  Loading...
+                </option>
+              ) : (
+                <>
+                  <option value="" disabled>
+                    Select a specialist...
+                  </option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.display_name}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </div>
+          {accountsError && (
+            <p
+              className="text-sm text-red-600 dark:text-red-400 mt-1"
+              role="alert"
+            >
+              {accountsError}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Import Receipt List - only in sale mode */}
+      {mode === "sale" && (
+        <div className="mb-6">
+          <ImportReceiptsButton
+            onImport={handleImport}
+            disabled={!name.trim() || importing || submitting || (isAdmin && !assignedTo)}
+          />
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+            Upload a CSV or XLSX file with receipt numbers
+          </p>
+        </div>
+      )}
 
       {/* Submit */}
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!name.trim() || submitting}
+        disabled={!name.trim() || submitting || importing || (isAdmin && !assignedTo)}
         className="w-full bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
                    text-white font-medium py-3 px-8 rounded-lg min-h-12 flex items-center justify-center transition-colors"
       >
         {submitting ? "Creating..." : "Start Session"}
       </button>
 
+      {/* Toast feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-3 rounded-xl shadow-lg animate-[slideUp_0.3s_ease-out]">
+          <span className="text-sm">{toastMessage}</span>
+        </div>
+      )}
+
       {/* Active session warning */}
       <ConfirmDialog
         open={showActiveWarning}
         title="Active Session Exists"
-        message="You have an open session — start a new one anyway?"
+        message="You have an open session -- start a new one anyway?"
         confirmLabel="Start New"
         cancelLabel="Go Back"
         onConfirm={() => {

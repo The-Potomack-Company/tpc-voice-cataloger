@@ -1,5 +1,11 @@
 import { db } from "../db";
+import { supabase } from "../lib/supabase";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
+import { formatEstimate } from "../utils/formatEstimate";
+import { mapCategoryToCode } from "../utils/categoryMapper";
+import { toAllCaps } from "../utils/toAllCaps";
+import { formatMeasurements } from "../utils/formatMeasurements";
+import { useSessionStore } from "../stores/sessionStore";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -7,8 +13,10 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
 - title: The item name/type as spoken
 - description: The item description as spoken
 - condition: The condition assessment as spoken
-- estimate: The price estimate as spoken
-- category: The item category as spoken
+- estimate: The price estimate as a number or numeric range (e.g. "500" or "300 to 500"). Strip dollar signs. If the speaker says "two hundred", return "200". If they give a range like "three to five hundred", return "300 to 500"
+- category: The RFC department code matching the item category. Valid codes: AA, AMER, AWFA, ANT, AAR, 0001, ASD, ASN, ASNP, BKS, CER, IND, CLK, CNS, DEC, DRW, ENT, EA, FASH, FIS, FRN, MDF, PER, GAR, GEN, GLS, ITS, ISL, JWL, LIT, MANU, MAP, MA, MUS, NAT, TXTL, PND, PNT, PEN, MIN, REL, RUG, SPT, SIL, TAP, TRI, WINE. If uncertain, return the closest match.
+- measurements: Array of 1-3 numbers representing dimensions in inches (height x width x depth order). Extract actual numbers from speech like "thirty-six by twenty-four" as [36, 24]. If no specific measurements mentioned, return null.
+- transcript: The full verbatim transcript of everything said in the audio
 
 CRITICAL RULES:
 1. Use the speaker's EXACT words. Do not rephrase, improve, or formalize.
@@ -34,24 +42,28 @@ export async function blobToBase64(blob: Blob): Promise<string> {
 
 /**
  * Full AI processing pipeline: fetch audio from Dexie, send to Gemini via proxy,
- * validate response with Zod, write structured fields back to item record.
+ * validate response with Zod, write structured fields back to Supabase items table.
  *
  * Designed to be called fire-and-forget after recording stops.
  * Uses captured itemId in closure to prevent race conditions.
+ *
+ * @param audioId - Dexie integer ID for the audio blob
+ * @param itemId - Supabase UUID string for the item
+ * @param sessionId - Supabase UUID string for the session (for potential store refresh)
  */
 export async function processAudioWithAi(
   audioId: number,
-  itemId: number,
-  itemType: "house" | "sale",
+  itemId: string,
+  sessionId: string,
 ): Promise<void> {
-  const table =
-    itemType === "house" ? db.houseVisitItems : db.saleItems;
-
   try {
-    // Set aiStatus to "processing"
-    await table.update(itemId, { aiStatus: "processing" });
+    // Set ai_status to "processing" via Supabase
+    await supabase
+      .from("items")
+      .update({ ai_status: "processing" })
+      .eq("id", itemId);
 
-    // Fetch audio record from Dexie
+    // Fetch audio record from Dexie (blobs stay in IndexedDB)
     const audioRecord = await db.audio.get(audioId);
     if (!audioRecord) {
       throw new Error(`Audio record ${audioId} not found`);
@@ -91,19 +103,34 @@ export async function processAudioWithAi(
       ],
       generationConfig: {
         responseMimeType: "application/json",
-        responseSchema: catalogFieldsJsonSchema,
+        responseSchema: (() => {
+          // Gemini API rejects $schema and additionalProperties fields
+          const raw = catalogFieldsJsonSchema as Record<string, unknown>;
+          const clean = Object.fromEntries(
+            Object.entries(raw).filter(([k]) => k !== '$schema' && k !== 'additionalProperties'),
+          );
+          return clean;
+        })(),
       },
     };
 
-    // Send to proxy
-    const response = await fetch(proxyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "gemini-2.5-flash",
-        payload: geminiPayload,
-      }),
-    });
+    // Send to proxy (30s timeout so a down server doesn't hang forever)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let response: Response;
+    try {
+      response = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gemini-2.5-flash",
+          payload: geminiPayload,
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     // Check for non-200 response before attempting to parse
     if (!response.ok) {
@@ -125,39 +152,69 @@ export async function processAudioWithAi(
 
     const fields = result.data;
 
-    // Write fields to item record
-    // Use undefined for null fields so Dexie doesn't store them
-    // Category defaults to "furniture" if null
-    const updateData: Record<string, unknown> = {
-      aiStatus: "done",
+    // Write fields to Supabase items table
+    const supabaseUpdate: Record<string, unknown> = {
+      ai_status: "done",
     };
 
     if (fields.title !== null) {
-      updateData.title = fields.title;
+      supabaseUpdate.title = toAllCaps(fields.title);
     }
     if (fields.description !== null) {
-      updateData.description = fields.description;
+      supabaseUpdate.description = fields.description;
     }
     if (fields.condition !== null) {
-      updateData.condition = fields.condition;
+      supabaseUpdate.condition = fields.condition;
     }
-    if (fields.estimate !== null) {
-      updateData.estimate = fields.estimate;
+    const formattedEstimate = formatEstimate(fields.estimate);
+    if (formattedEstimate !== null) {
+      supabaseUpdate.estimate = formattedEstimate;
     }
-    updateData.category = fields.category ?? "furniture";
+    const mappedCategory = mapCategoryToCode(fields.category);
+    if (mappedCategory !== null) {
+      supabaseUpdate.category = mappedCategory;
+    }
+    if (fields.measurements !== null && fields.measurements.length > 0) {
+      supabaseUpdate.measurements = formatMeasurements(fields.measurements);
+    }
+    if (fields.transcript !== null) {
+      // For transcript append, read current value from Supabase first
+      const { data: currentItem } = await supabase
+        .from("items")
+        .select("transcript")
+        .eq("id", itemId)
+        .maybeSingle();
+      if (!currentItem) return; // Item deleted mid-processing, bail out
+      const prev = currentItem?.transcript;
+      supabaseUpdate.transcript = prev
+        ? `${prev}\n\n${fields.transcript}`
+        : fields.transcript;
+    }
 
-    await table.update(itemId, updateData);
+    await supabase
+      .from("items")
+      .update(supabaseUpdate)
+      .eq("id", itemId);
+
+    // Refresh Zustand store so UI re-renders with AI results
+    useSessionStore.getState().fetchItems(sessionId).catch(() => {});
   } catch (error) {
-    // On ANY error: set aiStatus to "failed", set fallback description
+    // On ANY error: set ai_status to "failed", set fallback description
     console.error("AI processing error:", error);
     try {
-      await table.update(itemId, {
-        aiStatus: "failed",
-        description:
-          "AI processing failed - audio recorded, awaiting manual review",
-      });
+      await supabase
+        .from("items")
+        .update({
+          ai_status: "failed",
+          description:
+            "AI processing failed - audio recorded, awaiting manual review",
+        })
+        .eq("id", itemId);
+
+      // Refresh store so UI shows "failed" status immediately
+      useSessionStore.getState().fetchItems(sessionId).catch(() => {});
     } catch (dbError) {
-      console.error("Failed to update aiStatus to failed:", dbError);
+      console.error("Failed to update ai_status to failed:", dbError);
     }
   }
 }

@@ -9,7 +9,7 @@ interface AudioRecorderReturn {
   status: RecordingStatus;
   durationMs: number;
   error: string | null;
-  startRecording: (itemId: number, itemType: "house" | "sale") => void;
+  startRecording: (itemId: string, sessionId: string) => void;
   stopRecording: () => Promise<number | undefined>;
 }
 
@@ -32,9 +32,9 @@ export function useAudioRecorder(): AudioRecorderReturn {
   // Store a resolve function for the stopRecording promise
   const stopResolveRef = useRef<((id: number) => void) | null>(null);
 
-  // Track itemId/itemType for onstop handler
-  const itemIdRef = useRef<number>(0);
-  const itemTypeRef = useRef<"house" | "sale">("house");
+  // Track itemId/sessionId for onstop handler
+  const itemIdRef = useRef<string>("");
+  const sessionIdRef = useRef<string>("");
 
   const store = useRecordingStore;
 
@@ -60,9 +60,9 @@ export function useAudioRecorder(): AudioRecorderReturn {
   }, []);
 
   const startRecording = useCallback(
-    (itemId: number, itemType: "house" | "sale") => {
+    (itemId: string, sessionId: string) => {
       itemIdRef.current = itemId;
-      itemTypeRef.current = itemType;
+      sessionIdRef.current = sessionId;
       setStatus("requesting");
       setError(null);
       setDurationMs(0);
@@ -98,8 +98,8 @@ export function useAudioRecorder(): AudioRecorderReturn {
 
             try {
               const id = await db.audio.add({
-                itemId: itemIdRef.current,
-                itemType: itemTypeRef.current,
+                itemId: itemIdRef.current as unknown as number, // Dexie stores value as-is
+                itemType: "house", // Legacy field, kept for backward compat
                 blob,
                 mimeType: detectedMimeTypeRef.current || "audio/webm",
                 durationMs: elapsedMs,
@@ -145,7 +145,7 @@ export function useAudioRecorder(): AudioRecorderReturn {
           setError(message);
         });
     },
-    [store, cleanupStream],
+    [store],
   );
 
   const stopRecording = useCallback((): Promise<number | undefined> => {

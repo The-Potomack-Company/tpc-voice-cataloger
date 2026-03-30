@@ -1,16 +1,26 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { formatDuration } from "../utils/audio";
+import { getDexieItemId } from "../db/idMapping";
 
 interface RecordingsListProps {
-  itemId: number;
+  itemId: string;
 }
 
 export function RecordingsList({ itemId }: RecordingsListProps) {
+  // ID mapping for migrated items
+  const [dexieItemId, setDexieItemId] = useState<number | string | null>(null);
+  useEffect(() => {
+    getDexieItemId(itemId).then(id => setDexieItemId(id ?? itemId));
+  }, [itemId]);
+
   const recordings = useLiveQuery(
-    () => db.audio.where("itemId").equals(itemId).sortBy("createdAt"),
-    [itemId],
+    () => {
+      if (dexieItemId == null) return [];
+      return db.audio.where("itemId").equals(dexieItemId).sortBy("createdAt");
+    },
+    [dexieItemId],
     [],
   );
 

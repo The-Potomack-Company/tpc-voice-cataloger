@@ -1,71 +1,40 @@
-import { db } from "./index";
+import { useSessionStore } from "../stores/sessionStore";
 
-function getTable(mode: "house" | "sale") {
-  return mode === "house" ? db.houseVisitItems : db.saleItems;
+export async function createBlankItem(
+  sessionId: string,
+  mode: "house" | "sale",
+  receiptNumber?: string,
+): Promise<string> {
+  return useSessionStore
+    .getState()
+    .createItem(sessionId, mode, receiptNumber);
 }
 
 export async function updateItemField(
-  id: number,
-  mode: "house" | "sale",
+  id: string,
+  sessionId: string,
   field: string,
-  value: string,
+  value: string | null,
 ): Promise<void> {
-  const table = getTable(mode);
-  await table.update(id, { [field]: value });
+  await useSessionStore
+    .getState()
+    .updateItemField(id, sessionId, field, value);
 }
 
 export async function deleteItem(
-  id: number,
-  mode: "house" | "sale",
+  id: string,
+  sessionId: string,
 ): Promise<void> {
-  const table = getTable(mode);
-  await db.transaction("rw", [table, db.photos, db.audio], async () => {
-    await db.photos.where("itemId").equals(id).delete();
-    await db.audio.where("itemId").equals(id).delete();
-    await table.delete(id);
-  });
-}
-
-export async function createBlankItem(
-  sessionId: number,
-  mode: "house" | "sale",
-): Promise<number> {
-  const table = getTable(mode);
-  const count = await table.where("sessionId").equals(sessionId).count();
-  const now = new Date();
-
-  if (mode === "sale") {
-    return (await db.saleItems.add({
-      sessionId,
-      receiptNumber: "",
-      sortOrder: count,
-      createdAt: now,
-    })) as number;
-  }
-
-  return (await db.houseVisitItems.add({
-    sessionId,
-    sortOrder: count,
-    createdAt: now,
-  })) as number;
+  await useSessionStore.getState().deleteItem(id, sessionId);
 }
 
 export async function appendToItemField(
-  id: number,
-  mode: "house" | "sale",
+  id: string,
+  sessionId: string,
   field: string,
   newContent: string,
 ): Promise<void> {
-  const table = getTable(mode);
-  await table
-    .where("id")
-    .equals(id)
-    .modify((item: Record<string, unknown>) => {
-      const existing = item[field] as string | undefined;
-      if (existing) {
-        item[field] = existing + "\n" + newContent;
-      } else {
-        item[field] = newContent;
-      }
-    });
+  await useSessionStore
+    .getState()
+    .appendToItemField(id, sessionId, field, newContent);
 }

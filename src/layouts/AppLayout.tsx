@@ -4,6 +4,14 @@ import { InstallBanner } from "../components/InstallBanner";
 import { OfflineIndicator } from "../components/OfflineIndicator";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { drainQueue } from "../services/offlineQueue";
+import { drainPhotoQueue } from "../services/photoUploadQueue";
+import { migrateExistingPhotos } from "../services/photoMigration";
+import { PhotoMigrationBanner } from "../components/PhotoMigrationBanner";
+import {
+  useWriteAheadQueue,
+  processWriteAheadQueue,
+} from "../hooks/useWriteAheadQueue";
+import { useSessionStore } from "../stores/sessionStore";
 
 function tabClass({ isActive }: { isActive: boolean }): string {
   return `flex flex-col items-center py-3 px-4 min-h-12 min-w-12 transition-colors ${
@@ -13,16 +21,27 @@ function tabClass({ isActive }: { isActive: boolean }): string {
 
 export function AppLayout() {
   useOnlineStatus();
+  useWriteAheadQueue();
+
+  const fetchSessions = useSessionStore(s => s.fetchSessions);
 
   useEffect(() => {
+    const handleReconnect = async () => {
+      await processWriteAheadQueue(); // Write-ahead first (items must exist before AI can update)
+      await fetchSessions(); // Re-fetch after queue drains so server data includes synced items
+      await drainPhotoQueue(); // Photos after metadata synced
+      drainQueue(); // Audio last
+    };
     // Drain on mount if online (handles case: app closed with queued items, reopened with connectivity)
     if (navigator.onLine) {
-      drainQueue();
+      handleReconnect();
     }
-    const handleOnline = () => drainQueue();
+    // Run photo migration on mount (post-auth, non-blocking)
+    migrateExistingPhotos().catch(() => {});
+    const handleOnline = () => handleReconnect();
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
-  }, []);
+  }, [fetchSessions]);
 
   return (
     <div
@@ -31,6 +50,7 @@ export function AppLayout() {
     >
       <InstallBanner />
       <OfflineIndicator />
+      <PhotoMigrationBanner />
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>

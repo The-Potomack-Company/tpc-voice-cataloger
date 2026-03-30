@@ -2,11 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface UIState {
-  hasCompletedWalkthrough: boolean;
-  completeWalkthrough: () => void;
-  resetWalkthrough: () => void;
-  recordingSessionId: number | null;
-  setRecordingSession: (id: number | null) => void;
+  recordingSessionId: string | null;
+  setRecordingSession: (id: string | null) => void;
   isOnline: boolean;
   setOnline: (online: boolean) => void;
 }
@@ -14,11 +11,8 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
-      hasCompletedWalkthrough: false,
-      completeWalkthrough: () => set({ hasCompletedWalkthrough: true }),
-      resetWalkthrough: () => set({ hasCompletedWalkthrough: false }),
       recordingSessionId: null,
-      setRecordingSession: (id: number | null) =>
+      setRecordingSession: (id: string | null) =>
         set({ recordingSessionId: id }),
       isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
       setOnline: (online: boolean) => set({ isOnline: online }),
@@ -26,9 +20,25 @@ export const useUIStore = create<UIState>()(
     {
       name: "tpc-ui-state",
       partialize: (state) => ({
-        hasCompletedWalkthrough: state.hasCompletedWalkthrough,
         recordingSessionId: state.recordingSessionId,
       }),
     },
   ),
 );
+
+/**
+ * Scope the UI store persist key to a specific user.
+ * Handles migration of legacy unscoped key if present.
+ * Call this after login to isolate data per user.
+ */
+export function scopeUIStore(userId: string) {
+  const legacyKey = "tpc-ui-state";
+  const scopedKey = `tpc-ui-state-${userId}`;
+  const legacyData = localStorage.getItem(legacyKey);
+  if (legacyData && !localStorage.getItem(scopedKey)) {
+    localStorage.setItem(scopedKey, legacyData);
+    localStorage.removeItem(legacyKey);
+  }
+  useUIStore.persist.setOptions({ name: scopedKey });
+  useUIStore.persist.rehydrate();
+}

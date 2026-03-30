@@ -1,50 +1,94 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
-import type { HouseVisitItem, SaleItem } from "../db/types";
+import type { Tables } from "../db/database.types";
 import { EditableField } from "./EditableField";
 import { SwipeableRow } from "./SwipeableRow";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { updateItemField, deleteItem } from "../db/items";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { processAudioWithAi } from "../services/gemini";
+import { reformatMeasurements } from "../utils/formatMeasurements";
+import { getDexieItemId } from "../db/idMapping";
+import { hasPendingForItem } from "../hooks/useWriteAheadQueue";
+
+type SupabaseItem = Tables<"items">;
 
 interface ItemCardProps {
-  item: HouseVisitItem | SaleItem;
-  mode: "house" | "sale";
+  item: SupabaseItem;
+  sessionId: string;
   isExpanded: boolean;
   onToggle: () => void;
+  readOnly?: boolean;
 }
 
-export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
+export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: ItemCardProps) {
+  const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const { status, startRecording, stopRecording } = useAudioRecorder();
-  const isQueued = item.aiStatus === "queued";
+  const isQueued = item.ai_status === "queued";
+  const isFailed = item.ai_status === "failed";
+  const isProcessing = item.ai_status === "processing";
 
-  const audioCount = useLiveQuery(
-    () => db.audio.where("itemId").equals(item.id!).count(),
-    [item.id],
-    0,
+  // ID mapping for Dexie blob lookups
+  const [dexieItemId, setDexieItemId] = useState<number | string | null>(null);
+  useEffect(() => {
+    getDexieItemId(item.id).then(id => setDexieItemId(id ?? item.id));
+  }, [item.id]);
+
+  // Pending sync badge
+  const [isPending, setIsPending] = useState(false);
+  useEffect(() => {
+    hasPendingForItem(item.id).then(setIsPending);
+  }, [item.id]);
+
+  const audioData = useLiveQuery(
+    async () => {
+      if (dexieItemId == null) return { count: 0, latestAudioId: null as number | null };
+      const audios = await db.audio.where("itemId").equals(dexieItemId).toArray();
+      const count = audios.length;
+      const latestAudioId = count > 0
+        ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
+        : null;
+      return { count, latestAudioId };
+    },
+    [dexieItemId],
+    { count: 0, latestAudioId: null as number | null },
   );
+
+  const audioCount = audioData.count;
+  const latestAudioId = audioData.latestAudioId;
+
+  const handleRetryAi = () => {
+    if (!latestAudioId || retrying) return;
+    setRetrying(true);
+    processAudioWithAi(latestAudioId, item.id, sessionId)
+      .then(() => setRetrying(false))
+      .catch((err) => {
+        console.error("AI retry failed:", err);
+        setRetrying(false);
+      });
+  };
 
   const photoCount = useLiveQuery(
-    () =>
-      mode === "house"
-        ? db.photos.where("itemId").equals(item.id!).count()
-        : Promise.resolve(0),
-    [item.id, mode],
+    () => {
+      if (dexieItemId == null) return Promise.resolve(0);
+      return item.mode === "house"
+        ? db.photos.where("itemId").equals(dexieItemId).count()
+        : Promise.resolve(0);
+    },
+    [dexieItemId, item.mode],
     0,
   );
 
-  const receiptNumber =
-    mode === "sale" ? (item as SaleItem).receiptNumber : undefined;
-
   const handleFieldSave = (field: string) => (value: string) => {
-    updateItemField(item.id!, mode, field, value);
+    updateItemField(item.id, sessionId, field, value);
   };
 
   const handleDelete = async () => {
-    await deleteItem(item.id!, mode);
+    await deleteItem(item.id, sessionId);
     setShowDeleteConfirm(false);
   };
 
@@ -54,37 +98,42 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
       const audioId = await stopRecording();
       if (audioId != null) {
         if (navigator.onLine) {
-          processAudioWithAi(audioId, item.id!, mode).catch((err) =>
+          processAudioWithAi(audioId, item.id, sessionId).catch((err) =>
             console.error("AI processing failed:", err),
           );
         } else {
-          const table = mode === "house" ? db.houseVisitItems : db.saleItems;
-          await table.update(item.id!, { aiStatus: "queued" as const });
+          updateItemField(item.id, sessionId, "ai_status", "queued").catch(console.error);
         }
       }
     } else if (status === "idle") {
-      startRecording(item.id!, mode);
+      startRecording(item.id, sessionId);
     }
   };
 
   return (
-    <SwipeableRow onDelete={() => setShowDeleteConfirm(true)}>
-      <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden${isQueued ? " opacity-50" : ""}`}>
+    <SwipeableRow onDelete={() => setShowDeleteConfirm(true)} disabled={readOnly}>
+      <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg${isQueued ? " opacity-50" : ""}`}>
         {/* Collapsed row - always visible (div instead of button to allow nested mic button) */}
         <div
           role="button"
           tabIndex={0}
-          onClick={onToggle}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+          onClick={() => {
+            if (item.mode === "house") {
+              navigate(`/session/${sessionId}/item/${item.id}`);
+            } else {
+              onToggle();
+            }
+          }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (item.mode === "house") { navigate(`/session/${sessionId}/item/${item.id}`); } else { onToggle(); } } }}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
         >
           {/* Item number + title preview */}
           <div className="flex-1 min-w-0">
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate block">
-              {mode === "sale" && receiptNumber
-                ? `#${receiptNumber}`
-                : `Item ${item.sortOrder + 1}`}
-              {item.title ? ` — ${item.title}` : ""}
+              {item.mode === "sale" && item.receipt_number
+                ? `#${item.receipt_number}`
+                : `Item ${item.sort_order + 1}`}
+              {item.title ? ` \u2014 ${item.title}` : ""}
             </span>
             {item.description && (
               <span className="text-xs text-gray-500 dark:text-gray-400 truncate block mt-0.5">
@@ -95,6 +144,16 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
 
           {/* Indicator icons */}
           <div className="flex items-center gap-2 shrink-0">
+            {isPending && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                    aria-label="This change will sync when you reconnect">
+                <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 12a8 8 0 0116 0M20 12a8 8 0 01-16 0" />
+                </svg>
+                Pending sync
+              </span>
+            )}
+
             {audioCount > 0 && (
               <svg
                 className="w-4 h-4 text-green-600 dark:text-green-400"
@@ -105,7 +164,7 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               </svg>
             )}
 
-            {mode === "house" && photoCount > 0 && (
+            {item.mode === "house" && photoCount > 0 && (
               <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -124,8 +183,20 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               </span>
             )}
 
-            {/* Mic icon for re-record */}
-            {!isQueued && <button
+            {isFailed && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                Failed
+              </span>
+            )}
+
+            {isProcessing && (
+              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 animate-pulse">
+                Processing...
+              </span>
+            )}
+
+            {/* Mic icon for re-record (hidden in house mode) */}
+            {!readOnly && !isQueued && !isProcessing && item.mode !== "house" && <button
               type="button"
               onClick={handleMicClick}
               className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
@@ -156,22 +227,29 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
               )}
             </button>}
 
-            {/* Chevron */}
-            <svg
-              className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${
-                isExpanded ? "rotate-90" : ""
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
+            {/* Chevron -- in house mode, stops propagation to toggle expand instead of navigating */}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggle(); }}
+              className="p-0.5 -m-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              aria-label={isExpanded ? "Collapse details" : "Expand details"}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-              />
-            </svg>
+              <svg
+                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${
+                  isExpanded ? "rotate-90" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -184,60 +262,131 @@ export function ItemCard({ item, mode, isExpanded, onToggle }: ItemCardProps) {
           </div>
         )}
 
-        {/* Expanded section -- editable fields (non-queued only) */}
-        {isExpanded && !isQueued && (
+        {/* Expanded section -- house mode: read-only field summary */}
+        {isExpanded && !isQueued && item.mode === "house" && (
+          <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-2">
+            {([
+              ["Title", item.title],
+              ["Description", item.description],
+              ["Measurements", item.measurements],
+              ["Condition", item.condition],
+              ["Estimate", item.estimate],
+              ["Category", item.category],
+            ] as const).filter(([, val]) => val).map(([label, val]) => (
+              <div key={label}>
+                <span className="text-xs font-medium text-gray-500 uppercase">{label}</span>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{val}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Expanded section -- sale mode: editable fields (non-queued only) */}
+        {isExpanded && !isQueued && item.mode !== "house" && (
           <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
             <EditableField
               label="Title"
-              value={item.title}
+              value={item.title ?? undefined}
               onSave={handleFieldSave("title")}
               placeholder="Enter title"
+              readOnly={readOnly}
             />
             <EditableField
               label="Description"
-              value={item.description}
+              value={item.description ?? undefined}
               onSave={handleFieldSave("description")}
               placeholder="Enter description"
               multiline
+              readOnly={readOnly}
+            />
+            <EditableField
+              label="Measurements"
+              value={item.measurements ?? undefined}
+              onSave={(val) => {
+                const reformatted = reformatMeasurements(val);
+                handleFieldSave("measurements")(reformatted);
+              }}
+              placeholder="Enter measurements"
+              readOnly={readOnly}
             />
             <EditableField
               label="Condition"
-              value={item.condition}
+              value={item.condition ?? undefined}
               onSave={handleFieldSave("condition")}
               placeholder="Enter condition"
+              readOnly={readOnly}
             />
             <EditableField
               label="Estimate"
-              value={item.estimate}
+              value={item.estimate ?? undefined}
               onSave={handleFieldSave("estimate")}
               placeholder="Enter estimate"
+              readOnly={readOnly}
             />
             <EditableField
               label="Category"
-              value={item.category}
+              value={item.category ?? undefined}
               onSave={handleFieldSave("category")}
               placeholder="Enter category"
+              readOnly={readOnly}
             />
 
-            {mode === "sale" && (
+            {item.mode === "sale" && (
               <EditableField
                 label="Receipt Number"
-                value={receiptNumber}
-                onSave={handleFieldSave("receiptNumber")}
+                value={item.receipt_number ?? undefined}
+                onSave={handleFieldSave("receipt_number")}
                 placeholder="Enter receipt number"
+                readOnly={readOnly}
               />
             )}
 
+            {/* Raw transcript */}
+            {item.transcript && (
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Raw Transcript
+                </span>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+                  {item.transcript}
+                </p>
+              </div>
+            )}
+
+            {/* Retry AI button for failed or stuck-processing items */}
+            {!readOnly && (isFailed || isProcessing) && (
+              <button
+                type="button"
+                onClick={handleRetryAi}
+                disabled={retrying || !latestAudioId}
+                title={!latestAudioId ? "No audio to retry" : undefined}
+                className="w-full text-sm text-blue-600 dark:text-blue-400 font-medium
+                           py-2 rounded-lg border border-blue-200 dark:border-blue-800
+                           hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors
+                           disabled:opacity-50"
+              >
+                {retrying ? (
+                  <span className="animate-pulse">Retrying...</span>
+                ) : isProcessing ? (
+                  "Stuck? Retry Processing"
+                ) : (
+                  "Retry AI"
+                )}
+              </button>
+            )}
+
             {/* Delete button */}
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full mt-2 text-sm text-red-600 dark:text-red-400 font-medium
-                         py-2 rounded-lg border border-red-200 dark:border-red-800
-                         hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            >
-              Delete Item
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full mt-2 text-sm text-red-600 dark:text-red-400 font-medium
+                           py-2 rounded-lg border border-red-200 dark:border-red-800
+                           hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                Delete Item
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -1,20 +1,33 @@
 import { Routes, Route } from "react-router";
 import { AppLayout } from "./layouts/AppLayout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRouteGuard } from "./components/AdminRouteGuard";
+import { LoginPage } from "./pages/Login";
 import { SessionsPage } from "./pages/Sessions";
 import { NewSessionPage } from "./pages/NewSession";
 import { SessionDetailPage } from "./pages/SessionDetail";
 import { ItemEntryPage } from "./pages/ItemEntry";
 import { SettingsPage } from "./pages/Settings";
+import { AccountManagementPage } from "./pages/AccountManagement";
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route index element={<SessionsPage />} />
-        <Route path="new" element={<NewSessionPage />} />
-        <Route path="session/:sessionId" element={<SessionDetailPage />} />
-        <Route path="session/:sessionId/item/:itemId" element={<ItemEntryPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+      <Route path="login" element={<LoginPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<SessionsPage />} />
+          <Route path="new" element={<NewSessionPage />} />
+          <Route path="session/:sessionId" element={<SessionDetailPage />} />
+          <Route
+            path="session/:sessionId/item/:itemId"
+            element={<ItemEntryPage />}
+          />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route element={<AdminRouteGuard />}>
+            <Route path="admin/accounts" element={<AccountManagementPage />} />
+          </Route>
+        </Route>
       </Route>
     </Routes>
   );

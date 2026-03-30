@@ -1,75 +1,230 @@
-# Stack Research
+# Stack Research: v1.1 Accounts & Deploy
 
-**Domain:** Mobile-first PWA — Speech-to-text auction cataloging with offline support and AI parsing
-**Researched:** 2026-03-06
-**Confidence:** HIGH (core choices), MEDIUM (version pins — verify at scaffold time)
+**Domain:** Authentication, backend API, database, and deployment additions for existing PWA
+**Researched:** 2026-03-17
+**Confidence:** HIGH
 
 ---
 
-## Recommended Stack
+## Existing Stack (DO NOT CHANGE)
 
-### Core Technologies
+These are validated in v1.0 and remain as-is:
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| React | ^19.2.0 | UI framework |
+| Vite | ^7.3.1 | Build tooling + dev server |
+| TypeScript | ~5.9.3 | Type safety |
+| Tailwind CSS | ^4.2.1 | Styling |
+| Zustand | ^5.0.11 | Client state management |
+| Dexie | ^4.3.0 | IndexedDB ORM (local storage) |
+| React Router | ^7.13.1 | Client-side routing |
+| Zod | ^4.3.6 | Schema validation |
+| vite-plugin-pwa | ^1.2.0 | Service worker / PWA manifest |
+
+**Dexie stays as the local data layer.** Sessions, items, photos, and audio continue to live in IndexedDB for offline support. The new backend manages account state, session assignments, and auth only -- it does NOT replace Dexie for recording/cataloging workflows.
+
+---
+
+## Recommended Stack Additions
+
+### Backend API: Hono 4.x
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| React | 19.x | UI framework | Dominant PWA ecosystem; best tooling for hooks-heavy audio/recording state; most production examples for MediaRecorder + IndexedDB patterns. Vue is a viable alternative but React has the edge in available community solutions for the specific combination of audio capture + offline queue. |
-| TypeScript | 5.x | Type safety | Mandatory. The JSON export format must match the extension's schema exactly — types enforce this at compile time. Eliminates an entire class of integration bugs. |
-| Vite | 7.x | Build tool | Current standard for React PWAs post-CRA death. vite-plugin-pwa integrates directly. Fastest HMR for mobile iteration. |
-| vite-plugin-pwa | 1.x | Service worker + manifest | Zero-config PWA: auto-generates service worker precache, web app manifest, install prompt handling. Wraps Workbox — the industry standard for service worker caching strategies. Use `generateSW` strategy for simplicity. |
-| Tailwind CSS | 4.x | Styling | Released stable January 2025. Fastest mobile-first CSS authoring. Critical for rapid iteration on touch targets, swipe controls, large tap areas. 5x faster full builds than v3. |
-| Zustand | 5.x | Client state | Minimal, hook-first, no boilerplate. `persist` middleware serializes session state to localStorage for free. Correct fit for 2-5 user internal tool — no need for Redux complexity. |
-| Dexie.js | 4.x | IndexedDB wrapper | The standard IndexedDB abstraction for PWAs. Stores: (1) audio blobs queued for transcription when offline, (2) active catalog sessions, (3) completed entries pending export. Raw IndexedDB API is painful to use; Dexie makes it Promises-based. |
-| `@google/genai` | 1.x | Gemini AI SDK | **Use this, not `@google/generative-ai`** — the old package was deprecated; support ends November 2025. The new unified SDK reached GA in May 2025. Handles both audio transcription and structured field parsing in a single Gemini call. |
+| hono | ^4.12.8 | Lightweight API framework | Zero-config Vercel deployment. Built on Web Standards (Request/Response). Automatic Fluid Compute (115ms cold starts). Native TypeScript. RPC client gives end-to-end type safety with the React frontend. Vercel treats Hono as a first-class backend framework. |
+
+**Why Hono over alternatives:**
+- **vs Express:** Express is not built for serverless. Hono is Web Standards-native, works identically in Cloudflare Workers and Vercel Functions. No cold start penalty from loading Express.
+- **vs tRPC:** Hono RPC gives similar type safety but is simpler and lighter. tRPC adds complexity for 2-5 users. Hono also works as a standard REST API.
+- **vs Nitro/H3:** Nitro is designed for full-stack frameworks (Nuxt). Hono is simpler for an API-only backend alongside an existing Vite SPA.
+- **vs raw Vercel Functions:** Hono gives middleware (CORS, auth), routing, and structured error handling that raw functions lack.
+
+**Architecture:** Single Hono app exported from `api/index.ts`. Vercel auto-detects the `fetch` export and deploys it as a serverless function. All `/api/*` requests route to Hono via `vercel.json` rewrites.
+
+```typescript
+// api/index.ts
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+
+const app = new Hono().basePath('/api');
+// ... mount auth, session, user routes
+export default app;
+```
+
+### Authentication: Better Auth 1.x
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| better-auth | ^1.5.5 | Authentication framework | Framework-agnostic TypeScript auth with first-class Hono integration. Built-in username plugin (no OAuth needed -- matches PROJECT.md "out of scope" for OAuth/SSO). Admin plugin provides role-based access with `admin` and `user` roles out of the box. Session management via secure httpOnly cookies (SameSite=Lax). Drizzle adapter included. CLI generates DB schema. |
+
+**Why Better Auth over alternatives:**
+- **vs Auth.js (NextAuth):** Auth.js is Next.js-centric. Better Auth is framework-agnostic and now maintains Auth.js. Has dedicated Hono integration docs and examples.
+- **vs Lucia Auth:** Lucia was deprecated in 2024. Better Auth is its spiritual successor with a larger feature set.
+- **vs Clerk/Auth0:** Hosted services with per-MAU pricing. Overkill for 2-5 internal users. Better Auth is self-hosted, free, no vendor lock-in.
+- **vs custom JWT:** Better Auth handles session tokens, CSRF protection, password hashing, and cookie security correctly. Rolling your own auth is the number one security pitfall.
+
+**Key plugins needed:**
+
+1. **Username plugin** (`better-auth/plugins/username`) -- allows sign-in with username instead of email. PROJECT.md specifies "username/password" not email/password. Adds `username` and `displayUsername` fields to user table.
+
+2. **Admin plugin** (`better-auth/plugins/admin`) -- adds `role` field to user table (defaults to `"user"`). Provides `admin.createUser()` API for admin to create specialist accounts. Built-in role-based access control with customizable permissions.
+
+**Server config:**
+```typescript
+// server/auth.ts
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { admin } from 'better-auth/plugins/admin';
+import { username } from 'better-auth/plugins/username';
+import { db } from './db';
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, { provider: 'pg' }),
+  emailAndPassword: { enabled: true },
+  plugins: [username(), admin()],
+});
+```
+
+**Client usage:**
+```typescript
+// src/lib/auth-client.ts
+import { createAuthClient } from 'better-auth/react';
+import { usernameClient } from 'better-auth/client/plugins';
+import { adminClient } from 'better-auth/client/plugins';
+
+export const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_API_URL || '',
+  plugins: [usernameClient(), adminClient()],
+});
+
+// Sign in: authClient.signIn.username({ username, password })
+// Session hook: authClient.useSession()
+// Admin create user: authClient.admin.createUser({ ... })
+```
+
+### Database: Neon Postgres (serverless)
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| @neondatabase/serverless | ^1.0.2 | Postgres driver for serverless | HTTP-based queries (no persistent connections needed in serverless). Free tier: 0.5GB storage, 100 CU-hours/month -- more than sufficient for 2-5 users. Scale-to-zero with 5-minute idle timeout. Vercel Marketplace integration (billing through Vercel dashboard). |
+
+**Why Neon over alternatives:**
+- **vs Vercel Postgres:** Vercel Postgres IS Neon now (transitioned Q1 2025). Using Neon directly gives the same service with better docs and control.
+- **vs Supabase:** Supabase bundles auth, storage, realtime -- all unnecessary here. Neon is a focused Postgres service without platform coupling.
+- **vs PlanetScale:** PlanetScale deprecated its free tier. Neon's free tier is generous for this use case.
+- **vs SQLite/Turso:** Postgres is the standard for relational data with roles and foreign key constraints. Better Auth's Drizzle adapter works best with Postgres.
+
+**Data boundary -- what goes where:**
+
+| Postgres (server) | IndexedDB/Dexie (client) |
+|---|---|
+| User accounts (username, hashed password, role) | Session content (items, transcripts, AI results) |
+| Auth sessions/tokens (Better Auth managed) | Audio blobs |
+| Session assignments (specialist <-> session mapping) | Photos |
+| Session metadata for admin view (name, status, assignee) | Export history |
+| | Offline recording queue |
+
+### ORM: Drizzle ORM 0.x
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| drizzle-orm | ^0.45.1 | TypeScript ORM for Postgres | Type-safe SQL queries with zero runtime overhead (compiles to SQL, no query engine binary). Native Neon serverless driver support via `drizzle-orm/neon-http`. Schema-as-code with TypeScript. Migration tooling via drizzle-kit. Better Auth has a dedicated Drizzle adapter that auto-generates auth tables. |
+
+**Why Drizzle over alternatives:**
+- **vs Prisma:** Prisma's query engine binary causes 2-5s cold start penalty in serverless and adds ~15MB to bundle size. Drizzle compiles to SQL with no engine binary.
+- **vs Kysely:** Similar philosophy, but Drizzle has the Better Auth adapter and better migration tooling (drizzle-kit generate/migrate).
+- **vs raw SQL:** Drizzle gives type safety and migration management without sacrificing SQL control.
+
+### Deployment: Vercel
+
+| Technology | Purpose | Why Recommended |
+|------------|---------|-----------------|
+| Vercel (platform) | Hosting + serverless | Zero-config Vite SPA deployment. Zero-config Hono serverless functions. Preview deployments per PR. Neon Postgres integration via Marketplace. GitHub auto-deploy from main. Free Hobby tier sufficient for internal tool with 2-5 users. |
+| vercel (CLI) | Local dev + deploy | `vercel dev` runs both SPA and API locally. `vercel deploy` for manual deploys. |
+
+**Why Vercel over alternatives:**
+- **vs Cloudflare Pages:** Cloudflare Pages Functions have a different API. The existing Cloudflare Worker (Gemini proxy) stays separate -- it is not affected by this choice. Vercel has first-class Hono support with Fluid Compute.
+- **vs Netlify:** Netlify Functions are AWS Lambda-based with higher cold starts. Vercel's Fluid Compute is faster (115ms vs 500ms+ cold starts).
+- **vs Railway/Render:** Always-on servers -- overkill and more expensive for an internal tool with sporadic usage.
+- **vs self-hosted:** No DevOps burden. Auto-scaling, auto-SSL, preview deploys out of the box.
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `workbox-background-sync` | 7.x | Background Sync API wrapper | Retries queued API calls (transcription, parsing) when connectivity returns. Note: only works in Chromium browsers — Safari does not support Background Sync. Always implement the immediate-retry fallback. |
-| `react-hook-form` | 7.x | Form state | Review/edit screen where transcribed entries can be corrected before export. Minimal re-renders matter on mobile. |
-| `idb-keyval` | 6.x | Simple key-value IndexedDB store | For simple key-value persistence (current session ID, user preferences) where full Dexie schema is overkill. |
-| `react-router-dom` | 7.x | Client-side routing | House Visit mode vs Sale Cataloging mode are distinct routes. Hash-based routing recommended for PWA to avoid 404 issues on refresh. |
+| drizzle-kit | ^0.31.9 | Schema migrations CLI | Dev dependency. `drizzle-kit generate` creates migration SQL, `drizzle-kit migrate` applies it. `drizzle-kit push` for quick dev iteration. |
+| dotenv | ^16.x | Environment variables | Dev dependency. Load DATABASE_URL locally. Not needed in Vercel (env vars set in dashboard). |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| `@vitejs/plugin-react` | React fast refresh in Vite | Use the Babel-based version (not SWC) unless build performance becomes a concern — Babel has better ecosystem compatibility. |
-| `typescript` | Type checking | Configure `strict: true`. Define shared types for the JSON export schema in a `types/` directory imported by both the PWA and the extension. |
-| `vitest` | Unit testing | Vite-native test runner. Test the AI prompt templates and JSON schema transformation functions — these are the fragile parts. |
-| `@playwright/test` | E2E testing | For the Chrome extension batch import feature. Playwright has built-in extension testing support. |
-| `eslint` + `prettier` | Code quality | Standard config. `eslint-plugin-react-hooks` to catch incorrect hook usage in recording state machines. |
+| vercel CLI | Local development | `vercel dev` serves both SPA and API. Use instead of `vite` when testing API routes. |
+| drizzle-kit | Database migrations | `npx drizzle-kit push` for dev, `npx drizzle-kit generate && drizzle-kit migrate` for production |
+| better-auth CLI | Schema generation | `npx @better-auth/cli generate` creates Drizzle schema for auth tables (user, session, account, verification) |
+
+---
+
+## Project Structure
+
+```
+TPC_App/
+  api/
+    index.ts              # Hono app entry point (Vercel auto-detects)
+  server/
+    auth.ts               # Better Auth configuration
+    db/
+      index.ts            # Drizzle + Neon connection
+      schema.ts           # Drizzle schema (auth tables + assignments)
+    routes/
+      sessions.ts         # Session assignment/status API
+      users.ts            # User management API (admin only)
+  src/                    # Existing React app (unchanged structure)
+    db/                   # Dexie (IndexedDB) -- stays as-is
+    stores/               # Zustand stores -- add authStore.ts
+    lib/
+      auth-client.ts      # Better Auth React client
+    components/
+      AuthGuard.tsx       # Route protection component
+    pages/
+      Login.tsx           # Login page
+    ...
+  drizzle/                # Generated migration files
+  drizzle.config.ts       # Drizzle Kit configuration
+  vercel.json             # Rewrites for SPA + API routing
+  .env.local              # DATABASE_URL (gitignored)
+  package.json
+```
+
+**Critical `vercel.json` configuration:**
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+Order matters: API routes are matched first, everything else falls through to the SPA's `index.html` for React Router to handle.
 
 ---
 
 ## Installation
 
 ```bash
-# Scaffold
-npm create vite@latest tpc-cataloger -- --template react-ts
-cd tpc-cataloger
+# Backend core
+npm install hono better-auth drizzle-orm @neondatabase/serverless
 
-# Core PWA
-npm install -D vite-plugin-pwa
-
-# State + storage
-npm install zustand dexie idb-keyval
-
-# Routing + forms
-npm install react-router-dom react-hook-form
-
-# AI
-npm install @google/genai
-
-# Styling
-npm install -D tailwindcss@4 @tailwindcss/vite
-
-# Background sync
-npm install workbox-background-sync
-
-# Dev
-npm install -D vitest @playwright/test eslint prettier eslint-plugin-react-hooks
+# Dev dependencies
+npm install -D drizzle-kit dotenv vercel
 ```
+
+**Total new dependencies:** 4 production, 3 dev. Minimal footprint.
+
+**Note:** The Hono Vercel adapter (`@hono/vercel`) is likely not needed -- Vercel's zero-config detection recognizes the `fetch` export from a Hono app in `api/index.ts` automatically. Only add it if zero-config fails.
 
 ---
 
@@ -77,13 +232,14 @@ npm install -D vitest @playwright/test eslint prettier eslint-plugin-react-hooks
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| React 19 + Vite 7 | Next.js 15 | If SSR or server-side AI processing were needed. Not applicable here — this is a client-only offline-first tool. Next.js adds server complexity with no benefit. |
-| React | Vue 3 + Nuxt | If the team had existing Vue expertise. Vue's offline-first PWA story (vite-plugin-pwa works for Vue too) is equally strong. Decision is team familiarity, not technical. |
-| `@google/genai` (Gemini) | OpenAI Whisper + GPT-4o | If the existing Chrome extension used OpenAI. The extension already uses Gemini — matching the AI provider eliminates prompt divergence and keeps billing in one place. |
-| Dexie.js | sql.js (SQLite in browser) | For complex relational queries. Auction catalog entries are document-like, not relational. Dexie's document model fits without the 500KB WASM overhead of sql.js. |
-| MediaRecorder API | Web Speech API | **Do not use Web Speech API for this project** (see "What NOT to Use" below). MediaRecorder is the correct audio capture primitive. |
-| Zustand | Jotai | Either works. Zustand's `persist` middleware is better documented for offline PWA use cases. |
-| Tailwind CSS v4 | Tailwind CSS v3 | If existing project used v3. Greenfield — use v4 for the build performance and new CSS-based config. |
+| Hono | Express | Never for serverless. Express has no Web Standards support, poor cold starts, and large bundle size. |
+| Hono | tRPC | If you want subscription/real-time features or complex nested queries with batching. Overkill for 2-5 users. |
+| Better Auth | Clerk | If you want zero backend auth code and are OK with per-MAU pricing ($0.02/MAU after free tier) and vendor lock-in. |
+| Better Auth | Custom JWT | Never. Auth is security-critical. Rolling your own means handling password hashing, CSRF, session revocation, cookie security manually. |
+| Neon Postgres | Supabase | If you also need realtime subscriptions, object storage, or edge functions bundled. Not needed here -- adds unnecessary platform coupling. |
+| Neon Postgres | SQLite (Turso) | If you need edge-replicated reads globally. Not needed for 2-5 users in one region. |
+| Drizzle | Prisma | If you prefer a more opinionated ORM with Prisma Studio GUI. But Prisma's binary engine causes 2-5s serverless cold starts -- deal-breaker. |
+| Vercel | Cloudflare Pages | If you want to consolidate with the existing Cloudflare Worker proxy. But would require rewriting the API layer for CF Workers runtime. |
 
 ---
 
@@ -91,73 +247,129 @@ npm install -D vitest @playwright/test eslint prettier eslint-plugin-react-hooks
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| Web Speech API (`SpeechRecognition`) | **Completely broken in iOS Safari when running as a PWA** (installed to home screen). Safari Mobile WebView triggers an immediate error and never requests microphone permission. Chrome on iOS also does not support it because iOS forces all browsers to use WebKit. This is fatal for a tool used on-site at house visits. | `MediaRecorder API` to capture audio, then send to Gemini for transcription. |
-| `@google/generative-ai` | Deprecated. Official support ends November 30, 2025. The package has not been updated in 10+ months. Using it means you'll be rewriting the AI integration layer within months of shipping. | `@google/genai` (the new unified SDK, GA since May 2025). |
-| Redux / Redux Toolkit | Overkill for a 2-5 person internal tool with simple session state. The boilerplate cost (actions, reducers, selectors) adds weeks of setup for zero benefit at this scale. | Zustand with persist middleware. |
-| Create React App (CRA) | Dead project, no longer maintained by Meta. Last release was 2022. | Vite 7 with `@vitejs/plugin-react`. |
-| Background Sync as the only retry mechanism | Safari does not implement Background Sync. If a house visit uses an iPhone (likely), queued recordings will never sync automatically. | Background Sync for Chromium + immediate retry with `navigator.onLine` event listener as the universal fallback. |
-| Storing audio blobs in localStorage | localStorage has a 5MB limit. A 60-second voice recording at AAC quality is ~500KB–1MB. Multiple recordings will hit the limit immediately. | IndexedDB via Dexie.js — designed for binary blob storage with no practical size limit. |
-| Gemini Live API (streaming) | Adds WebSocket complexity and real-time billing for no user-facing benefit. Auctioneers record a complete utterance, then tap to advance — they don't need real-time transcription feedback. | Standard `generateContent` with inline audio base64 after recording stops. |
-
----
-
-## Stack Patterns by Variant
-
-**iOS audio format handling:**
-- Always call `MediaRecorder.isTypeSupported()` before recording to detect supported codec
-- iOS Safari produces AAC (`.m4a`); Android Chrome produces WebM/Opus
-- Gemini accepts both — pass the detected MIME type in the API call
-- Do NOT assume WebM/Opus everywhere or iOS transcription silently fails
-
-**Offline queue flow:**
-- Record audio → store blob in Dexie `pendingAudio` table with unique ID
-- When `navigator.onLine` becomes true → dequeue, call Gemini, store result
-- If Gemini call fails → mark entry as `failed`, show retry UI
-- Do NOT use service worker fetch interception for the AI API calls — the audio payload is too large for reliable service worker handling
-
-**Extension integration (JSON export):**
-- Define a shared TypeScript interface `CatalogEntry` that matches the extension's expected import format
-- Export produces a `.json` file downloaded to device
-- User opens Chrome on desktop, opens extension, uploads the file for batch import
-- Do NOT attempt `chrome.runtime.sendMessage` from the mobile PWA — it requires the extension to be installed in the same browser, which will not be the case (mobile browser vs desktop Chrome)
-
-**Service worker caching strategy:**
-- Use `generateSW` in vite-plugin-pwa with `NetworkFirst` for API routes (none, this app has no backend)
-- Use `CacheFirst` for static assets (app shell, fonts, icons)
-- Exclude Gemini API calls from service worker interception — they must go direct
+| Prisma | Query engine binary causes 2-5s cold starts in serverless. ~15MB bundle size. | Drizzle ORM (zero binary overhead, compiles to SQL) |
+| NextAuth / Auth.js | Next.js-centric, requires adapting for Hono. Better Auth now maintains Auth.js anyway. | Better Auth (native Hono integration, dedicated plugins) |
+| Firebase Auth | Google vendor lock-in. Requires Firebase SDK. Adds unnecessary complexity and bundle size for 2-5 users. | Better Auth (self-hosted, no vendor dependency) |
+| Supabase | Bundles auth, storage, realtime, edge functions -- all unnecessary. Adds platform coupling for features you do not need. | Neon Postgres + Better Auth (focused, composable tools) |
+| MongoDB / Mongoose | No relational integrity for role assignments and foreign keys. Postgres is the right tool for structured relational data with constraints. | Neon Postgres + Drizzle ORM |
+| JWT-only auth (no server sessions) | JWTs cannot be revoked server-side. If a specialist account is compromised, you cannot invalidate their token until it expires. Session-based auth with secure cookies allows immediate revocation. | Better Auth (httpOnly cookie-based sessions with server-side session store) |
+| Replacing Dexie with server DB for content | Audio blobs, photos, and offline recording MUST stay client-side in IndexedDB. Moving to server would break offline support and require uploading large binaries over poor connectivity at house visits. | Keep Dexie for content, Postgres for accounts/assignments only |
+| Next.js | Adding a full-stack framework to wrap an existing Vite SPA. Would require rewriting the entire build pipeline, routing, and component structure. Massively disruptive for a feature addition. | Keep Vite SPA + add Hono API in `api/` directory |
 
 ---
 
 ## Version Compatibility
 
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| `vite-plugin-pwa@1.x` | Vite 5+ / Vite 7 | Works. Plugin requires Vite 5 minimum; Vite 7 is the current latest. |
-| `@google/genai@1.x` | Node 18+ | Uses modern fetch API. Works in browser environments directly. |
-| `react@19.x` | `react-router-dom@7.x` | Router v7 was built for React 19 concurrent features. |
-| `tailwindcss@4.x` | `@tailwindcss/vite` plugin | v4 requires its own Vite plugin — do NOT use `tailwindcss` as a PostCSS plugin (v3 approach). The `@tailwindcss/vite` plugin replaces it. |
-| `dexie@4.x` | All modern browsers | IndexedDB is universally supported. Dexie 4 drops IE11 support. |
-| `workbox-background-sync@7.x` | Chrome/Edge only | Firefox and Safari do not implement the Background Sync API. Must pair with fallback. |
+| Package A | Compatible With | Notes |
+|-----------|-----------------|-------|
+| better-auth@^1.5.5 | drizzle-orm@^0.45.1 | Built-in Drizzle adapter via `better-auth/adapters/drizzle`. CLI generates Drizzle-compatible schema. |
+| better-auth@^1.5.5 | hono@^4.12.8 | Official Hono integration. Mount with `app.on(["POST","GET"], "/api/auth/**", handler)`. |
+| drizzle-orm@^0.45.1 | @neondatabase/serverless@^1.0.2 | Use `drizzle-orm/neon-http` driver for serverless HTTP queries. Fastest for single non-interactive transactions. |
+| hono@^4.12.8 | Vercel Functions | Zero-config detection via `fetch` export in `api/` directory. Fluid Compute enabled automatically. |
+| vite@^7.3.1 | Vercel | Vite SPA builds are natively supported. Output to `dist/` served as static assets from CDN. |
+| react-router@^7.13.1 | Vercel | Requires `vercel.json` SPA rewrite (`/(.*) -> /index.html`) for deep linking. |
+| better-auth@^1.5.5 | React 19 | React client via `createAuthClient` from `better-auth/react`. Provides `useSession()` hook. |
+
+---
+
+## Integration Points with Existing Stack
+
+### Zustand: New Auth State Store
+
+Add `authStore.ts` alongside existing `recordingStore.ts` and `uiStore.ts`:
+
+```typescript
+// src/stores/authStore.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface User {
+  id: string;
+  username: string;
+  role: 'admin' | 'specialist';
+}
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  setUser: (user: User | null) => void;
+  clearUser: () => void;
+}
+```
+
+Better Auth's React client provides `useSession()` hook for reactive auth state. Zustand syncs this to drive role-based UI decisions (show/hide admin features, restrict export to admin).
+
+### Dexie: Session Ownership Fields
+
+Add `assignedTo` and `submittedAt` fields to the Dexie Session type. This requires a Dexie schema version bump:
+
+```typescript
+// db/index.ts -- version 7 addition
+db.version(7).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt, assignedTo",
+  // ... rest unchanged
+});
+
+// db/types.ts -- extend Session interface
+export interface Session {
+  // ... existing fields
+  assignedTo?: string;    // username of assigned specialist
+  assignedBy?: string;    // username of admin who assigned
+  submittedAt?: Date;     // when specialist submitted for review
+}
+```
+
+The **server is the source of truth** for assignments. Dexie caches assignment state locally so the specialist can see their assignments while offline.
+
+### React Router: Auth-Protected Routes
+
+Wrap existing routes with an auth guard. Add `/login` route outside the guard:
+
+```typescript
+// App.tsx modification
+<Routes>
+  <Route path="login" element={<LoginPage />} />
+  <Route element={<AuthGuard />}>
+    <Route element={<AppLayout />}>
+      {/* existing routes unchanged */}
+    </Route>
+  </Route>
+</Routes>
+```
+
+### Cloudflare Worker: CORS Lockdown
+
+Update the existing `proxy/src/index.ts` to replace wildcard CORS:
+
+```typescript
+// Change from:
+"Access-Control-Allow-Origin": "*"
+// Change to:
+"Access-Control-Allow-Origin": "https://your-app.vercel.app"
+```
+
+This is a one-line change in the existing proxy, not a new stack addition. Part of DEPLOY-03 requirement.
 
 ---
 
 ## Sources
 
-- MDN Web Docs — Web Speech API: [https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) — iOS PWA limitation confirmed (HIGH confidence)
-- caniuse.com — Speech Recognition API: [https://caniuse.com/speech-recognition](https://caniuse.com/speech-recognition) — Browser support table (HIGH confidence)
-- buildwithmatija.com — iPhone Safari MediaRecorder + transcription guide (2025): confirms format compatibility requirements (MEDIUM confidence)
-- Google AI Developers — Gemini API Libraries: [https://ai.google.dev/gemini-api/docs/libraries](https://ai.google.dev/gemini-api/docs/libraries) — `@google/genai` as the current SDK (HIGH confidence)
-- GitHub — deprecated-generative-ai-js: [https://github.com/google-gemini/deprecated-generative-ai-js](https://github.com/google-gemini/deprecated-generative-ai-js) — deprecation confirmed (HIGH confidence)
-- Google AI Developers — Audio understanding: [https://ai.google.dev/gemini-api/docs/audio](https://ai.google.dev/gemini-api/docs/audio) — supported audio formats and inline base64 approach (HIGH confidence)
-- Gemini API Pricing: [https://ai.google.dev/gemini-api/docs/pricing](https://ai.google.dev/gemini-api/docs/pricing) — audio costs 7x text tokens (MEDIUM confidence)
-- vite-pwa-org.netlify.app — Vite Plugin PWA docs: [https://vite-pwa-org.netlify.app/](https://vite-pwa-org.netlify.app/) — generateSW strategy (HIGH confidence)
-- LogRocket — Offline-first frontend apps 2025: [https://blog.logrocket.com/offline-first-frontend-apps-2025-indexeddb-sqlite/](https://blog.logrocket.com/offline-first-frontend-apps-2025-indexeddb-sqlite/) — IndexedDB vs SQLite comparison (MEDIUM confidence)
-- npm — dexie: [https://www.npmjs.com/package/dexie](https://www.npmjs.com/package/dexie) — version 4.3.0 confirmed (HIGH confidence)
-- npm — vite-plugin-pwa: [https://www.npmjs.com/package/vite-plugin-pwa](https://www.npmjs.com/package/vite-plugin-pwa) — version 1.1.0 confirmed (HIGH confidence)
-- Chrome Developers — Message passing: [https://developer.chrome.com/docs/extensions/develop/concepts/messaging](https://developer.chrome.com/docs/extensions/develop/concepts/messaging) — extension communication patterns (HIGH confidence)
-- WebSearch — Background Sync Safari status 2025: confirmed Safari does not implement Background Sync (MEDIUM confidence, multiple sources agree)
+- [Hono on Vercel -- official docs](https://vercel.com/docs/frameworks/backend/hono) -- zero-config deployment, Fluid Compute, project structure (HIGH confidence)
+- [Vercel Functions API Reference](https://vercel.com/docs/functions/functions-api-reference) -- `fetch` export, `api/` directory convention (HIGH confidence)
+- [Vite on Vercel -- official docs](https://vercel.com/docs/frameworks/frontend/vite) -- SPA rewrite config, vercel.json setup (HIGH confidence)
+- [Better Auth Hono Integration](https://better-auth.com/docs/integrations/hono) -- mount handler, CORS config, session middleware (HIGH confidence)
+- [Better Auth Username Plugin](https://better-auth.com/docs/plugins/username) -- username-based sign-in, field requirements (HIGH confidence)
+- [Better Auth Admin Plugin](https://better-auth.com/docs/plugins/admin) -- role field, createUser API, access control (HIGH confidence)
+- [Better Auth Installation](https://better-auth.com/docs/installation) -- setup, Drizzle adapter config (HIGH confidence)
+- [Drizzle ORM + Neon setup](https://orm.drizzle.team/docs/get-started/neon-new) -- neon-http driver, schema definition, migration approach (HIGH confidence)
+- [Neon Postgres Pricing](https://neon.com/pricing) -- free tier: 0.5GB storage, 100 CU-hours/month (HIGH confidence)
+- [hono on npm](https://www.npmjs.com/package/hono) -- v4.12.8, last published 2026-03-14 (HIGH confidence)
+- [better-auth on npm](https://www.npmjs.com/package/better-auth) -- v1.5.5, last published 2026-03-13 (HIGH confidence)
+- [drizzle-orm on npm](https://www.npmjs.com/package/drizzle-orm) -- v0.45.1 (HIGH confidence)
+- [@neondatabase/serverless on npm](https://www.npmjs.com/package/@neondatabase/serverless) -- v1.0.2 (HIGH confidence)
+- [drizzle-kit on npm](https://www.npmjs.com/package/drizzle-kit) -- v0.31.9 (HIGH confidence)
 
 ---
 
-*Stack research for: TPC Speech Cataloger — Mobile-first PWA, auction cataloging*
-*Researched: 2026-03-06*
+*Stack research for: TPC Speech Cataloger v1.1 -- Accounts & Deploy*
+*Researched: 2026-03-17*

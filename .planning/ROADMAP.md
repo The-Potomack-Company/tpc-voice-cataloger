@@ -1,184 +1,212 @@
 # Roadmap: TPC Speech Cataloger
 
-## Overview
+## Milestones
 
-The TPC Speech Cataloger is built in eight phases that follow a strict dependency chain: the PWA shell and data schema must exist before audio recording; audio recording must exist before AI processing; AI processing must exist before review/edit/export; export must exist before the Chrome extension can consume it; the offline queue enhances the working pipeline last. Each phase delivers a coherent, testable capability that an auctioneer can exercise before the next phase begins.
+- ✅ **v1.0 MVP** -- Phases 1-9 + 5.1 (shipped 2026-03-17) -- See [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
+- 🚧 **v1.1 Accounts & Deploy** -- Phases 11-17 (in progress)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>v1.0 MVP (Phases 1-9 + 5.1) -- SHIPPED 2026-03-17</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] Phase 1: Foundation (2/2 plans) -- completed 2026-03-06
+- [x] Phase 2: Audio Capture (2/2 plans) -- completed 2026-03-06
+- [x] Phase 3: Session Management (3/3 plans) -- completed 2026-03-06
+- [x] Phase 4: Cataloging Modes (2/2 plans) -- completed 2026-03-06
+- [x] Phase 5: AI Pipeline (5/5 plans) -- completed 2026-03-16
+- [x] Phase 5.1: Measurements Field (2/2 plans) -- completed 2026-03-16 *(inserted)*
+- [x] Phase 6: Review, Edit, Export (3/3 plans) -- completed 2026-03-16
+- [x] Phase 7: Extension Batch Import (3/3 plans) -- completed 2026-03-09
+- [x] Phase 8: Offline Queue (2/2 plans) -- completed 2026-03-16
+- [x] Phase 9: Deferred Items (3/3 plans) -- completed 2026-03-17
 
-- [x] **Phase 1: Foundation** - PWA shell, Dexie schema, shared TypeScript types, pathname routing, Tailwind CSS 4 (completed 2026-03-06)
-- [x] **Phase 2: Audio Capture** - Tap-to-record/stop with MediaRecorder, cross-platform audio blob storage in IndexedDB (completed 2026-03-06)
-- [x] **Phase 3: Session Management** - Create, save, resume, and auto-save sessions across browser close and power loss (completed 2026-03-06)
-- [x] **Phase 4: Cataloging Modes** - House visit mode (sequential items + photos) and sale cataloging mode (receipt number + dictation) (completed 2026-03-06)
-- [x] **Phase 5: AI Pipeline** - Gemini transcription and structured field extraction with TPC convention enforcement (completed 2026-03-06)
-- [x] **Phase 6: Review, Edit, Export** - Review and inline-edit AI-parsed fields, then export versioned JSON for the extension (completed 2026-03-09)
-- [x] **Phase 7: Extension Batch Import** - Chrome extension reads exported JSON and batch-fills RFC Invaluable lot pages (completed 2026-03-09)
-- [x] **Phase 8: Offline Queue** - Audio queued locally when offline, processed automatically when connectivity returns (completed 2026-03-16)
+</details>
+
+### 🚧 v1.1 Accounts & Deploy (In Progress)
+
+**Milestone Goal:** Add admin/specialist accounts with session assignment workflow, then deploy to production.
+
+- [x] **Phase 11: Supabase Foundation** - Postgres database, auth configuration, and RLS policies (completed 2026-03-18)
+- [x] **Phase 12: Authentication** - Login page, session management, route protection, and service worker fix (completed 2026-03-18)
+- [x] **Phase 13: Account Management** - Admin creates and manages specialist accounts (completed 2026-03-18)
+- [x] **Phase 14: Data Migration** - Session and item data moves from Dexie to Supabase Postgres (completed 2026-03-18)
+- [x] **Phase 15: Session Assignment** - Admin assigns sessions to specialists; specialists see scoped view (completed 2026-03-20)
+- [x] **Phase 16: Session Lifecycle** - Submit, review, return, and admin-only export workflow (completed 2026-03-20)
+- [x] **Phase 17: Deployment & CI** - Vercel deploy, GitHub Actions, CORS lockdown, branch protection (completed 2026-03-30)
 
 ## Phase Details
 
-### Phase 1: Foundation
-**Goal**: Auctioneers can install the app on their phone and open a working shell with correct routing, persistent storage schema, and mobile-optimized layout
-**Depends on**: Nothing (first phase)
-**Requirements**: UX-01, UX-02, UX-03, UX-04
+### Phase 11: Supabase Foundation
+**Goal**: Supabase project is configured with Postgres schema and RLS policies ready for the application to connect
+**Depends on**: Nothing (first phase of v1.1)
+**Requirements**: INFRA-01, INFRA-02
 **Success Criteria** (what must be TRUE):
-  1. User can add the app to their iOS or Android home screen and open it as a standalone PWA without browser chrome
-  2. All interactive elements are reachable with one thumb without zooming, with tap targets no smaller than 48px
-  3. App layout is usable in both portrait and landscape orientation without horizontal scrolling or overlapping controls
-  4. Recording and navigation controls remain accessible when the phone is held in one hand
+  1. Supabase project exists with Postgres database containing tables for users, sessions, items, and export history
+  2. RLS policies are defined and enforced -- admin role can read/write all rows, specialist role can only read/write rows assigned to or created by them
+  3. Supabase client SDK is installed and configured in the app with environment variables for project URL and anon key
 **Plans:** 2/2 plans complete
 Plans:
-- [x] 01-01-PLAN.md — Scaffold Vite project, PWA config, Dexie schema, TypeScript types, test infrastructure
-- [x] 01-02-PLAN.md — App shell with bottom tab bar, routing, pages, install banner, walkthrough, device verification
+- [x] 11-01-PLAN.md -- SQL migrations, SDK install, client singleton, placeholder types, and unit tests
+- [x] 11-02-PLAN.md -- Cloud project setup, migration push, type generation, and RLS verification
 
-### Phase 2: Audio Capture
-**Goal**: Auctioneers can tap to record their voice for each item and see the audio stored locally, on both iOS Safari and Android Chrome
-**Depends on**: Phase 1
-**Requirements**: VOICE-01, VOICE-02, VOICE-03, VOICE-04
+### Phase 12: Authentication
+**Goal**: Users can securely log in with email/password via Supabase Auth and unauthenticated users are blocked from the app
+**Depends on**: Phase 11
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, INFRA-04
 **Success Criteria** (what must be TRUE):
-  1. User can tap once to start recording and tap again to stop — no held-press or voice command needed
-  2. Recorded audio blob is written to IndexedDB immediately when recording stops (visible in DevTools Application tab)
-  3. User sees a distinct active-recording indicator (e.g., pulsing dot, timer, or color change) while recording, which clears on stop
-  4. Recording, storing, and playback of audio works on an iPhone running iOS Safari and on an Android device running Chrome without errors
-**Plans:** 2/2 plans complete
-Plans:
-- [ ] 02-01-PLAN.md — Audio recording infrastructure: test scaffolds, MIME type detection, useAudioRecorder hook, recording store
-- [ ] 02-02-PLAN.md — Recording UI components (button, indicator, toast) and page integration with device verification
-
-### Phase 3: Session Management
-**Goal**: Auctioneers can start a session, close the browser mid-house-visit, reopen the app, and continue exactly where they left off
-**Depends on**: Phase 2
-**Requirements**: SESS-01, SESS-02, SESS-03, SESS-04
-**Success Criteria** (what must be TRUE):
-  1. User can create a new session and return to it after closing and reopening the browser — all items are still present
-  2. Home screen shows a list of all saved sessions with enough detail (mode, item count, date) to identify each one
-  3. User can tap a saved session and resume adding items to it without losing previously recorded items
-  4. After recording each item, the session saves automatically — no manual "Save" button required
+  1. User can log in with email and password on a dedicated login page
+  2. Auth session persists across browser close and refreshes automatically (no re-login needed until explicit logout)
+  3. Unauthenticated users are redirected to the login page when accessing any app route
+  4. User can change their own password from a settings or profile area
+  5. Service worker does not cache Supabase API routes (auth and data requests always reach the server)
 **Plans:** 3/3 plans complete
 Plans:
-- [ ] 03-01-PLAN.md — Schema migration, session CRUD data layer, reactive hooks, reusable components (ConfirmDialog, SwipeableRow)
-- [ ] 03-02-PLAN.md — Session creation form (NewSession page) and session list (Sessions page) with search, sections, swipe-to-delete
-- [ ] 03-03-PLAN.md — Session detail page, Settings recovery, interrupted recording detection, visual verification
+- [x] 12-01-PLAN.md -- Auth store, ProtectedRoute, App.tsx route wiring, main.tsx init, and service worker Supabase exclusion
+- [x] 12-02-PLAN.md -- Login page with email/password form, error handling, and loading state
+- [x] 12-03-PLAN.md -- Settings page Account section (Change Password) and Sign Out button
 
-### Phase 4: Cataloging Modes
-**Goal**: Auctioneers can use house visit mode to photograph and catalog items sequentially, or sale cataloging mode to enter receipt numbers before dictating each item
-**Depends on**: Phase 3
-**Requirements**: HOUSE-01, HOUSE-02, HOUSE-03, HOUSE-04, SALE-01, SALE-02, SALE-03
+### Phase 13: Account Management
+**Goal**: Admin can create, view, and deactivate specialist accounts so that specialists exist before session assignment
+**Depends on**: Phase 12
+**Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04
 **Success Criteria** (what must be TRUE):
-  1. User can start a house visit session, record a description, take one or more photos with the device camera, tap "Next Item", and see a fresh blank entry ready for the next item
-  2. User can view a gallery of all photos attached to a specific item within the session
-  3. User can start a sale cataloging session, enter a receipt number in XXXXX-N format, record a description, tap "Next Item", and see a new entry with a fresh receipt number field
-  4. Receipt number from sale mode is carried through to each item's record and visible in the item list
+  1. Admin can create a new specialist account by providing a username and password
+  2. Admin can view a list of all accounts showing username, role, and active/deactivated status
+  3. Admin can deactivate a specialist account, which prevents that specialist from logging in without deleting their data
+  4. The account management page is not accessible to specialist-role users (server-enforced, not just hidden in UI)
 **Plans:** 2/2 plans complete
 Plans:
-- [ ] 04-01-PLAN.md — Utility functions (image resize, receipt validation, blob URL hook), session creation/list/detail pages with routing
-- [ ] 04-02-PLAN.md — Item entry screen for both modes (photo capture, lightbox, receipt input, Next Item, back navigation)
+- [x] 13-01-PLAN.md -- Edge Functions, DB migration, admin API service layer, and admin route guard
+- [ ] 13-02-PLAN.md -- Account Management page UI, AccountRow component, Settings admin section, and route wiring
 
-### Phase 5: AI Pipeline
-**Goal**: Recorded audio is automatically transcribed and parsed into structured catalog fields that follow TPC auction conventions, with no hallucinated values for fields not mentioned in the recording
-**Depends on**: Phase 4
-**Requirements**: AI-01, AI-02, AI-03
+### Phase 14: Data Migration
+**Goal**: Session and item metadata is server-authoritative in Supabase Postgres while Dexie retains only audio blobs and photos
+**Depends on**: Phase 12
+**Requirements**: INFRA-03
 **Success Criteria** (what must be TRUE):
-  1. After recording stops, structured fields (title, description, condition, estimate, category) appear in the item record without a separate transcription step
-  2. Title output is in ALL CAPS following the TPC format ([PERIOD/STYLE] [MATERIAL] [ITEM TYPE]); description starts with "the" in lowercase formal auction language
-  3. Fields not mentioned in the audio are stored as null — the app does not invent plausible values for unspoken details
-**Plans:** 3 plans (2 complete + 1 gap closure)
+  1. SessionsPage, NewSessionPage, and SessionDetailPage read session and item data from Supabase Postgres instead of Dexie
+  2. Creating, editing, and deleting sessions and items writes to Supabase Postgres as the source of truth
+  3. Audio blobs and photos remain in Dexie (IndexedDB) and are not uploaded to the server
+  4. Zustand persist keys are scoped per user so that logging out and logging in as a different user does not leak state
+**Plans:** 5/5 plans complete
 Plans:
-- [ ] 05-01-PLAN.md — DB migration (aiStatus), Zod schema for Gemini responses, Cloudflare Worker proxy
-- [ ] 05-02-PLAN.md — Client-side AI processing service (audio to base64, proxy call, Zod validation, Dexie write)
-- [ ] 05-03-PLAN.md — Gap closure: harden error handling (proxy URL guard, HTTP status check, nested try/catch)
+- [x] 14-01-PLAN.md -- Dexie v7 schema, types, Zustand sessionStore, per-user persist scoping, ID mapping utilities
+- [x] 14-02-PLAN.md -- Rewrite data access layer (sessions.ts, items.ts, useSessions.ts) and services (gemini, export, offline queue)
+- [x] 14-03-PLAN.md -- One-time Dexie-to-Supabase migration, MigrationSplash UI, and write-ahead queue for offline writes
+- [ ] 14-04-PLAN.md -- Update all pages and components from Dexie to Zustand/Supabase, human verification
 
-### Phase 6: Review, Edit, Export
-**Goal**: Auctioneers can review every AI-parsed item, correct any field inline, and export the session as a JSON file that the Chrome extension can consume
-**Depends on**: Phase 5
-**Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EXPO-01, EXPO-02, EXPO-03
+### Phase 15: Session Assignment
+**Goal**: Admin can assign sessions to specialists, and specialists see only the sessions relevant to them
+**Depends on**: Phase 13, Phase 14
+**Requirements**: ASGN-01, ASGN-02, ASGN-03, ASGN-04
 **Success Criteria** (what must be TRUE):
-  1. User can scroll through all items in a session and see all AI-extracted fields (title, description, condition, estimate, category) alongside the raw transcript for each item
-  2. User can tap any field and edit it inline; changes persist immediately without a separate save action
-  3. User can delete an item from the session; it is removed from the list and will not appear in the export
-  4. User can tap "Re-record" on any item, record new audio, and have the AI fields regenerate from the new recording
-  5. User can tap "Export" and receive a JSON file on their device containing all fields including receipt numbers (sale mode) and photo references (house visit mode), in the versioned TPC extension schema
-**Plans:** 2/2 plans complete
-Plans:
-- [ ] 06-01-PLAN.md — Item CRUD data layer, export pipeline, EditableField component with tests
-- [ ] 06-02-PLAN.md — Expandable item cards, inline editing UI, delete, re-record, export button on SessionDetail
-
-### Phase 7: Extension Batch Import
-**Goal**: The TPC Chrome extension accepts the exported JSON file and fills title and description fields on each matched RFC Invaluable lot page in batch, without manual copy-paste
-**Depends on**: Phase 6
-**Requirements**: EXT-01, EXT-02, EXT-03, EXT-04
-**Success Criteria** (what must be TRUE):
-  1. User can load the exported JSON file into the TPC Chrome extension (via file picker or `chrome.runtime.sendMessage` from the PWA)
-  2. Extension matches each item to its RFC Invaluable lot by receipt number and navigates to that lot's edit page
-  3. Extension fills the title field (`#fld1`) with the ALL CAPS value and the description field (`#fld2`) with the lowercase value from the JSON, verifying the write succeeded by reading the field value back
-  4. Extension processes all matched items in sequence (navigate, fill, save, advance) and reports how many succeeded vs failed
+  1. Admin can select a specialist to assign when creating a new session
+  2. Specialist sees only sessions assigned to them plus sessions they created themselves
+  3. Admin can reassign an active session to a different specialist
+  4. Admin can view all sessions across all users with assignee name and current status visible
 **Plans:** 3/3 plans complete
 Plans:
-- [x] 07-00-PLAN.md — Wave 0: ImportController test scaffold with behavioral stubs for EXT-01 through EXT-04
-- [x] 07-01-PLAN.md — Import constants, popup Import tab with file picker, message plumbing, ImportController skeleton
-- [x] 07-02-PLAN.md — ImportController core logic: sale mode receipt navigation, house visit walk-forward, state recovery, completion reports
+- [x] 15-01-PLAN.md -- useUserRole hook, createSession assigned_to support, NewSession specialist dropdown, SessionCard admin variant
+- [ ] 15-02-PLAN.md -- Role-aware Sessions page with admin specialist-grouped view, SessionDetail reassignment field
+- [ ] 15-03-PLAN.md -- Human verification of all session assignment requirements
 
-### Phase 8: Offline Queue
-**Goal**: Auctioneers at rural house visits can record audio without internet connectivity; the app queues recordings and processes them automatically when connectivity returns
-**Depends on**: Phase 5
-**Requirements**: OFFL-01, OFFL-02, OFFL-03, OFFL-04
+### Phase 16: Session Lifecycle
+**Goal**: Sessions flow through a defined lifecycle -- specialists submit completed work, admin reviews and either edits/exports or returns with notes
+**Depends on**: Phase 15
+**Requirements**: LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-05, LIFE-06
 **Success Criteria** (what must be TRUE):
-  1. User can tap record and capture audio with the device in airplane mode or with no cellular signal — the recording completes and is stored locally without error
-  2. Items recorded offline appear in the session list marked as "Queued" (not yet processed by AI)
-  3. When the device regains internet connectivity, queued items are sent to AI and their fields are populated automatically — the user does not need to trigger this manually
-  4. User can see a clear status indicator distinguishing queued items from fully processed items at all times
-**Plans:** 2/2 plans complete
+  1. Specialist can submit a completed session, changing its status to "submitted"
+  2. Submitted sessions are read-only for the specialist (locked until returned by admin)
+  3. Admin can edit item fields directly on submitted sessions during review
+  4. Admin can return a submitted session to the specialist with review notes that the specialist can see
+  5. Only admin can export session data as JSON; specialists do not see or have access to the export function
+**Plans:** 4/4 plans complete
 Plans:
-- [ ] 08-01-PLAN.md — Data layer and services: AiStatus "queued", online status hook, queue drain service with concurrency and retry
-- [ ] 08-02-PLAN.md — UI wiring: offline intercept in RecordButton/ItemCard, queued styling, OfflineIndicator, export disable, end-to-end verification
+- [x] 16-00-PLAN.md -- Wave 0: test stub files for session-lifecycle, return-dialog, and use-user-role
+- [x] 16-01-PLAN.md -- useUserRole hook, lifecycle session hooks, ReturnDialog component, SessionCard status pills, Sessions page lifecycle sections
+- [x] 16-02-PLAN.md -- SessionDetail lifecycle controls (submit in header, read-only lock, admin review buttons in header, banners, export gating)
+- [x] 16-03-PLAN.md -- Human verification of complete lifecycle workflow
+
+### Phase 17: Deployment & CI
+**Goal**: App is deployed to production on Vercel with automated quality gates and security hardening
+**Depends on**: Phase 16
+**Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
+**Success Criteria** (what must be TRUE):
+  1. App is deployed to Vercel at a production URL and pushing to main triggers an automatic deploy
+  2. GitHub Actions CI pipeline runs lint, typecheck, test, and build on every PR and blocks merge on failure
+  3. Cloudflare Worker CORS origin is restricted to the production Vercel domain (no wildcard)
+  4. Branch protection on main requires all CI checks to pass before a PR can be merged
+**Plans:** 4/4 plans complete
+Plans:
+- [x] 17-01-PLAN.md -- Fix source-file ESLint and TypeScript errors (lint/type CI prerequisite)
+- [x] 17-02-PLAN.md -- Fix test-file lint errors, delete stale tests, fix failing tests, conditional basicSsl, test script, vercel.json
+- [x] 17-03-PLAN.md -- GitHub Actions CI workflow and Cloudflare Worker CORS lockdown with behavioral tests
+- [x] 17-04-PLAN.md -- Branch protection via GitHub CLI and end-to-end deployment verification
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
+**Execution Order:** Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Foundation | 2/2 | Complete   | 2026-03-06 |
-| 2. Audio Capture | 2/2 | Complete   | 2026-03-06 |
-| 3. Session Management | 3/3 | Complete   | 2026-03-06 |
-| 4. Cataloging Modes | 2/2 | Complete   | 2026-03-06 |
-| 5. AI Pipeline | 2/3 | Gap Closure | 2026-03-06 |
-| 6. Review, Edit, Export | 2/2 | Complete   | 2026-03-09 |
-| 7. Extension Batch Import | 3/3 | Complete   | 2026-03-09 |
-| 8. Offline Queue | 2/2 | Complete   | 2026-03-16 |
-| 9. Deferred Items | 0/4 | Planning   | — |
+Note: Phase 14 depends on Phase 12 (not 13). Phases 13 and 14 could theoretically run in parallel, but sequential execution is safer since Phase 14 is high-risk and benefits from stable auth.
 
-### Phase 9: Deferred Items
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Foundation | v1.0 | 2/2 | Complete | 2026-03-06 |
+| 2. Audio Capture | v1.0 | 2/2 | Complete | 2026-03-06 |
+| 3. Session Management | v1.0 | 3/3 | Complete | 2026-03-06 |
+| 4. Cataloging Modes | v1.0 | 2/2 | Complete | 2026-03-06 |
+| 5. AI Pipeline | v1.0 | 5/5 | Complete | 2026-03-16 |
+| 5.1 Measurements | v1.0 | 2/2 | Complete | 2026-03-16 |
+| 6. Review, Edit, Export | v1.0 | 3/3 | Complete | 2026-03-16 |
+| 7. Extension Batch Import | v1.0 | 3/3 | Complete | 2026-03-09 |
+| 8. Offline Queue | v1.0 | 2/2 | Complete | 2026-03-16 |
+| 9. Deferred Items | v1.0 | 3/3 | Complete | 2026-03-17 |
+| 11. Supabase Foundation | v1.1 | 2/2 | Complete | 2026-03-18 |
+| 12. Authentication | v1.1 | 3/3 | Complete | 2026-03-18 |
+| 13. Account Management | v1.1 | 2/2 | Complete | 2026-03-18 |
+| 14. Data Migration | 5/5 | Complete    | 2026-03-20 | - |
+| 15. Session Assignment | 3/3 | Complete    | 2026-03-20 | - |
+| 16. Session Lifecycle | v1.1 | Complete    | 2026-03-20 | 2026-03-20 |
+| 17. Deployment & CI | v1.1 | 4/4 | Complete    | 2026-03-30 |
 
-**Goal:** Receipt number list import from spreadsheets, structured AI estimate extraction with dollar ranges, and export history with session archiving
-**Requirements**: AI-06, DATA-01, IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, MIGRATE-01
-**Depends on:** Phase 8
+### Phase 18: Update tutorial/walkthrough to be thorough
+
+**Goal:** Expand the existing 3-step intro walkthrough into a comprehensive, role-aware tutorial that covers the full app workflow, with completion state stored per-user in Supabase
+**Depends on:** Phase 17
+**Requirements**: WT-01, WT-02, WT-03, WT-04, WT-05, WT-06, WT-07, WT-08
 **Success Criteria** (what must be TRUE):
-  1. Auctioneer can upload a CSV or XLSX spreadsheet to pre-populate a sale session with blank items per receipt number
-  2. AI returns structured low/high dollar ranges for spoken price estimates, displayed as "$300-$500"
-  3. Each export creates a history record; auctioneers can re-export from history
-  4. Completed sessions can be archived to declutter the main session list, and un-archived when needed
-**Plans:** 4 plans
+  1. Walkthrough covers the full workflow: create session, choose mode, record items, review/edit, export to Chrome extension
+  2. Admin users see shared steps plus admin-specific steps (account management, session assignment, review/export, receipt import)
+  3. Specialist users see shared steps plus specialist-specific steps (submit work, review notes)
+  4. Walkthrough completion state is stored in Supabase profiles table (not localStorage) and follows user across devices
+  5. Back navigation, skip link, and progress counter work correctly
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 09-01-PLAN.md — Dexie v4 migration, updated types (EstimateRange, ExportHistoryRecord, archivedAt), estimate utilities, Wave 0 test scaffolds
-- [ ] 09-02-PLAN.md — Receipt number list import from CSV/XLSX using SheetJS, ImportReceiptsButton, SessionDetail integration
-- [ ] 09-03-PLAN.md — Structured estimate extraction: Gemini schema update, EstimateField component, ItemCard/export integration
-- [ ] 09-04-PLAN.md — Export history tracking, session archive CRUD, archive section in Sessions page, archive offer after export
+- [x] 18-00-PLAN.md -- Wave 0: test stub files for walkthrough component and walkthrough-status hook
+- [x] 18-01-PLAN.md -- Supabase migration (walkthrough_completed + RLS), useWalkthroughStatus hook, step definitions, database types
+- [x] 18-02-PLAN.md -- Walkthrough.tsx rewrite, Sessions.tsx gate update, Settings.tsx reset update, uiStore cleanup
 
-### Phase 10: vercel deployment
+### Phase 19: Photo Upload to Supabase Storage with full offline support
 
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 9
-**Plans:** 0 plans
+**Goal:** Photos upload to Supabase Storage as the server-authoritative store, with local Dexie blobs as cache, a dedicated upload queue with offline support, and one-time migration of existing photos
+**Depends on:** Phase 18
+**Requirements**: PHOTO-UPLOAD-01, PHOTO-UPLOAD-02, PHOTO-UPLOAD-03, PHOTO-UPLOAD-04, PHOTO-UPLOAD-05, PHOTO-UPLOAD-06, PHOTO-UPLOAD-07, PHOTO-UPLOAD-08
+**Success Criteria** (what must be TRUE):
+  1. Photos upload to Supabase Storage immediately after capture (fire-and-forget, non-blocking)
+  2. A dedicated photo upload queue handles offline queuing, bounded concurrency (2), and exponential backoff retry
+  3. Thumbnails show sync status overlay (spinner for uploading, check for uploaded, retry for failed)
+  4. Existing Dexie photos are migrated to Storage automatically on app load (background, non-blocking)
+  5. Photos display from local Dexie blob when available, falling back to Supabase signed URL
+  6. Reconnection drain order is metadata -> photos -> audio
+  7. Export reads local blobs first, downloads from Storage when missing
+  8. Human verification confirms end-to-end flow
+**Plans:** 5/5 plans complete
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 10 to break down)
+- [x] 19-00-PLAN.md -- Wave 0: test stub files for photo upload queue, migration, and URL fallback
+- [x] 19-01-PLAN.md -- Supabase migration (photos table + bucket + RLS), Dexie v8 schema, photo upload queue service
+- [x] 19-02-PLAN.md -- PhotoCapture upload trigger, AppLayout drain order, sync status overlay on thumbnails
+- [x] 19-03-PLAN.md -- usePhotoUrl hook with signed URL fallback, export Storage download fallback
+- [x] 19-04-PLAN.md -- Photo migration service, progress banner, human verification of end-to-end flow

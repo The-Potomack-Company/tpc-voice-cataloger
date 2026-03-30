@@ -1,481 +1,780 @@
-# Architecture Research
+# Architecture Patterns
 
-**Domain:** Mobile-first PWA with offline audio capture, AI speech parsing, photo capture, session management, and Chrome extension integration
-**Researched:** 2026-03-06
-**Confidence:** HIGH (core PWA patterns well-established; Chrome extension communication patterns confirmed via official docs)
+**Domain:** Adding admin/specialist accounts with session assignment to an existing local-first PWA
+**Researched:** 2026-03-17 (updated with concrete stack: Hono + Better Auth + Drizzle + Neon)
+**Confidence:** HIGH
 
-## Standard Architecture
+## Current Architecture (v1.0 Baseline)
+
+```
+User (browser)
+  |
+  v
+React 19 SPA (Vite 7)
+  |-- Pages: Sessions, NewSession, SessionDetail, ItemEntry, Settings
+  |-- Routing: react-router v7 (BrowserRouter, pathname-based)
+  |-- State: Zustand (uiStore, recordingStore) -- UI-only state
+  |-- Data: Dexie 4 (IndexedDB) -- ALL persistent data
+  |     |-- sessions (++id, mode, status, notes, deletedAt, archivedAt)
+  |     |-- houseVisitItems (++id, sessionId, sortOrder, aiStatus)
+  |     |-- saleItems (++id, sessionId, receiptNumber, sortOrder, aiStatus)
+  |     |-- photos (++id, itemId, blob, thumbnail)
+  |     |-- audio (++id, itemId, blob, mimeType)
+  |     |-- exportHistory (++id, sessionId, exportedAt)
+  |-- Hooks: useLiveQuery (Dexie reactive) -- components auto-update on DB change
+  |-- Services: gemini.ts (AI), offlineQueue.ts (retry), export.ts (JSON)
+  |
+  v (AI calls only)
+Cloudflare Worker Proxy --> Gemini API
+  |-- CORS: wildcard (to be locked down)
+  |-- Auth: API key stored as Worker secret
+```
+
+### Key Patterns in Existing Code
+
+1. **Dexie as single source of truth.** All data reads use `useLiveQuery()` from `dexie-react-hooks`, which provides reactive subscriptions. Components never manually refetch.
+
+2. **No server state.** Zero server-side persistence. Everything lives in IndexedDB.
+
+3. **Zustand stores are UI-only.** `uiStore` holds walkthrough state and online status. `recordingStore` holds transient recording state. Neither store holds domain data.
+
+4. **Session lifecycle: active -> completed -> archived.** Plus soft-delete via `deletedAt`.
+
+5. **Export is client-side.** `exportSession()` reads from Dexie, builds JSON, triggers browser download.
+
+6. **Offline queue.** Items with `aiStatus: "queued"` are processed when connectivity returns.
+
+---
+
+## Recommended Architecture for v1.1
+
+### Design Principle: Server-Authoritative for Shared State, Local for Recording
+
+The v1.1 architecture introduces a **server-authoritative model for accounts, session assignment, and workflow state**, while preserving the **local-first pattern for audio recording and AI processing**. Recording and AI remain client-side; only session metadata, assignment, and lifecycle transitions need server coordination.
 
 ### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        MOBILE PWA (React + Vite)                        │
-├─────────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐ │
-│  │  Audio       │  │  Camera /    │  │  Session     │  │  Export /   │ │
-│  │  Capture UI  │  │  Photo UI    │  │  Manager UI  │  │  Review UI  │ │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬──────┘ │
-│         │                 │                  │                  │        │
-├─────────┴─────────────────┴──────────────────┴──────────────────┴───────┤
-│                        React State Layer (Zustand)                       │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │  sessionStore  |  itemStore  |  audioQueue  |  syncStatus        │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                        Service Layer                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐ │
-│  │  AudioService│  │  CameraServ. │  │  AIService   │  │  ExportSvc  │ │
-│  │  (MediaRec.) │  │  (getUserM.) │  │  (STT+Parse) │  │  (JSON fmt) │ │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬──────┘ │
-│         │                 │                  │                  │        │
-├─────────┴─────────────────┴──────────────────┴──────────────────┴───────┤
-│                        Persistence Layer (Dexie / IndexedDB)             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐ │
-│  │  sessions    │  │  items       │  │  audio_blobs │  │  sync_queue │ │
-│  │  (metadata)  │  │  (fields)    │  │  (raw audio) │  │  (pending)  │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └─────────────┘ │
-├─────────────────────────────────────────────────────────────────────────┤
-│                        Service Worker (Workbox via vite-plugin-pwa)      │
-│  ┌────────────────────────────┐  ┌──────────────────────────────────┐   │
-│  │  Asset Cache (cache-first) │  │  Background Sync (sync_queue)    │   │
-│  └────────────────────────────┘  └──────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
-                                   │
-              ┌────────────────────┼────────────────────┐
-              ▼                    ▼                    ▼
-┌─────────────────────┐  ┌─────────────────┐  ┌────────────────────────┐
-│  OpenAI Whisper API │  │  Gemini/GPT     │  │  TPC Chrome Extension  │
-│  (transcription)    │  │  (field parsing)│  │  (batch import)        │
-└─────────────────────┘  └─────────────────┘  └────────────────────────┘
-                                                         │
-                                                         ▼
-                                              ┌────────────────────────┐
-                                              │  RFC Invaluable        │
-                                              │  (rfc.invaluable.com)  │
-                                              └────────────────────────┘
+                    +--------------------------------------+
+                    |          Vercel Platform              |
+                    |                                      |
+                    |  +-----------------------------+     |
+                    |  |   Static SPA (Vite build)   |     |
+                    |  |   /index.html + assets      |     |
+                    |  |   (served from CDN)         |     |
+                    |  +-----------------------------+     |
+                    |                                      |
+                    |  +-----------------------------+     |
+                    |  |  api/index.ts                |     |
+                    |  |  Hono 4.x serverless func   |     |
+                    |  |                             |     |
+                    |  |  /api/auth/**  (Better Auth) |     |
+                    |  |  /api/users    (admin CRUD)  |     |
+                    |  |  /api/sessions (assignment)  |     |
+                    |  |  /api/sessions/:id/submit   |     |
+                    |  |  /api/sessions/:id/return   |     |
+                    |  |  /api/sessions/:id/items    |     |
+                    |  +-------------|---------------+     |
+                    |                |                      |
+                    |  +-------------v---------------+     |
+                    |  |  Neon Postgres (serverless)  |     |
+                    |  |  via Drizzle ORM (neon-http) |     |
+                    |  |                             |     |
+                    |  |  user, session, account,    |     |
+                    |  |  verification (Better Auth) |     |
+                    |  |  + session_assignments,      |     |
+                    |  |    items, export_history     |     |
+                    |  +-----------------------------+     |
+                    +--------------------------------------+
+                                    |
+         +--------------------------+-------------------------+
+         |                          |                         |
+         v                          v                         v
++-----------------+   +----------------------+   +------------------+
+| Admin Browser   |   | Specialist Browser   |   | CF Worker Proxy  |
+|                 |   |                      |   | (Gemini AI)      |
+| Auth state:     |   | Auth state:          |   |                  |
+| Better Auth     |   | Better Auth          |   | (unchanged)      |
+| React client    |   | React client         |   +------------------+
+|                 |   |                      |
+| Server data:    |   | Server data:         |
+| fetch + cache   |   | fetch + cache        |
+|                 |   |                      |
+| Local data:     |   | Local data:          |
+| Dexie (audio,   |   | Dexie (audio,        |
+| photos, AI q)   |   | photos, AI queue)    |
+|                 |   |                      |
+| UI state:       |   | UI state:            |
+| Zustand         |   | Zustand              |
++-----------------+   +----------------------+
 ```
 
-### Component Responsibilities
+### Component Boundaries
 
 | Component | Responsibility | Communicates With |
-|-----------|----------------|-------------------|
-| Audio Capture UI | Record button, tap-to-advance, waveform feedback | AudioService, sessionStore |
-| Camera / Photo UI | Take photo per item, preview thumbnail | CameraService, itemStore |
-| Session Manager UI | Create / resume sessions, session list | sessionStore, Dexie sessions table |
-| Review / Edit UI | Inspect all items, edit fields before export | itemStore, ExportService |
-| AudioService | MediaRecorder lifecycle, blob assembly, offline queue | Dexie audio_blobs + sync_queue |
-| CameraService | getUserMedia camera stream, ImageCapture, JPEG blob storage | Dexie items table |
-| AIService | POST audio blob to Whisper, POST transcript to GPT/Gemini for field parsing | OpenAI, Gemini APIs |
-| ExportService | Assemble items into TPC JSON format, trigger chrome.runtime.sendMessage | Chrome extension |
-| Zustand stores | In-memory reactive state for UI; initialized from Dexie on boot | Dexie (hydration), UI components |
-| Dexie / IndexedDB | Source of truth: sessions, items (structured fields), audio blobs, sync queue | All services |
-| Service Worker | Cache static assets, register Background Sync, replay sync_queue on reconnect | Dexie, external APIs |
-| TPC Chrome Extension | Receive exported JSON via externally_connectable, drive RFC Invaluable page | RFC Invaluable DOM |
+|-----------|---------------|-------------------|
+| **Hono API** (`api/index.ts`) | Single serverless function handling all `/api/*` routes. Auth, session CRUD, assignment, lifecycle transitions, item sync, export. | Neon Postgres via Drizzle ORM |
+| **Better Auth** (server) | Authentication, session management, role-based access. Mounted as Hono middleware at `/api/auth/**`. | Drizzle ORM (manages user, session, account tables) |
+| **Better Auth** (client) | React hooks for auth state (`useSession()`), sign-in/out methods, admin user management. | Hono API via fetch with credentials |
+| **Drizzle ORM** | Type-safe SQL. Schema definition, migrations, queries. | Neon Postgres via `@neondatabase/serverless` (HTTP driver) |
+| **Neon Postgres** | Persistent shared state: users, sessions, assignments, items, export history | Accessed only by Hono serverless function |
+| **Dexie/IndexedDB** (client) | Audio blobs, photo blobs, AI processing queue (device-local concerns) | Gemini proxy (via offlineQueue) |
+| **Zustand** (client) | UI preferences, recording state, online status | Better Auth client (reads user for role checks) |
+| **Cloudflare Worker** | Gemini API proxy (unchanged from v1.0) | Gemini API |
 
-## Recommended Project Structure
+### Data Ownership Split
+
+| Data | Owner | Rationale |
+|------|-------|-----------|
+| Users & credentials | **Server (Neon Postgres via Better Auth)** | Shared, admin-managed. Better Auth manages password hashing, sessions. |
+| Auth sessions & tokens | **Server (Better Auth cookies)** | httpOnly cookies. No client-side token storage. |
+| Sessions (metadata) | **Server (Neon Postgres)** | Assigned between users, lifecycle is shared |
+| Session assignments | **Server (Neon Postgres)** | Admin assigns to specialist |
+| Items (catalog fields) | **Server (Neon Postgres)** | Admin reviews specialist work |
+| Export history | **Server (Neon Postgres)** | Admin-controlled export |
+| Audio blobs | **Client (Dexie)** | Too large for server, only needed during AI processing |
+| Photo blobs | **Client (Dexie)** | Keep local for v1.1. Server upload deferred to later milestone. |
+| AI processing queue | **Client (Dexie)** | Device-local concern, fires on recording completion |
+| Recording state | **Client (Zustand)** | Transient, device-specific |
+
+---
+
+## Data Flow Changes
+
+### Authentication Flow (NEW -- Better Auth)
 
 ```
-tpc-app/
-├── public/
-│   ├── icons/                  # PWA icons (192, 512px)
-│   └── manifest.json           # Auto-generated by vite-plugin-pwa
-├── src/
-│   ├── components/
-│   │   ├── audio/
-│   │   │   ├── RecordButton.tsx        # Tap-to-start/stop recording
-│   │   │   ├── AudioWaveform.tsx       # Visual feedback during recording
-│   │   │   └── TranscriptPreview.tsx   # Live transcript display
-│   │   ├── camera/
-│   │   │   ├── PhotoCapture.tsx        # Camera stream + capture button
-│   │   │   └── PhotoThumbnail.tsx      # Per-item photo preview
-│   │   ├── session/
-│   │   │   ├── SessionList.tsx         # List of saved sessions
-│   │   │   ├── SessionCard.tsx         # Resume / delete session
-│   │   │   └── ModeSelector.tsx        # House visit vs sale cataloging
-│   │   ├── items/
-│   │   │   ├── ItemCard.tsx            # Single item review/edit
-│   │   │   ├── ItemList.tsx            # All items in session
-│   │   │   └── FieldEditor.tsx         # Structured field edit form
-│   │   └── export/
-│   │       ├── ExportPanel.tsx         # Export trigger, status, instructions
-│   │       └── ExtensionStatus.tsx     # Extension detected / not detected
-│   ├── services/
-│   │   ├── audio.service.ts            # MediaRecorder, blob creation, queue
-│   │   ├── camera.service.ts           # getUserMedia, ImageCapture, JPEG blob
-│   │   ├── ai.service.ts               # Whisper STT + LLM field parsing
-│   │   ├── export.service.ts           # JSON assembly + chrome.runtime message
-│   │   └── sync.service.ts             # Background sync queue management
-│   ├── store/
-│   │   ├── session.store.ts            # Active session state (Zustand)
-│   │   ├── items.store.ts              # Items in current session (Zustand)
-│   │   └── connectivity.store.ts       # Online/offline status (Zustand)
-│   ├── db/
-│   │   ├── db.ts                       # Dexie schema and instance
-│   │   └── migrations.ts               # Schema version migrations
-│   ├── hooks/
-│   │   ├── useAudioRecorder.ts         # MediaRecorder lifecycle hook
-│   │   ├── useCamera.ts                # Camera stream hook
-│   │   ├── useNetworkStatus.ts         # Online/offline detection hook
-│   │   └── useSession.ts               # Load/save session persistence hook
-│   ├── types/
-│   │   ├── session.types.ts            # Session, Item, Field types
-│   │   └── export.types.ts             # TPC JSON export schema
-│   ├── pages/
-│   │   ├── HomePage.tsx                # Session list / create new
-│   │   ├── CatalogPage.tsx             # Active recording + item workflow
-│   │   └── ReviewPage.tsx              # All items, export trigger
-│   ├── sw.ts                           # Custom service worker (injectManifest)
-│   ├── App.tsx
-│   └── main.tsx
-├── extension/                          # Chrome extension source (sibling project)
-│   ├── manifest.json
-│   ├── background/
-│   │   └── service-worker.js           # Handles import message, file parsing
-│   └── content/
-│       └── importer.js                 # Fills RFC Invaluable fields from JSON
-├── vite.config.ts
-└── package.json
+1. User opens app
+2. Better Auth client checks for existing session cookie
+3. If session cookie exists:
+   a. authClient.useSession() returns user + role
+   b. If valid: render app with role-aware UI
+   c. If invalid/expired: Better Auth handles refresh or redirects to login
+4. If no session:
+   a. Show LoginPage
+   b. User submits username + password
+   c. authClient.signIn.username({ username, password })
+   d. Better Auth server: validates credentials, sets httpOnly session cookie
+   e. useSession() now returns user data
+   f. Redirect to home
 ```
 
-### Structure Rationale
+**Key difference from generic JWT pattern:** Better Auth uses httpOnly cookies, not localStorage JWT. The cookie is automatically sent with every request. No manual token management. No XSS vulnerability from token theft.
 
-- **services/:** Pure logic separated from React; testable without components. Each service owns one external system boundary.
-- **db/:** Dexie schema in one place; migrations are version-gated so schema changes don't corrupt existing IndexedDB data.
-- **store/:** Zustand stores are hydrated from Dexie on app start, providing fast reactive UI state without touching IndexedDB on every render.
-- **hooks/:** Wrap services + stores into React-friendly interfaces. Components never call services directly — they use hooks.
-- **extension/:** Kept in the same monorepo for shared type definitions. Built separately with a different Vite config targeting Chrome extension output.
+### Session Creation Flow (CHANGED)
 
-## Architectural Patterns
+**Before (v1.0):** User fills form -> `createSession()` writes to Dexie -> navigate to session.
 
-### Pattern 1: Offline-First with Optimistic Local Write
+**After (v1.1):**
 
-**What:** Every user action writes to IndexedDB immediately. The sync_queue table records operations that need to reach the API. The service worker processes the queue when connectivity returns.
+```
+Admin fills form (name, mode, notes, assignee)
+  |
+  v
+POST /api/sessions  { name, mode, notes, assignedTo? }
+  |-- Hono route handler validates auth (Better Auth middleware)
+  |-- Hono route handler checks role === 'admin'
+  |-- Drizzle inserts session + assignment in Postgres
+  |-- Returns { id, ...session }
+  |
+  v
+Client invalidates session list cache
+  |
+  v
+Navigate to /session/:id
+```
 
-**When to use:** All audio blob storage and all item mutations. Any action taken while offline must not be lost.
+### Recording + AI Processing Flow (UNCHANGED locally, NEW sync step)
 
-**Trade-offs:** IndexedDB is the source of truth at all times, which prevents data loss but requires a sync reconciliation step. For this app (2-5 users, no multi-user conflict), last-write-wins is sufficient.
+```
+Specialist opens assigned session
+  |
+  v
+Fetch session + items from /api/sessions/:id (with items)
+  |
+  v
+Specialist taps record -> audio saved to Dexie (local, unchanged)
+  |
+  v
+AI processing fires (unchanged: offlineQueue -> CF Worker -> Gemini)
+  |
+  v
+AI results written to Dexie (local) -- aiStatus: "done"
+  |
+  v  [NEW: sync results to server]
+PUT /api/sessions/:id/items/:itemId  { title, description, condition, ... }
+  |-- Triggered after aiStatus transitions to "done"
+  |-- Pushes structured fields to Postgres
+```
 
-**Example:**
+### Session Submission Flow (NEW)
+
+```
+Specialist clicks "Submit for Review"
+  |
+  v
+POST /api/sessions/:id/submit
+  |-- Hono middleware: verify auth, verify user is assignee
+  |-- Drizzle: validate all items have aiStatus "done"
+  |-- Drizzle: set session.status = "submitted"
+  |-- Returns updated session
+  |
+  v
+Admin sees session in "Submitted" section
+  |
+  v
+Admin reviews items, edits inline
+  |-- PUT /api/sessions/:id/items/:itemId  { field: value }
+  |
+  v
+Admin either:
+  a. "Approve & Export" -> triggers export flow
+  b. "Return to Specialist" ->
+     POST /api/sessions/:id/return { notes }
+     |-- Drizzle: set status = "returned", store returnNotes
+     |-- Specialist sees session with admin feedback
+```
+
+### Export Flow (CHANGED)
+
+**Before (v1.0):** Client reads from Dexie, builds JSON, triggers download.
+
+**After (v1.1):**
+
+```
+Admin clicks "Export"
+  |
+  v
+GET /api/sessions/:id/export
+  |-- Hono middleware: verify admin role
+  |-- Drizzle reads session + items from Postgres
+  |-- Server builds ExportSchema JSON (same format as v1.0)
+  |-- Returns JSON
+  |
+  v
+Client triggers browser download of received JSON
+  |
+  v
+Server records in export_history table
+```
+
+---
+
+## Server-Side Architecture
+
+### Hono App Structure
+
+All server code lives in `api/index.ts` (single Vercel Function) with supporting modules in `server/`:
+
 ```typescript
-// In audio.service.ts — record stops
-async function saveAudioBlob(sessionId: string, itemId: string, blob: Blob) {
-  // Always write locally first
-  await db.audioBlobs.put({ id: itemId, sessionId, blob, createdAt: Date.now() });
+// api/index.ts
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { auth } from '../server/auth';
+import { sessionRoutes } from '../server/routes/sessions';
+import { userRoutes } from '../server/routes/users';
 
-  if (navigator.onLine) {
-    // Attempt immediate transcription
-    await enqueueTranscription(itemId);
-  } else {
-    // Park in sync queue — service worker will pick up when online
-    await db.syncQueue.add({
-      type: 'transcribe',
-      itemId,
-      createdAt: Date.now(),
-      retries: 0,
-    });
-    await registration.sync.register('process-audio-queue');
+const app = new Hono().basePath('/api');
+
+// CORS for cross-origin requests (needed if SPA and API on different subdomains)
+app.use('/auth/**', cors({
+  origin: process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:5173',
+  credentials: true,
+  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['POST', 'GET', 'OPTIONS'],
+}));
+
+// Better Auth handles all /api/auth/** routes
+app.on(['POST', 'GET'], '/auth/**', (c) => auth.handler(c.req.raw));
+
+// Auth middleware for all other routes
+app.use('*', async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) {
+    return c.json({ error: 'Unauthorized' }, 401);
   }
-}
-```
-
-### Pattern 2: Service Worker as Queue Processor
-
-**What:** The service worker (`sw.ts`) listens for `sync` events. On wake, it reads `syncQueue` from IndexedDB, processes each pending operation against external APIs, then clears completed entries.
-
-**When to use:** Transcription and AI parsing — both require network. The service worker handles replay so the main tab can be closed during a long house visit.
-
-**Trade-offs:** Background Sync is well-supported on Android Chrome (primary target). iOS Safari has limited Background Sync support — fallback is `window.addEventListener('online', ...)` in the main thread. Both paths read the same queue.
-
-**Example:**
-```typescript
-// In sw.ts
-self.addEventListener('sync', (event: SyncEvent) => {
-  if (event.tag === 'process-audio-queue') {
-    event.waitUntil(processAudioQueue());
-  }
+  c.set('user', session.user);
+  c.set('session', session.session);
+  await next();
 });
 
-async function processAudioQueue() {
-  const pending = await db.syncQueue.where('type').equals('transcribe').toArray();
-  for (const item of pending) {
-    try {
-      const blob = await db.audioBlobs.get(item.itemId);
-      const transcript = await callWhisper(blob);
-      const fields = await callAIParser(transcript);
-      await db.items.update(item.itemId, { ...fields, status: 'parsed' });
-      await db.syncQueue.delete(item.id);
-    } catch {
-      await db.syncQueue.update(item.id, { retries: item.retries + 1 });
-    }
-  }
-}
+// Mount route groups
+app.route('/users', userRoutes);
+app.route('/sessions', sessionRoutes);
+
+export default app;
 ```
 
-### Pattern 3: Chrome Extension Communication via externally_connectable
+### Database Schema (Drizzle ORM)
 
-**What:** The PWA (running at its hosted URL) sends a JSON payload to the TPC Chrome extension using `chrome.runtime.sendMessage(extensionId, payload)`. The extension receives via `chrome.runtime.onMessageExternal.addListener`. Communication is one-way: PWA initiates, extension confirms receipt.
-
-**When to use:** Export flow — user triggers export from Review page. The extension receives the structured items array and navigates/fills RFC Invaluable pages.
-
-**Trade-offs:** The extension must declare the PWA's origin in `externally_connectable.matches`. Extension ID must be known to the PWA (store as a build-time constant or let user paste it in settings). If extension is not installed, fall back to JSON file download.
-
-**Example:**
 ```typescript
-// In export.service.ts
-const EXTENSION_ID = import.meta.env.VITE_EXTENSION_ID;
+// server/db/schema.ts
+import { pgTable, serial, text, timestamp, varchar, integer, boolean, pgEnum } from 'drizzle-orm/pg-core';
 
-export async function sendToExtension(items: CatalogItem[]) {
-  if (!window.chrome?.runtime) {
-    return downloadAsJSON(items); // fallback
-  }
-  try {
-    await chrome.runtime.sendMessage(EXTENSION_ID, {
-      type: 'TPC_IMPORT',
-      version: 1,
-      items,
-    });
-  } catch {
-    // Extension not installed or wrong ID
-    return downloadAsJSON(items);
-  }
+// Better Auth manages these tables automatically:
+// - user (id, name, email, username, role, ...)
+// - session (id, userId, token, expiresAt, ...)
+// - account (id, userId, providerId, ...)
+// - verification (id, identifier, value, expiresAt, ...)
+// Generated by: npx @better-auth/cli generate
+
+// App-specific tables:
+
+export const sessionStatusEnum = pgEnum('session_status', [
+  'active', 'submitted', 'returned', 'completed', 'archived'
+]);
+
+export const sessionModeEnum = pgEnum('session_mode', ['house', 'sale']);
+
+export const aiStatusEnum = pgEnum('ai_status', [
+  'pending', 'processing', 'done', 'failed', 'queued'
+]);
+
+export const catalogSessions = pgTable('catalog_sessions', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 200 }).notNull(),
+  mode: sessionModeEnum('mode').notNull(),
+  status: sessionStatusEnum('status').notNull().default('active'),
+  notes: text('notes').default(''),
+  createdBy: text('created_by').references(() => user.id).notNull(),
+  assignedTo: text('assigned_to').references(() => user.id),
+  returnNotes: text('return_notes'),
+  deletedAt: timestamp('deleted_at'),
+  archivedAt: timestamp('archived_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const catalogItems = pgTable('catalog_items', {
+  id: serial('id').primaryKey(),
+  sessionId: integer('session_id').references(() => catalogSessions.id).notNull(),
+  receiptNumber: varchar('receipt_number', { length: 20 }),
+  title: text('title'),
+  description: text('description'),
+  condition: text('condition'),
+  estimate: varchar('estimate', { length: 50 }),
+  measurements: varchar('measurements', { length: 100 }),
+  category: varchar('category', { length: 10 }),
+  transcript: text('transcript'),
+  aiStatus: aiStatusEnum('ai_status').default('pending'),
+  sortOrder: integer('sort_order').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const catalogExportHistory = pgTable('catalog_export_history', {
+  id: serial('id').primaryKey(),
+  sessionId: integer('session_id').references(() => catalogSessions.id).notNull(),
+  sessionName: varchar('session_name', { length: 200 }).notNull(),
+  sessionMode: sessionModeEnum('session_mode').notNull(),
+  itemCount: integer('item_count').notNull(),
+  exportedBy: text('exported_by').references(() => user.id).notNull(),
+  exportedAt: timestamp('exported_at').defaultNow().notNull(),
+});
+```
+
+**Key schema notes:**
+- `user` table is managed by Better Auth (includes `id`, `name`, `username`, `role` fields via admin + username plugins)
+- `createdBy` and `assignedTo` reference Better Auth's `user.id` (which is a text/string ID, not integer)
+- Unified `catalogItems` table (not separate houseVisitItems/saleItems) -- `receiptNumber` is nullable, present only for sale items
+- Photo and audio blobs are NOT in Postgres (remain in Dexie)
+
+### Better Auth Configuration
+
+```typescript
+// server/auth.ts
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { admin } from 'better-auth/plugins/admin';
+import { username } from 'better-auth/plugins/username';
+import { db } from './db';
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, { provider: 'pg' }),
+  emailAndPassword: { enabled: true },
+  plugins: [
+    username({
+      minUsernameLength: 3,
+      maxUsernameLength: 30,
+    }),
+    admin({
+      // Default roles: 'admin' and 'user'
+      // 'user' role = specialist in our domain
+    }),
+  ],
+  session: {
+    expiresIn: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 24 * 60 * 60, // refresh every 24 hours
+  },
+});
+```
+
+**Role mapping note:** Better Auth's admin plugin uses `'admin'` and `'user'` as default roles. In TPC's domain, `'user'` maps to "specialist." The UI labels this as "Specialist" but the database value is `'user'`. This avoids fighting the framework's conventions.
+
+---
+
+## Client-Side Architecture Changes
+
+### Better Auth React Client
+
+```typescript
+// src/lib/auth-client.ts
+import { createAuthClient } from 'better-auth/react';
+import { usernameClient } from 'better-auth/client/plugins';
+import { adminClient } from 'better-auth/client/plugins';
+
+export const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_API_URL || '',
+  plugins: [usernameClient(), adminClient()],
+});
+
+// Usage in components:
+// const { data: session, isPending } = authClient.useSession();
+// session.user.role === 'admin' -> is admin
+// session.user.role === 'user' -> is specialist
+```
+
+### Route Protection
+
+```typescript
+// src/components/AuthGuard.tsx
+import { Navigate, Outlet } from 'react-router';
+import { authClient } from '../lib/auth-client';
+
+export function AuthGuard() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) return <LoadingSpinner />;
+  if (!session) return <Navigate to="/login" replace />;
+
+  return <Outlet />;
+}
+
+export function AdminGuard() {
+  const { data: session } = authClient.useSession();
+  if (session?.user.role !== 'admin') return <Navigate to="/" replace />;
+  return <Outlet />;
 }
 ```
 
-## Data Flow
+### Updated Route Tree
 
-### Flow 1: Audio Capture to Structured Item (Online)
+```typescript
+// src/App.tsx (v1.1)
+<Routes>
+  <Route path="/login" element={<LoginPage />} />
 
-```
-User taps Record
-    ↓
-AudioService.start()
-    → MediaRecorder begins, audio chunks accumulate
-User taps Stop / Advance
-    ↓
-AudioService.stop()
-    → Blob assembled from chunks
-    → db.audioBlobs.put(blob)          [IndexedDB write]
-    → db.syncQueue.add(transcribeJob)  [IndexedDB write]
-    ↓
-AIService.transcribe(blob)
-    → POST /audio → OpenAI Whisper
-    → Returns transcript string
-    ↓
-AIService.parseFields(transcript, mode, category)
-    → POST transcript → Gemini/GPT with auction catalog prompt
-    → Returns { title, description, condition, estimate, category }
-    ↓
-db.items.update(itemId, fields)        [IndexedDB write]
-    ↓
-itemStore.hydrate()                    [Zustand update]
-    ↓
-UI re-renders with structured item
+  <Route element={<AuthGuard />}>
+    <Route element={<AppLayout />}>
+      {/* Shared routes */}
+      <Route index element={<SessionsPage />} />
+      <Route path="session/:sessionId" element={<SessionDetailPage />} />
+      <Route path="session/:sessionId/item/:itemId" element={<ItemEntryPage />} />
+      <Route path="settings" element={<SettingsPage />} />
+
+      {/* Admin-only routes */}
+      <Route element={<AdminGuard />}>
+        <Route path="new" element={<NewSessionPage />} />
+        <Route path="users" element={<UsersPage />} />
+      </Route>
+    </Route>
+  </Route>
+</Routes>
 ```
 
-### Flow 2: Audio Capture to Structured Item (Offline)
+### Server Data Fetching Pattern
 
-```
-User taps Record → Stop (same as above through blob assembly)
-    ↓
-db.audioBlobs.put(blob)                [IndexedDB write]
-db.syncQueue.add({ type: 'transcribe', itemId })
-    ↓
-registration.sync.register('process-audio-queue')
-    ↓
-[Device regains connectivity]
-    ↓
-Service Worker 'sync' event fires
-    → Reads sync_queue from IndexedDB
-    → Calls Whisper + AI parser per queued item
-    → Writes parsed fields to db.items
-    → Removes processed entries from sync_queue
-    ↓
-Main thread detects db.items change
-    → itemStore.hydrate()
-    → UI shows parsed items
-```
+Since Better Auth handles auth state and session management via cookies, and we are NOT adding TanStack Query for this milestone (avoiding unnecessary complexity for 2-5 users), use a simple `apiFetch` wrapper:
 
-### Flow 3: Photo Capture
+```typescript
+// src/services/api.ts
+const API_BASE = '/api';
 
-```
-User taps Capture Photo
-    ↓
-CameraService.capture()
-    → ImageCapture.takePhoto() → JPEG Blob
-    ↓
-db.items.update(itemId, { photoBlob: jpeg })  [IndexedDB write, stored as Blob]
-    ↓
-CameraService returns ObjectURL for preview
-    ↓
-PhotoThumbnail renders preview image
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: 'include', // send auth cookies
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+  if (res.status === 401) {
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
 ```
 
-### Flow 4: Session Save / Resume
+**Why NOT TanStack Query for v1.1:**
+- 2-5 users, no concurrent editing, no complex cache invalidation needs
+- Better Auth's `useSession()` already handles the most critical reactive state (auth)
+- Simple `useEffect` + `apiFetch` with `useState` is sufficient for session lists
+- Can add TanStack Query later if data fetching patterns become complex
+- Avoids adding another dependency and learning curve to the v1.1 scope
 
-```
-App launch
-    ↓
-useSession hook
-    → db.sessions.toArray() → loads session list
-    ↓
-User selects existing session OR creates new
-    ↓
-db.items.where('sessionId').equals(id).toArray()
-    → Hydrates itemStore with all items
-    ↓
-[User records additional items — writes go to IndexedDB]
-    ↓
-App close / navigation away
-    → No explicit "save" needed — IndexedDB is already the source of truth
-```
+---
 
-### Flow 5: Export to Chrome Extension
+## Patterns to Follow
 
-```
-User opens Review page
-    → All items rendered from itemStore
-    → User edits any fields (writes to db.items)
-User taps Export
-    ↓
-ExportService.sendToExtension(items)
-    → Checks chrome.runtime availability
-    → chrome.runtime.sendMessage(EXTENSION_ID, { type: 'TPC_IMPORT', items })
-    ↓
-Extension background service worker receives message
-    → Validates payload format
-    → Queues items for import workflow
-    → Opens RFC Invaluable import page (reports.r3?mm=data)
-    → Content script fills form or drives per-item page navigation
-    ↓
-[Fallback if extension absent]
-    → JSON file download via Blob URL
-```
+### Pattern 1: Sync Bridge (AI results from Dexie to Server)
 
-### State Management
+**What:** After AI processing writes results to Dexie (existing flow), push structured fields to the server.
 
-```
-Dexie (IndexedDB) — source of truth
-    ↓ (hydrate on mount / on db change)
-Zustand stores — reactive in-memory state
-    ↓ (subscribe)
-React components — UI rendering
-    ↓ (user actions via hooks)
-Services — business logic
-    ↓ (write)
-Dexie (IndexedDB) — persistence
+**When:** `aiStatus` transitions to `"done"` in Dexie.
+
+```typescript
+// src/services/syncBridge.ts
+export async function syncItemToServer(
+  localItemId: number,
+  serverItemId: number,
+  mode: 'house' | 'sale'
+): Promise<void> {
+  const table = mode === 'house' ? db.houseVisitItems : db.saleItems;
+  const item = await table.get(localItemId);
+  if (!item || item.aiStatus !== 'done') return;
+
+  await apiFetch(`/sessions/${item.sessionId}/items/${serverItemId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      title: item.title,
+      description: item.description,
+      condition: item.condition,
+      estimate: item.estimate,
+      measurements: item.measurements,
+      category: item.category,
+      transcript: item.transcript,
+      aiStatus: 'done',
+    }),
+  });
+}
 ```
 
-## Build Order (Phase Dependencies)
+### Pattern 2: Role-Conditional UI
 
-This dependency graph informs roadmap phase ordering:
+**What:** Components check user role to show/hide features. Server enforces the real boundary.
 
-```
-Phase 1: Data layer (Dexie schema + types)
-    ↓ required by everything
-Phase 2: Session management UI + offline persistence
-    ↓ required to have a container for items
-Phase 3: Audio capture (MediaRecorder) + local blob storage
-    ↓ required before AI pipeline
-Phase 4: Camera capture + photo storage
-    ↓ can be parallel with audio, but depends on Phase 2
-Phase 5: AI pipeline (Whisper STT + LLM field parsing)
-    ↓ requires audio blobs and item schema from Phases 1-3
-Phase 6: Service worker + Background Sync (offline queue replay)
-    ↓ requires Phases 3 + 5 to know what to replay
-Phase 7: Review / edit UI
-    ↓ requires parsed items from Phase 5
-Phase 8: Export + Chrome extension integration
-    ↓ requires Phase 7 and extension batch import feature
+```typescript
+const { data: session } = authClient.useSession();
+const isAdmin = session?.user.role === 'admin';
+
+{isAdmin && <button onClick={handleExport}>Export Session</button>}
+{!isAdmin && catalogSession.status === 'active' && (
+  <button onClick={handleSubmit}>Submit for Review</button>
+)}
 ```
 
-## Integration Points
+### Pattern 3: Session Lifecycle State Machine
 
-### External Services
+**What:** Explicit transition validator on the server prevents impossible states.
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| OpenAI Whisper API | POST multipart/form-data from AIService; audio blob + model param | Audio format: WebM/Opus preferred; Safari may produce mp4 — test both |
-| Gemini / GPT-4o | POST JSON with transcript + category + system prompt for field extraction | Single API call per item; response must be typed/validated before writing to IndexedDB |
-| Chrome Extension (TPC) | chrome.runtime.sendMessage via externally_connectable | Extension must whitelist PWA origin in manifest; PWA must know extension ID |
-| RFC Invaluable (rfc.invaluable.com) | Extension drives DOM directly via content script | No RFC API — content script fills #fld1 / #fld2 per item page, or uses import endpoint |
+```typescript
+// server/lib/sessionLifecycle.ts
+type Status = 'active' | 'submitted' | 'returned' | 'completed' | 'archived';
+type Role = 'admin' | 'user';
 
-### Internal Boundaries
+const TRANSITIONS: Record<string, { to: Status; role: Role }[]> = {
+  active:    [{ to: 'submitted', role: 'user' }],
+  submitted: [{ to: 'returned', role: 'admin' }, { to: 'completed', role: 'admin' }],
+  returned:  [{ to: 'submitted', role: 'user' }],
+  completed: [{ to: 'archived', role: 'admin' }],
+  archived:  [], // terminal
+};
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| UI components <-> Zustand stores | Direct store subscription (useStore hook) | Components never touch Dexie directly |
-| Zustand stores <-> Dexie | Services call db.* and then invalidate store; or stores call db.* for hydration | One-directional: Dexie is authoritative |
-| Main thread <-> Service Worker | IndexedDB as shared message bus; Background Sync API for triggers | No direct postMessage needed for queue; use BroadcastChannel if UI needs SW notifications |
-| PWA <-> Chrome Extension | chrome.runtime.sendMessage (one-shot) | PWA initiates; extension confirms or rejects |
-| AudioService <-> Sync queue | AudioService writes to syncQueue table; Service Worker reads | No direct coupling — decoupled via shared IndexedDB table |
+export function canTransition(from: Status, to: Status, role: Role): boolean {
+  return TRANSITIONS[from]?.some(t => t.to === to && t.role === role) ?? false;
+}
+```
 
-## Anti-Patterns
+---
 
-### Anti-Pattern 1: Using Web Speech API as Primary Transcription
+## Anti-Patterns to Avoid
 
-**What people do:** Use `window.SpeechRecognition` (browser-native) for live transcription, relying on the browser's built-in STT.
+### Anti-Pattern 1: Dual Source of Truth for Sessions
 
-**Why it's wrong:** Web Speech API is online-only (Chrome streams audio to Google servers), has no offline fallback, does not work well for auction terminology (proper nouns, condition terms, estimates), and produces raw text with no structured field extraction. It cannot be queued for offline replay.
+**What:** Keeping sessions in both Dexie AND Postgres and syncing bidirectionally.
 
-**Do this instead:** Use MediaRecorder to capture raw audio blobs locally. Send blobs to Whisper when online. Queue for deferred processing when offline. Whisper can be prompted with domain vocabulary for better accuracy.
+**Why bad:** ID collisions (Dexie uses auto-increment), conflict resolution nightmares, ambiguous authority.
 
-### Anti-Pattern 2: Storing Audio Blobs in Zustand (Memory)
+**Instead:** Server (Postgres) is the single source of truth for session metadata and items. Dexie stores only audio/photo blobs and the AI processing queue.
 
-**What people do:** Keep the audio Blob in React state or Zustand during and after recording.
+### Anti-Pattern 2: Migrating v1.0 Dexie Data to Server
 
-**Why it's wrong:** Audio files can be 2-10 MB each. Multiple items in memory degrades performance on mobile and does not survive page reloads or app backgrounding.
+**What:** Building a migration to move v1.0 Dexie data to Postgres.
 
-**Do this instead:** Write the Blob to IndexedDB immediately when recording stops. Keep only a reference ID (itemId) in Zustand. Load the Blob from IndexedDB only when needed (for upload).
+**Why bad:** v1.0 has no user concept. Auto-increment IDs will collide. The effort exceeds the value for 2-5 users.
 
-### Anti-Pattern 3: Polling for Connectivity in the Main Thread
+**Instead:** Start with a clean server database. Export v1.0 data as JSON first (existing export works).
 
-**What people do:** setInterval to check navigator.onLine and retry failed API calls from the UI layer.
+### Anti-Pattern 3: Using Dexie Cloud for Sync
 
-**Why it's wrong:** Polling wastes battery and CPU on mobile. The app may be in the background or closed. Online/offline detection via polling is unreliable.
+**What:** Adopting Dexie Cloud's commercial sync layer.
 
-**Do this instead:** Use the Background Sync API in the service worker for deferred processing. Register sync events when connectivity returns. In the main thread, listen to `online`/`offline` events only for UI status display (not for triggering API calls).
+**Why bad:** Solves eventual consistency, not server-authoritative workflows. The role-based lifecycle needs server authority.
 
-### Anti-Pattern 4: Tightly Coupling PWA Export to Extension Presence
+**Instead:** Hono REST API with Better Auth. Server is authoritative.
 
-**What people do:** Make the extension a hard dependency — if not detected, the export button is disabled or the app fails.
+### Anti-Pattern 4: Storing Blobs in Postgres
 
-**Why it's wrong:** The extension may not be installed on a device, may be outdated, or the user may want to export and import later on another machine.
+**What:** Uploading audio/photos to Postgres bytea columns.
 
-**Do this instead:** Always provide a JSON file download fallback. The chrome.runtime.sendMessage path is the fast path; the file download is the universal fallback. Both produce identical JSON.
+**Why bad:** Audio files can be several MB. Vercel serverless body limit is 4.5MB. Postgres is not designed for blob storage.
 
-### Anti-Pattern 5: Skipping IndexedDB Schema Versioning
+**Instead:** Audio stays in Dexie (discarded after AI processing). Photos stay in Dexie for v1.1. Future: presigned uploads to Vercel Blob or Cloudflare R2.
 
-**What people do:** Define a Dexie schema without version numbers, or with a single version.
+### Anti-Pattern 5: Adding TanStack Query Prematurely
 
-**Why it's wrong:** Any schema change (adding a field, new table) requires a version bump. Without versioning, existing data in IndexedDB is inaccessible or corrupted when the app updates.
+**What:** Adding a full client caching layer for 2-5 users before the data fetching patterns are established.
 
-**Do this instead:** Version the schema from day one. Use Dexie's `version(N).stores(...)` pattern with `upgrade()` callbacks for migrations.
+**Why bad:** Adds complexity, bundle size, and learning curve. Better Auth already handles the most important reactive state (auth session). Simple fetch + useState handles the rest for this scale.
 
-## Scaling Considerations
+**Instead:** Use `apiFetch` wrapper + `useState`/`useEffect`. Add TanStack Query only if caching, background refetch, or optimistic updates become genuine needs.
 
-This is a 2-5 user internal tool. Scaling is not a concern. Architecture choices are justified by:
+---
 
-| Concern | At 2-5 users | Notes |
-|---------|--------------|-------|
-| API cost (Whisper + GPT) | Low — ~50-200 items per session, per session day | Monitor usage; no rate limiting expected |
-| IndexedDB storage | Low — audio blobs ~3 MB each, 50 items = ~150 MB; browser quota ~1-2 GB | Monitor with StorageManager API; warn if > 500 MB |
-| Extension ID distribution | Manual — give each user the extension ID as a setting | No discovery mechanism needed for 5 people |
-| Multi-device sync | Not needed per requirements | If needed later: Dexie Cloud adds sync layer |
+## Vercel Deployment Configuration
+
+### vercel.json
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+Order matters: API routes matched first (all go to the single Hono function), everything else falls through to the SPA.
+
+### Environment Variables (Vercel Dashboard)
+
+```
+DATABASE_URL=postgresql://...         # Neon Postgres connection string
+BETTER_AUTH_SECRET=...                # Random secret for Better Auth session signing
+BETTER_AUTH_URL=https://your-app.vercel.app  # Production URL
+```
+
+### Local Development
+
+Use `vercel dev` to get the full routing behavior locally (both SPA and API):
+
+```bash
+# Install Vercel CLI
+npm install -D vercel
+
+# Link project
+vercel link
+
+# Set up local env vars
+vercel env pull .env.local
+
+# Run dev server
+vercel dev
+```
+
+Alternatively, use Vite's proxy for local dev if `vercel dev` has issues:
+
+```typescript
+// vite.config.ts addition
+server: {
+  proxy: {
+    '/api': {
+      target: 'http://localhost:3000',
+      changeOrigin: true,
+    },
+  },
+},
+```
+
+---
+
+## Component Change Matrix
+
+### New Components
+
+| Component | Type | Purpose |
+|-----------|------|---------|
+| `LoginPage` | Page | Username/password login form using Better Auth client |
+| `UsersPage` | Page | Admin: manage specialist accounts via Better Auth admin API |
+| `AuthGuard` | Component | Route guard using `authClient.useSession()` |
+| `AdminGuard` | Component | Route guard checking `role === 'admin'` |
+| `auth-client.ts` | Lib | Better Auth React client configuration |
+| `api.ts` | Service | Centralized fetch wrapper with `credentials: 'include'` |
+| `syncBridge.ts` | Service | Push AI-processed fields from Dexie to server |
+| `api/index.ts` | Server | Hono app entry point (single Vercel Function) |
+| `server/auth.ts` | Server | Better Auth configuration |
+| `server/db/schema.ts` | Server | Drizzle table definitions |
+| `server/db/index.ts` | Server | Drizzle + Neon connection |
+| `server/routes/*.ts` | Server | Hono route handlers for sessions, users |
+
+### Modified Components
+
+| Component | What Changes |
+|-----------|-------------|
+| `App.tsx` | Add `/login` route, wrap routes in `AuthGuard`, add `/users` admin route |
+| `AppLayout.tsx` | Show username + role in nav, add logout button, conditionally show admin tabs |
+| `SessionsPage` | Fetch sessions from API (not Dexie). Admin sees all; specialist sees assigned. Add "Submitted" section for admin. |
+| `NewSessionPage` | Add assignee selector (admin only). POST to API instead of Dexie. |
+| `SessionDetailPage` | Fetch from API. Add role-specific buttons: Submit (specialist), Export/Return (admin). Show returnNotes. |
+| `ItemEntry.tsx` | Recording still writes to Dexie. After AI completes, `syncBridge` pushes to server. |
+| `export.ts` | Admin-only. Fetch export JSON from `/api/sessions/:id/export`. |
+| `main.tsx` | Wrap app in BrowserRouter (already done), no new providers needed. |
+| `offlineQueue.ts` | Add `syncBridge` call after successful AI processing. |
+| `vite.config.ts` | Remove `basicSsl` plugin for production. Add API proxy for local dev. |
+
+### Unchanged Components
+
+| Component | Why Unchanged |
+|-----------|--------------|
+| `useAudioRecorder.ts` | Recording is entirely local |
+| `RecordButton.tsx` | Local recording UI |
+| `RecordingIndicator.tsx` | Local recording state |
+| `PhotoCapture.tsx` | Local photo capture |
+| `gemini.ts` | AI processing pipeline unchanged |
+| `geminiSchema.ts` | Schema validation unchanged |
+| `receiptNumber.ts` | Validation logic unchanged |
+| `importReceipts.ts` | CSV/XLSX parsing unchanged (import flow calls API instead of Dexie) |
+| `EditableField.tsx` | Generic UI component, reused for admin editing |
+
+---
+
+## Scalability Considerations
+
+| Concern | At 2-5 users (current) | At 10-20 users | At 100+ users |
+|---------|----------------------|----------------|---------------|
+| **Database** | Neon free tier (0.5GB) | Neon Launch ($19/mo) | Neon Scale ($69/mo) |
+| **Auth** | Better Auth sessions, 7-day expiry | Same | Same (Better Auth scales) |
+| **Session load** | Direct queries fine | Add pagination | Full-text search, indexes |
+| **Photo storage** | Dexie-only (local) | Vercel Blob (5GB free) | Cloudflare R2 or S3 |
+| **API cold starts** | Fluid Compute (~115ms) | Same | Same (auto-scaling) |
+| **Real-time updates** | Page refresh / manual reload | Add polling (30s) | SSE or WebSockets |
+
+For 2-5 users, none of the scaling concerns apply. The architecture is intentionally simple.
+
+---
 
 ## Sources
 
-- [MDN: Offline and background operation in PWAs](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Offline_and_background_operation)
-- [LogRocket: Offline-first frontend apps in 2025 — IndexedDB and SQLite](https://blog.logrocket.com/offline-first-frontend-apps-2025-indexeddb-sqlite/)
-- [Chrome for Developers: Message passing in extensions](https://developer.chrome.com/docs/extensions/develop/concepts/messaging)
-- [Chrome for Developers: externally_connectable](https://developer.chrome.com/extensions/manifest/externally_connectable)
-- [Advanced PWA Playbook: Offline, Push, Background Sync](https://rishikc.com/articles/advanced-pwa-features-offline-push-background-sync/)
-- [Dexie.js official documentation](https://dexie.org/)
-- [vite-plugin-pwa GitHub](https://github.com/vite-pwa/vite-plugin-pwa)
-- [OpenAI Community: MediaRecorder API with Whisper on mobile](https://community.openai.com/t/mediarecorder-api-w-whisper-not-working-on-mobile-browsers/866019)
-- [Building offline PWA camera app with React](https://dev.to/ore/building-an-offline-pwa-camera-app-with-react-and-cloudinary-5b9k)
-- [Offline-first React apps 2025: PWA + RSC + Service Workers](https://emirbalic.com/building-offline-first-react-apps-in-2025-pwa-rsc-service-workers/)
+- [Hono on Vercel -- zero-config deployment](https://vercel.com/docs/frameworks/backend/hono) (HIGH confidence)
+- [Better Auth + Hono integration](https://better-auth.com/docs/integrations/hono) (HIGH confidence)
+- [Better Auth admin plugin](https://better-auth.com/docs/plugins/admin) (HIGH confidence)
+- [Better Auth username plugin](https://better-auth.com/docs/plugins/username) (HIGH confidence)
+- [Drizzle ORM + Neon Postgres](https://orm.drizzle.team/docs/get-started/neon-new) (HIGH confidence)
+- [Vercel Functions API Reference](https://vercel.com/docs/functions/functions-api-reference) (HIGH confidence)
+- [Vite on Vercel -- SPA configuration](https://vercel.com/docs/frameworks/frontend/vite) (HIGH confidence)
+- [Neon Postgres pricing and free tier](https://neon.com/pricing) (HIGH confidence)
 
 ---
-*Architecture research for: Mobile-first PWA with offline audio, AI parsing, photo capture, and Chrome extension integration*
-*Researched: 2026-03-06*
+*Architecture research for: TPC Speech Cataloger v1.1 -- Accounts & Deploy*
+*Researched: 2026-03-17*

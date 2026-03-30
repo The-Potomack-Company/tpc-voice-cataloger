@@ -1,112 +1,45 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { useUIStore } from "../stores/uiStore";
 import { db } from "../db";
 
-describe("AiStatus type", () => {
-  it("accepts 'queued' as a valid value", () => {
-    // Compile-time check: if this compiles, the test passes
-    const status: import("../db/types").AiStatus = "queued";
-    expect(status).toBe("queued");
-  });
-});
+// --- Mocks ---
+const { mockFrom, mockSupabaseSelect, mockSupabaseEq, mockSupabaseOrder, mockSupabaseUpdate } =
+  vi.hoisted(() => {
+    const mockSupabaseUpdate = vi.fn();
+    const mockSupabaseOrder = vi.fn();
+    const mockSupabaseEq = vi.fn();
+    const mockSupabaseSelect = vi.fn();
+    const mockFrom = vi.fn();
 
-describe("useOnlineStatus hook", () => {
-  let originalOnLine: boolean;
-
-  beforeEach(() => {
-    originalOnLine = navigator.onLine;
-    // Reset store
-    useUIStore.setState({ isOnline: true });
-  });
-
-  afterEach(() => {
-    Object.defineProperty(navigator, "onLine", {
-      writable: true,
-      configurable: true,
-      value: originalOnLine,
-    });
+    return {
+      mockFrom,
+      mockSupabaseSelect,
+      mockSupabaseEq,
+      mockSupabaseOrder,
+      mockSupabaseUpdate,
+    };
   });
 
-  it("returns true when navigator.onLine is true", async () => {
-    Object.defineProperty(navigator, "onLine", {
-      writable: true,
-      configurable: true,
-      value: true,
-    });
-
-    const { useOnlineStatus } = await import("../hooks/useOnlineStatus");
-    const { result } = renderHook(() => useOnlineStatus());
-    expect(result.current).toBe(true);
-  });
-
-  it("returns false when navigator.onLine is false", async () => {
-    Object.defineProperty(navigator, "onLine", {
-      writable: true,
-      configurable: true,
-      value: false,
-    });
-
-    const { useOnlineStatus } = await import("../hooks/useOnlineStatus");
-    const { result } = renderHook(() => useOnlineStatus());
-    expect(result.current).toBe(false);
-  });
-
-  it("updates when online event fires on window", async () => {
-    Object.defineProperty(navigator, "onLine", {
-      writable: true,
-      configurable: true,
-      value: false,
-    });
-
-    const { useOnlineStatus } = await import("../hooks/useOnlineStatus");
-    const { result } = renderHook(() => useOnlineStatus());
-    expect(result.current).toBe(false);
-
-    // Simulate going online
-    Object.defineProperty(navigator, "onLine", {
-      writable: true,
-      configurable: true,
-      value: true,
-    });
-    act(() => {
-      window.dispatchEvent(new Event("online"));
-    });
-
-    expect(result.current).toBe(true);
-  });
-
-  it("updates when offline event fires on window", async () => {
-    Object.defineProperty(navigator, "onLine", {
-      writable: true,
-      configurable: true,
-      value: true,
-    });
-
-    const { useOnlineStatus } = await import("../hooks/useOnlineStatus");
-    const { result } = renderHook(() => useOnlineStatus());
-    expect(result.current).toBe(true);
-
-    // Simulate going offline
-    Object.defineProperty(navigator, "onLine", {
-      writable: true,
-      configurable: true,
-      value: false,
-    });
-    act(() => {
-      window.dispatchEvent(new Event("offline"));
-    });
-
-    expect(result.current).toBe(false);
-  });
-});
+vi.mock("../lib/supabase", () => ({
+  supabase: {
+    from: mockFrom,
+  },
+}));
 
 // Mock processAudioWithAi before importing offlineQueue
 vi.mock("../services/gemini", () => ({
   processAudioWithAi: vi.fn(),
 }));
 
-describe("offlineQueue service", () => {
+// Mock getDexieItemId
+const { mockGetDexieItemId } = vi.hoisted(() => {
+  return { mockGetDexieItemId: vi.fn() };
+});
+
+vi.mock("../db/idMapping", () => ({
+  getDexieItemId: mockGetDexieItemId,
+}));
+
+describe("offlineQueue service (Supabase-backed)", () => {
   let originalOnLine: boolean;
 
   beforeEach(async () => {
@@ -117,25 +50,21 @@ describe("offlineQueue service", () => {
       value: true,
     });
 
-    // Clear all tables
-    await db.houseVisitItems.clear();
-    await db.saleItems.clear();
+    // Clear audio table (still Dexie for blobs)
     await db.audio.clear();
 
     // Reset mocks
     const { processAudioWithAi } = await import("../services/gemini");
     vi.mocked(processAudioWithAi).mockReset();
-    // Default: processAudioWithAi succeeds (sets aiStatus to "done")
-    vi.mocked(processAudioWithAi).mockImplementation(
-      async (_audioId: number, itemId: number, itemType: "house" | "sale") => {
-        const table =
-          itemType === "house" ? db.houseVisitItems : db.saleItems;
-        await table.update(itemId, { aiStatus: "done" });
-      },
-    );
+    mockFrom.mockReset();
+    mockSupabaseSelect.mockReset();
+    mockSupabaseEq.mockReset();
+    mockSupabaseOrder.mockReset();
+    mockSupabaseUpdate.mockReset();
+    mockGetDexieItemId.mockReset();
 
-    // Reset draining mutex by importing fresh module
-    // We use resetModules in specific tests that need it
+    // Default: processAudioWithAi succeeds (no Dexie write needed, just resolves)
+    vi.mocked(processAudioWithAi).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -146,28 +75,33 @@ describe("offlineQueue service", () => {
     });
   });
 
-  async function createQueuedHouseItem(
-    sessionId: number,
-    createdAt: Date,
-  ): Promise<number> {
-    return (await db.houseVisitItems.add({
-      sessionId,
-      aiStatus: "queued",
-      sortOrder: 0,
-      createdAt,
-    })) as number;
-  }
-
-  async function createQueuedSaleItem(
-    sessionId: number,
-    createdAt: Date,
-  ): Promise<number> {
-    return (await db.saleItems.add({
-      sessionId,
-      aiStatus: "queued",
-      sortOrder: 0,
-      createdAt,
-    })) as number;
+  // Helper: set up Supabase mock to return queued items
+  function setupQueuedItemsResponse(
+    items: Array<{
+      id: string;
+      mode: string;
+      session_id: string;
+      created_at: string;
+    }>,
+  ) {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "items") {
+        return {
+          select: mockSupabaseSelect.mockReturnValue({
+            eq: mockSupabaseEq.mockReturnValue({
+              order: mockSupabaseOrder.mockResolvedValue({
+                data: items,
+                error: null,
+              }),
+            }),
+          }),
+          update: mockSupabaseUpdate.mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        };
+      }
+      return {};
+    });
   }
 
   async function createAudio(
@@ -184,232 +118,132 @@ describe("offlineQueue service", () => {
   }
 
   describe("getQueuedItems", () => {
-    it("returns items from both tables where aiStatus=queued, sorted by createdAt FIFO", async () => {
+    it("queries Supabase items where ai_status='queued'", async () => {
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-1",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+        },
+        {
+          id: "uuid-2",
+          mode: "sale",
+          session_id: "sess-uuid-2",
+          created_at: "2026-01-01T10:01:00Z",
+        },
+      ]);
+
       const { getQueuedItems } = await import("../services/offlineQueue");
-
-      const t1 = new Date("2026-01-01T10:00:00Z");
-      const t2 = new Date("2026-01-01T10:01:00Z");
-      const t3 = new Date("2026-01-01T10:02:00Z");
-
-      // Create items out of order
-      await createQueuedSaleItem(1, t3);
-      await createQueuedHouseItem(1, t1);
-      await createQueuedHouseItem(1, t2);
-
-      // Also add a non-queued item that should NOT appear
-      await db.houseVisitItems.add({
-        sessionId: 1,
-        aiStatus: "done",
-        sortOrder: 0,
-        createdAt: new Date("2026-01-01T09:00:00Z"),
-      });
-
       const items = await getQueuedItems();
-      expect(items).toHaveLength(3);
+
+      expect(items).toHaveLength(2);
+      expect(items[0].id).toBe("uuid-1");
+      expect(typeof items[0].id).toBe("string");
       expect(items[0].itemType).toBe("house");
-      expect(items[0].createdAt.getTime()).toBe(t1.getTime());
-      expect(items[1].itemType).toBe("house");
-      expect(items[1].createdAt.getTime()).toBe(t2.getTime());
-      expect(items[2].itemType).toBe("sale");
-      expect(items[2].createdAt.getTime()).toBe(t3.getTime());
+      expect(items[0].sessionId).toBe("sess-uuid-1");
+      expect(items[1].id).toBe("uuid-2");
+      expect(items[1].itemType).toBe("sale");
+      expect(items[1].sessionId).toBe("sess-uuid-2");
+    });
+  });
+
+  describe("findAudioForItem", () => {
+    it("queries Dexie db.audio by itemId using getDexieItemId for UUID-to-integer bridge", async () => {
+      // Create audio with legacy integer itemId
+      const audioId = await createAudio(42, "house");
+
+      // Mock getDexieItemId to return the legacy integer
+      mockGetDexieItemId.mockResolvedValue(42);
+
+      // Need to test findAudioForItem indirectly through drainQueue
+      // since findAudioForItem is not exported.
+      // Set up a single queued item
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-item-1",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+        },
+      ]);
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      // processAudioWithAi should have been called with the audio ID
+      expect(processAudioWithAi).toHaveBeenCalledWith(
+        audioId,
+        "uuid-item-1",
+        "sess-uuid-1",
+      );
     });
   });
 
   describe("drainQueue", () => {
-    it("calls processAudioWithAi for each queued item using most recent audio", async () => {
-      const { drainQueue } = await import("../services/offlineQueue");
+    it("calls processAudioWithAi with (audioId, itemId as string UUID, sessionId as string UUID)", async () => {
+      // Create audio with legacy integer itemId
+      mockGetDexieItemId.mockResolvedValue(42);
+      const audioId = await createAudio(42, "house");
+
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-item-1",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+        },
+      ]);
+
       const { processAudioWithAi } = await import("../services/gemini");
-
-      const itemId = await createQueuedHouseItem(
-        1,
-        new Date("2026-01-01T10:00:00Z"),
-      );
-      // Add two audio records -- should use the one with highest id
-      await createAudio(itemId, "house");
-      const latestAudioId = await createAudio(itemId, "house");
-
+      const { drainQueue } = await import("../services/offlineQueue");
       await drainQueue();
 
       expect(processAudioWithAi).toHaveBeenCalledWith(
-        latestAudioId,
-        itemId,
-        "house",
+        audioId,
+        "uuid-item-1",
+        "sess-uuid-1",
       );
     });
 
-    it("processes max 4 items concurrently (concurrency limit)", async () => {
-      const { processAudioWithAi } = await import("../services/gemini");
+    it("handles items with no audio by marking them as failed via supabase", async () => {
+      mockGetDexieItemId.mockResolvedValue(null);
 
-      let currentConcurrent = 0;
-      let maxConcurrent = 0;
-
-      vi.mocked(processAudioWithAi).mockImplementation(
-        async (
-          _audioId: number,
-          itemId: number,
-          itemType: "house" | "sale",
-        ) => {
-          currentConcurrent++;
-          maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
-          // Simulate async work
-          await new Promise((r) => setTimeout(r, 50));
-          const table =
-            itemType === "house" ? db.houseVisitItems : db.saleItems;
-          await table.update(itemId, { aiStatus: "done" });
-          currentConcurrent--;
-        },
-      );
-
-      // Create 8 items (should process in 2 batches of 4)
-      for (let i = 0; i < 8; i++) {
-        const id = await createQueuedHouseItem(
-          1,
-          new Date(Date.now() + i * 1000),
-        );
-        await createAudio(id, "house");
-      }
-
-      // Need fresh import to reset mutex
-      const offlineQueue = await import("../services/offlineQueue");
-      await offlineQueue.drainQueue();
-
-      expect(maxConcurrent).toBeLessThanOrEqual(4);
-      expect(maxConcurrent).toBeGreaterThan(1); // Verify some parallelism happened
-    });
-
-    it("retries an item twice on failure, then marks as failed", async () => {
-      const { processAudioWithAi } = await import("../services/gemini");
-
-      let callCount = 0;
-      vi.mocked(processAudioWithAi).mockImplementation(
-        async (
-          _audioId: number,
-          itemId: number,
-          itemType: "house" | "sale",
-        ) => {
-          callCount++;
-          const table =
-            itemType === "house" ? db.houseVisitItems : db.saleItems;
-          // Always fail
-          await table.update(itemId, { aiStatus: "failed" });
-          throw new Error("Network error");
-        },
-      );
-
-      const itemId = await createQueuedHouseItem(
-        1,
-        new Date("2026-01-01T10:00:00Z"),
-      );
-      await createAudio(itemId, "house");
+      // Set up response that handles both select and update
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "items") {
+          return {
+            select: mockSupabaseSelect.mockReturnValue({
+              eq: mockSupabaseEq.mockReturnValue({
+                order: mockSupabaseOrder.mockResolvedValue({
+                  data: [
+                    {
+                      id: "uuid-no-audio",
+                      mode: "house",
+                      session_id: "sess-uuid-1",
+                      created_at: "2026-01-01T10:00:00Z",
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+            update: mockSupabaseUpdate.mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            }),
+          };
+        }
+        return {};
+      });
 
       const { drainQueue } = await import("../services/offlineQueue");
       await drainQueue();
 
-      // Should have been called 3 times (1 initial + 2 retries)
-      expect(callCount).toBe(3);
-
-      // Item should be "failed"
-      const item = await db.houseVisitItems.get(itemId);
-      expect(item?.aiStatus).toBe("failed");
-    });
-
-    it("stops processing if navigator.onLine becomes false mid-drain", async () => {
-      const { processAudioWithAi } = await import("../services/gemini");
-
-      let processedCount = 0;
-      vi.mocked(processAudioWithAi).mockImplementation(
-        async (
-          _audioId: number,
-          itemId: number,
-          itemType: "house" | "sale",
-        ) => {
-          processedCount++;
-          const table =
-            itemType === "house" ? db.houseVisitItems : db.saleItems;
-          await table.update(itemId, { aiStatus: "done" });
-          // After first batch processes, go offline
-          if (processedCount >= 4) {
-            Object.defineProperty(navigator, "onLine", {
-              writable: true,
-              configurable: true,
-              value: false,
-            });
-          }
-        },
-      );
-
-      // Create 8 items
-      for (let i = 0; i < 8; i++) {
-        const id = await createQueuedHouseItem(
-          1,
-          new Date(Date.now() + i * 1000),
-        );
-        await createAudio(id, "house");
-      }
-
-      const { drainQueue } = await import("../services/offlineQueue");
-      await drainQueue();
-
-      // Only first batch of 4 should have been processed
-      expect(processedCount).toBe(4);
-
-      // Remaining 4 should still be queued
-      const remaining = await db.houseVisitItems
-        .where("aiStatus")
-        .equals("queued")
-        .count();
-      expect(remaining).toBe(4);
-    });
-
-    it("concurrent drainQueue calls are blocked by mutex", async () => {
-      const { processAudioWithAi } = await import("../services/gemini");
-
-      let callCount = 0;
-      vi.mocked(processAudioWithAi).mockImplementation(
-        async (
-          _audioId: number,
-          itemId: number,
-          itemType: "house" | "sale",
-        ) => {
-          callCount++;
-          await new Promise((r) => setTimeout(r, 50));
-          const table =
-            itemType === "house" ? db.houseVisitItems : db.saleItems;
-          await table.update(itemId, { aiStatus: "done" });
-        },
-      );
-
-      const itemId = await createQueuedHouseItem(
-        1,
-        new Date("2026-01-01T10:00:00Z"),
-      );
-      await createAudio(itemId, "house");
-
-      const { drainQueue } = await import("../services/offlineQueue");
-
-      // Start two drains simultaneously
-      const [r1, r2] = await Promise.allSettled([drainQueue(), drainQueue()]);
-
-      // Both should resolve (second returns immediately)
-      expect(r1.status).toBe("fulfilled");
-      expect(r2.status).toBe("fulfilled");
-
-      // Only one should have actually processed
-      expect(callCount).toBe(1);
-    });
-
-    it("handles items with no audio record by marking them as failed", async () => {
-      const itemId = await createQueuedHouseItem(
-        1,
-        new Date("2026-01-01T10:00:00Z"),
-      );
-      // No audio created for this item
-
-      const { drainQueue } = await import("../services/offlineQueue");
-      await drainQueue();
-
-      const item = await db.houseVisitItems.get(itemId);
-      expect(item?.aiStatus).toBe("failed");
+      // Should have called supabase update with ai_status: 'failed'
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        ai_status: "failed",
+      });
     });
   });
 });

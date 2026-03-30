@@ -4,6 +4,7 @@ interface SwipeableRowProps {
   children: ReactNode;
   onDelete: () => void;
   deleteLabel?: string;
+  disabled?: boolean;
 }
 
 const SNAP_OPEN = -120;
@@ -13,6 +14,7 @@ export function SwipeableRow({
   children,
   onDelete,
   deleteLabel = "Delete",
+  disabled,
 }: SwipeableRowProps) {
   const [translateX, setTranslateX] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -31,8 +33,10 @@ export function SwipeableRow({
       currentXRef.current = isOpen ? SNAP_OPEN : 0;
       setIsSwiping(true);
 
-      // Capture pointer for reliable tracking
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      // Capture pointer for reliable tracking (skip when open so taps reach delete button)
+      if (!isOpen) {
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      }
     },
     [isOpen],
   );
@@ -89,13 +93,23 @@ export function SwipeableRow({
     onDelete();
   }, [onDelete]);
 
+  if (disabled) {
+    return (
+      <div className="relative overflow-hidden" style={{ touchAction: "pan-y" }}>
+        <div className="relative z-20 bg-white dark:bg-gray-900">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative overflow-hidden" style={{ touchAction: "pan-y" }}>
       {/* Delete button behind content */}
       <button
         type="button"
         onClick={handleDeleteClick}
-        className="absolute inset-y-0 right-0 flex w-[120px] items-center justify-center bg-red-500 text-white font-medium"
+        className="absolute inset-y-0 right-0 z-10 flex w-[120px] items-center justify-center bg-red-500 text-white font-medium"
       >
         {deleteLabel}
       </button>
@@ -106,7 +120,7 @@ export function SwipeableRow({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="relative bg-white dark:bg-gray-900"
+        className="relative z-20 bg-white dark:bg-gray-900"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isSwiping ? "none" : "transform 0.2s ease-out",

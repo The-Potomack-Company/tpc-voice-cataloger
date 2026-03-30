@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "../db";
 import type { ItemPhoto } from "../db/types";
-import { useBlobUrl } from "../hooks/useBlobUrl";
+import { usePhotoUrl } from "../hooks/usePhotoUrl";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface PhotoLightboxProps {
@@ -11,7 +13,13 @@ interface PhotoLightboxProps {
 }
 
 function LightboxImage({ photo }: { photo: ItemPhoto }) {
-  const url = useBlobUrl(photo.blob);
+  // Look up storage path from photoUploadQueue for signed URL fallback
+  const queueEntry = useLiveQuery(
+    () => photo.id ? db.photoUploadQueue.where('dexiePhotoId').equals(photo.id).first() : undefined,
+    [photo.id],
+    undefined,
+  );
+  const url = usePhotoUrl(photo.blob, queueEntry?.storagePath);
 
   return url ? (
     <img

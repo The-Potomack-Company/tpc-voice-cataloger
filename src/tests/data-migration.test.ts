@@ -1,0 +1,451 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { db } from "../db";
+import type { Session, HouseVisitItem, SaleItem } from "../db/types";
+
+// --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
+const { mockFrom, mockInsert, mockSelect, mockSingle, mockAddIdMapping } =
+  vi.hoisted(() => {
+    const mockSingle = vi.fn();
+    const mockSelect = vi.fn();
+    const mockInsert = vi.fn();
+    const mockFrom = vi.fn();
+    const mockAddIdMapping = vi.fn();
+
+    return { mockFrom, mockInsert, mockSelect, mockSingle, mockAddIdMapping };
+  });
+
+vi.mock("../lib/supabase", () => ({
+  supabase: {
+    from: mockFrom,
+  },
+}));
+
+vi.mock("../db/idMapping", () => ({
+  addIdMapping: mockAddIdMapping,
+}));
+
+import { needsMigration, migrateToSupabase } from "../db/migration";
+
+// Helper: set up supabase insert chain
+function setupInsertChain(
+  data: Record<string, unknown> | null = null,
+  error: unknown = null,
+) {
+  const chain = {
+    insert: mockInsert,
+    select: mockSelect,
+    single: mockSingle,
+  };
+  mockInsert.mockReturnValue(chain);
+  mockSelect.mockReturnValue(chain);
+  mockSingle.mockResolvedValue({ data, error });
+  mockFrom.mockReturnValue(chain);
+  return chain;
+}
+
+// Helper: create a Dexie session
+function makeDexieSession(overrides: Partial<Session> = {}): Omit<Session, "id"> {
+  return {
+    name: "Test Session",
+    mode: "house",
+    status: "active",
+    notes: "some notes",
+    createdAt: new Date("2026-01-01"),
+    updatedAt: new Date("2026-01-02"),
+    ...overrides,
+  };
+}
+
+// Helper: create a Dexie house item
+function makeDexieHouseItem(
+  sessionId: number,
+  overrides: Partial<HouseVisitItem> = {},
+): Omit<HouseVisitItem, "id"> {
+  return {
+    sessionId,
+    title: "Vase",
+    description: "Blue ceramic vase",
+    condition: "Good",
+    estimate: "$100",
+    measurements: "12x6",
+    category: "Ceramics",
+    transcript: "A blue vase",
+    aiStatus: "done",
+    sortOrder: 0,
+    createdAt: new Date("2026-01-01"),
+    ...overrides,
+  };
+}
+
+// Helper: create a Dexie sale item
+function makeDexieSaleItem(
+  sessionId: number,
+  overrides: Partial<SaleItem> = {},
+): Omit<SaleItem, "id"> {
+  return {
+    sessionId,
+    receiptNumber: "R001",
+    title: "Painting",
+    description: "Oil painting",
+    condition: "Fair",
+    estimate: "$500",
+    measurements: "24x36",
+    category: "Art",
+    transcript: "An oil painting",
+    aiStatus: "done",
+    sortOrder: 0,
+    createdAt: new Date("2026-01-01"),
+    ...overrides,
+  };
+}
+
+describe("data migration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAddIdMapping.mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    await db.delete();
+    await db.open();
+  });
+
+  describe("needsMigration", () => {
+    it("returns true when Dexie sessions table has entries AND idMapping table is empty", async () => {
+      await db.sessions.add(makeDexieSession());
+      const result = await needsMigration();
+      expect(result).toBe(true);
+    });
+
+    it("returns false when idMapping table has entries (already migrated)", async () => {
+      await db.sessions.add(makeDexieSession());
+      await db.idMapping.add({
+        oldId: 1,
+        newId: "uuid-abc",
+        type: "session",
+      });
+      const result = await needsMigration();
+      expect(result).toBe(false);
+    });
+
+    it("returns false when Dexie sessions table is empty (nothing to migrate)", async () => {
+      const result = await needsMigration();
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("migrateToSupabase", () => {
+    it("skips sessions with deletedAt set (soft-deleted sessions not migrated)", async () => {
+      await db.sessions.add(
+        makeDexieSession({ deletedAt: new Date("2026-01-05") }),
+      );
+      await db.houseVisitItems.add(makeDexieHouseItem(1));
+
+      // Session insert should NOT be called since session is soft-deleted
+      setupInsertChain({ id: "new-uuid" });
+
+      const onProgress = vi.fn();
+      const result = await migrateToSupabase("user-123", onProgress);
+
+      // No sessions inserted (soft-deleted skipped)
+      expect(mockFrom).not.toHaveBeenCalledWith("sessions");
+      expect(result.migrated).toBe(0);
+    });
+
+    it("inserts session to Supabase with created_by=userId, mode, name, notes, status='active'", async () => {
+      await db.sessions.add(
+        makeDexieSession({ name: "My Session", mode: "house", notes: "Notes" }),
+      );
+
+      // Set up the chain so it returns session then responds to item queries
+      let callCount = 0;
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "sessions") {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: "supabase-sess-1" },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        // items table
+        return {
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: `supabase-item-${++callCount}` },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      });
+
+      const onProgress = vi.fn();
+      await migrateToSupabase("user-123", onProgress);
+
+      // Verify supabase.from('sessions').insert was called
+      expect(mockFrom).toHaveBeenCalledWith("sessions");
+    });
+
+    it("creates ID mapping entry for each migrated session (oldId -> newId, type='session')", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+
+      mockFrom.mockImplementation(() => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { id: "supabase-sess-1" },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      await migrateToSupabase("user-123", onProgress);
+
+      expect(mockAddIdMapping).toHaveBeenCalledWith({
+        oldId: sessId,
+        newId: "supabase-sess-1",
+        type: "session",
+      });
+    });
+
+    it("inserts house items with mode='house' and sale items with mode='sale' to unified items table", async () => {
+      const sessId = await db.sessions.add(makeDexieSession({ mode: "house" }));
+      await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+      await db.saleItems.add(makeDexieSaleItem(sessId!));
+
+      const insertCalls: Array<{ table: string; payload: unknown }> = [];
+      mockFrom.mockImplementation((table: string) => ({
+        insert: vi.fn().mockImplementation((payload: unknown) => {
+          insertCalls.push({ table, payload });
+          return {
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: `uuid-${insertCalls.length}` },
+                error: null,
+              }),
+            }),
+          };
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      await migrateToSupabase("user-123", onProgress);
+
+      // Find item inserts (not session inserts)
+      const itemInserts = insertCalls.filter((c) => c.table === "items");
+      expect(itemInserts).toHaveLength(2);
+
+      const houseInsert = itemInserts.find(
+        (c) => (c.payload as Record<string, unknown>).mode === "house",
+      );
+      const saleInsert = itemInserts.find(
+        (c) => (c.payload as Record<string, unknown>).mode === "sale",
+      );
+      expect(houseInsert).toBeDefined();
+      expect(saleInsert).toBeDefined();
+    });
+
+    it("creates ID mapping for each migrated item (oldId -> newId, type='item')", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+      const itemId = await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+
+      mockFrom.mockImplementation((table: string) => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: {
+                id: table === "sessions" ? "supabase-sess-1" : "supabase-item-1",
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      await migrateToSupabase("user-123", onProgress);
+
+      expect(mockAddIdMapping).toHaveBeenCalledWith({
+        oldId: itemId,
+        newId: "supabase-item-1",
+        type: "item",
+      });
+    });
+
+    it("calls onProgress callback with (current, total) counts", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+      await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+      await db.houseVisitItems.add(
+        makeDexieHouseItem(sessId!, { sortOrder: 1, title: "Chair" }),
+      );
+
+      let itemCounter = 0;
+      mockFrom.mockImplementation((table: string) => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: {
+                id:
+                  table === "sessions"
+                    ? "supabase-sess-1"
+                    : `supabase-item-${++itemCounter}`,
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      await migrateToSupabase("user-123", onProgress);
+
+      // Should have called onProgress with incrementing current and total=2
+      expect(onProgress).toHaveBeenCalledWith(1, 2);
+      expect(onProgress).toHaveBeenCalledWith(2, 2);
+    });
+
+    it("returns { migrated, skipped } counts", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+      await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+
+      mockFrom.mockImplementation((table: string) => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: {
+                id: table === "sessions" ? "sess-1" : "item-1",
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      const result = await migrateToSupabase("user-123", onProgress);
+
+      expect(result).toEqual({ migrated: 1, skipped: 0 });
+    });
+
+    it("after successful migration, Dexie sessions/houseVisitItems/saleItems/exportHistory tables are cleared", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+      await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+      await db.saleItems.add(makeDexieSaleItem(sessId!));
+      await db.exportHistory.add({
+        sessionId: sessId!,
+        sessionName: "Test",
+        sessionMode: "house",
+        itemCount: 1,
+        exportedAt: new Date(),
+      });
+
+      mockFrom.mockImplementation(() => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { id: `uuid-${Math.random()}` },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      await migrateToSupabase("user-123", onProgress);
+
+      expect(await db.sessions.count()).toBe(0);
+      expect(await db.houseVisitItems.count()).toBe(0);
+      expect(await db.saleItems.count()).toBe(0);
+      expect(await db.exportHistory.count()).toBe(0);
+    });
+
+    it("Dexie photos, audio, idMapping tables are NOT cleared after migration", async () => {
+      await db.sessions.add(makeDexieSession());
+
+      // Add some photos and audio
+      await db.photos.add({
+        itemId: 1,
+        itemType: "house",
+        blob: new Blob(["photo"]),
+        sortOrder: 0,
+        createdAt: new Date(),
+      });
+      await db.audio.add({
+        itemId: 1,
+        itemType: "house",
+        blob: new Blob(["audio"]),
+        mimeType: "audio/webm",
+        createdAt: new Date(),
+      });
+
+      mockFrom.mockImplementation(() => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { id: `uuid-${Math.random()}` },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      await migrateToSupabase("user-123", onProgress);
+
+      expect(await db.photos.count()).toBe(1);
+      expect(await db.audio.count()).toBe(1);
+      // idMapping will have entries from addIdMapping calls (which is mocked)
+    });
+
+    it("on individual item insert error, item is skipped (counted in skipped), migration continues", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+      await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+      await db.houseVisitItems.add(
+        makeDexieHouseItem(sessId!, { sortOrder: 1, title: "Chair" }),
+      );
+
+      let itemCallCount = 0;
+      mockFrom.mockImplementation((table: string) => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockImplementation(() => {
+              if (table === "sessions") {
+                return Promise.resolve({
+                  data: { id: "supabase-sess-1" },
+                  error: null,
+                });
+              }
+              itemCallCount++;
+              if (itemCallCount === 1) {
+                // First item fails
+                return Promise.resolve({
+                  data: null,
+                  error: { message: "Insert failed" },
+                });
+              }
+              // Second item succeeds
+              return Promise.resolve({
+                data: { id: "supabase-item-2" },
+                error: null,
+              });
+            }),
+          }),
+        }),
+      }));
+
+      const onProgress = vi.fn();
+      const result = await migrateToSupabase("user-123", onProgress);
+
+      expect(result.migrated).toBe(1);
+      expect(result.skipped).toBe(1);
+    });
+  });
+});

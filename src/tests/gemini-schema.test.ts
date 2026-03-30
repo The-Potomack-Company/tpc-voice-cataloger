@@ -13,6 +13,8 @@ describe("catalogFieldsSchema", () => {
       condition: "Good, minor scratches on top",
       estimate: "$200-300",
       category: "Furniture",
+      measurements: [36, 24, 18],
+      transcript: "Antique oak dresser, three drawers, brass handles, good condition with minor scratches",
     };
 
     const result = catalogFieldsSchema.safeParse(input);
@@ -29,6 +31,8 @@ describe("catalogFieldsSchema", () => {
       condition: null,
       estimate: null,
       category: null,
+      measurements: null,
+      transcript: null,
     };
 
     const result = catalogFieldsSchema.safeParse(input);
@@ -40,6 +44,8 @@ describe("catalogFieldsSchema", () => {
       expect(data.condition).toBeNull();
       expect(data.estimate).toBeNull();
       expect(data.category).toBeNull();
+      expect(data.measurements).toBeNull();
+      expect(data.transcript).toBeNull();
     }
   });
 
@@ -50,6 +56,8 @@ describe("catalogFieldsSchema", () => {
       condition: "Excellent",
       estimate: null,
       category: "Silverware",
+      measurements: null,
+      transcript: "Silver tea set, excellent condition",
     };
 
     const result = catalogFieldsSchema.safeParse(input);
