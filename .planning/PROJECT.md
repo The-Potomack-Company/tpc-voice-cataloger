@@ -35,10 +35,10 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 - [ ] Session lifecycle: Active → Submitted → Admin review (edit or send back) → Export
 - [ ] Only admin can export JSON
 - [ ] Admin can edit submitted sessions directly
-- [ ] Deploy app to Vercel with auto-deploy from main (DEPLOY-01)
-- [ ] CI pipeline: lint, typecheck, test, build via GitHub Actions (DEPLOY-02)
-- [ ] Restrict Cloudflare Worker CORS to production Vercel domain (DEPLOY-03)
-- [ ] Branch protection on main: require CI checks before merge (DEPLOY-04)
+- [ ] Deploy app to Vercel with auto-deploy from main (DEPLOY-01) — awaiting human setup
+- [x] CI pipeline: lint, typecheck, test, build via GitHub Actions (DEPLOY-02) — Phase 17
+- [x] Restrict Cloudflare Worker CORS to production Vercel domain (DEPLOY-03) — Phase 17
+- [ ] Branch protection on main: require CI checks before merge (DEPLOY-04) — deferred (GitHub Free plan limitation)
 
 ### Out of Scope
 
@@ -92,7 +92,7 @@ Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexi
 | JSON export format | TPC extension already uses JSON throughout; natural fit | ✓ Good — seamless extension integration |
 | Both apps in one project | Extension import feature is required for end-to-end workflow | ✓ Good — shared types prevent schema drift |
 | Button tap between items (not voice commands) | More reliable in noisy house environments | ✓ Good — no false activations |
-| Cloudflare Worker proxy for Gemini | Keep API key off client; supports CORS | ✓ Good — but CORS still wildcard (DEPLOY-03) |
+| Cloudflare Worker proxy for Gemini | Keep API key off client; supports CORS | ✓ Good — CORS locked to production origins (Phase 17) |
 | Pathname-based routing (React Router v7) | Prevents iOS microphone re-prompts on hash navigation | ✓ Good — no re-prompt issues |
 | Dexie PKs: ++id auto-increment | No cloud sync planned; simpler than UUID | ✓ Good |
 | Tailwind CSS 4: @theme blocks only | No tailwind.config.js; per Tailwind 4 API | ✓ Good |
@@ -104,4 +104,4 @@ Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexi
 | Supabase over Neon+Hono+BetterAuth | User familiar with Supabase; future dashboard reads from same DB; fewer moving parts | — Pending |
 
 ---
-*Last updated: 2026-03-17 after v1.1 milestone start*
+*Last updated: 2026-03-30 after Phase 17 (deployment-ci) completion*
