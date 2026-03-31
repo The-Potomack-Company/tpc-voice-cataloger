@@ -210,3 +210,50 @@ Plans:
 - [x] 19-02-PLAN.md -- PhotoCapture upload trigger, AppLayout drain order, sync status overlay on thumbnails
 - [x] 19-03-PLAN.md -- usePhotoUrl hook with signed URL fallback, export Storage download fallback
 - [x] 19-04-PLAN.md -- Photo migration service, progress banner, human verification of end-to-end flow
+
+### Phase 20: Fix house session .json import on RFC
+
+**Goal:** House session JSON import in TPC_AI_Cataloger extension fills all text fields, uploads all photos, and handles the Style dropdown -- using the proven PortalUploadController pattern for sequential photo injection
+**Depends on:** Phase 19
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07
+**Success Criteria** (what must be TRUE):
+  1. House session import fills all text fields (title, description, condition, estimate, measurements, department) on each RFC item page
+  2. House session import uploads all photos from JSON sequentially via FileInjector/UploadDetector before saving
+  3. Style dropdown is set to General (value "2") before fields are filled, handling page reload when style changes
+  4. Import walks forward using Next button, falls back to Add when Next is unavailable
+  5. Import state recovers across page reloads (style-set, photo upload mid-item, save, navigate)
+  6. Export side (TPC_App) produces correct JSON with base64 photo data URLs
+**Plans:** 2/2 plans complete
+
+Plans:
+- [x] 20-01-PLAN.md -- Constants + manifest update, importController state machine refactor with photo upload and style handling
+- [x] 20-02-PLAN.md -- Export-side verification, human E2E verification of full import pipeline
+
+### Phase 21: more granularity with description and transcription
+
+**Goal:** Enhance the AI pipeline to support smart field merging (non-destructive re-recordings), expanded measurements (mm, weight, karats), and spoken punctuation parsing across all extracted fields
+**Depends on:** Phase 20
+**Requirements**: GRAN-01, GRAN-02, GRAN-03, GRAN-04, GRAN-05, GRAN-06, GRAN-07, GRAN-08, GRAN-09, GRAN-10, GRAN-11, GRAN-12
+**Success Criteria** (what must be TRUE):
+  1. Measurements field is a formatted string supporting dimensions (in/mm), weight (oz/g), and karats in a single field
+  2. Re-recordings merge with existing field values by default instead of overwriting
+  3. Existing field values are passed as context to Gemini for intelligent merge decisions
+  4. Spoken punctuation words are converted to actual punctuation by the AI across all fields
+  5. All changes are prompt-level and schema-level -- no new UI pages or database migrations
+**Plans:** 3/3 plans complete
+
+Plans:
+- [ ] 21-01-PLAN.md -- Measurements schema change (array->string), SYSTEM_PROMPT update, post-processing simplification, test updates
+- [ ] 21-02-PLAN.md -- Smart field merging: existing-field read, context injection, merge rules in prompt, transcript simplification
+- [ ] 21-03-PLAN.md -- Spoken punctuation rules in SYSTEM_PROMPT, prompt verification tests
+
+## Backlog
+
+### Phase 999.1: Stream photos from Supabase Storage during extension import (BACKLOG)
+
+**Goal:** Replace base64-embedded photos in export JSON with Supabase Storage URLs fetched on demand during extension import. Current approach embeds all photos as base64, which balloons to 200-450MB for typical house visits (100-300 items × multiple photos). With Storage URLs, export JSON drops to ~500KB and photos stream one at a time during import. Requires: export emits storage paths/signed URLs instead of base64 blobs, importController fetches URL→blob→File before injection. Supabase Storage infra already exists from Phase 19.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: verifying
-stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-03-30T13:45:56.189Z"
-last_activity: 2026-03-30
+stopped_at: Completed 21-03-PLAN.md
+last_updated: "2026-03-31T13:43:07.640Z"
+last_activity: 2026-03-31
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 31
-  completed_plans: 31
+  total_phases: 12
+  completed_phases: 11
+  total_plans: 36
+  completed_plans: 36
   percent: 87
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
-Phase: 18
+Phase: 999.1
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-03-30
+Last activity: 2026-03-31
 
 Progress: [█████████░] 87%
 
@@ -157,6 +157,7 @@ Recent decisions affecting current work:
 - [Phase 17]: Exported isAllowedOrigin/getCorsHeaders as named exports for direct unit testing
 - [Phase 17]: *.vercel.app suffix match allows all preview deploys without env var updates
 - [Phase 17-deployment-ci]: Branch protection (DEPLOY-04) deferred -- GitHub Free plan does not support branch protection on private repos
+- [Phase 21]: Punctuation handling is entirely prompt-based (no post-processing code) per D-11
 
 ### Pending Todos
 
@@ -179,6 +180,7 @@ None yet.
 | Phase 17 P02 | 12min | 2 tasks | 23 files |
 | Phase 17 P03 | 2min | 2 tasks | 6 files |
 | Phase 17-deployment-ci P04 | 3min | 1 tasks | 0 files |
+| Phase 21 P03 | 2 | 2 tasks | 2 files |
 
 ### Roadmap Evolution
 
@@ -188,6 +190,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T13:41:58.178Z
-Stopped at: Completed 17-04-PLAN.md
+Last session: 2026-03-31T13:37:09.345Z
+Stopped at: Completed 21-03-PLAN.md
 Resume file: None

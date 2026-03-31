@@ -13,7 +13,7 @@ describe("catalogFieldsSchema", () => {
       condition: "Good, minor scratches on top",
       estimate: "$200-300",
       category: "Furniture",
-      measurements: [36, 24, 18],
+      measurements: "36 x 24 x 18 in. (91.4 x 61 x 45.7 cm.)",
       transcript: "Antique oak dresser, three drawers, brass handles, good condition with minor scratches",
     };
 
@@ -69,6 +69,37 @@ describe("catalogFieldsSchema", () => {
       expect(result.data.estimate).toBeNull();
       expect(result.data.category).toBe("Silverware");
     }
+  });
+
+  it("validates measurements with weight and karats", () => {
+    const input = {
+      title: "Gold Ring",
+      description: "14 karat gold ring",
+      condition: "Excellent",
+      estimate: "500",
+      category: "JWL",
+      measurements: "8 mm, 2.1 oz., 14kt",
+      transcript: "Gold ring, fourteen karat, excellent condition",
+    };
+    const result = catalogFieldsSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.measurements).toBe("8 mm, 2.1 oz., 14kt");
+    }
+  });
+
+  it("rejects measurements as array of numbers", () => {
+    const input = {
+      title: "Table",
+      description: null,
+      condition: null,
+      estimate: null,
+      category: null,
+      measurements: [36, 24, 18],
+      transcript: null,
+    };
+    const result = catalogFieldsSchema.safeParse(input);
+    expect(result.success).toBe(false);
   });
 
   it("rejects a response missing required keys", () => {

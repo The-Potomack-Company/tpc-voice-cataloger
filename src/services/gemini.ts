@@ -4,7 +4,6 @@ import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
 import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
-import { formatMeasurements } from "../utils/formatMeasurements";
 import { useSessionStore } from "../stores/sessionStore";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
@@ -15,14 +14,45 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
 - condition: The condition assessment as spoken
 - estimate: The price estimate as a number or numeric range (e.g. "500" or "300 to 500"). Strip dollar signs. If the speaker says "two hundred", return "200". If they give a range like "three to five hundred", return "300 to 500"
 - category: The RFC department code matching the item category. Valid codes: AA, AMER, AWFA, ANT, AAR, 0001, ASD, ASN, ASNP, BKS, CER, IND, CLK, CNS, DEC, DRW, ENT, EA, FASH, FIS, FRN, MDF, PER, GAR, GEN, GLS, ITS, ISL, JWL, LIT, MANU, MAP, MA, MUS, NAT, TXTL, PND, PNT, PEN, MIN, REL, RUG, SPT, SIL, TAP, TRI, WINE. If uncertain, return the closest match.
-- measurements: Array of 1-3 numbers representing dimensions in inches (height x width x depth order). Extract actual numbers from speech like "thirty-six by twenty-four" as [36, 24]. If no specific measurements mentioned, return null.
+- measurements: A single formatted string combining dimensions, weight, and karats.
+  Dimensions in inches: format as "N x N in. (N x N cm.)" with auto cm conversion. Common fractions (1/4, 1/2, 3/4) display as fractions in the inch portion.
+  Dimensions in millimeters: ONLY when the speaker explicitly says "millimeters" or "mm". Format as "N x N mm" with no conversion to other units. Default to inches when no unit specified.
+  Weight: "N oz." for ounces, "N g" for grams. No pounds.
+  Karats: "Nkt" (e.g., "18kt").
+  Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt".
+  Return null if no measurements mentioned.
 - transcript: The full verbatim transcript of everything said in the audio
 
 CRITICAL RULES:
 1. Use the speaker's EXACT words. Do not rephrase, improve, or formalize.
 2. If a field is not mentioned in the audio, return null for that field.
 3. Do NOT invent or guess values for unmentioned fields.
-4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.`;
+4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.
+
+MERGE RULES:
+When existing field values are provided in the user message, your job is to MERGE new information with existing values:
+- Default behavior: APPEND new information to existing field values. For example, if title is "OAK TABLE" and speaker says "add ROBERT", return "OAK TABLE ROBERT".
+- If the speaker says "change X to Y", "replace X with Y", or similar edit instructions, modify the existing value accordingly.
+- If the speaker says "add X to the title/description", append X to the existing value.
+- Only OVERWRITE a field completely if the speaker explicitly asks (e.g., "replace the description with...").
+- If a field has no existing value (marked "(empty)"), write the new extracted value directly.
+- For transcript: ALWAYS append new speech to the existing transcript, separated by a newline. Never overwrite existing transcript.
+- If the audio contains no information relevant to a field, return the existing value unchanged (do NOT return null for fields that already have values).
+
+SPOKEN PUNCTUATION:
+When the speaker says punctuation words, convert them to actual punctuation characters. Apply to ALL fields (title, description, condition, transcript, etc.):
+- "comma" -> ","
+- "period" or "full stop" -> "."
+- "semicolon" -> ";"
+- "colon" -> ":"
+- "dash" or "hyphen" -> "-"
+- "parenthesis" or "open parenthesis" -> "("
+- "close parenthesis" or "end parenthesis" -> ")"
+- "quote" or "open quote" -> opening quotation mark
+- "unquote" or "close quote" or "end quote" -> closing quotation mark
+- "exclamation point" or "exclamation mark" -> "!"
+- "question mark" -> "?"
+Use context to distinguish: "period" as punctuation vs "period" as a time era (e.g., "Victorian period" should NOT become "Victorian.").`;
 
 /**
  * Convert a Blob to a base64 string.
@@ -78,6 +108,17 @@ export async function processAudioWithAi(
     // Convert audio blob to base64
     const base64Audio = await blobToBase64(audioRecord.blob);
 
+    // Read existing field values for smart merge context (per D-02)
+    const { data: currentItem } = await supabase
+      .from("items")
+      .select("title, description, condition, estimate, category, measurements, transcript")
+      .eq("id", itemId)
+      .maybeSingle();
+
+    if (!currentItem) return; // Item deleted mid-processing, bail out
+
+    const hasExistingData = Object.values(currentItem).some(v => v !== null);
+
     // Strip codec parameters from mimeType (e.g., "audio/webm;codecs=opus" -> "audio/webm")
     const baseMimeType = audioRecord.mimeType.split(";")[0];
 
@@ -90,7 +131,9 @@ export async function processAudioWithAi(
         {
           parts: [
             {
-              text: "Extract catalog fields from this audio recording.",
+              text: hasExistingData
+                ? `Extract and MERGE catalog fields from this audio recording with the existing values below.\n\nEXISTING VALUES:\nTitle: ${currentItem.title ?? "(empty)"}\nDescription: ${currentItem.description ?? "(empty)"}\nCondition: ${currentItem.condition ?? "(empty)"}\nEstimate: ${currentItem.estimate ?? "(empty)"}\nCategory: ${currentItem.category ?? "(empty)"}\nMeasurements: ${currentItem.measurements ?? "(empty)"}\nTranscript: ${currentItem.transcript ?? "(empty)"}`
+                : "Extract catalog fields from this audio recording.",
             },
             {
               inlineData: {
@@ -174,21 +217,11 @@ export async function processAudioWithAi(
     if (mappedCategory !== null) {
       supabaseUpdate.category = mappedCategory;
     }
-    if (fields.measurements !== null && fields.measurements.length > 0) {
-      supabaseUpdate.measurements = formatMeasurements(fields.measurements);
+    if (fields.measurements !== null) {
+      supabaseUpdate.measurements = fields.measurements;
     }
     if (fields.transcript !== null) {
-      // For transcript append, read current value from Supabase first
-      const { data: currentItem } = await supabase
-        .from("items")
-        .select("transcript")
-        .eq("id", itemId)
-        .maybeSingle();
-      if (!currentItem) return; // Item deleted mid-processing, bail out
-      const prev = currentItem?.transcript;
-      supabaseUpdate.transcript = prev
-        ? `${prev}\n\n${fields.transcript}`
-        : fields.transcript;
+      supabaseUpdate.transcript = fields.transcript;
     }
 
     await supabase

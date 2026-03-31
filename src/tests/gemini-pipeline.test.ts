@@ -99,23 +99,36 @@ describe("gemini pipeline", () => {
   });
 
   describe("processAudioWithAi", () => {
-    it("sets ai_status to 'processing' via supabase.from('items').update", async () => {
-      const updateCalls: Array<Record<string, unknown>> = [];
+    // Null item simulating first recording (no existing data)
+    const nullItem = {
+      title: null, description: null, condition: null,
+      estimate: null, category: null, measurements: null, transcript: null,
+    };
 
-      mockFrom.mockImplementation(() => ({
+    // Helper to create a mockFrom implementation with configurable existing item
+    function createMockFrom(options: {
+      updateCalls?: Array<Record<string, unknown>>;
+      existingItem?: Record<string, unknown> | null;
+    }) {
+      const { updateCalls = [], existingItem = null } = options;
+      return () => ({
         update: (data: Record<string, unknown>) => {
           updateCalls.push(data);
-          return {
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          };
+          return { eq: vi.fn().mockResolvedValue({ error: null }) };
         },
         select: () => ({
           eq: () => ({
-            single: vi.fn().mockResolvedValue({ data: null, error: null }),
-            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            single: vi.fn().mockResolvedValue({ data: existingItem, error: null }),
+            maybeSingle: vi.fn().mockResolvedValue({ data: existingItem, error: null }),
           }),
         }),
-      }));
+      });
+    }
+
+    it("sets ai_status to 'processing' via supabase.from('items').update", async () => {
+      const updateCalls: Array<Record<string, unknown>> = [];
+
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem: nullItem }));
 
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
@@ -138,26 +151,7 @@ describe("gemini pipeline", () => {
     it("on success, writes title, description, condition, estimate, category, measurements, transcript to Supabase items table", async () => {
       const updateCalls: Array<Record<string, unknown>> = [];
 
-      mockFrom.mockImplementation(() => ({
-        update: (data: Record<string, unknown>) => {
-          updateCalls.push(data);
-          return {
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          };
-        },
-        select: () => ({
-          eq: () => ({
-            single: vi.fn().mockResolvedValue({
-              data: { transcript: null },
-              error: null,
-            }),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { transcript: null },
-              error: null,
-            }),
-          }),
-        }),
-      }));
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem: nullItem }));
 
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
@@ -166,7 +160,7 @@ describe("gemini pipeline", () => {
           condition: "fair",
           estimate: "500",
           category: "furniture",
-          measurements: [36, 24],
+          measurements: "36 x 24 in. (91.4 x 61 cm.)",
           transcript:
             "nice oak table, kinda beat up, fair condition, about five hundred",
         }) as unknown as Response,
@@ -182,21 +176,14 @@ describe("gemini pipeline", () => {
       expect(lastUpdate.condition).toBe("fair");
       expect(lastUpdate.estimate).toBeDefined();
       expect(lastUpdate.category).toBe("FRN");
-      expect(lastUpdate.measurements).toBeDefined();
+      expect(lastUpdate.measurements).toBe("36 x 24 in. (91.4 x 61 cm.)");
       expect(lastUpdate.transcript).toBeDefined();
     });
 
     it("on error, sets ai_status to 'failed' via supabase update", async () => {
       const updateCalls: Array<Record<string, unknown>> = [];
 
-      mockFrom.mockImplementation(() => ({
-        update: (data: Record<string, unknown>) => {
-          updateCalls.push(data);
-          return {
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          };
-        },
-      }));
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem: nullItem }));
 
       vi.spyOn(globalThis, "fetch").mockRejectedValue(
         new Error("Network error"),
@@ -215,23 +202,7 @@ describe("gemini pipeline", () => {
     it("audio blob is still read from Dexie db.audio.get(audioId)", async () => {
       const getSpy = vi.spyOn(db.audio, "get");
 
-      mockFrom.mockImplementation(() => ({
-        update: () => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        }),
-        select: () => ({
-          eq: () => ({
-            single: vi.fn().mockResolvedValue({
-              data: { transcript: null },
-              error: null,
-            }),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { transcript: null },
-              error: null,
-            }),
-          }),
-        }),
-      }));
+      mockFrom.mockImplementation(createMockFrom({ existingItem: nullItem }));
 
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
@@ -253,23 +224,7 @@ describe("gemini pipeline", () => {
     it("MIME type codec parameters are stripped before sending", async () => {
       let sentPayload: Record<string, unknown> | null = null;
 
-      mockFrom.mockImplementation(() => ({
-        update: () => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        }),
-        select: () => ({
-          eq: () => ({
-            single: vi.fn().mockResolvedValue({
-              data: { transcript: null },
-              error: null,
-            }),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { transcript: null },
-              error: null,
-            }),
-          }),
-        }),
-      }));
+      mockFrom.mockImplementation(createMockFrom({ existingItem: nullItem }));
 
       vi.spyOn(globalThis, "fetch").mockImplementation(
         async (_url, options) => {
@@ -303,14 +258,7 @@ describe("gemini pipeline", () => {
       vi.stubEnv("VITE_GEMINI_PROXY_URL", "");
 
       const updateCalls: Array<Record<string, unknown>> = [];
-      mockFrom.mockImplementation(() => ({
-        update: (data: Record<string, unknown>) => {
-          updateCalls.push(data);
-          return {
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          };
-        },
-      }));
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem: nullItem }));
 
       const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
@@ -340,16 +288,105 @@ describe("gemini pipeline", () => {
       );
     });
 
+    it("system prompt includes spoken punctuation rules", async () => {
+      let sentPayload: Record<string, unknown> | null = null;
+
+      mockFrom.mockImplementation(() => ({
+        update: () => ({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+        select: () => ({
+          eq: () => ({
+            single: vi.fn().mockResolvedValue({
+              data: { transcript: null },
+              error: null,
+            }),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { transcript: null },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      vi.spyOn(globalThis, "fetch").mockImplementation(
+        async (_url, options) => {
+          sentPayload = JSON.parse(options?.body as string);
+          return mockGeminiResponse({
+            title: "test",
+            description: null,
+            condition: null,
+            estimate: null,
+            category: null,
+            measurements: null,
+            transcript: null,
+          }) as unknown as Response;
+        },
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      expect(sentPayload).not.toBeNull();
+      const payload = sentPayload as Record<string, unknown>;
+      const geminiPayload = payload.payload as Record<string, unknown>;
+      const systemInstruction = geminiPayload.system_instruction as Record<
+        string,
+        unknown
+      >;
+      const parts = systemInstruction.parts as Array<
+        Record<string, string>
+      >;
+      const promptText = parts[0].text;
+
+      expect(promptText).toContain("SPOKEN PUNCTUATION:");
+      expect(promptText).toContain('"comma" ->');
+      expect(promptText).toContain('"parenthesis"');
+      expect(promptText).toContain('"dash"');
+      expect(promptText).toContain("Apply to ALL fields");
+    });
+
+    it("system prompt includes merge rules", async () => {
+      let sentPayload: Record<string, unknown> | null = null;
+
+      mockFrom.mockImplementation(createMockFrom({ existingItem: nullItem }));
+
+      vi.spyOn(globalThis, "fetch").mockImplementation(
+        async (_url, options) => {
+          sentPayload = JSON.parse(options?.body as string);
+          return mockGeminiResponse({
+            title: "test",
+            description: null,
+            condition: null,
+            estimate: null,
+            category: null,
+            measurements: null,
+            transcript: null,
+          }) as unknown as Response;
+        },
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      expect(sentPayload).not.toBeNull();
+      const payload = sentPayload as Record<string, unknown>;
+      const geminiPayload = payload.payload as Record<string, unknown>;
+      const systemInstruction = geminiPayload.system_instruction as Record<
+        string,
+        unknown
+      >;
+      const parts = systemInstruction.parts as Array<
+        Record<string, string>
+      >;
+      const promptText = parts[0].text;
+
+      expect(promptText).toContain("MERGE RULES:");
+      expect(promptText).toContain("Default behavior: APPEND");
+      expect(promptText).toContain("return the existing value unchanged");
+    });
+
     it("on non-200 proxy response, ai_status is 'failed'", async () => {
       const updateCalls: Array<Record<string, unknown>> = [];
-      mockFrom.mockImplementation(() => ({
-        update: (data: Record<string, unknown>) => {
-          updateCalls.push(data);
-          return {
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          };
-        },
-      }));
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem: nullItem }));
 
       vi.spyOn(globalThis, "fetch").mockResolvedValue({
         ok: false,
@@ -365,6 +402,111 @@ describe("gemini pipeline", () => {
       expect(lastUpdate.description).toBe(
         "AI processing failed - audio recorded, awaiting manual review",
       );
+    });
+
+    it("includes existing field values in Gemini payload text part for re-recordings", async () => {
+      let sentPayload: Record<string, unknown> | null = null;
+      const updateCalls: Array<Record<string, unknown>> = [];
+
+      const existingItem = {
+        title: "OAK TABLE",
+        description: "nice oak table",
+        condition: "good",
+        estimate: "500",
+        category: "FRN",
+        measurements: "36 x 24 in. (91.4 x 61 cm.)",
+        transcript: "nice oak table, good condition",
+      };
+
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem }));
+
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, options) => {
+        sentPayload = JSON.parse(options?.body as string);
+        return mockGeminiResponse({
+          title: "OAK TABLE ROBERT",
+          description: "nice oak table",
+          condition: "good",
+          estimate: "500",
+          category: "FRN",
+          measurements: "36 x 24 in. (91.4 x 61 cm.)",
+          transcript: "nice oak table, good condition\nadd robert to the title",
+        }) as unknown as Response;
+      });
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      expect(sentPayload).not.toBeNull();
+      const payload = sentPayload as Record<string, unknown>;
+      const contents = (payload.payload as Record<string, unknown>).contents as Array<Record<string, unknown>>;
+      const parts = contents[0].parts as Array<Record<string, unknown>>;
+      const textPart = parts[0].text as string;
+      expect(textPart).toContain("EXISTING VALUES:");
+      expect(textPart).toContain("Title: OAK TABLE");
+      expect(textPart).toContain("Description: nice oak table");
+      expect(textPart).toContain("Extract and MERGE");
+    });
+
+    it("uses simple extraction prompt when item has no existing field values", async () => {
+      let sentPayload: Record<string, unknown> | null = null;
+      const updateCalls: Array<Record<string, unknown>> = [];
+
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem: nullItem }));
+
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, options) => {
+        sentPayload = JSON.parse(options?.body as string);
+        return mockGeminiResponse({
+          title: "Oak table",
+          description: "nice oak table",
+          condition: null,
+          estimate: null,
+          category: null,
+          measurements: null,
+          transcript: "nice oak table",
+        }) as unknown as Response;
+      });
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      const payload = sentPayload as Record<string, unknown>;
+      const contents = (payload.payload as Record<string, unknown>).contents as Array<Record<string, unknown>>;
+      const parts = contents[0].parts as Array<Record<string, unknown>>;
+      const textPart = parts[0].text as string;
+      expect(textPart).toBe("Extract catalog fields from this audio recording.");
+      expect(textPart).not.toContain("EXISTING VALUES:");
+    });
+
+    it("writes transcript directly from AI response without app-side concatenation", async () => {
+      const updateCalls: Array<Record<string, unknown>> = [];
+
+      const existingItem = {
+        title: "VASE",
+        description: null,
+        condition: null,
+        estimate: null,
+        category: null,
+        measurements: null,
+        transcript: "blue vase, antique",
+      };
+
+      mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem }));
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        mockGeminiResponse({
+          title: "VASE",
+          description: null,
+          condition: "good",
+          estimate: null,
+          category: null,
+          measurements: null,
+          transcript: "blue vase, antique\ngood condition, no chips",
+        }) as unknown as Response,
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      const lastUpdate = updateCalls[updateCalls.length - 1];
+      // AI merged the transcript -- app writes it directly (no double-append)
+      expect(lastUpdate.transcript).toBe("blue vase, antique\ngood condition, no chips");
     });
   });
 });

@@ -147,6 +147,21 @@ Requirements for milestone v1.1 Accounts & Deploy. Each maps to roadmap phases.
 - [x] **PHOTO-UPLOAD-07**: Export reads local blobs first, downloads from Storage when missing
 - [x] **PHOTO-UPLOAD-08**: Human verification confirms end-to-end photo upload flow
 
+### AI Granularity (Phase 21)
+
+- [ ] **GRAN-01**: Measurements Zod schema changed from array of numbers to string to support rich format
+- [ ] **GRAN-02**: Measurements string supports dimensions (inches with cm conversion), millimeters, weight (oz/g), and karats
+- [ ] **GRAN-03**: AI returns fully formatted measurements string directly (no app-side formatMeasurements call)
+- [ ] **GRAN-04**: Millimeters only used when speaker explicitly says "mm" or "millimeters"; default is inches
+- [ ] **GRAN-05**: reformatMeasurements passes through rich format strings unchanged (backward compatible)
+- [ ] **GRAN-06**: Re-recordings merge with existing field values by default instead of overwriting
+- [ ] **GRAN-07**: Existing field values are read from Supabase and passed as context to Gemini before each AI call
+- [ ] **GRAN-08**: AI returns final merged values; app writes directly without app-side merge logic
+- [ ] **GRAN-09**: Transcript append handled by AI (not app-side concatenation)
+- [ ] **GRAN-10**: Spoken punctuation words converted to actual punctuation by AI across all fields
+- [ ] **GRAN-11**: Punctuation handling is entirely in the Gemini prompt (no post-processing code)
+- [ ] **GRAN-12**: Common punctuation vocabulary supported: comma, period, semicolon, colon, dash, parenthesis, quote, exclamation, question mark
+
 ## Future Requirements
 
 Deferred to v1.2+. Tracked but not in current roadmap.
@@ -246,12 +261,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PHOTO-UPLOAD-06 | Phase 19 | Complete |
 | PHOTO-UPLOAD-07 | Phase 19 | Complete |
 | PHOTO-UPLOAD-08 | Phase 19 | Complete |
+| GRAN-01 | Phase 21 | Pending |
+| GRAN-02 | Phase 21 | Pending |
+| GRAN-03 | Phase 21 | Pending |
+| GRAN-04 | Phase 21 | Pending |
+| GRAN-05 | Phase 21 | Pending |
+| GRAN-06 | Phase 21 | Pending |
+| GRAN-07 | Phase 21 | Pending |
+| GRAN-08 | Phase 21 | Pending |
+| GRAN-09 | Phase 21 | Pending |
+| GRAN-10 | Phase 21 | Pending |
+| GRAN-11 | Phase 21 | Pending |
+| GRAN-12 | Phase 21 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 34 total
-- Mapped to phases: 34
+- v1.1 requirements: 46 total
+- Mapped to phases: 46
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-06*
-*Last updated: 2026-03-20 after Phase 19 planning*
+*Last updated: 2026-03-30 after Phase 21 planning*

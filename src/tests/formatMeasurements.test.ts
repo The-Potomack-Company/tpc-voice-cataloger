@@ -97,4 +97,14 @@ describe("reformatMeasurements", () => {
   it("returns empty string for empty input", () => {
     expect(reformatMeasurements("")).toBe("");
   });
+
+  it("passes through rich format with weight and karats unchanged", () => {
+    expect(reformatMeasurements("4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt")).toBe(
+      "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt"
+    );
+  });
+
+  it("passes through mm format unchanged", () => {
+    expect(reformatMeasurements("8 x 6 mm, 2.1 oz.")).toBe("8 x 6 mm, 2.1 oz.");
+  });
 });
