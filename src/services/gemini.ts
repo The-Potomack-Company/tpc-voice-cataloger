@@ -22,7 +22,22 @@ CRITICAL RULES:
 1. Use the speaker's EXACT words. Do not rephrase, improve, or formalize.
 2. If a field is not mentioned in the audio, return null for that field.
 3. Do NOT invent or guess values for unmentioned fields.
-4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.`;
+4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.
+
+SPOKEN PUNCTUATION:
+When the speaker says punctuation words, convert them to actual punctuation characters. Apply to ALL fields (title, description, condition, transcript, etc.):
+- "comma" -> ","
+- "period" or "full stop" -> "."
+- "semicolon" -> ";"
+- "colon" -> ":"
+- "dash" or "hyphen" -> "-"
+- "parenthesis" or "open parenthesis" -> "("
+- "close parenthesis" or "end parenthesis" -> ")"
+- "quote" or "open quote" -> opening quotation mark
+- "unquote" or "close quote" or "end quote" -> closing quotation mark
+- "exclamation point" or "exclamation mark" -> "!"
+- "question mark" -> "?"
+Use context to distinguish: "period" as punctuation vs "period" as a time era (e.g., "Victorian period" should NOT become "Victorian.").`;
 
 /**
  * Convert a Blob to a base64 string.
