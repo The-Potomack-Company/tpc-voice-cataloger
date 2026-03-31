@@ -240,7 +240,7 @@ Plans:
   3. Existing field values are passed as context to Gemini for intelligent merge decisions
   4. Spoken punctuation words are converted to actual punctuation by the AI across all fields
   5. All changes are prompt-level and schema-level -- no new UI pages or database migrations
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 21-01-PLAN.md -- Measurements schema change (array->string), SYSTEM_PROMPT update, post-processing simplification, test updates
