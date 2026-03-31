@@ -345,6 +345,45 @@ describe("gemini pipeline", () => {
       expect(promptText).toContain("Apply to ALL fields");
     });
 
+    it("system prompt includes merge rules", async () => {
+      let sentPayload: Record<string, unknown> | null = null;
+
+      mockFrom.mockImplementation(createMockFrom({ existingItem: nullItem }));
+
+      vi.spyOn(globalThis, "fetch").mockImplementation(
+        async (_url, options) => {
+          sentPayload = JSON.parse(options?.body as string);
+          return mockGeminiResponse({
+            title: "test",
+            description: null,
+            condition: null,
+            estimate: null,
+            category: null,
+            measurements: null,
+            transcript: null,
+          }) as unknown as Response;
+        },
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      expect(sentPayload).not.toBeNull();
+      const payload = sentPayload as Record<string, unknown>;
+      const geminiPayload = payload.payload as Record<string, unknown>;
+      const systemInstruction = geminiPayload.system_instruction as Record<
+        string,
+        unknown
+      >;
+      const parts = systemInstruction.parts as Array<
+        Record<string, string>
+      >;
+      const promptText = parts[0].text;
+
+      expect(promptText).toContain("MERGE RULES:");
+      expect(promptText).toContain("Default behavior: APPEND");
+      expect(promptText).toContain("return the existing value unchanged");
+    });
+
     it("on non-200 proxy response, ai_status is 'failed'", async () => {
       const updateCalls: Array<Record<string, unknown>> = [];
       mockFrom.mockImplementation(createMockFrom({ updateCalls, existingItem: nullItem }));
