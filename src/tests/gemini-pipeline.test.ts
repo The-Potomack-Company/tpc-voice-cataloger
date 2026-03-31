@@ -340,6 +340,63 @@ describe("gemini pipeline", () => {
       );
     });
 
+    it("system prompt includes spoken punctuation rules", async () => {
+      let sentPayload: Record<string, unknown> | null = null;
+
+      mockFrom.mockImplementation(() => ({
+        update: () => ({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+        select: () => ({
+          eq: () => ({
+            single: vi.fn().mockResolvedValue({
+              data: { transcript: null },
+              error: null,
+            }),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { transcript: null },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+
+      vi.spyOn(globalThis, "fetch").mockImplementation(
+        async (_url, options) => {
+          sentPayload = JSON.parse(options?.body as string);
+          return mockGeminiResponse({
+            title: "test",
+            description: null,
+            condition: null,
+            estimate: null,
+            category: null,
+            measurements: null,
+            transcript: null,
+          }) as unknown as Response;
+        },
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      expect(sentPayload).not.toBeNull();
+      const payload = sentPayload as Record<string, unknown>;
+      const geminiPayload = payload.payload as Record<string, unknown>;
+      const systemInstruction = geminiPayload.system_instruction as Record<
+        string,
+        unknown
+      >;
+      const parts = systemInstruction.parts as Array<
+        Record<string, string>
+      >;
+      const promptText = parts[0].text;
+
+      expect(promptText).toContain("SPOKEN PUNCTUATION:");
+      expect(promptText).toContain('"comma" ->');
+      expect(promptText).toContain('"parenthesis"');
+      expect(promptText).toContain('"dash"');
+      expect(promptText).toContain("Apply to ALL fields");
+    });
+
     it("on non-200 proxy response, ai_status is 'failed'", async () => {
       const updateCalls: Array<Record<string, unknown>> = [];
       mockFrom.mockImplementation(() => ({
