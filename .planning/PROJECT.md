@@ -2,79 +2,78 @@
 
 ## What This Is
 
-A mobile-first PWA for The Potomack Company auction house that enables auctioneers to catalog items by voice during house visits and sale prep. Two modes — house visit (sequential items + photos) and sale cataloging (receipt number + dictation) — feed a Gemini AI pipeline that extracts structured catalog fields (title, description, condition, estimate, category, measurements) and exports them as versioned JSON. An admin/specialist account system lets the admin import receipt lists, create sessions, and assign them to specialists — specialists record and submit, admin reviews, edits, and exports. A companion Chrome extension batch-imports the exported JSON into RFC Invaluable lot pages. Sessions persist across browser close, recordings queue offline and process on reconnect.
+A mobile-first PWA for The Potomack Company auction house that enables auctioneers to catalog items by voice during house visits and sale prep. Two modes -- house visit (sequential items + photos) and sale cataloging (receipt number + dictation) -- feed a Gemini AI pipeline that extracts structured catalog fields (title, description, condition, estimate, category, measurements) with smart field merging and spoken punctuation conversion. An admin/specialist account system lets the admin import receipt lists, create sessions, and assign them to specialists -- specialists record and submit, admin reviews, edits, and exports. Photos upload to Supabase Storage with offline queue support. A companion Chrome extension batch-imports the exported JSON into RFC Invaluable lot pages, including photos. Sessions persist across browser close, recordings queue offline and process on reconnect. Deployed to Vercel with GitHub Actions CI.
 
 ## Core Value
 
-Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing — with the entries flowing directly into RFC Invaluable.
+Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with the entries flowing directly into RFC Invaluable.
 
 ## Requirements
 
 ### Validated
 
-- ✓ Speech-to-text capture with tap-to-advance between items — v1.0
-- ✓ House visit mode: dictate item details + capture photos per item — v1.0
-- ✓ Sale cataloging mode: receipt number first, then item description — v1.0
-- ✓ AI parsing of natural speech into structured fields (title, description, condition, estimate, category) — v1.0
-- ✓ Measurements extracted from speech and auto-formatted (N×N×N in./cm.) — v1.0
-- ✓ Review and edit transcribed entries before export — v1.0
-- ✓ Save and resume sessions across multiple sittings — v1.0
-- ✓ Offline support: record audio locally, process when connectivity returns — v1.0
-- ✓ Export structured JSON matching TPC extension format — v1.0
-- ✓ TPC extension batch import: accept exported file and fill items on RFC Invaluable — v1.0
-- ✓ House session import with photos, Style dropdown handling, and state recovery — Phase 20
-- ✓ Mobile-optimized UI (phone/tablet for on-site use) — v1.0
-- ✓ Session archiving and export history with versioned filenames — v1.0
-- ✓ Receipt number list import from CSV/XLSX to pre-populate sale sessions — v1.0
+- ✓ Speech-to-text capture with tap-to-advance between items -- v1.0
+- ✓ House visit mode: dictate item details + capture photos per item -- v1.0
+- ✓ Sale cataloging mode: receipt number first, then item description -- v1.0
+- ✓ AI parsing of natural speech into structured fields (title, description, condition, estimate, category) -- v1.0
+- ✓ Measurements extracted from speech and auto-formatted (N x N x N in./cm.) -- v1.0
+- ✓ Review and edit transcribed entries before export -- v1.0
+- ✓ Save and resume sessions across multiple sittings -- v1.0
+- ✓ Offline support: record audio locally, process when connectivity returns -- v1.0
+- ✓ Export structured JSON matching TPC extension format -- v1.0
+- ✓ TPC extension batch import: accept exported file and fill items on RFC Invaluable -- v1.0
+- ✓ Mobile-optimized UI (phone/tablet for on-site use) -- v1.0
+- ✓ Session archiving and export history with versioned filenames -- v1.0
+- ✓ Receipt number list import from CSV/XLSX to pre-populate sale sessions -- v1.0
+- ✓ Username/password authentication with admin and specialist roles -- v1.1
+- ✓ Admin can create and manage specialist accounts -- v1.1
+- ✓ Admin imports receipts, creates sessions, and assigns to specialists -- v1.1
+- ✓ Specialists see only assigned sessions + their own created sessions -- v1.1
+- ✓ Session lifecycle: Active -> Submitted -> Admin review (edit or send back) -> Export -- v1.1
+- ✓ Only admin can export JSON -- v1.1
+- ✓ Admin can edit submitted sessions directly -- v1.1
+- ✓ CI pipeline: lint, typecheck, test, build via GitHub Actions -- v1.1
+- ✓ Restrict Cloudflare Worker CORS to production Vercel domain -- v1.1
+- ✓ House session import with photos, Style dropdown handling, and state recovery -- v1.1
+- ✓ Photo upload to Supabase Storage with offline queue and sync status -- v1.1
+- ✓ Role-aware walkthrough stored per-user in Supabase -- v1.1
+- ✓ Smart field merging for re-recordings (non-destructive) -- v1.1
+- ✓ Measurements as rich format string (dimensions, mm, weight, karats) -- v1.1
+- ✓ Spoken punctuation conversion by AI across all fields -- v1.1
 
 ### Active
 
-- [ ] Username/password authentication with admin and specialist roles
-- [ ] Admin can create and manage specialist accounts
-- [ ] Admin imports receipts, creates sessions, and assigns to specialists
-- [ ] Specialists see only assigned sessions + their own created sessions
-- [ ] Session lifecycle: Active → Submitted → Admin review (edit or send back) → Export
-- [ ] Only admin can export JSON
-- [ ] Admin can edit submitted sessions directly
-- [ ] Deploy app to Vercel with auto-deploy from main (DEPLOY-01) — awaiting human setup
-- [x] CI pipeline: lint, typecheck, test, build via GitHub Actions (DEPLOY-02) — Phase 17
-- [x] Restrict Cloudflare Worker CORS to production Vercel domain (DEPLOY-03) — Phase 17
-- [ ] Branch protection on main: require CI checks before merge (DEPLOY-04) — deferred (GitHub Free plan limitation)
+(None -- next milestone not yet planned. Run `/gsd:new-milestone` to define.)
 
 ### Out of Scope
 
-- Real-time collaboration between multiple users — small team, not needed
-- Video recording of items — photos sufficient
-- Direct integration with RFC API (bypassing the extension) — leverage existing extension infrastructure
-- OAuth/SSO login — simple username/password sufficient for internal team
-- On-device AI processing — model size too large for mobile; offline queue solves connectivity problem
-- Barcode/QR scanning — receipt numbers are typed, not barcoded
-- Auto-publish without review — AI errors require human review gate
+- Real-time collaboration between multiple users -- small team, not needed
+- Video recording of items -- photos sufficient
+- Direct integration with RFC API (bypassing the extension) -- leverage existing extension infrastructure
+- OAuth/SSO login -- simple username/password sufficient for internal team
+- On-device AI processing -- model size too large for mobile; offline queue solves connectivity problem
+- Barcode/QR scanning -- receipt numbers are typed, not barcoded
+- Auto-publish without review -- AI errors require human review gate
+- Branch protection on main -- GitHub Free plan does not support on private repos (DEPLOY-04)
 
-## Current Milestone: v1.1 Accounts & Deploy
+## Current State
 
-**Goal:** Add admin/specialist accounts with session assignment workflow, then deploy to production.
-
-**Target features:**
-- Username/password auth with admin + specialist roles
-- Admin session assignment (import → create → assign → review → export)
-- Specialist scoped view (assigned + own sessions only)
-- Session submission lifecycle (active → submitted → admin review)
-- Vercel deployment + CI pipeline + CORS lockdown
+**Shipped:** v1.1 Accounts & Deploy (2026-03-31)
+**Codebase:** 33,636 LOC (TS/TSX/JS), 475 commits over 25 days (2026-03-06 -> 2026-03-31)
+**Tech stack:** React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Supabase (Postgres + Auth + Storage + RLS + Edge Functions) + Dexie 4 (audio/photos) + @google/genai 1.x + Cloudflare Worker proxy
+**Deployed:** Vercel (auto-deploy from main) + GitHub Actions CI
+**Extension:** TPC AI-Cataloging Chrome extension (Manifest V3) with batch import for sale and house sessions
 
 ## Context
 
-**Current state (v1.0):** 10 phases shipped, 9,166 LOC (TS/TSX/JS), 214 commits over 11 days.
-Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexie 4 (IndexedDB) + `@google/genai` 1.x + Cloudflare Worker proxy.
-**v1.1 architecture note:** Accounts require a backend/database. Current app is fully client-side (IndexedDB). This milestone introduces Supabase (Postgres + Auth + RLS) as the server-side layer. Dexie retains audio blobs and photos only. Future dashboard planned as separate repo reading from same Supabase instance.
-
 **Auction platform:** RFC Invaluable (`rfc.invaluable.com`) is where catalog entries live
-**Existing tooling:** TPC AI-Cataloging Chrome extension (Manifest V3) extended with batch import feature (Phase 7)
+**Existing tooling:** TPC AI-Cataloging Chrome extension extended with batch import (v1.0 Phase 7) and house session import with photos (v1.1 Phase 20)
 **Receipt numbers:** Format `XXXXX-N` (e.g., `39135-2`), used to identify items in sale cataloging mode
 **Title convention:** ALL CAPS, format: `[PERIOD/STYLE] [MATERIAL] [ITEM TYPE]`
 **Description convention:** Lowercase, starts with "the", top-to-bottom physical features, formal auction language
 **Team size:** 2-5 auctioneers at The Potomack Company
 **Field conditions:** House visits may be at rural locations with poor connectivity
+**Architecture:** Supabase is server-authoritative for session/item metadata, auth, and photos. Dexie retains audio blobs and photo cache only. Future dashboard planned as separate repo reading from same Supabase instance.
 
 ## Constraints
 
@@ -88,21 +87,25 @@ Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexi
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Mobile-first PWA | Auctioneers need it on-site at houses; PWA avoids app store deployment | ✓ Good — works on iOS + Android |
-| AI-parsed speech (not raw transcription) | Natural speech needs structure extraction for catalog fields | ✓ Good — Gemini handles both steps in one call |
-| JSON export format | TPC extension already uses JSON throughout; natural fit | ✓ Good — seamless extension integration |
-| Both apps in one project | Extension import feature is required for end-to-end workflow | ✓ Good — shared types prevent schema drift |
-| Button tap between items (not voice commands) | More reliable in noisy house environments | ✓ Good — no false activations |
-| Cloudflare Worker proxy for Gemini | Keep API key off client; supports CORS | ✓ Good — CORS locked to production origins (Phase 17) |
-| Pathname-based routing (React Router v7) | Prevents iOS microphone re-prompts on hash navigation | ✓ Good — no re-prompt issues |
-| Dexie PKs: ++id auto-increment | No cloud sync planned; simpler than UUID | ✓ Good |
+| Mobile-first PWA | Auctioneers need it on-site at houses; PWA avoids app store deployment | ✓ Good -- works on iOS + Android |
+| AI-parsed speech (not raw transcription) | Natural speech needs structure extraction for catalog fields | ✓ Good -- Gemini handles both steps in one call |
+| JSON export format | TPC extension already uses JSON throughout; natural fit | ✓ Good -- seamless extension integration |
+| Both apps in one project | Extension import feature is required for end-to-end workflow | ✓ Good -- shared types prevent schema drift |
+| Button tap between items (not voice commands) | More reliable in noisy house environments | ✓ Good -- no false activations |
+| Cloudflare Worker proxy for Gemini | Keep API key off client; supports CORS | ✓ Good -- CORS locked to production origins |
+| Pathname-based routing (React Router v7) | Prevents iOS microphone re-prompts on hash navigation | ✓ Good -- no re-prompt issues |
 | Tailwind CSS 4: @theme blocks only | No tailwind.config.js; per Tailwind 4 API | ✓ Good |
 | Single Gemini call (transcription + extraction) | No separate Whisper step; lower latency | ✓ Good |
 | Fire-and-forget AI processing | Non-blocking recording flow; errors displayed on item card | ✓ Good |
-| Soft-delete sessions | Allows recovery; permanent delete is explicit | ✓ Good |
 | SheetJS for CSV/XLSX import | Single library handles both formats | ✓ Good |
-| Versioned export filenames | First export no suffix; subsequent -v2, -v3 | ✓ Good — avoids accidental overwrites |
-| Supabase over Neon+Hono+BetterAuth | User familiar with Supabase; future dashboard reads from same DB; fewer moving parts | — Pending |
+| Versioned export filenames | First export no suffix; subsequent -v2, -v3 | ✓ Good |
+| Supabase over Neon+Hono+BetterAuth | User familiar with Supabase; future dashboard reads from same DB; fewer moving parts | ✓ Good -- simplified architecture significantly |
+| Dexie retains audio/photos only | All metadata server-authoritative in Supabase; Dexie for large blobs | ✓ Good -- clean separation |
+| RLS policies for access control | Server-enforced role-based access; no middleware needed | ✓ Good -- admin/specialist isolation works |
+| Edge Functions per operation | Separate create/update/list for independent deployability | ✓ Good -- clean separation |
+| Photo upload queue with offline support | Fire-and-forget with bounded concurrency and backoff | ✓ Good -- non-blocking UX |
+| Smart field merging via AI | Existing values passed as context; AI returns merged result | ✓ Good -- non-destructive re-recordings |
+| Measurements as rich format string | Supports dimensions, mm, weight, karats in one field | ✓ Good -- flexible without schema changes |
 
 ---
-*Last updated: 2026-03-31 after Phase 21 (more-granularity-with-description-and-transcription) completion*
+*Last updated: 2026-03-31 after v1.1 milestone completion*

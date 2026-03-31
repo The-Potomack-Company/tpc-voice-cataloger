@@ -51,6 +51,61 @@
 
 ---
 
+## Milestone: v1.1 — Accounts & Deploy
+
+**Shipped:** 2026-03-31
+**Phases:** 11 | **Plans:** 36 | **Tasks:** 66
+
+### What Was Built
+- Supabase backend with Postgres, Auth, Storage, RLS, and Edge Functions
+- Admin/specialist account system with creation, deactivation, and role enforcement
+- Session assignment workflow (admin assigns, specialist sees scoped view)
+- Session lifecycle (submit, review, return-with-notes, admin-only export)
+- Data migration from Dexie to Supabase for all session/item metadata
+- Photo upload to Supabase Storage with offline queue, sync overlays, signed URL fallback
+- Vercel deployment with GitHub Actions CI and Cloudflare Worker CORS lockdown
+- Role-aware walkthrough with per-user completion stored in Supabase
+- House session JSON import fix with photo upload, Style dropdown handling, state recovery
+- AI granularity: measurements as rich format string, smart field merging, spoken punctuation
+
+### What Worked
+- **Supabase choice** simplified architecture significantly — Postgres + Auth + Storage + RLS in one platform replaced what would have been 4 separate services
+- **RLS-first security model** eliminated the need for middleware; role enforcement is server-side and implicit
+- **Phase 14 (data migration) sequential execution** was the right call — high-risk phase benefited from stable auth foundation
+- **Photo upload queue pattern** (bounded concurrency + exponential backoff) handles flaky mobile connections gracefully
+- **Smart field merging via AI prompt** avoided complex app-side merge logic — the AI returns final merged values directly
+- **Wave 0 test stubs** (Phases 16, 18, 19) set up test scaffolding before implementation, speeding execution
+- **YOLO mode** kept the milestone moving fast — 11 phases in 14 days with minimal gate overhead
+
+### What Was Inefficient
+- **ROADMAP checkbox drift** — several plan checkboxes (13-02, 14-04, 15-02, 15-03, 21-01/02/03) were never checked off even though summaries exist. Same issue from v1.0.
+- **REQUIREMENTS checkbox drift** — GRAN-01 through GRAN-12 completed but never checked off in REQUIREMENTS.md
+- **Progress table format inconsistencies** — Phases 14 and 15 had misaligned columns in the progress table
+- **DEPLOY-04 GitHub Free limitation** discovered late — branch protection requirement couldn't be fulfilled on private repos
+- **Phase scope creep** — v1.1 originally scoped as "Accounts & Deploy" (Phases 11-17) but grew to include walkthrough, photo upload, house import fix, and AI granularity (Phases 18-21)
+
+### Patterns Established
+- **Supabase as single backend** — Postgres + Auth + Storage + RLS + Edge Functions serves as the complete server layer
+- **Dexie as blob cache only** — audio blobs and photo cache in IndexedDB; all metadata is server-authoritative
+- **Edge Functions per operation** — separate create/update/list functions for independent deployability
+- **Photo upload queue pattern** — bounded concurrency, exponential backoff, fire-and-forget with status overlays
+- **AI context injection** — pass existing field values to Gemini for intelligent merge decisions
+- **Prompt-only enhancements** — measurements format, merge rules, and punctuation all handled in system prompt
+
+### Key Lessons
+1. **Scope milestones tightly** — v1.1 grew from 7 to 11 phases. Future milestones should resist scope additions or explicitly re-scope.
+2. **Automate checkbox updates** — ROADMAP and REQUIREMENTS checkboxes drifting is a recurring issue. Either automate or verify at phase completion.
+3. **Check platform constraints early** — GitHub Free plan limitation on branch protection (DEPLOY-04) was discovered only at execution time.
+4. **Supabase RLS is excellent for small-team apps** — role-based access "just works" without middleware for admin/specialist separation.
+5. **AI prompt engineering > app-side logic** — smart merging, measurements formatting, and punctuation conversion all achieved through prompt changes alone.
+
+### Cost Observations
+- Model mix: quality profile throughout (Opus/Sonnet for planning, Sonnet for execution)
+- Sessions: ~14 days of work across multiple sessions
+- Notable: Wave 0 test stub phases (16-00, 18-00, 19-00) averaged 1-2 min/plan, dramatically speeding subsequent implementation
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -58,14 +113,18 @@
 | Milestone | Phases | Plans | Key Change |
 |-----------|--------|-------|------------|
 | v1.0 | 10 | 27 | First milestone — established all core patterns |
+| v1.1 | 11 | 36 | Added Supabase backend, YOLO mode, Wave 0 test stubs |
 
 ### Cumulative Quality
 
 | Milestone | LOC | Key Coverage | Zero-Dep Additions |
 |-----------|-----|--------------|-------------------|
 | v1.0 | 9,166 | Utilities + data layer TDD | SheetJS, @google/genai |
+| v1.1 | 33,636 | Auth, lifecycle, photo upload, AI pipeline | @supabase/supabase-js, Edge Functions |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Plan deployment infrastructure from the start — it's always tempting to defer and always creates gaps
+1. Plan deployment infrastructure from the start — it's always tempting to defer and always creates gaps (v1.0 deferred DEPLOY-*, v1.1 discovered GitHub Free limitation late)
 2. TDD for pure utilities (formatting, parsing, validation) pays off immediately — catch edge cases before they reach the UI
+3. Keep ROADMAP/REQUIREMENTS checkboxes in sync — both milestones had checkbox drift where completed work wasn't reflected in docs
+4. AI prompt engineering is more maintainable than app-side logic for extraction/formatting rules
