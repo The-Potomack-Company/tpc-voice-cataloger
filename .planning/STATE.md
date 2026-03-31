@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Accounts & Deploy
 status: verifying
-stopped_at: Completed 21-02-PLAN.md
-last_updated: "2026-03-31T13:31:18Z"
-last_activity: 2026-03-31
+stopped_at: Completed 21-03-PLAN.md
+last_updated: "2026-03-31T13:37:09.348Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 9
   completed_phases: 9
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 21 — more-granularity-with-description-and-transcription
+**Current focus:** Phase 17 — deployment-ci
 
 ## Current Position
 
-Phase: 21
-Plan: 02 of 3 complete
-Status: Executing phase 21
-Last activity: 2026-03-31
+Phase: 18
+Plan: Not started
+Status: Phase complete — ready for verification
+Last activity: 2026-03-30
 
 Progress: [█████████░] 87%
 
@@ -157,10 +157,7 @@ Recent decisions affecting current work:
 - [Phase 17]: Exported isAllowedOrigin/getCorsHeaders as named exports for direct unit testing
 - [Phase 17]: *.vercel.app suffix match allows all preview deploys without env var updates
 - [Phase 17-deployment-ci]: Branch protection (DEPLOY-04) deferred -- GitHub Free plan does not support branch protection on private repos
-- [21-02] AI handles all merge logic -- no app-side merge or diff needed
-- [21-02] Existing field values read from Supabase before Gemini call, passed as context text
-- [21-02] Transcript append moved from app-side concatenation to AI-side merge
-- [21-02] First recordings use simple extraction prompt; re-recordings use merge prompt with EXISTING VALUES
+- [Phase 21]: Punctuation handling is entirely prompt-based (no post-processing code) per D-11
 
 ### Pending Todos
 
@@ -183,6 +180,7 @@ None yet.
 | Phase 17 P02 | 12min | 2 tasks | 23 files |
 | Phase 17 P03 | 2min | 2 tasks | 6 files |
 | Phase 17-deployment-ci P04 | 3min | 1 tasks | 0 files |
+| Phase 21 P03 | 2 | 2 tasks | 2 files |
 
 ### Roadmap Evolution
 
@@ -192,6 +190,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T13:31:18Z
-Stopped at: Completed 21-02-PLAN.md
+Last session: 2026-03-31T13:37:09.345Z
+Stopped at: Completed 21-03-PLAN.md
 Resume file: None

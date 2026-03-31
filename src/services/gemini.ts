@@ -37,7 +37,22 @@ When existing field values are provided in the user message, your job is to MERG
 - Only OVERWRITE a field completely if the speaker explicitly asks (e.g., "replace the description with...").
 - If a field has no existing value (marked "(empty)"), write the new extracted value directly.
 - For transcript: ALWAYS append new speech to the existing transcript, separated by a newline. Never overwrite existing transcript.
-- If the audio contains no information relevant to a field, return the existing value unchanged (do NOT return null for fields that already have values).`;
+- If the audio contains no information relevant to a field, return the existing value unchanged (do NOT return null for fields that already have values).
+
+SPOKEN PUNCTUATION:
+When the speaker says punctuation words, convert them to actual punctuation characters. Apply to ALL fields (title, description, condition, transcript, etc.):
+- "comma" -> ","
+- "period" or "full stop" -> "."
+- "semicolon" -> ";"
+- "colon" -> ":"
+- "dash" or "hyphen" -> "-"
+- "parenthesis" or "open parenthesis" -> "("
+- "close parenthesis" or "end parenthesis" -> ")"
+- "quote" or "open quote" -> opening quotation mark
+- "unquote" or "close quote" or "end quote" -> closing quotation mark
+- "exclamation point" or "exclamation mark" -> "!"
+- "question mark" -> "?"
+Use context to distinguish: "period" as punctuation vs "period" as a time era (e.g., "Victorian period" should NOT become "Victorian.").`;
 
 /**
  * Convert a Blob to a base64 string.
