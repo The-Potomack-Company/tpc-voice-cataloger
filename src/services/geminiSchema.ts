@@ -22,9 +22,9 @@ export const catalogFieldsSchema = z.object({
     .nullable()
     .describe("The RFC department code that best matches the spoken category. Valid codes: AA, AMER, AWFA, ANT, AAR, 0001, ASD, ASN, ASNP, BKS, CER, IND, CLK, CNS, DEC, DRW, ENT, EA, FASH, FIS, FRN, MDF, PER, GAR, GEN, GLS, ITS, ISL, JWL, LIT, MANU, MAP, MA, MUS, NAT, TXTL, PND, PNT, PEN, MIN, REL, RUG, SPT, SIL, TAP, TRI, WINE. Return null if not mentioned."),
   measurements: z
-    .array(z.number())
+    .string()
     .nullable()
-    .describe("Array of 1-3 measurement numbers in inches, in height x width x depth order. Extract from speech like 'thirty-six by twenty-four by eighteen' as [36, 24, 18]. Return null if no specific dimensions or measurements are mentioned."),
+    .describe("Formatted measurements string combining dimensions, weight, and karats. Dimensions in inches: 'N x N in. (N x N cm.)' with auto cm conversion. Millimeters only when speaker says 'mm' or 'millimeters': 'N x N mm' (no conversion). Weight: 'N oz.' or 'N g'. Karats: 'Nkt'. Combine all in one string separated by ', '. Example: '4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt'. Return null if no measurements mentioned."),
   transcript: z
     .string()
     .nullable()
