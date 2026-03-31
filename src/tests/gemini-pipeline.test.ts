@@ -166,7 +166,7 @@ describe("gemini pipeline", () => {
           condition: "fair",
           estimate: "500",
           category: "furniture",
-          measurements: [36, 24],
+          measurements: "36 x 24 in. (91.4 x 61 cm.)",
           transcript:
             "nice oak table, kinda beat up, fair condition, about five hundred",
         }) as unknown as Response,
@@ -182,7 +182,7 @@ describe("gemini pipeline", () => {
       expect(lastUpdate.condition).toBe("fair");
       expect(lastUpdate.estimate).toBeDefined();
       expect(lastUpdate.category).toBe("FRN");
-      expect(lastUpdate.measurements).toBeDefined();
+      expect(lastUpdate.measurements).toBe("36 x 24 in. (91.4 x 61 cm.)");
       expect(lastUpdate.transcript).toBeDefined();
     });
 
