@@ -105,4 +105,4 @@ Tech stack: React 19 + Vite 7 + TypeScript 5 + Tailwind CSS 4 + Zustand 5 + Dexi
 | Supabase over Neon+Hono+BetterAuth | User familiar with Supabase; future dashboard reads from same DB; fewer moving parts | — Pending |
 
 ---
-*Last updated: 2026-03-30 after Phase 20 (fix-house-session-json-import-on-rfc) completion*
+*Last updated: 2026-03-31 after Phase 21 (more-granularity-with-description-and-transcription) completion*
