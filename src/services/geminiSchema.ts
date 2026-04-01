@@ -24,7 +24,7 @@ export const catalogFieldsSchema = z.object({
   measurements: z
     .string()
     .nullable()
-    .describe("Formatted measurements string combining dimensions, weight, and karats. Dimensions in inches: 'N x N in. (N x N cm.)' with auto cm conversion. Millimeters only when speaker says 'mm' or 'millimeters': 'N x N mm' (no conversion). Weight: 'N oz.' or 'N g'. Karats: 'Nkt'. Combine all in one string separated by ', '. Example: '4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt'. Return null if no measurements mentioned."),
+    .describe("Formatted measurements string combining dimensions, weight, and karats. Dimensions in inches: 'N x N in. (N x N cm.)' with auto cm conversion. Millimeters only when speaker says 'mm' or 'millimeters': 'N x N mm' (no conversion). Weight: 'N oz.' or 'N g'. Karats: 'Nkt'. Combine all in one string separated by ', '. Example: '4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt'. IMPORTANT: In auction context, 'karats'/'carats'/'carrots' always means gold/gem purity (Nkt), never the vegetable. Return null if no measurements mentioned."),
   transcript: z
     .string()
     .nullable()
