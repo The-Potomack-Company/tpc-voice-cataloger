@@ -5,6 +5,7 @@ import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
 import { useSessionStore } from "../stores/sessionStore";
+import { applySpokenQuotes } from "../utils/spokenPunctuation";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -50,8 +51,9 @@ When the speaker says punctuation words, convert them to actual punctuation char
 - "dash" or "hyphen" -> "-"
 - "parenthesis" or "open parenthesis" -> "("
 - "close parenthesis" or "end parenthesis" -> ")"
-- "quote" or "open quote" -> opening quotation mark
-- "unquote" or "close quote" or "end quote" -> closing quotation mark
+- "quote" or "open quote" -> " (ASCII double-quote character, 0x22)
+- "unquote" or "close quote" or "end quote" -> " (ASCII double-quote character, 0x22)
+For example: speaker says "quote 19th century unquote" -> output: "19th century" (with literal double-quote characters wrapping the phrase)
 - "exclamation point" or "exclamation mark" -> "!"
 - "question mark" -> "?"
 Use context to distinguish: "period" as punctuation vs "period" as a time era (e.g., "Victorian period" should NOT become "Victorian.").`;
@@ -196,6 +198,14 @@ export async function processAudioWithAi(
     }
 
     const fields = result.data;
+
+    // Safety net: ensure spoken quote markers are converted even if AI missed them
+    const textFields = ['title', 'description', 'condition', 'transcript'] as const;
+    for (const field of textFields) {
+      if (fields[field] !== null) {
+        fields[field] = applySpokenQuotes(fields[field]);
+      }
+    }
 
     // Write fields to Supabase items table
     const supabaseUpdate: Record<string, unknown> = {
