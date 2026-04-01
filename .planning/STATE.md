@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 Phase: All v1.1 phases complete
 Plan: N/A
 Status: Milestone v1.1 shipped and archived
-Last activity: 2026-04-01 - Completed quick task 260401-n74: Fix AI parser interpreting karats as carrots
+Last activity: 2026-04-01 - Completed quick task 260401-n6a: AI parses spoken quote markers into actual quotation marks
 
 Progress: [██████████] 100%
 
@@ -69,6 +69,7 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260401-n74 | Fix AI parser interpreting karats as carrots - default to karats for auction house context | 2026-04-01 | dfa83c6 | [260401-n74-fix-ai-parser-interpreting-karats-as-car](./quick/260401-n74-fix-ai-parser-interpreting-karats-as-car/) |
+| 260401-n6a | AI parses spoken quote markers into actual quotation marks | 2026-04-01 | 5dbea9d | [260401-n6a-ai-parses-spoken-quote-markers-into-actu](./quick/260401-n6a-ai-parses-spoken-quote-markers-into-actu/) |
 
 ### Roadmap Evolution
 
