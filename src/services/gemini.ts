@@ -5,6 +5,7 @@ import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
 import { useSessionStore } from "../stores/sessionStore";
+import { applySpokenQuotes } from "../utils/spokenPunctuation";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -19,6 +20,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
   Dimensions in millimeters: ONLY when the speaker explicitly says "millimeters" or "mm". Format as "N x N mm" with no conversion to other units. Default to inches when no unit specified.
   Weight: "N oz." for ounces, "N g" for grams. No pounds.
   Karats: "Nkt" (e.g., "18kt").
+  IMPORTANT: 'karats'/'carats'/'carrots' always means gold/gem purity in this auction context. Never interpret as the vegetable.
   Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt".
   Return null if no measurements mentioned.
 - transcript: The full verbatim transcript of everything said in the audio
@@ -28,6 +30,7 @@ CRITICAL RULES:
 2. If a field is not mentioned in the audio, return null for that field.
 3. Do NOT invent or guess values for unmentioned fields.
 4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.
+5. AUCTION CONTEXT: This is an auction house application. Any spoken word that sounds like 'karats', 'carats', or 'carrots' refers to GOLD/GEM PURITY (karats), NEVER the vegetable. Always output karat values in measurements as 'Nkt' (e.g., '14kt', '18kt', '24kt'). Similarly, 'karat' or 'carat' in descriptions refers to precious metal/gem purity.
 
 MERGE RULES:
 When existing field values are provided in the user message, your job is to MERGE new information with existing values:
@@ -48,8 +51,9 @@ When the speaker says punctuation words, convert them to actual punctuation char
 - "dash" or "hyphen" -> "-"
 - "parenthesis" or "open parenthesis" -> "("
 - "close parenthesis" or "end parenthesis" -> ")"
-- "quote" or "open quote" -> opening quotation mark
-- "unquote" or "close quote" or "end quote" -> closing quotation mark
+- "quote" or "open quote" -> " (ASCII double-quote character, 0x22)
+- "unquote" or "close quote" or "end quote" -> " (ASCII double-quote character, 0x22)
+For example: speaker says "quote 19th century unquote" -> output: "19th century" (with literal double-quote characters wrapping the phrase)
 - "exclamation point" or "exclamation mark" -> "!"
 - "question mark" -> "?"
 Use context to distinguish: "period" as punctuation vs "period" as a time era (e.g., "Victorian period" should NOT become "Victorian.").`;
@@ -194,6 +198,14 @@ export async function processAudioWithAi(
     }
 
     const fields = result.data;
+
+    // Safety net: ensure spoken quote markers are converted even if AI missed them
+    const textFields = ['title', 'description', 'condition', 'transcript'] as const;
+    for (const field of textFields) {
+      if (fields[field] !== null) {
+        fields[field] = applySpokenQuotes(fields[field]);
+      }
+    }
 
     // Write fields to Supabase items table
     const supabaseUpdate: Record<string, unknown> = {
