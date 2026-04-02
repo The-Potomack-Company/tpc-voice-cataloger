@@ -233,8 +233,11 @@ export function SessionDetailPage() {
     } else if (confirmAction === "reopen") {
       await storeUpdateSession(session.id, { status: 'active' });
     } else if (confirmAction === "delete") {
-      await useSessionStore.getState().deleteSession(session.id);
-      navigate("/");
+      const success = await useSessionStore.getState().deleteSession(session.id);
+      if (success) {
+        navigate("/");
+        return;
+      }
     }
     setConfirmAction(null);
   };
