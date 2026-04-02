@@ -292,6 +292,86 @@ describe("sessionStore", () => {
       expect(state.sessions).toHaveLength(0);
       expect(state.itemsBySession["uuid-1"]).toBeUndefined();
     });
+
+    it("reverts optimistic delete when RLS silently blocks (0 rows returned)", async () => {
+      const session = {
+        id: "uuid-1",
+        name: "Protected",
+        mode: "house",
+        status: "active",
+        notes: "",
+        created_by: "admin-1",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+        assigned_to: null,
+        review_notes: null,
+      };
+
+      useSessionStore.setState({
+        sessions: [session],
+        itemsBySession: { "uuid-1": [] },
+      });
+      setupDeleteChain(null, []);
+
+      const success = await useSessionStore.getState().deleteSession("uuid-1");
+
+      expect(success).toBe(false);
+      const state = useSessionStore.getState();
+      expect(state.sessions).toHaveLength(1);
+      expect(state.sessions[0].id).toBe("uuid-1");
+    });
+
+    it("returns true on successful delete", async () => {
+      const session = {
+        id: "uuid-1",
+        name: "To Delete",
+        mode: "house",
+        status: "active",
+        notes: "",
+        created_by: "user-1",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+        assigned_to: null,
+        review_notes: null,
+      };
+
+      useSessionStore.setState({
+        sessions: [session],
+        itemsBySession: { "uuid-1": [] },
+      });
+      setupDeleteChain(null, [{ id: "uuid-1" }]);
+
+      const success = await useSessionStore.getState().deleteSession("uuid-1");
+
+      expect(success).toBe(true);
+      expect(useSessionStore.getState().sessions).toHaveLength(0);
+    });
+
+    it("returns false when supabase returns an error", async () => {
+      const session = {
+        id: "uuid-1",
+        name: "Error Case",
+        mode: "house",
+        status: "active",
+        notes: "",
+        created_by: "user-1",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+        assigned_to: null,
+        review_notes: null,
+      };
+
+      useSessionStore.setState({
+        sessions: [session],
+        itemsBySession: {},
+      });
+      setupDeleteChain(new Error("DB error"), null);
+
+      const success = await useSessionStore.getState().deleteSession("uuid-1");
+
+      expect(success).toBe(false);
+      expect(useSessionStore.getState().sessions).toHaveLength(1);
+    });
   });
 
   describe("createItem", () => {
@@ -435,6 +515,75 @@ describe("sessionStore", () => {
       const state = useSessionStore.getState();
       expect(state.itemsBySession["session-1"]).toHaveLength(1);
       expect(state.itemsBySession["session-1"][0].id).toBe("item-2");
+    });
+
+    it("reverts optimistic delete when RLS silently blocks (0 rows returned)", async () => {
+      const items = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: "Protected Item",
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      useSessionStore.setState({
+        itemsBySession: { "session-1": items },
+      });
+      setupDeleteChain(null, []);
+
+      await useSessionStore
+        .getState()
+        .deleteItem("item-1", "session-1");
+
+      // Item should revert back since RLS blocked the delete
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"]).toHaveLength(1);
+      expect(state.itemsBySession["session-1"][0].id).toBe("item-1");
+    });
+
+    it("keeps item removed when delete returns deleted row data", async () => {
+      const items = [
+        {
+          id: "item-1",
+          session_id: "session-1",
+          mode: "house",
+          sort_order: 0,
+          title: "Deletable Item",
+          description: null,
+          condition: null,
+          estimate: null,
+          measurements: null,
+          category: null,
+          transcript: null,
+          receipt_number: null,
+          ai_status: "pending",
+          created_at: "2026-01-01",
+        },
+      ];
+
+      useSessionStore.setState({
+        itemsBySession: { "session-1": items },
+      });
+      setupDeleteChain(null, [{ id: "item-1" }]);
+
+      await useSessionStore
+        .getState()
+        .deleteItem("item-1", "session-1");
+
+      // Item should stay removed since delete succeeded
+      const state = useSessionStore.getState();
+      expect(state.itemsBySession["session-1"]).toHaveLength(0);
     });
   });
 
