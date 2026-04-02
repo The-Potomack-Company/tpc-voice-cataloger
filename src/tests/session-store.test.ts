@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 
 // --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
 const { mockFrom } = vi.hoisted(() => {
@@ -14,6 +14,16 @@ vi.mock("../lib/supabase", () => ({
     from: mockFrom,
   },
 }));
+
+// Mock zustand persist to use a no-op storage (avoids jsdom localStorage issues with zustand 5)
+vi.mock("zustand/middleware", async () => {
+  const actual = await vi.importActual<typeof import("zustand/middleware")>("zustand/middleware");
+  return {
+    ...actual,
+    persist: (fn: unknown, _opts?: unknown) => fn,
+  };
+});
+
 
 import { useSessionStore } from "../stores/sessionStore";
 
@@ -73,13 +83,15 @@ function setupUpdateChain(error: unknown = null) {
   return chain;
 }
 
-function setupDeleteChain(error: unknown = null) {
+function setupDeleteChain(error: unknown = null, data: unknown[] | null = null) {
   const chain = {
     delete: vi.fn(),
     eq: vi.fn(),
+    select: vi.fn(),
   };
   chain.delete.mockReturnValue(chain);
-  chain.eq.mockResolvedValue({ error });
+  chain.eq.mockReturnValue(chain);
+  chain.select.mockResolvedValue({ data, error });
   mockFrom.mockReturnValue(chain);
   return chain;
 }
@@ -271,7 +283,7 @@ describe("sessionStore", () => {
         sessions: [session],
         itemsBySession: { "uuid-1": [] },
       });
-      setupDeleteChain(null);
+      setupDeleteChain(null, [{ id: "uuid-1" }]);
 
       await useSessionStore.getState().deleteSession("uuid-1");
 
@@ -413,7 +425,7 @@ describe("sessionStore", () => {
       useSessionStore.setState({
         itemsBySession: { "session-1": items },
       });
-      setupDeleteChain(null);
+      setupDeleteChain(null, [{ id: "item-1" }]);
 
       await useSessionStore
         .getState()
