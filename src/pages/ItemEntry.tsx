@@ -116,7 +116,7 @@ export function ItemEntryPage() {
   const currentPosition = item ? (item.sort_order + 1) : 1;
   const displayTotal = Math.max(totalItems, currentPosition);
 
-  // Prev/next item computation for left/right arrows (house mode)
+  // Prev/next item computation for left/right arrows (both modes)
   const prevItem = item
     ? items.filter(i => i.sort_order < item.sort_order).sort((a, b) => b.sort_order - a.sort_order)[0] ?? null
     : null;
@@ -198,8 +198,18 @@ export function ItemEntryPage() {
           />
         )}
 
-        {/* Editable fields for house mode */}
-        {mode === "house" && item && (
+        {/* Receipt number input for sale mode (top field) */}
+        {mode === "sale" && (
+          <div onBlur={handleReceiptBlur}>
+            <ReceiptNumberInput
+              value={receiptValue}
+              onChange={handleReceiptChange}
+            />
+          </div>
+        )}
+
+        {/* Editable fields for both modes */}
+        {item && (
           <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             <EditableField
               label="Title"
@@ -240,15 +250,6 @@ export function ItemEntryPage() {
               value={item.category ?? undefined}
               onSave={(val) => { updateItemField(item.id, sessionId!, "category", val).catch(console.error); }}
               placeholder="Enter category"
-            />
-          </div>
-        )}
-
-        {mode === "sale" && (
-          <div onBlur={handleReceiptBlur}>
-            <ReceiptNumberInput
-              value={receiptValue}
-              onChange={handleReceiptChange}
             />
           </div>
         )}
@@ -317,8 +318,8 @@ export function ItemEntryPage() {
         onCancel={() => setShowDeleteConfirm(false)}
       />
 
-      {/* Left/right navigation arrows for house mode */}
-      {mode === "house" && item && !isNewItem && (
+      {/* Left/right navigation arrows for both modes */}
+      {item && !isNewItem && (
         <>
           {/* Left arrow */}
           <button
