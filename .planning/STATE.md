@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 Phase: All v1.1 phases complete
 Plan: N/A
 Status: Milestone v1.1 shipped and archived
-Last activity: 2026-04-02 - Completed quick task 260402-dor: Ability to merge two items together into one
+Last activity: 2026-04-07 - Completed quick task 260407-ket: Add an extra export button that downloads a spreadsheet instead of the json
 
 Progress: [██████████] 100%
 
@@ -73,6 +73,7 @@ None.
 | 260402-doe | Fix specialists unable to delete items - detect RLS silent failures in deleteItem/deleteSession | 2026-04-02 | c3710fa | | [260402-doe-specialists-unable-to-delete-items-from-](./quick/260402-doe-specialists-unable-to-delete-items-from-/) |
 | 260402-dqf | Sale sessions same behavior as house sessions - full screen detail view with fields transcript and recording button, no photo upload | 2026-04-02 | 8a350ce | Needs Review | [260402-dqf-sale-sessions-same-behavior-as-house-ses](./quick/260402-dqf-sale-sessions-same-behavior-as-house-ses/) |
 | 260402-dor | Ability to merge two items together into one | 2026-04-02 | a1a5816 | Verified | [260402-dor-ability-to-merge-two-items-together-into](./quick/260402-dor-ability-to-merge-two-items-together-into/) |
+| 260407-ket | Add an extra export button that downloads a spreadsheet instead of the json | 2026-04-07 | de8f45a | | [260407-ket-add-an-extra-export-button-that-download](./quick/260407-ket-add-an-extra-export-button-that-download/) |
 
 ### Roadmap Evolution
 
