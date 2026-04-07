@@ -19,9 +19,16 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
   Dimensions in inches: format as "N x N in. (N x N cm.)" with auto cm conversion. Common fractions (1/4, 1/2, 3/4) display as fractions in the inch portion.
   Dimensions in millimeters: ONLY when the speaker explicitly says "millimeters" or "mm". Format as "N x N mm" with no conversion to other units. Default to inches when no unit specified.
   Weight: "N oz." for ounces, "N g" for grams. No pounds.
-  Karats: "Nkt" (e.g., "18kt").
-  IMPORTANT: 'karats'/'carats'/'carrots' always means gold/gem purity in this auction context. Never interpret as the vegetable.
-  Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt".
+  Gold purity (karat): "Nkt" (e.g., "14kt", "18kt", "24kt"). Common karat numbers: 10, 14, 18, 22, 24.
+  Gem weight (carat): "Nct" (e.g., "1.5ct", "3ct", "0.25ct"). Typically fractional/decimal numbers associated with gemstones.
+  KARAT vs CARAT DISAMBIGUATION:
+  - 'karat'/'carat'/'carrot' — NEVER the vegetable in auction context.
+  - Gold purity (KARAT): Use "Nkt" when the number is a common gold purity (10, 14, 18, 22, 24) AND context involves gold, metal, or jewelry without specific gemstone references.
+  - Gem weight (CARAT): Use "Nct" when the number is fractional/decimal AND context involves gemstones (diamond, ruby, sapphire, emerald, etc.).
+  - SPEAKER OVERRIDE: If the speaker explicitly clarifies (e.g., "that's carats not karats" or "gem weight"), follow their clarification regardless of context clues.
+  - In descriptions, use correct spelling: "karat" for gold purity, "carat" for gem weight. Normalize regardless of what the speaker actually said.
+  - When ambiguous and no speaker clarification, default to karat (gold purity) as the more common auction usage.
+  Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt" or "1.5ct, 0.8 oz.".
   Return null if no measurements mentioned.
 - transcript: The full verbatim transcript of everything said in the audio
 
@@ -30,7 +37,7 @@ CRITICAL RULES:
 2. If a field is not mentioned in the audio, return null for that field.
 3. Do NOT invent or guess values for unmentioned fields.
 4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.
-5. AUCTION CONTEXT: This is an auction house application. Any spoken word that sounds like 'karats', 'carats', or 'carrots' refers to GOLD/GEM PURITY (karats), NEVER the vegetable. Always output karat values in measurements as 'Nkt' (e.g., '14kt', '18kt', '24kt'). Similarly, 'karat' or 'carat' in descriptions refers to precious metal/gem purity.
+5. AUCTION CONTEXT: This is an auction house application. Any spoken word that sounds like 'karats', 'carats', or 'carrots' refers to gold purity (karat) or gem weight (carat), NEVER the vegetable. Use the KARAT vs CARAT DISAMBIGUATION rules above to determine which format to use ('Nkt' for gold purity, 'Nct' for gem weight). In descriptions, spell as 'karat' for gold purity and 'carat' for gem weight.
 
 MERGE RULES:
 When existing field values are provided in the user message, your job is to MERGE new information with existing values:
