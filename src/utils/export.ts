@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { getDexieItemId } from "../db/idMapping";
 import { useAuthStore } from "../stores/authStore";
 import type { ExportSchema } from "../db/types";
+import * as XLSX from "xlsx";
 
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -196,3 +197,56 @@ export async function exportSession(sessionId: string): Promise<void> {
 
 // Re-export is identical to export -- regenerates from live data
 export const reExportSession = exportSession;
+
+export async function exportSessionAsSpreadsheet(sessionId: string): Promise<void> {
+  const data = await buildExportData(sessionId);
+
+  const wb = XLSX.utils.book_new();
+
+  // Session Info sheet -- key-value rows
+  const sessionRows: (string | number)[][] = [
+    ["Name", data.session.name],
+    ["Mode", data.session.mode],
+    ["Status", data.session.status],
+    ["Notes", data.session.notes ?? ""],
+    ["Created At", data.session.createdAt instanceof Date ? data.session.createdAt.toISOString() : String(data.session.createdAt)],
+    ["Updated At", data.session.updatedAt instanceof Date ? data.session.updatedAt.toISOString() : String(data.session.updatedAt)],
+    ["Exported At", data.exportedAt],
+    ["Item Count", data.items.length],
+  ];
+  const sessionSheet = XLSX.utils.aoa_to_sheet(sessionRows);
+  XLSX.utils.book_append_sheet(wb, sessionSheet, "Session Info");
+
+  // Items sheet -- flat rows, explicitly excluding photos and audio
+  const itemRows = data.items.map((item) => ({
+    Title: item.title ?? "",
+    Description: item.description ?? "",
+    Condition: item.condition ?? "",
+    Estimate: item.estimate ?? "",
+    Measurements: item.measurements ?? "",
+    Department: item.department ?? "",
+    Transcript: item.transcript ?? "",
+    "Receipt Number": item.receiptNumber ?? "",
+    "Sort Order": item.sortOrder,
+    "Created At": item.createdAt ?? "",
+  }));
+  const itemsSheet = XLSX.utils.json_to_sheet(itemRows);
+  XLSX.utils.book_append_sheet(wb, itemsSheet, "Items");
+
+  // Write workbook to array buffer and trigger download
+  const wbOut = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  const blob = new Blob([wbOut], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const sanitized = sanitizeFilename(data.session.name);
+  const baseName = sanitized || `tpc-session-${sessionId}`;
+  a.download = `${baseName}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Re-export as spreadsheet -- same function, no history recording
+export const reExportSessionAsSpreadsheet = exportSessionAsSpreadsheet;
