@@ -88,6 +88,74 @@ describe("catalogFieldsSchema", () => {
     }
   });
 
+  it("validates measurements with gem carat weight", () => {
+    const input = {
+      title: "Diamond Pendant",
+      description: "1.5 carat diamond pendant",
+      condition: "Excellent",
+      estimate: "2000",
+      category: "JWL",
+      measurements: "1.5ct, 0.8 oz.",
+      transcript: "Diamond pendant, one and a half carats, excellent condition",
+    };
+    const result = catalogFieldsSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.measurements).toBe("1.5ct, 0.8 oz.");
+    }
+  });
+
+  it("validates measurements mixing karats and carats", () => {
+    const input = {
+      title: "Diamond Ring",
+      description: "14 karat gold ring with 1.5 carat diamond",
+      condition: "Good",
+      estimate: "3000",
+      category: "JWL",
+      measurements: "14kt, 1.5ct, 2.1 oz.",
+      transcript: "Fourteen karat gold ring with one and a half carat diamond",
+    };
+    const result = catalogFieldsSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.measurements).toBe("14kt, 1.5ct, 2.1 oz.");
+    }
+  });
+
+  it("validates description uses 'carat' spelling for gems", () => {
+    const input = {
+      title: "Sapphire Brooch",
+      description: "3 carat sapphire brooch with silver setting",
+      condition: null,
+      estimate: "1500",
+      category: "JWL",
+      measurements: "3ct",
+      transcript: "Three carat sapphire brooch",
+    };
+    const result = catalogFieldsSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.description).toBe("3 carat sapphire brooch with silver setting");
+    }
+  });
+
+  it("validates description uses 'karat' spelling for gold", () => {
+    const input = {
+      title: "Gold Band",
+      description: "14 karat gold band",
+      condition: "Excellent",
+      estimate: "800",
+      category: "JWL",
+      measurements: "14kt, 1.2 oz.",
+      transcript: "Fourteen karat gold band",
+    };
+    const result = catalogFieldsSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.description).toBe("14 karat gold band");
+    }
+  });
+
   it("rejects measurements as array of numbers", () => {
     const input = {
       title: "Table",
