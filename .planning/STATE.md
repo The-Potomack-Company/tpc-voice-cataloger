@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 Phase: All v1.1 phases complete
 Plan: N/A
 Status: Milestone v1.1 shipped and archived
-Last activity: 2026-04-07 - Completed quick task 260407-ket: Add an extra export button that downloads a spreadsheet instead of the json
+Last activity: 2026-04-07 - Completed quick task 260407-ke7: Jewelry karat vs carat differentiation in specialist
 
 Progress: [██████████] 100%
 
@@ -74,6 +74,7 @@ None.
 | 260402-dqf | Sale sessions same behavior as house sessions - full screen detail view with fields transcript and recording button, no photo upload | 2026-04-02 | 8a350ce | Needs Review | [260402-dqf-sale-sessions-same-behavior-as-house-ses](./quick/260402-dqf-sale-sessions-same-behavior-as-house-ses/) |
 | 260402-dor | Ability to merge two items together into one | 2026-04-02 | a1a5816 | Verified | [260402-dor-ability-to-merge-two-items-together-into](./quick/260402-dor-ability-to-merge-two-items-together-into/) |
 | 260407-ket | Add an extra export button that downloads a spreadsheet instead of the json | 2026-04-07 | de8f45a | | [260407-ket-add-an-extra-export-button-that-download](./quick/260407-ket-add-an-extra-export-button-that-download/) |
+| 260407-ke7 | Jewelry karat vs carat differentiation in specialist | 2026-04-07 | bf56eda | | [260407-ke7-jewelry-karat-vs-carat-differentiation-i](./quick/260407-ke7-jewelry-karat-vs-carat-differentiation-i/) |
 
 ### Roadmap Evolution
 
