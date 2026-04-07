@@ -5,7 +5,7 @@ import { useSessionStore } from "../stores/sessionStore";
 import { useUserRole } from "../hooks/useUserRole";
 import { listAccounts, type Account } from "../services/adminApi";
 import { createBlankItem } from "../db/items";
-import { exportSession } from "../utils/export";
+import { exportSession, exportSessionAsSpreadsheet } from "../utils/export";
 import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ReturnDialog } from "../components/ReturnDialog";
@@ -77,6 +77,7 @@ export function SessionDetailPage() {
   const addItemRef = useRef<(() => Promise<void>) | null>(null);
 
   const [exporting, setExporting] = useState(false);
+  const [exportingXlsx, setExportingXlsx] = useState(false);
 
   const [confirmAction, setConfirmAction] = useState<
     "submit" | "delete" | "export" | "reopen" | null
@@ -223,6 +224,17 @@ export function SessionDetailPage() {
 
   const handleExportClick = () => {
     setConfirmAction('export');
+  };
+
+  const handleExportSpreadsheet = async () => {
+    setExportingXlsx(true);
+    try {
+      await exportSessionAsSpreadsheet(sessionId!);
+    } catch (err) {
+      console.error("Spreadsheet export failed:", err);
+    } finally {
+      setExportingXlsx(false);
+    }
   };
 
   const handleConfirm = async () => {
@@ -372,6 +384,31 @@ export function SessionDetailPage() {
               {queuedCount > 0
                 ? `${queuedCount} item${queuedCount === 1 ? '' : 's'} still queued`
                 : exporting ? 'Exporting...' : 'Export Session'}
+            </button>
+          )}
+
+          {/* Export Spreadsheet button -- admin only, no confirmation needed */}
+          {isAdmin && (
+            <button
+              onClick={handleExportSpreadsheet}
+              disabled={exportingXlsx || queuedCount > 0}
+              className="w-full min-h-12 rounded-lg border border-green-600 text-green-600 font-semibold
+                         hover:bg-green-600/10 transition-colors flex items-center justify-center gap-2
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportingXlsx ? (
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : queuedCount > 0 ? null : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125" />
+                </svg>
+              )}
+              {queuedCount > 0
+                ? `${queuedCount} item${queuedCount === 1 ? '' : 's'} still queued`
+                : exportingXlsx ? 'Exporting...' : 'Export Spreadsheet'}
             </button>
           )}
 
