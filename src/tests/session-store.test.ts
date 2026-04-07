@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
 const { mockFrom } = vi.hoisted(() => {
@@ -20,7 +20,7 @@ vi.mock("zustand/middleware", async () => {
   const actual = await vi.importActual<typeof import("zustand/middleware")>("zustand/middleware");
   return {
     ...actual,
-    persist: (fn: unknown, _opts?: unknown) => fn,
+    persist: (fn: unknown) => fn,
   };
 });
 
