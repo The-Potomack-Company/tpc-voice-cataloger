@@ -118,13 +118,9 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
           role="button"
           tabIndex={0}
           onClick={() => {
-            if (item.mode === "house") {
-              navigate(`/session/${sessionId}/item/${item.id}`);
-            } else {
-              onToggle();
-            }
+            navigate(`/session/${sessionId}/item/${item.id}`);
           }}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (item.mode === "house") { navigate(`/session/${sessionId}/item/${item.id}`); } else { onToggle(); } } }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/session/${sessionId}/item/${item.id}`); } }}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
         >
           {/* Item number + title preview */}

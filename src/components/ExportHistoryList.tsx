@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { reExportSession } from "../utils/export";
+import { reExportSession, exportSessionAsSpreadsheet } from "../utils/export";
 import type { Tables } from "../db/database.types";
 
 interface ExportHistoryListProps {
@@ -61,14 +61,24 @@ export function ExportHistoryList({ sessionId }: ExportHistoryListProps) {
                 })}{" "}
                 &mdash; {record.item_count} item{record.item_count !== 1 ? "s" : ""}
               </div>
-              <button
-                type="button"
-                onClick={() => reExportSession(sessionId)}
-                className="text-xs px-3 py-1 rounded-lg border border-accent text-accent
-                           hover:bg-accent/10 transition-colors font-medium"
-              >
-                Re-export
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => exportSessionAsSpreadsheet(sessionId)}
+                  className="text-xs px-3 py-1 rounded-lg border border-green-600 text-green-600
+                             hover:bg-green-600/10 transition-colors font-medium"
+                >
+                  Re-export (.xlsx)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => reExportSession(sessionId)}
+                  className="text-xs px-3 py-1 rounded-lg border border-accent text-accent
+                             hover:bg-accent/10 transition-colors font-medium"
+                >
+                  Re-export
+                </button>
+              </div>
             </div>
           ))}
         </div>

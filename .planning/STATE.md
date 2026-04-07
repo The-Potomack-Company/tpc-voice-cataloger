@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 Phase: All v1.1 phases complete
 Plan: N/A
 Status: Milestone v1.1 shipped and archived
-Last activity: 2026-04-01 - Completed quick task 260401-n6a: AI parses spoken quote markers into actual quotation marks
+Last activity: 2026-04-07 - Completed quick task 260407-ke7: Jewelry karat vs carat differentiation in specialist
 
 Progress: [██████████] 100%
 
@@ -66,10 +66,15 @@ None.
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260401-n74 | Fix AI parser interpreting karats as carrots - default to karats for auction house context | 2026-04-01 | dfa83c6 | [260401-n74-fix-ai-parser-interpreting-karats-as-car](./quick/260401-n74-fix-ai-parser-interpreting-karats-as-car/) |
-| 260401-n6a | AI parses spoken quote markers into actual quotation marks | 2026-04-01 | 5dbea9d | [260401-n6a-ai-parses-spoken-quote-markers-into-actu](./quick/260401-n6a-ai-parses-spoken-quote-markers-into-actu/) |
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260401-n74 | Fix AI parser interpreting karats as carrots - default to karats for auction house context | 2026-04-01 | dfa83c6 | | [260401-n74-fix-ai-parser-interpreting-karats-as-car](./quick/260401-n74-fix-ai-parser-interpreting-karats-as-car/) |
+| 260401-n6a | AI parses spoken quote markers into actual quotation marks | 2026-04-01 | 5dbea9d | | [260401-n6a-ai-parses-spoken-quote-markers-into-actu](./quick/260401-n6a-ai-parses-spoken-quote-markers-into-actu/) |
+| 260402-doe | Fix specialists unable to delete items - detect RLS silent failures in deleteItem/deleteSession | 2026-04-02 | c3710fa | | [260402-doe-specialists-unable-to-delete-items-from-](./quick/260402-doe-specialists-unable-to-delete-items-from-/) |
+| 260402-dqf | Sale sessions same behavior as house sessions - full screen detail view with fields transcript and recording button, no photo upload | 2026-04-02 | 8a350ce | Needs Review | [260402-dqf-sale-sessions-same-behavior-as-house-ses](./quick/260402-dqf-sale-sessions-same-behavior-as-house-ses/) |
+| 260402-dor | Ability to merge two items together into one | 2026-04-02 | a1a5816 | Verified | [260402-dor-ability-to-merge-two-items-together-into](./quick/260402-dor-ability-to-merge-two-items-together-into/) |
+| 260407-ket | Add an extra export button that downloads a spreadsheet instead of the json | 2026-04-07 | de8f45a | | [260407-ket-add-an-extra-export-button-that-download](./quick/260407-ket-add-an-extra-export-button-that-download/) |
+| 260407-ke7 | Jewelry karat vs carat differentiation in specialist | 2026-04-07 | bf56eda | | [260407-ke7-jewelry-karat-vs-carat-differentiation-i](./quick/260407-ke7-jewelry-karat-vs-carat-differentiation-i/) |
 
 ### Roadmap Evolution
 

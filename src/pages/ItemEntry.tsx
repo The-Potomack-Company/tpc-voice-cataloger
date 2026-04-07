@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
-import { isValidReceiptNumber } from "../utils/receiptNumber";
+
 import { PhotoCapture } from "../components/PhotoCapture";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { EditableField } from "../components/EditableField";
@@ -116,7 +116,7 @@ export function ItemEntryPage() {
   const currentPosition = item ? (item.sort_order + 1) : 1;
   const displayTotal = Math.max(totalItems, currentPosition);
 
-  // Prev/next item computation for left/right arrows (house mode)
+  // Prev/next item computation for left/right arrows (both modes)
   const prevItem = item
     ? items.filter(i => i.sort_order < item.sort_order).sort((a, b) => b.sort_order - a.sort_order)[0] ?? null
     : null;
@@ -143,10 +143,6 @@ export function ItemEntryPage() {
       }
     }
   }, [nextItem, sessionId, mode, navigate]);
-
-  // Check if record button should be disabled (sale mode: no valid receipt)
-  const isRecordDisabled =
-    mode === "sale" && !isValidReceiptNumber(receiptValue);
 
   // Delete item handler
   const handleDeleteItem = useCallback(async () => {
@@ -198,8 +194,18 @@ export function ItemEntryPage() {
           />
         )}
 
-        {/* Editable fields for house mode */}
-        {mode === "house" && item && (
+        {/* Receipt number input for sale mode (top field) */}
+        {mode === "sale" && (
+          <div onBlur={handleReceiptBlur}>
+            <ReceiptNumberInput
+              value={receiptValue}
+              onChange={handleReceiptChange}
+            />
+          </div>
+        )}
+
+        {/* Editable fields for both modes */}
+        {item && (
           <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             <EditableField
               label="Title"
@@ -244,12 +250,15 @@ export function ItemEntryPage() {
           </div>
         )}
 
-        {mode === "sale" && (
-          <div onBlur={handleReceiptBlur}>
-            <ReceiptNumberInput
-              value={receiptValue}
-              onChange={handleReceiptChange}
-            />
+        {/* Raw transcript */}
+        {item?.transcript && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Raw Transcript
+            </span>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+              {item.transcript}
+            </p>
           </div>
         )}
 
@@ -261,14 +270,7 @@ export function ItemEntryPage() {
       <div className="pb-4 pt-2 space-y-3">
         {itemId && !isNewItem && (
           <>
-            {isRecordDisabled && (
-              <p className="text-center text-sm text-gray-400 dark:text-gray-500 mb-2">
-                Enter receipt number to start recording
-              </p>
-            )}
-            <div className={isRecordDisabled ? "opacity-50 pointer-events-none" : ""}>
-              <RecordButton itemId={itemId} sessionId={sessionId!} />
-            </div>
+            <RecordButton itemId={itemId} sessionId={sessionId!} />
 
             {/* Recordings list */}
             <RecordingsList itemId={itemId} />
@@ -317,8 +319,8 @@ export function ItemEntryPage() {
         onCancel={() => setShowDeleteConfirm(false)}
       />
 
-      {/* Left/right navigation arrows for house mode */}
-      {mode === "house" && item && !isNewItem && (
+      {/* Left/right navigation arrows for both modes */}
+      {item && !isNewItem && (
         <>
           {/* Left arrow */}
           <button

@@ -29,7 +29,7 @@ interface SessionState {
     id: string,
     changes: Partial<SupabaseSession>,
   ) => Promise<void>;
-  deleteSession: (id: string) => Promise<void>;
+  deleteSession: (id: string) => Promise<boolean>;
   createItem: (
     sessionId: string,
     mode: string,
@@ -222,12 +222,13 @@ export const useSessionStore = create<SessionState>()(
           };
         });
 
-        const { error } = await supabase
+        const { data: deleted, error } = await supabase
           .from("sessions")
           .delete()
-          .eq("id", id);
+          .eq("id", id)
+          .select("id");
 
-        if (error) {
+        if (error || !deleted || deleted.length === 0) {
           // Revert
           set({
             sessions: originalSessions,
@@ -236,7 +237,12 @@ export const useSessionStore = create<SessionState>()(
               ...(originalItems !== undefined ? { [id]: originalItems } : {}),
             },
           });
+          if (!error) {
+            console.error("Delete blocked by RLS policy — session not deleted");
+          }
+          return false;
         }
+        return true;
       },
 
       createItem: async (sessionId, mode, receiptNumber?) => {
@@ -388,12 +394,13 @@ export const useSessionStore = create<SessionState>()(
           },
         }));
 
-        const { error } = await supabase
+        const { data: deleted, error } = await supabase
           .from("items")
           .delete()
-          .eq("id", itemId);
+          .eq("id", itemId)
+          .select("id");
 
-        if (error) {
+        if (error || !deleted || deleted.length === 0) {
           // Revert
           set((state) => ({
             itemsBySession: {
@@ -401,6 +408,9 @@ export const useSessionStore = create<SessionState>()(
               [sessionId]: originalItems,
             },
           }));
+          if (!error) {
+            console.error("Delete blocked by RLS policy — item not deleted");
+          }
         }
       },
 

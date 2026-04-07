@@ -137,7 +137,7 @@ describe("ItemList", () => {
     });
   });
 
-  it("expands a sale card on tap to show editable fields", async () => {
+  it("navigates sale card to detail view on tap", async () => {
     mockItems.current = [
       {
         id: "item-uuid-1",
@@ -163,17 +163,13 @@ describe("ItemList", () => {
       expect(screen.getByText(/12345-1/)).toBeInTheDocument();
     });
 
-    // Click to expand (sale mode uses accordion expand, not navigation)
+    // Click navigates to detail view (same as house mode) — no inline expansion
     fireEvent.click(screen.getByText(/12345-1/));
 
-    // Should show field labels in expanded section
-    await waitFor(() => {
-      expect(screen.getByText("Title")).toBeInTheDocument();
-      expect(screen.getByText("Description")).toBeInTheDocument();
-      expect(screen.getByText("Condition")).toBeInTheDocument();
-      expect(screen.getByText("Estimate")).toBeInTheDocument();
-      expect(screen.getByText("Category")).toBeInTheDocument();
-    });
+    // Sale cards no longer expand inline; they navigate to /session/:id/item/:itemId
+    // Since we're in MemoryRouter, navigation won't render the target page,
+    // but we verify no inline expansion occurs (no field labels appear)
+    expect(screen.queryByText("Title")).not.toBeInTheDocument();
   });
 
   it("shows Add Item button when items exist", async () => {
