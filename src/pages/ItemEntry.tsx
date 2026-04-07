@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
-import { isValidReceiptNumber } from "../utils/receiptNumber";
+
 import { PhotoCapture } from "../components/PhotoCapture";
 import { PhotoLightbox } from "../components/PhotoLightbox";
 import { EditableField } from "../components/EditableField";
@@ -144,10 +144,6 @@ export function ItemEntryPage() {
     }
   }, [nextItem, sessionId, mode, navigate]);
 
-  // Check if record button should be disabled (sale mode: no valid receipt)
-  const isRecordDisabled =
-    mode === "sale" && !isValidReceiptNumber(receiptValue);
-
   // Delete item handler
   const handleDeleteItem = useCallback(async () => {
     if (!itemId || isNewItem || !sessionId) return;
@@ -254,6 +250,18 @@ export function ItemEntryPage() {
           </div>
         )}
 
+        {/* Raw transcript */}
+        {item?.transcript && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Raw Transcript
+            </span>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+              {item.transcript}
+            </p>
+          </div>
+        )}
+
         {/* Item counter */}
         <ItemCounter current={currentPosition} total={displayTotal} />
       </div>
@@ -262,14 +270,7 @@ export function ItemEntryPage() {
       <div className="pb-4 pt-2 space-y-3">
         {itemId && !isNewItem && (
           <>
-            {isRecordDisabled && (
-              <p className="text-center text-sm text-gray-400 dark:text-gray-500 mb-2">
-                Enter receipt number to start recording
-              </p>
-            )}
-            <div className={isRecordDisabled ? "opacity-50 pointer-events-none" : ""}>
-              <RecordButton itemId={itemId} sessionId={sessionId!} />
-            </div>
+            <RecordButton itemId={itemId} sessionId={sessionId!} />
 
             {/* Recordings list */}
             <RecordingsList itemId={itemId} />
