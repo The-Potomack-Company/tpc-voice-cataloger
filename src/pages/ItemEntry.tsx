@@ -208,10 +208,10 @@ export function ItemEntryPage() {
         {item && (
           <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             <EditableField
-              label="Title"
+              label="Header"
               value={item.title ?? undefined}
               onSave={(val) => { updateItemField(item.id, sessionId!, "title", val).catch(console.error); }}
-              placeholder="Enter title"
+              placeholder="Enter header"
             />
             <EditableField
               label="Description"

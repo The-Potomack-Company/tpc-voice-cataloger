@@ -123,7 +123,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/session/${sessionId}/item/${item.id}`); } }}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
         >
-          {/* Item number + title preview */}
+          {/* Item number + header preview */}
           <div className="flex-1 min-w-0">
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate block">
               {item.mode === "sale" && item.receipt_number
@@ -262,7 +262,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
         {isExpanded && !isQueued && item.mode === "house" && (
           <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-2">
             {([
-              ["Title", item.title],
+              ["Header", item.title],
               ["Description", item.description],
               ["Measurements", item.measurements],
               ["Condition", item.condition],
@@ -281,10 +281,10 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
         {isExpanded && !isQueued && item.mode !== "house" && (
           <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
             <EditableField
-              label="Title"
+              label="Header"
               value={item.title ?? undefined}
               onSave={handleFieldSave("title")}
-              placeholder="Enter title"
+              placeholder="Enter header"
               readOnly={readOnly}
             />
             <EditableField
