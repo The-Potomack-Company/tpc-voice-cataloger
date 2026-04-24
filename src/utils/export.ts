@@ -2,6 +2,7 @@ import { db } from "../db";
 import { supabase } from "../lib/supabase";
 import { getDexieItemId } from "../db/idMapping";
 import { useAuthStore } from "../stores/authStore";
+import { trackEvent } from "../services/analytics";
 import type { ExportSchema } from "../db/types";
 import * as XLSX from "xlsx";
 
@@ -160,46 +161,81 @@ export function sanitizeFilename(name: string): string {
 }
 
 export async function exportSession(sessionId: string): Promise<void> {
-  const data = await buildExportData(sessionId);
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
+  const startedAt = performance.now();
+  try {
+    const data = await buildExportData(sessionId);
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
 
-  // Versioned filename: count existing exports for this session from Supabase
-  const { count } = await supabase
-    .from("export_history")
-    .select("*", { count: "exact", head: true })
-    .eq("session_id", sessionId);
+    // Versioned filename: count existing exports for this session from Supabase
+    const { count } = await supabase
+      .from("export_history")
+      .select("*", { count: "exact", head: true })
+      .eq("session_id", sessionId);
 
-  const version = (count ?? 0) + 1;
-  const sanitized = sanitizeFilename(data.session.name);
-  const baseName = sanitized || `tpc-session-${sessionId}`;
-  // First export: no version suffix. Subsequent: -v2, -v3, etc.
-  a.download = version === 1
-    ? `${baseName}.json`
-    : `${baseName}-v${version}.json`;
+    const version = (count ?? 0) + 1;
+    const sanitized = sanitizeFilename(data.session.name);
+    const baseName = sanitized || `tpc-session-${sessionId}`;
+    // First export: no version suffix. Subsequent: -v2, -v3, etc.
+    a.download = version === 1
+      ? `${baseName}.json`
+      : `${baseName}-v${version}.json`;
 
-  a.click();
-  URL.revokeObjectURL(url);
+    a.click();
+    URL.revokeObjectURL(url);
 
-  // Record export in Supabase export_history table
-  const userId = useAuthStore.getState().user?.id ?? "";
-  await supabase.from("export_history").insert({
-    session_id: sessionId,
-    session_name: data.session.name,
-    session_mode: data.session.mode,
-    item_count: data.items.length,
-    exported_by: userId,
-  });
+    // Record export in Supabase export_history table
+    const userId = useAuthStore.getState().user?.id ?? "";
+    await supabase.from("export_history").insert({
+      session_id: sessionId,
+      session_name: data.session.name,
+      session_mode: data.session.mode,
+      item_count: data.items.length,
+      exported_by: userId,
+    });
+
+    trackEvent({
+      event_type: "export.completed",
+      session_id: sessionId,
+      execution_time_ms: Math.round(performance.now() - startedAt),
+      total_items: data.items.length,
+      items_content: { format: "json", version },
+    });
+  } catch (err) {
+    trackEvent({
+      event_type: "export.failed",
+      session_id: sessionId,
+      execution_time_ms: Math.round(performance.now() - startedAt),
+      error_message: err instanceof Error ? err.message : String(err),
+      error_count: 1,
+      items_content: { format: "json" },
+    });
+    throw err;
+  }
 }
 
 // Re-export is identical to export -- regenerates from live data
 export const reExportSession = exportSession;
 
 export async function exportSessionAsSpreadsheet(sessionId: string): Promise<void> {
-  const data = await buildExportData(sessionId);
+  const startedAt = performance.now();
+  let data: ExportSchema;
+  try {
+    data = await buildExportData(sessionId);
+  } catch (err) {
+    trackEvent({
+      event_type: "export.failed",
+      session_id: sessionId,
+      execution_time_ms: Math.round(performance.now() - startedAt),
+      error_message: err instanceof Error ? err.message : String(err),
+      error_count: 1,
+      items_content: { format: "excel" },
+    });
+    throw err;
+  }
 
   const wb = XLSX.utils.book_new();
 
@@ -246,6 +282,14 @@ export async function exportSessionAsSpreadsheet(sessionId: string): Promise<voi
   a.download = `${baseName}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
+
+  trackEvent({
+    event_type: "export.completed",
+    session_id: sessionId,
+    execution_time_ms: Math.round(performance.now() - startedAt),
+    total_items: data.items.length,
+    items_content: { format: "excel" },
+  });
 }
 
 // Re-export as spreadsheet -- same function, no history recording

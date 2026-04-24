@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useLocation } from "react-router";
 import { InstallBanner } from "../components/InstallBanner";
 import { OfflineIndicator } from "../components/OfflineIndicator";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
@@ -12,6 +12,14 @@ import {
   processWriteAheadQueue,
 } from "../hooks/useWriteAheadQueue";
 import { useSessionStore } from "../stores/sessionStore";
+import { trackUiInteraction } from "../services/analytics";
+
+// Normalize :sessionId and :itemId into route templates so page_path aggregates cleanly.
+function normalizePath(pathname: string): string {
+  return pathname
+    .replace(/\/session\/[^/]+\/item\/[^/]+/, "/session/:sessionId/item/:itemId")
+    .replace(/\/session\/[^/]+/, "/session/:sessionId");
+}
 
 function tabClass({ isActive }: { isActive: boolean }): string {
   return `flex flex-col items-center py-3 px-4 min-h-12 min-w-12 transition-colors ${
@@ -23,7 +31,19 @@ export function AppLayout() {
   useOnlineStatus();
   useWriteAheadQueue();
 
+  const location = useLocation();
   const fetchSessions = useSessionStore(s => s.fetchSessions);
+
+  useEffect(() => {
+    const template = normalizePath(location.pathname);
+    const sessionMatch = location.pathname.match(/\/session\/([^/]+)/);
+    trackUiInteraction({
+      interaction_type: "view",
+      page_path: template,
+      session_id: sessionMatch?.[1] ?? null,
+      metadata: { raw_path: location.pathname },
+    });
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleReconnect = async () => {

@@ -2,6 +2,7 @@ import { supabase } from "../lib/supabase";
 import { db } from "../db";
 import { getDexieItemId } from "../db/idMapping";
 import { useSessionStore } from "../stores/sessionStore";
+import { trackEvent } from "./analytics";
 import type { Tables } from "../db/database.types";
 
 type SupabaseItem = Tables<"items">;
@@ -55,12 +56,20 @@ export async function mergeItems(
   sourceId: string,
   sessionId: string,
 ): Promise<void> {
+  const startedAt = performance.now();
   const state = useSessionStore.getState();
   const items = state.itemsBySession[sessionId] ?? [];
 
   const target = items.find((i) => i.id === targetId);
   const source = items.find((i) => i.id === sourceId);
   if (!target || !source) {
+    trackEvent({
+      event_type: "item.merged.failed",
+      session_id: sessionId,
+      error_message: "items_not_found",
+      error_count: 1,
+      items_content: { target_id: targetId, source_id: sourceId },
+    });
     throw new Error("Could not find both items for merge");
   }
 
@@ -122,4 +131,11 @@ export async function mergeItems(
 
   // Refresh store
   await state.fetchItems(sessionId);
+
+  trackEvent({
+    event_type: "item.merged",
+    session_id: sessionId,
+    execution_time_ms: Math.round(performance.now() - startedAt),
+    items_content: { target_id: targetId, source_id: sourceId },
+  });
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { trackEvent } from '../services/analytics';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthState {
@@ -32,10 +33,16 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   signIn: async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      trackEvent({ event_type: 'auth.login' });
+    } else {
+      trackEvent({ event_type: 'auth.login.failed', error_message: error.message, error_count: 1 });
+    }
     return { error };
   },
 
   signOut: async () => {
+    trackEvent({ event_type: 'auth.logout' });
     await supabase.auth.signOut({ scope: 'local' });
   },
 

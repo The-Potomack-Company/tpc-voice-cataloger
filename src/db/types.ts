@@ -81,7 +81,7 @@ export interface IdMapping {
 
 export interface WriteAheadEntry {
   id?: number;
-  table: "sessions" | "items";
+  table: "sessions" | "items" | "analytics_events" | "ui_interactions";
   operation: "insert" | "update" | "delete";
   payload: Record<string, unknown>;
   tempId?: string;

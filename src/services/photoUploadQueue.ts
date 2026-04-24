@@ -1,5 +1,6 @@
 import { db } from "../db";
 import { supabase } from "../lib/supabase";
+import { trackEvent } from "./analytics";
 import type { PhotoUploadEntry } from "../db/types";
 
 const CONCURRENCY = 2;
@@ -45,6 +46,7 @@ export { enqueuePhotoUpload as enqueue };
  */
 export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
   const entryId = entry.id!;
+  const startedAt = performance.now();
   console.log("[photoUploadQueue] Processing entry", entryId, "dexiePhotoId:", entry.dexiePhotoId, "path:", entry.storagePath);
 
   // Mark as uploading
@@ -94,6 +96,14 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
 
     // Mark queue entry as uploaded
     await db.photoUploadQueue.update(entryId, { status: "uploaded" });
+
+    trackEvent({
+      event_type: "photo.uploaded",
+      session_id: entry.sessionId,
+      execution_time_ms: Math.round(performance.now() - startedAt),
+      photo_count: 1,
+      items_content: { item_id: entry.itemId, retry_count: entry.retryCount },
+    });
   } catch (err) {
     console.error("[photoUploadQueue] Upload failed for entry", entryId, err);
     // Increment retry count
@@ -102,6 +112,14 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
       await db.photoUploadQueue.update(entryId, {
         status: "failed",
         retryCount: newRetryCount,
+      });
+      trackEvent({
+        event_type: "photo.upload_failed",
+        session_id: entry.sessionId,
+        execution_time_ms: Math.round(performance.now() - startedAt),
+        error_message: err instanceof Error ? err.message : String(err),
+        error_count: newRetryCount,
+        items_content: { item_id: entry.itemId, storage_path: entry.storagePath },
       });
     } else {
       await db.photoUploadQueue.update(entryId, {

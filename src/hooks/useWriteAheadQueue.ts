@@ -54,6 +54,9 @@ export async function processWriteAheadQueue(): Promise<void> {
           entry.id,
           err,
         );
+        // Intentionally do NOT emit an analytics event here: trackEvent re-enqueues into this
+        // same queue, which would grow the queue on every failed drain. Drain failures surface
+        // via console + the global app.error handler on unhandled rejections.
         break; // Stop on first failure to maintain FIFO ordering
       }
     }
