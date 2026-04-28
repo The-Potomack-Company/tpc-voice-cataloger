@@ -9,6 +9,11 @@ type Json = unknown;
 
 export interface AnalyticsEventPayload {
   event_type: string;
+  /**
+   * Override the auto-resolved user email. Use when the auth session is about to be
+   * (or has just been) invalidated — supabase.auth.getUser() can return null mid-signout.
+   */
+  user_email?: string | null;
   session_id?: string | null;
   execution_time_ms?: number;
   error_message?: string | null;

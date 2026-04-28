@@ -13,7 +13,11 @@ interface AuthState {
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
 }
 
-export const useAuthStore = create<AuthState>()((set) => ({
+// Re-entry guard: prevents duplicate auth.logout rows when the sign-out button
+// is double-clicked or a navigation triggers a second concurrent signOut.
+let signingOut = false;
+
+export const useAuthStore = create<AuthState>()((set, get) => ({
   session: null,
   user: null,
   loading: true,
@@ -42,10 +46,18 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   signOut: async () => {
-    // Direct insert (awaited) so the row lands while the session is still valid.
-    // The queued path would drain after sign-out and end up attributed to the next login.
-    await trackEventNow({ event_type: 'auth.logout' });
-    await supabase.auth.signOut({ scope: 'local' });
+    if (signingOut) return;
+    signingOut = true;
+    try {
+      // Capture email from the in-memory store snapshot (synchronous) so it survives
+      // even if supabase.auth.getUser() races with the impending signOut.
+      const email = get().user?.email ?? null;
+      // Direct insert (awaited) so the row lands while the session is still valid.
+      await trackEventNow({ event_type: 'auth.logout', user_email: email });
+      await supabase.auth.signOut({ scope: 'local' });
+    } finally {
+      signingOut = false;
+    }
   },
 
   updatePassword: async (newPassword) => {
