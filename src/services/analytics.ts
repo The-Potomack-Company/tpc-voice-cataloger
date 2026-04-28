@@ -3,7 +3,10 @@ import { enqueueWrite } from "../hooks/useWriteAheadQueue";
 import pkg from "../../package.json";
 
 const APP_SOURCE = "tpc-app";
-const APP_VERSION = (pkg as { version: string }).version;
+// Vercel auto-injects VITE_VERCEL_GIT_COMMIT_SHA on builds; falls back to package.json
+// version locally. Empty string means "unknown" — treated as null on insert.
+const COMMIT_SHA = (import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA as string | undefined) ?? "";
+const APP_VERSION = COMMIT_SHA || (pkg as { version: string }).version || "";
 
 type Json = unknown;
 
@@ -51,6 +54,15 @@ async function getUserContext(): Promise<{ userId: string | null; email: string 
   }
 }
 
+function buildAnalyticsRow(payload: AnalyticsEventPayload, email: string | null) {
+  return {
+    app_source: APP_SOURCE,
+    app_version: APP_VERSION || null,
+    user_email: email,
+    ...payload,
+  };
+}
+
 /**
  * Emit a business/workflow/performance/error event into the shared analytics_events table.
  * Offline-safe (reuses write-ahead queue). Never throws — analytics must not break user flows.
@@ -61,15 +73,26 @@ export async function trackEvent(payload: AnalyticsEventPayload): Promise<void> 
     await enqueueWrite({
       table: "analytics_events",
       operation: "insert",
-      payload: {
-        app_source: APP_SOURCE,
-        extension_version: APP_VERSION,
-        user_email: email,
-        ...payload,
-      },
+      payload: buildAnalyticsRow(payload, email),
     });
   } catch (err) {
     console.warn("[analytics] trackEvent failed", err);
+  }
+}
+
+/**
+ * Synchronous direct-insert variant for events that must land while the current auth
+ * context is still valid (e.g. logout — the queued path drains after sign-out, by which
+ * time RLS rejects the insert and the event ends up attributed to the next session).
+ * Awaits the supabase insert. Never throws.
+ */
+export async function trackEventNow(payload: AnalyticsEventPayload): Promise<void> {
+  try {
+    const { email } = await getUserContext();
+    const row = buildAnalyticsRow(payload, email) as never;
+    await supabase.from("analytics_events").insert(row);
+  } catch (err) {
+    console.warn("[analytics] trackEventNow failed", err);
   }
 }
 
@@ -85,6 +108,7 @@ export async function trackUiInteraction(payload: UiInteractionPayload): Promise
       operation: "insert",
       payload: {
         app_source: APP_SOURCE,
+        app_version: APP_VERSION || null,
         user_id: userId,
         user_email: email,
         ...payload,

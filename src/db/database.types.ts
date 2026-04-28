@@ -42,6 +42,7 @@ export type Database = {
       analytics_events: {
         Row: {
           app_source: string | null
+          app_version: string | null
           cancelled: boolean | null
           category_id: string | null
           columns_mapped: number | null
@@ -73,6 +74,7 @@ export type Database = {
         }
         Insert: {
           app_source?: string | null
+          app_version?: string | null
           cancelled?: boolean | null
           category_id?: string | null
           columns_mapped?: number | null
@@ -104,6 +106,7 @@ export type Database = {
         }
         Update: {
           app_source?: string | null
+          app_version?: string | null
           cancelled?: boolean | null
           category_id?: string | null
           columns_mapped?: number | null
@@ -138,6 +141,7 @@ export type Database = {
       ui_interactions: {
         Row: {
           app_source: string
+          app_version: string | null
           created_at: string
           element_id: string | null
           id: string
@@ -150,6 +154,7 @@ export type Database = {
         }
         Insert: {
           app_source?: string
+          app_version?: string | null
           created_at?: string
           element_id?: string | null
           id?: string
@@ -162,6 +167,7 @@ export type Database = {
         }
         Update: {
           app_source?: string
+          app_version?: string | null
           created_at?: string
           element_id?: string | null
           id?: string

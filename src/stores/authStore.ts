@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { trackEvent } from '../services/analytics';
+import { trackEvent, trackEventNow } from '../services/analytics';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthState {
@@ -42,7 +42,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   signOut: async () => {
-    trackEvent({ event_type: 'auth.logout' });
+    // Direct insert (awaited) so the row lands while the session is still valid.
+    // The queued path would drain after sign-out and end up attributed to the next login.
+    await trackEventNow({ event_type: 'auth.logout' });
     await supabase.auth.signOut({ scope: 'local' });
   },
 
