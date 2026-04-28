@@ -1,0 +1,97 @@
+/* ============================================================
+   TPC Unified — Design Tokens
+   v1.0 · single source of truth for color, type, and shape
+   ------------------------------------------------------------
+   Theme thesis:
+     Cool near-white surfaces. Teal-blue primary accent.
+     Warm sand for data viz. EB Garamond italic for display
+     moments, Inter for UI, IBM Plex Mono for metadata.
+     Tighter geometry than Soft — 6 px radii, denser type.
+     Built for power users on the desk.
+
+   How to consume:
+     1. Load the fonts (see /handoff-unified/README.md).
+     2. Import this file ONCE at the app root.
+     3. Wrap your app shell in `<div class="tpc">` for light
+        or `<div class="tpc tpc-dark">` for dark.
+        All children read from the CSS custom properties below.
+
+     Do NOT redefine these tokens per-component.
+   ============================================================ */
+
+.tpc {
+  /* Surfaces — cool near-white */
+  --bg:        oklch(0.985 0.003 240);
+  --bg-2:      oklch(0.97  0.004 240);
+  --bg-3:      oklch(0.945 0.005 240);
+
+  /* Rules */
+  --rule:      oklch(0.90 0.006 240);
+  --rule-2:    oklch(0.82 0.008 240);
+
+  /* Ink */
+  --ink:       oklch(0.22 0.020 255);
+  --ink-2:     oklch(0.40 0.015 255);
+  --ink-3:     oklch(0.56 0.012 255);
+  --ink-4:     oklch(0.70 0.010 255);
+
+  /* Accent — teal-blue. ONE accent for action and selection. */
+  --accent:        oklch(0.58 0.13 225);
+  --accent-hover:  oklch(0.52 0.13 225);
+  --accent-wash:   oklch(0.95 0.03 225);
+  --accent-ink:    oklch(0.98 0.008 225);
+
+  /* Secondary — warm sand for data viz only */
+  --sand:       oklch(0.72 0.09 75);
+  --sand-wash:  oklch(0.95 0.03 75);
+
+  /* Semantic */
+  --ok:        oklch(0.55 0.10 155);
+  --ok-wash:   oklch(0.95 0.03 155);
+  --warn:      oklch(0.62 0.11 75);
+  --warn-wash: oklch(0.95 0.035 80);
+  --err:       oklch(0.55 0.13 28);
+  --err-wash:  oklch(0.95 0.03 28);
+
+  /* Type */
+  --font-display: "EB Garamond", "Iowan Old Style", Georgia, serif;
+  --font-ui:      "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* Radii — tight, technical */
+  --radius-sm: 4px;
+  --radius:    6px;
+  --radius-lg: 10px;
+
+  /* Apply to children */
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  font-size: 13px;
+}
+
+/* Dark — same temperature, deep cool */
+.tpc.tpc-dark {
+  --bg:    oklch(0.19 0.015 255);
+  --bg-2:  oklch(0.22 0.016 255);
+  --bg-3:  oklch(0.26 0.018 255);
+
+  --rule:    oklch(0.30 0.018 255);
+  --rule-2:  oklch(0.38 0.020 255);
+
+  --ink:    oklch(0.97 0.008 240);
+  --ink-2:  oklch(0.82 0.012 240);
+  --ink-3:  oklch(0.65 0.014 240);
+  --ink-4:  oklch(0.50 0.014 240);
+
+  --accent:        oklch(0.72 0.13 225);
+  --accent-hover:  oklch(0.78 0.13 225);
+  --accent-wash:   oklch(0.32 0.05 225);
+  --accent-ink:    oklch(0.16 0.02 255);
+
+  --ok-wash:    oklch(0.30 0.04 155);
+  --warn-wash:  oklch(0.30 0.04 80);
+  --err-wash:   oklch(0.30 0.05 28);
+  --sand-wash:  oklch(0.30 0.04 75);
+}
