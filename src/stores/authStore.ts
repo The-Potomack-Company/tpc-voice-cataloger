@@ -13,8 +13,9 @@ interface AuthState {
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
 }
 
-// Re-entry guard: prevents duplicate auth.logout rows when the sign-out button
-// is double-clicked or a navigation triggers a second concurrent signOut.
+// Re-entry guards: prevent duplicate auth.login / auth.logout rows when buttons
+// are double-clicked or a navigation triggers a second concurrent call.
+let signingIn = false;
 let signingOut = false;
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
@@ -36,13 +37,26 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   signIn: async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error) {
-      trackEvent({ event_type: 'auth.login' });
-    } else {
-      trackEvent({ event_type: 'auth.login.failed', error_message: error.message, error_count: 1 });
+    if (signingIn) return { error: null };
+    signingIn = true;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) {
+        // Pass email synchronously — supabase.auth.getUser() may not yet reflect the
+        // freshly signed-in user when trackEvent runs.
+        trackEvent({ event_type: 'auth.login', user_email: email });
+      } else {
+        trackEvent({
+          event_type: 'auth.login.failed',
+          user_email: email,
+          error_message: error.message,
+          error_count: 1,
+        });
+      }
+      return { error };
+    } finally {
+      signingIn = false;
     }
-    return { error };
   },
 
   signOut: async () => {
