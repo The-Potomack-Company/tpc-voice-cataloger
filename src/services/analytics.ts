@@ -61,6 +61,8 @@ function buildAnalyticsRow(payload: AnalyticsEventPayload, email: string | null)
     app_source: APP_SOURCE,
     app_version: APP_VERSION || null,
     user_email: email,
+    // Stamp at event time, not insert time — preserves accuracy across the queue/drain path.
+    created_at: new Date().toISOString(),
     ...payload,
   };
 }
@@ -113,6 +115,8 @@ export async function trackUiInteraction(payload: UiInteractionPayload): Promise
         app_version: APP_VERSION || null,
         user_id: userId,
         user_email: email,
+        // Stamp at event time, not drain time.
+        created_at: new Date().toISOString(),
         ...payload,
       },
     });

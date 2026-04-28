@@ -13,6 +13,12 @@ export async function enqueueWrite(
     ...entry,
     createdAt: new Date(),
   });
+  // Trigger a drain immediately when online. The `processing` mutex below
+  // dedupes concurrent calls, so background nav traffic can't pile up.
+  // Without this, events only drain on app mount or on offline->online flips.
+  if (navigator.onLine) {
+    processWriteAheadQueue().catch(() => {});
+  }
 }
 
 export async function processWriteAheadQueue(): Promise<void> {
