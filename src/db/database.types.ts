@@ -39,6 +39,155 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          app_source: string | null
+          app_version: string | null
+          cancelled: boolean | null
+          category_id: string | null
+          columns_mapped: number | null
+          created_at: string
+          detection_method: string | null
+          error_count: number | null
+          error_message: string | null
+          event_type: string
+          execution_time_ms: number | null
+          extension_version: string | null
+          field_mode: string | null
+          field_selection: string | null
+          generated_description: string | null
+          generated_title: string | null
+          id: string
+          import_mode: string | null
+          input_rows: number | null
+          items_content: Json | null
+          output_rows: number | null
+          photo_count: number | null
+          receipt_number: string | null
+          session_id: string | null
+          skipped_count: number | null
+          success_count: number | null
+          total_groups: number | null
+          total_items: number | null
+          total_photos: number | null
+          user_email: string | null
+        }
+        Insert: {
+          app_source?: string | null
+          app_version?: string | null
+          cancelled?: boolean | null
+          category_id?: string | null
+          columns_mapped?: number | null
+          created_at?: string
+          detection_method?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          event_type: string
+          execution_time_ms?: number | null
+          extension_version?: string | null
+          field_mode?: string | null
+          field_selection?: string | null
+          generated_description?: string | null
+          generated_title?: string | null
+          id?: string
+          import_mode?: string | null
+          input_rows?: number | null
+          items_content?: Json | null
+          output_rows?: number | null
+          photo_count?: number | null
+          receipt_number?: string | null
+          session_id?: string | null
+          skipped_count?: number | null
+          success_count?: number | null
+          total_groups?: number | null
+          total_items?: number | null
+          total_photos?: number | null
+          user_email?: string | null
+        }
+        Update: {
+          app_source?: string | null
+          app_version?: string | null
+          cancelled?: boolean | null
+          category_id?: string | null
+          columns_mapped?: number | null
+          created_at?: string
+          detection_method?: string | null
+          error_count?: number | null
+          error_message?: string | null
+          event_type?: string
+          execution_time_ms?: number | null
+          extension_version?: string | null
+          field_mode?: string | null
+          field_selection?: string | null
+          generated_description?: string | null
+          generated_title?: string | null
+          id?: string
+          import_mode?: string | null
+          input_rows?: number | null
+          items_content?: Json | null
+          output_rows?: number | null
+          photo_count?: number | null
+          receipt_number?: string | null
+          session_id?: string | null
+          skipped_count?: number | null
+          success_count?: number | null
+          total_groups?: number | null
+          total_items?: number | null
+          total_photos?: number | null
+          user_email?: string | null
+        }
+        Relationships: []
+      }
+      ui_interactions: {
+        Row: {
+          app_source: string
+          app_version: string | null
+          created_at: string
+          element_id: string | null
+          id: string
+          interaction_type: string
+          metadata: Json | null
+          page_path: string | null
+          session_id: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_source?: string
+          app_version?: string | null
+          created_at?: string
+          element_id?: string | null
+          id?: string
+          interaction_type: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_source?: string
+          app_version?: string | null
+          created_at?: string
+          element_id?: string | null
+          id?: string
+          interaction_type?: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ui_interactions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       export_history: {
         Row: {
           exported_at: string

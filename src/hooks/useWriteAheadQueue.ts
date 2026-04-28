@@ -13,6 +13,12 @@ export async function enqueueWrite(
     ...entry,
     createdAt: new Date(),
   });
+  // Trigger a drain immediately when online. The `processing` mutex below
+  // dedupes concurrent calls, so background nav traffic can't pile up.
+  // Without this, events only drain on app mount or on offline->online flips.
+  if (navigator.onLine) {
+    processWriteAheadQueue().catch(() => {});
+  }
 }
 
 export async function processWriteAheadQueue(): Promise<void> {
@@ -54,6 +60,9 @@ export async function processWriteAheadQueue(): Promise<void> {
           entry.id,
           err,
         );
+        // Intentionally do NOT emit an analytics event here: trackEvent re-enqueues into this
+        // same queue, which would grow the queue on every failed drain. Drain failures surface
+        // via console + the global app.error handler on unhandled rejections.
         break; // Stop on first failure to maintain FIFO ordering
       }
     }

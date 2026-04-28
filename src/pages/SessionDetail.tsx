@@ -6,6 +6,7 @@ import { useUserRole } from "../hooks/useUserRole";
 import { listAccounts, type Account } from "../services/adminApi";
 import { createBlankItem } from "../db/items";
 import { exportSession, exportSessionAsSpreadsheet } from "../utils/export";
+import { trackUiInteraction } from "../services/analytics";
 import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ReturnDialog } from "../components/ReturnDialog";
@@ -223,10 +224,20 @@ export function SessionDetailPage() {
   };
 
   const handleExportClick = () => {
+    trackUiInteraction({
+      interaction_type: "click",
+      element_id: "btn.session-export-json",
+      session_id: sessionId,
+    });
     setConfirmAction('export');
   };
 
   const handleExportSpreadsheet = async () => {
+    trackUiInteraction({
+      interaction_type: "click",
+      element_id: "btn.session-export-excel",
+      session_id: sessionId,
+    });
     setExportingXlsx(true);
     try {
       await exportSessionAsSpreadsheet(sessionId!);
@@ -239,10 +250,20 @@ export function SessionDetailPage() {
 
   const handleConfirm = async () => {
     if (confirmAction === "submit") {
+      trackUiInteraction({
+        interaction_type: "submit",
+        element_id: "btn.session-submit",
+        session_id: sessionId,
+      });
       await storeUpdateSession(session.id, { status: 'submitted', review_notes: null });
     } else if (confirmAction === "export") {
       await handleExport();
     } else if (confirmAction === "reopen") {
+      trackUiInteraction({
+        interaction_type: "click",
+        element_id: "btn.session-reopen",
+        session_id: sessionId,
+      });
       await storeUpdateSession(session.id, { status: 'active' });
     } else if (confirmAction === "delete") {
       const success = await useSessionStore.getState().deleteSession(session.id);

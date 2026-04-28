@@ -6,6 +6,7 @@ import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
 import { useSessionStore } from "../stores/sessionStore";
 import { applySpokenQuotes } from "../utils/spokenPunctuation";
+import { trackEvent } from "./analytics";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -97,6 +98,12 @@ export async function processAudioWithAi(
   itemId: string,
   sessionId: string,
 ): Promise<void> {
+  const startedAt = performance.now();
+  trackEvent({
+    event_type: "ai.processing_started",
+    session_id: sessionId,
+    items_content: { item_id: itemId },
+  });
   try {
     // Set ai_status to "processing" via Supabase
     await supabase
@@ -126,7 +133,16 @@ export async function processAudioWithAi(
       .eq("id", itemId)
       .maybeSingle();
 
-    if (!currentItem) return; // Item deleted mid-processing, bail out
+    if (!currentItem) {
+      trackEvent({
+        event_type: "ai.processing_cancelled",
+        session_id: sessionId,
+        execution_time_ms: Math.round(performance.now() - startedAt),
+        cancelled: true,
+        items_content: { item_id: itemId, reason: "item_deleted" },
+      });
+      return; // Item deleted mid-processing, bail out
+    }
 
     const hasExistingData = Object.values(currentItem).some(v => v !== null);
 
@@ -248,11 +264,29 @@ export async function processAudioWithAi(
       .update(supabaseUpdate)
       .eq("id", itemId);
 
+    trackEvent({
+      event_type: "ai.processing_succeeded",
+      session_id: sessionId,
+      execution_time_ms: Math.round(performance.now() - startedAt),
+      generated_title: (supabaseUpdate.title as string | undefined) ?? null,
+      generated_description: (supabaseUpdate.description as string | undefined) ?? null,
+      category_id: (supabaseUpdate.category as string | undefined) ?? null,
+      items_content: { item_id: itemId, fields: Object.keys(supabaseUpdate) },
+    });
+
     // Refresh Zustand store so UI re-renders with AI results
     useSessionStore.getState().fetchItems(sessionId).catch(() => {});
   } catch (error) {
     // On ANY error: set ai_status to "failed", set fallback description
     console.error("AI processing error:", error);
+    trackEvent({
+      event_type: "ai.processing_failed",
+      session_id: sessionId,
+      execution_time_ms: Math.round(performance.now() - startedAt),
+      error_message: error instanceof Error ? error.message : String(error),
+      error_count: 1,
+      items_content: { item_id: itemId },
+    });
     try {
       await supabase
         .from("items")

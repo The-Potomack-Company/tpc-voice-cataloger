@@ -2,12 +2,31 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
 import { enqueueWrite } from "../hooks/useWriteAheadQueue";
+import { trackEvent } from "../services/analytics";
 import type { Tables } from "../db/database.types";
 
 function isNetworkError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const msg = String((err as { message?: string }).message ?? "");
   return msg.includes("Failed to fetch") || msg.includes("ERR_INTERNET_DISCONNECTED") || msg.includes("NetworkError") || msg.includes("network");
+}
+
+// Debounce item.field_edited analytics events: coalesce rapid edits to the same field
+// into a single event emitted 2s after the last change.
+const fieldEditTimers = new Map<string, ReturnType<typeof setTimeout>>();
+function scheduleFieldEditEvent(itemId: string, sessionId: string, field: string): void {
+  const key = `${itemId}:${field}`;
+  const existing = fieldEditTimers.get(key);
+  if (existing) clearTimeout(existing);
+  const t = setTimeout(() => {
+    fieldEditTimers.delete(key);
+    trackEvent({
+      event_type: "item.field_edited",
+      session_id: sessionId,
+      items_content: { item_id: itemId, field },
+    });
+  }, 2000);
+  fieldEditTimers.set(key, t);
 }
 
 type SupabaseSession = Tables<"sessions">;
@@ -142,6 +161,11 @@ export const useSessionStore = create<SessionState>()(
             ),
           }));
 
+          trackEvent({
+            event_type: "session.created",
+            session_id: newSession.id,
+            items_content: { mode: data.mode, assigned: !!data.assigned_to },
+          });
           return newSession.id;
         } catch (err) {
           if (isNetworkError(err)) {
@@ -158,12 +182,22 @@ export const useSessionStore = create<SessionState>()(
                 assigned_to: data.assigned_to ?? null,
               },
             });
+            trackEvent({
+              event_type: "session.created",
+              session_id: tempId,
+              items_content: { mode: data.mode, assigned: !!data.assigned_to, offline: true },
+            });
             return tempId;
           }
           // Non-network error — revert optimistic add
           set((state) => ({
             sessions: state.sessions.filter((s) => s.id !== tempId),
           }));
+          trackEvent({
+            event_type: "session.created.failed",
+            error_message: err instanceof Error ? err.message : String(err),
+            error_count: 1,
+          });
           throw err;
         }
       },
@@ -189,6 +223,20 @@ export const useSessionStore = create<SessionState>()(
             .eq("id", id);
 
           if (error) throw error;
+
+          if (changes.status && changes.status !== original.status) {
+            trackEvent({
+              event_type: "session.status_changed",
+              session_id: id,
+              items_content: { from: original.status, to: changes.status },
+            });
+          } else {
+            trackEvent({
+              event_type: "session.updated",
+              session_id: id,
+              items_content: { fields: Object.keys(changes) },
+            });
+          }
         } catch (err) {
           if (isNetworkError(err)) {
             await enqueueWrite({
@@ -240,8 +288,15 @@ export const useSessionStore = create<SessionState>()(
           if (!error) {
             console.error("Delete blocked by RLS policy — session not deleted");
           }
+          trackEvent({
+            event_type: "session.deleted.failed",
+            session_id: id,
+            error_message: error?.message ?? "blocked_by_rls",
+            error_count: 1,
+          });
           return false;
         }
+        trackEvent({ event_type: "session.deleted", session_id: id });
         return true;
       },
 
@@ -306,6 +361,11 @@ export const useSessionStore = create<SessionState>()(
             },
           }));
 
+          trackEvent({
+            event_type: "item.created",
+            session_id: sessionId,
+            items_content: { item_id: newItem.id, mode, sort_order: nextSortOrder },
+          });
           return newItem.id;
         } catch (err) {
           if (isNetworkError(err)) {
@@ -321,6 +381,11 @@ export const useSessionStore = create<SessionState>()(
                 receipt_number: receiptNumber ?? null,
               },
             });
+            trackEvent({
+              event_type: "item.created",
+              session_id: sessionId,
+              items_content: { item_id: tempId, mode, sort_order: nextSortOrder, offline: true },
+            });
             return tempId;
           }
           // Non-network error — revert
@@ -332,6 +397,12 @@ export const useSessionStore = create<SessionState>()(
               ),
             },
           }));
+          trackEvent({
+            event_type: "item.created.failed",
+            session_id: sessionId,
+            error_message: err instanceof Error ? err.message : String(err),
+            error_count: 1,
+          });
           throw err;
         }
       },
@@ -359,6 +430,7 @@ export const useSessionStore = create<SessionState>()(
             .eq("id", itemId);
 
           if (error) throw error;
+          scheduleFieldEditEvent(itemId, sessionId, field);
         } catch (err) {
           if (isNetworkError(err)) {
             await enqueueWrite({
@@ -366,6 +438,7 @@ export const useSessionStore = create<SessionState>()(
               operation: "update",
               payload: { id: itemId, [field]: value },
             });
+            scheduleFieldEditEvent(itemId, sessionId, field);
             return;
           }
           // Revert
@@ -411,7 +484,20 @@ export const useSessionStore = create<SessionState>()(
           if (!error) {
             console.error("Delete blocked by RLS policy — item not deleted");
           }
+          trackEvent({
+            event_type: "item.deleted.failed",
+            session_id: sessionId,
+            error_message: error?.message ?? "blocked_by_rls",
+            error_count: 1,
+            items_content: { item_id: itemId },
+          });
+          return;
         }
+        trackEvent({
+          event_type: "item.deleted",
+          session_id: sessionId,
+          items_content: { item_id: itemId },
+        });
       },
 
       appendToItemField: async (itemId, sessionId, field, newContent) => {
