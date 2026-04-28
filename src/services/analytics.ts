@@ -3,10 +3,7 @@ import { enqueueWrite } from "../hooks/useWriteAheadQueue";
 import pkg from "../../package.json";
 
 const APP_SOURCE = "tpc-app";
-// Vercel auto-injects VITE_VERCEL_GIT_COMMIT_SHA on builds; falls back to package.json
-// version locally. Empty string means "unknown" — treated as null on insert.
-const COMMIT_SHA = (import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA as string | undefined) ?? "";
-const APP_VERSION = COMMIT_SHA || (pkg as { version: string }).version || "";
+const APP_VERSION = (pkg as { version: string }).version;
 
 type Json = unknown;
 
