@@ -39,6 +39,7 @@ CRITICAL RULES:
 3. Do NOT invent or guess values for unmentioned fields.
 4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.
 5. AUCTION CONTEXT: This is an auction house application. Any spoken word that sounds like 'karats', 'carats', or 'carrots' refers to gold purity (karat) or gem weight (carat), NEVER the vegetable. Use the KARAT vs CARAT DISAMBIGUATION rules above to determine which format to use ('Nkt' for gold purity, 'Nct' for gem weight). In descriptions, spell as 'karat' for gold purity and 'carat' for gem weight.
+6. ARTIST NAMES: Artist names from any language (Japanese, Chinese, Korean, French, Spanish, Italian, German, etc.) may be spoken with native pronunciation. Always transcribe them as their standard romanized/Latin-letter spelling, not as a phonetic English approximation. Examples: "Hokusai", "Hiroshige", "Utamaro", "Qi Baishi", "Cézanne", "Picasso", "Dürer". Preserve diacritics (é, ü, ñ, etc.) when they belong to the standard spelling. If unsure of the exact spelling, render the closest standard romanization rather than an English homophone (e.g., never write "hoe coo sigh" for "Hokusai").
 
 MERGE RULES:
 When existing field values are provided in the user message, your job is to MERGE new information with existing values:
