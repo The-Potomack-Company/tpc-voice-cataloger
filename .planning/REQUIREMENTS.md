@@ -89,13 +89,37 @@
 
 ## Traceability
 
-Phase mapping populated by the roadmap step.
-
 | REQ-ID | Phase |
 |--------|-------|
-| TOKENS-01..04 | TBD |
-| TYPE-01..04 | TBD |
-| LIB-01..07 | TBD |
-| SCREEN-01..10 | TBD |
-| MOTION-01..04 | TBD |
-| A11Y-01..03 | TBD |
+| TOKENS-01 | Phase 22: Foundation Tokens |
+| TOKENS-02 | Phase 22: Foundation Tokens |
+| TOKENS-03 | Phase 25: Theme Toggle & Settings |
+| TOKENS-04 | Phase 22: Foundation Tokens |
+| TYPE-01 | Phase 23: Typography Pipeline |
+| TYPE-02 | Phase 23: Typography Pipeline |
+| TYPE-03 | Phase 23: Typography Pipeline |
+| TYPE-04 | Phase 23: Typography Pipeline |
+| LIB-01 | Phase 24: Component Library |
+| LIB-02 | Phase 24: Component Library |
+| LIB-03 | Phase 24: Component Library |
+| LIB-04 | Phase 24: Component Library |
+| LIB-05 | Phase 24: Component Library |
+| LIB-06 | Phase 24: Component Library |
+| LIB-07 | Phase 24: Component Library |
+| SCREEN-01 | Phase 26: Mockup-Faithful Screens |
+| SCREEN-02 | Phase 26: Mockup-Faithful Screens |
+| SCREEN-03 | Phase 26: Mockup-Faithful Screens |
+| SCREEN-04 | Phase 28: Specialist Screen Restyle |
+| SCREEN-05 | Phase 29: Admin Screen Restyle |
+| SCREEN-06 | Phase 29: Admin Screen Restyle |
+| SCREEN-07 | Phase 29: Admin Screen Restyle |
+| SCREEN-08 | Phase 28: Specialist Screen Restyle |
+| SCREEN-09 | Phase 28: Specialist Screen Restyle |
+| SCREEN-10 | Phase 26: Mockup-Faithful Screens |
+| MOTION-01 | Phase 27: Motion & Live Feedback |
+| MOTION-02 | Phase 27: Motion & Live Feedback |
+| MOTION-03 | Phase 27: Motion & Live Feedback |
+| MOTION-04 | Phase 27: Motion & Live Feedback |
+| A11Y-01 | Phase 30: A11Y Verification |
+| A11Y-02 | Phase 30: A11Y Verification |
+| A11Y-03 | Phase 25: Theme Toggle & Settings |

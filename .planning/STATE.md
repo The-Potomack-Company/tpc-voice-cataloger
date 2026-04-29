@@ -7,9 +7,9 @@ stopped_at: ""
 last_updated: "2026-04-28"
 last_activity: 2026-04-28
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
-  total_plans: 0
+  total_plans: 26
   completed_plans: 0
   percent: 0
 ---
