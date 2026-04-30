@@ -56,6 +56,7 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 - ✓ Smart field merging for re-recordings (non-destructive) -- v1.1
 - ✓ Measurements as rich format string (dimensions, mm, weight, karats) -- v1.1
 - ✓ Spoken punctuation conversion by AI across all fields -- v1.1
+- ✓ Unified TPC design tokens replace Tailwind 4 `@theme` (single source of truth in `src/ui/tokens/`, light + dark cascade via `.tpc` / `.tpc-dark`, system-pref dark-mode auto-flip with no FOUC, build-time guard rejects raw hex/oklch/font-family literals outside `src/ui/tokens/`) -- v1.2 Phase 22 (TOKENS-01, TOKENS-02, TOKENS-04 -- visual smoke pending)
 
 ### Active
 
@@ -130,7 +131,9 @@ v1.2 UI Overhaul -- see `.planning/REQUIREMENTS.md` for the full REQ-ID list. Ca
 | Measurements as rich format string | Supports dimensions, mm, weight, karats in one field | ✓ Good -- flexible without schema changes |
 | Unified TPC design system (v1.2) | Single token source, EB Garamond/Inter/Plex Mono, 6 px radii, light + dark + system-follow | TBD -- v1.2 in flight |
 | Self-hosted fonts via `@fontsource` (v1.2) | Avoid Google CDN dependency, deterministic offline behavior, satisfies stricter CSP | TBD -- v1.2 in flight |
-| Replace Tailwind 4 `@theme` with unified tokens (v1.2) | Single source of truth; future dashboard repo consumes the same `src/ui/` primitives | TBD -- v1.2 in flight |
+| Replace Tailwind 4 `@theme` with unified tokens (v1.2) | Single source of truth; future dashboard repo consumes the same `src/ui/` primitives | ✓ Good -- Phase 22 shipped: 21 color vars + 3 radii + 3 fonts bridged via `@theme inline` over `.tpc` / `.tpc-dark` cascade; TOKENS-04 build-time guard live in CI |
+| `@theme inline` (not `@theme`) for the bridge (v1.2) | Bridge resolves at use site, so `.tpc-dark` scoped overrides reach every Tailwind utility — required for class-based dark variant to work | ✓ Good -- Phase 22; cascade flips utilities without component changes |
+| `.tpc-dark` class on `<html>` as the single dark-mode signal (v1.2) | Pre-paint inline script + runtime `initTheme` listener both manipulate one class idempotently; Phase 25 user-toggle UI can supersede without touching `index.html` | ✓ Good -- Phase 22; Phase 25 contract preserved via extensible `initTheme(opts?)` signature |
 | Adopt mockup density verbatim (v1.2) | Drop the v1.0 48 px+ tap-target baseline in favour of designer-specified density | TBD -- monitor field-use feedback |
 | Extrapolate unmocked screens (v1.2) | Item detail/edit, admin views, login, walkthrough derived from tokens & primitives in discuss-phase reviews | TBD -- per-phase approval gate |
 
@@ -152,4 +155,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-28 -- v1.2 UI Overhaul milestone started*
+*Last updated: 2026-04-30 -- Phase 22 (Foundation Tokens) shipped; visual smoke pending*
