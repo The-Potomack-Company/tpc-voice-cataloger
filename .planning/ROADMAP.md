@@ -44,7 +44,7 @@
 <details>
 <summary>v1.2 UI Overhaul (Phases 22-30) -- IN FLIGHT</summary>
 
-- [ ] Phase 22: Foundation Tokens (1/4 plans) -- 4 plans
+- [ ] Phase 22: Foundation Tokens (3/4 plans) -- 4 plans
 - [ ] Phase 23: Typography Pipeline (0/2 plans) -- target ~2 plans
 - [ ] Phase 24: Component Library (0/4 plans) -- target ~4 plans
 - [ ] Phase 25: Theme Toggle & Settings (0/2 plans) -- target ~2 plans
@@ -81,8 +81,8 @@
 - [x] 22-01-token-scaffold-PLAN.md -- Install canonical token CSS/TS at src/ui/tokens/ + clear pwa-manifest hex literal -- completed 2026-04-30
 
 **Wave 2** *(blocked on Wave 1 completion; Plans 02 and 03 run in parallel — disjoint files)*
-- [ ] 22-02-bridge-dark-variant-PLAN.md -- Wire token imports + @custom-variant dark + @theme inline bridge in src/index.css; .tpc class + pre-paint script + paired theme-color in index.html
-- [ ] 22-03-init-theme-runtime-PLAN.md -- src/ui/tokens/initTheme.ts runtime listener + main.tsx wiring + jsdom unit test
+- [x] 22-02-bridge-dark-variant-PLAN.md -- Wire token imports + @custom-variant dark + @theme inline bridge in src/index.css; .tpc class + pre-paint script + paired theme-color in index.html -- completed 2026-04-30
+- [x] 22-03-init-theme-runtime-PLAN.md -- src/ui/tokens/initTheme.ts runtime listener + main.tsx wiring + jsdom unit test -- completed 2026-04-30
 
 **Wave 3** *(blocked on Waves 1 + 2 — guard runs only after pre-existing #2563eb literal cleared and legacy @theme block removed)*
 - [ ] 22-04-tokens-04-guard-PLAN.md -- TOKENS-04 Vitest filesystem regex sweep with three patterns + narrow allowlist
