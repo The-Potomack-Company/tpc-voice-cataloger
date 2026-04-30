@@ -22,7 +22,12 @@ describe("PWA manifest config", () => {
     expect(iconMatches!.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('has theme_color set to "#2563eb"', () => {
-    expect(viteConfig).toContain('theme_color: "#2563eb"');
+  it("has a hex theme_color set", () => {
+    // Phase 22 (TOKENS-04 precondition): assertion shifted from a literal
+    // hex match to a regex so this fixture file contains no design literals.
+    // The PWA manifest theme_color is decoupled from src/ tokens — it lives
+    // in vite.config.ts and may be updated independently in a later phase
+    // alongside the paired <meta name="theme-color"> in index.html.
+    expect(viteConfig).toMatch(/theme_color:\s*"#[0-9a-fA-F]{3,8}"/);
   });
 });
