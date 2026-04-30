@@ -1,8 +1,59 @@
 @import "tailwindcss";
+@import "./ui/tokens/tokens.css";
+@import "./ui/tokens/base.css";
 
-@theme {
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
+/* Class-based dark mode. Drives the existing dark: Tailwind utilities off
+   the .tpc-dark class instead of the prefers-color-scheme media query.
+   :where() keeps specificity at 0,0,0 so component-level overrides still
+   work. The descendant clause (.tpc-dark *) is required so children of
+   <html class="tpc tpc-dark"> match the variant. */
+@custom-variant dark (&:where(.tpc-dark, .tpc-dark *));
+
+/* Token bridge. Maps the .tpc / .tpc-dark CSS variables into Tailwind v4's
+   theme namespace so utilities like bg-bg-2, text-ink-3, bg-warn-wash,
+   rounded-md, font-display resolve to the active token at the *use site*.
+   The `inline` modifier is REQUIRED — without it, Tailwind would emit
+   `background-color: var(--color-bg)` and the .tpc-dark override on --bg
+   would never reach the utility. With `inline`, Tailwind emits
+   `background-color: var(--bg)` directly, so the cascade resolves correctly.
+   `@theme` MUST live in this entry file — Tailwind v4 silently ignores
+   @theme inside @import-ed CSS files. */
+@theme inline {
+  /* Surfaces */
+  --color-bg:           var(--bg);
+  --color-bg-2:         var(--bg-2);
+  --color-bg-3:         var(--bg-3);
+  /* Rules */
+  --color-rule:         var(--rule);
+  --color-rule-2:       var(--rule-2);
+  /* Ink */
+  --color-ink:          var(--ink);
+  --color-ink-2:        var(--ink-2);
+  --color-ink-3:        var(--ink-3);
+  --color-ink-4:        var(--ink-4);
+  /* Accent */
+  --color-accent:       var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-wash:  var(--accent-wash);
+  --color-accent-ink:   var(--accent-ink);
+  /* Sand (data viz) */
+  --color-sand:         var(--sand);
+  --color-sand-wash:    var(--sand-wash);
+  /* Semantic */
+  --color-ok:           var(--ok);
+  --color-ok-wash:      var(--ok-wash);
+  --color-warn:         var(--warn);
+  --color-warn-wash:    var(--warn-wash);
+  --color-err:          var(--err);
+  --color-err-wash:     var(--err-wash);
+  /* Radii */
+  --radius-sm:          var(--radius-sm);
+  --radius:             var(--radius);
+  --radius-lg:          var(--radius-lg);
+  /* Type */
+  --font-display:       var(--font-display);
+  --font-ui:            var(--font-ui);
+  --font-mono:          var(--font-mono);
 }
 
 @keyframes slideUp {
