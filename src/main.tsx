@@ -5,6 +5,10 @@ import "./index.css";
 import App from "./App";
 import { useAuthStore } from "./stores/authStore";
 import { trackEvent } from "./services/analytics";
+import { initTheme } from "./ui/tokens";
+
+// Initialize theme listener before React renders (per Phase 22 CONTEXT D-06).
+const teardownTheme = initTheme();
 
 // Initialize auth listener before React renders
 const unsubscribe = useAuthStore.getState().initialize();
@@ -39,7 +43,10 @@ window.addEventListener("unhandledrejection", (e) => {
 
 // Cleanup on HMR
 if (import.meta.hot) {
-  import.meta.hot.dispose(() => unsubscribe());
+  import.meta.hot.dispose(() => {
+    unsubscribe();
+    teardownTheme();
+  });
 }
 
 createRoot(document.getElementById("root")!).render(

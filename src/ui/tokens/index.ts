@@ -3,9 +3,6 @@
 // This is the stable public API for src/ui consumers, including the
 // future dashboard repo per Phase 22 CONTEXT spec (specifics §"future
 // dashboard repo will consume src/ui/ primitives").
-//
-// initTheme is added by Plan 03 in this same phase; the import line is
-// commented out here and uncommented when initTheme.ts lands.
 
 export {
   tpcUnifiedLight,
@@ -18,4 +15,5 @@ export {
 } from "./tokens";
 export type { TpcUnifiedPalette } from "./tokens";
 
-// export { initTheme } from "./initTheme"; // Added by Plan 03.
+export { initTheme } from "./initTheme";
+export type { InitThemeOpts, ThemeOverride } from "./initTheme";
