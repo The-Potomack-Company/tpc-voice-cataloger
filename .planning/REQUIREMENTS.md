@@ -15,7 +15,7 @@
 - [ ] **TOKENS-01** -- Tailwind 4 `@theme` color, font, and radius variables are rebuilt from `docs/design-handoff/tpc-unified-tokens.css` and become the single styling source of truth (no hardcoded hex/oklch in component code).
 - [ ] **TOKENS-02** -- Dark token set loads automatically when the user's system preference is `prefers-color-scheme: dark` and when the user explicitly selects Dark in Settings.
 - [ ] **TOKENS-03** -- User can toggle theme between Light, Dark, and System in Settings; preference persists per-user (Supabase) for signed-in users and falls back to `localStorage` pre-auth.
-- [ ] **TOKENS-04** -- A static check (lint rule, regex test, or build-time guard) fails the build if any TS/TSX/CSS file outside `docs/design-handoff/` introduces a hardcoded color hex, `oklch(...)`, or font-family literal.
+- [x] **TOKENS-04** -- A static check (lint rule, regex test, or build-time guard) fails the build if any TS/TSX/CSS file outside `docs/design-handoff/` introduces a hardcoded color hex, `oklch(...)`, or font-family literal. *(Phase 22 Plan 04, 2026-04-30 — Vitest filesystem regex sweep at `src/ui/__tests__/no-hardcoded-literals.test.ts`)*
 
 ### TYPE -- Self-Hosted Typography
 

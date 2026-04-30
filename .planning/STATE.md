@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UI Overhaul
 status: executing
-stopped_at: "Plans 22-01, 22-02, 22-03 complete; Plan 22-04 next (Wave 3)"
+stopped_at: "Phase 22 complete (Plans 22-01/02/03/04); Phase 23 (Typography Pipeline) next"
 last_updated: "2026-04-30"
 last_activity: 2026-04-30
 progress:
   total_phases: 9
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 27
-  completed_plans: 3
-  percent: 11
+  completed_plans: 4
+  percent: 15
 ---
 
 # Project State
@@ -25,13 +25,13 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 
 ## Current Position
 
-Phase: 22 Foundation Tokens (in flight)
-Plan: 22-04 (Wave 3) -- next to execute
-Status: Plans 22-01, 22-02, 22-03 complete; Wave 3 unblocked
-Last activity: 2026-04-30 -- Wave 2 (Plans 22-02 + 22-03) completed in parallel worktrees
-Resume file: .planning/phases/22-foundation-tokens/22-04-tokens-04-guard-PLAN.md
+Phase: 22 Foundation Tokens — COMPLETE (4/4 plans)
+Plan: Phase 23 next (Typography Pipeline)
+Status: All four Phase 22 plans complete; TOKENS-01, TOKENS-02, TOKENS-04 delivered
+Last activity: 2026-04-30 -- Plan 22-04 (Wave 3) completed; TOKENS-04 build-time guard live in CI
+Resume file: .planning/phases/23-typography-pipeline/ (not yet created — phase transition pending)
 
-Progress: [▓▓░░░░░░░░] 11%
+Progress: [▓▓░░░░░░░░] 15%
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [▓▓░░░░░░░░] 11%
 | Phase | Plan | Duration | Tasks | Files | Date |
 |-------|------|----------|-------|-------|------|
 | 22 | 01 | 7 min | 3 | 5 | 2026-04-30 |
+| 22 | 04 | 5 min | 1 | 1 | 2026-04-30 |
 
 **Historical (v1.0 + v1.1 combined):**
 
@@ -53,6 +54,10 @@ Progress: [▓▓░░░░░░░░] 11%
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+
+**Phase 22 Plan 04 decisions (2026-04-30):**
+- Narrow per-file allowlist for the TOKENS-04 guard test itself (D-16 escape hatch — the file IS the fixture: its regex source code contains the literal patterns it scans for). Single-entry `ALLOW_FILES = [src/ui/__tests__/no-hardcoded-literals.test.ts]`; does NOT widen to all of `__tests__`.
+- `/// <reference types="node" />` triple-slash directive at the top of `src/ui/__tests__/no-hardcoded-literals.test.ts` to opt only this file into Node typings under `tsconfig.app.json` (which doesn't load `@types/node` by default and includes `src/ui/__tests__/`, unlike `src/tests/` which is excluded).
 
 ### Pending Todos
 
@@ -86,5 +91,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-30
-Stopped at: Plan 22-01 complete; Plan 22-02 next (Wave 2)
-Resume file: .planning/phases/22-foundation-tokens/22-02-bridge-dark-variant-PLAN.md
+Stopped at: Phase 22 complete (Plans 22-01/02/03/04); TOKENS-01, TOKENS-02, TOKENS-04 all delivered. Phase 23 (Typography Pipeline) next.
+Resume file: Phase 23 not yet planned — run `/gsd-transition` to advance, then plan Phase 23.

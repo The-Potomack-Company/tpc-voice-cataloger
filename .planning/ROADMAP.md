@@ -44,7 +44,7 @@
 <details>
 <summary>v1.2 UI Overhaul (Phases 22-30) -- IN FLIGHT</summary>
 
-- [ ] Phase 22: Foundation Tokens (3/4 plans) -- 4 plans
+- [x] Phase 22: Foundation Tokens (4/4 plans) -- completed 2026-04-30
 - [ ] Phase 23: Typography Pipeline (0/2 plans) -- target ~2 plans
 - [ ] Phase 24: Component Library (0/4 plans) -- target ~4 plans
 - [ ] Phase 25: Theme Toggle & Settings (0/2 plans) -- target ~2 plans
@@ -62,7 +62,7 @@
 |-------|-----------|-------|--------|-----------|
 | 1-9 + 5.1 | v1.0 | 27/27 | Complete | 2026-03-17 |
 | 11-21 | v1.1 | 36/36 | Complete | 2026-03-31 |
-| 22-30 | v1.2 | 1/27 | In flight | -- |
+| 22-30 | v1.2 | 4/27 | In flight | -- |
 
 ## v1.2 Phase Detail
 
@@ -85,7 +85,7 @@
 - [x] 22-03-init-theme-runtime-PLAN.md -- src/ui/tokens/initTheme.ts runtime listener + main.tsx wiring + jsdom unit test -- completed 2026-04-30
 
 **Wave 3** *(blocked on Waves 1 + 2 — guard runs only after pre-existing #2563eb literal cleared and legacy @theme block removed)*
-- [ ] 22-04-tokens-04-guard-PLAN.md -- TOKENS-04 Vitest filesystem regex sweep with three patterns + narrow allowlist
+- [x] 22-04-tokens-04-guard-PLAN.md -- TOKENS-04 Vitest filesystem regex sweep with three patterns + narrow allowlist -- completed 2026-04-30
 
 **Cross-cutting constraints** *(must_haves shared across 2+ plans):*
 - `.tpc-dark` class on `<html>` is the single dark-mode signal — pre-paint inline script (Plan 02) and runtime `initTheme` (Plan 03) both manipulate it idempotently
