@@ -33,7 +33,13 @@ export interface InitThemeOpts {
  * function runs once at module top-level in main.tsx, not inside a
  * component effect).
  */
-export function initTheme(_opts: InitThemeOpts = {}): () => void {
+export function initTheme(opts: InitThemeOpts = {}): () => void {
+  // Phase 22 ignores opts.override (system-pref-only per D-08). The param is
+  // accepted so Phase 25 can populate it without changing call sites; the
+  // explicit `void` reference satisfies the project's
+  // @typescript-eslint/no-unused-vars rule (no argsIgnorePattern configured).
+  void opts;
+
   // SSR / legacy webview guard. Returns a no-op teardown so callers can
   // unconditionally store the return value.
   if (typeof window === "undefined" || !window.matchMedia) {
