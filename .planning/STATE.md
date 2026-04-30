@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: UI Overhaul
-status: executing
-stopped_at: "Phase 22 complete (Plans 22-01/02/03/04); Phase 23 (Typography Pipeline) next"
-last_updated: "2026-04-30"
-last_activity: 2026-04-30
+milestone_name: Phase Detail
+status: completed
+stopped_at: Phase 23 context gathered
+last_updated: "2026-04-30T17:34:14.203Z"
+last_activity: 2026-04-30 -- Plan 22-04 (Wave 3) completed; TOKENS-04 build-time guard live in CI
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 1
-  total_plans: 27
+  total_plans: 4
   completed_plans: 4
-  percent: 15
+  percent: 100
 ---
 
 # Project State
@@ -29,7 +29,7 @@ Phase: 22 Foundation Tokens — COMPLETE (4/4 plans)
 Plan: Phase 23 next (Typography Pipeline)
 Status: All four Phase 22 plans complete; TOKENS-01, TOKENS-02, TOKENS-04 delivered
 Last activity: 2026-04-30 -- Plan 22-04 (Wave 3) completed; TOKENS-04 build-time guard live in CI
-Resume file: .planning/phases/23-typography-pipeline/ (not yet created — phase transition pending)
+Resume file: .planning/phases/23-typography-pipeline/23-CONTEXT.md
 
 Progress: [▓▓░░░░░░░░] 15%
 
@@ -56,6 +56,7 @@ Progress: [▓▓░░░░░░░░] 15%
 Decisions are logged in PROJECT.md Key Decisions table.
 
 **Phase 22 Plan 04 decisions (2026-04-30):**
+
 - Narrow per-file allowlist for the TOKENS-04 guard test itself (D-16 escape hatch — the file IS the fixture: its regex source code contains the literal patterns it scans for). Single-entry `ALLOW_FILES = [src/ui/__tests__/no-hardcoded-literals.test.ts]`; does NOT widen to all of `__tests__`.
 - `/// <reference types="node" />` triple-slash directive at the top of `src/ui/__tests__/no-hardcoded-literals.test.ts` to opt only this file into Node typings under `tsconfig.app.json` (which doesn't load `@types/node` by default and includes `src/ui/__tests__/`, unlike `src/tests/` which is excluded).
 
@@ -90,6 +91,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-30
-Stopped at: Phase 22 complete (Plans 22-01/02/03/04); TOKENS-01, TOKENS-02, TOKENS-04 all delivered. Phase 23 (Typography Pipeline) next.
+Last session: 2026-04-30T17:34:14.194Z
+Stopped at: Phase 23 context gathered
 Resume file: Phase 23 not yet planned — run `/gsd-transition` to advance, then plan Phase 23.
