@@ -44,7 +44,7 @@
 <details>
 <summary>v1.2 UI Overhaul (Phases 22-30) -- IN FLIGHT</summary>
 
-- [ ] Phase 22: Foundation Tokens (0/3 plans) -- target ~3 plans
+- [ ] Phase 22: Foundation Tokens (0/4 plans) -- 4 plans
 - [ ] Phase 23: Typography Pipeline (0/2 plans) -- target ~2 plans
 - [ ] Phase 24: Component Library (0/4 plans) -- target ~4 plans
 - [ ] Phase 25: Theme Toggle & Settings (0/2 plans) -- target ~2 plans
@@ -62,7 +62,7 @@
 |-------|-----------|-------|--------|-----------|
 | 1-9 + 5.1 | v1.0 | 27/27 | Complete | 2026-03-17 |
 | 11-21 | v1.1 | 36/36 | Complete | 2026-03-31 |
-| 22-30 | v1.2 | 0/26 | In flight | -- |
+| 22-30 | v1.2 | 0/27 | In flight | -- |
 
 ## v1.2 Phase Detail
 
@@ -75,8 +75,24 @@
   2. Wrapping the app shell in `tpc tpc-dark` (or matching the OS `prefers-color-scheme: dark`) flips every surface and ink value without any extra component-level work.
   3. CI fails the build when a TS/TSX/CSS file outside `docs/design-handoff/` introduces a hex code, `oklch(...)` literal, or named font-family string.
   4. The existing screens still render (visually unrefined is acceptable -- correctness gate is "no broken styling"), proving the token swap is non-destructive.
-**Plans**: TBD
-**Estimated plan count**: 3
+**Plans**:
+
+**Wave 1** *(token files installed; precondition for everything else)*
+- [ ] 22-01-token-scaffold-PLAN.md -- Install canonical token CSS/TS at src/ui/tokens/ + clear pwa-manifest hex literal
+
+**Wave 2** *(blocked on Wave 1 completion; Plans 02 and 03 run in parallel — disjoint files)*
+- [ ] 22-02-bridge-dark-variant-PLAN.md -- Wire token imports + @custom-variant dark + @theme inline bridge in src/index.css; .tpc class + pre-paint script + paired theme-color in index.html
+- [ ] 22-03-init-theme-runtime-PLAN.md -- src/ui/tokens/initTheme.ts runtime listener + main.tsx wiring + jsdom unit test
+
+**Wave 3** *(blocked on Waves 1 + 2 — guard runs only after pre-existing #2563eb literal cleared and legacy @theme block removed)*
+- [ ] 22-04-tokens-04-guard-PLAN.md -- TOKENS-04 Vitest filesystem regex sweep with three patterns + narrow allowlist
+
+**Cross-cutting constraints** *(must_haves shared across 2+ plans):*
+- `.tpc-dark` class on `<html>` is the single dark-mode signal — pre-paint inline script (Plan 02) and runtime `initTheme` (Plan 03) both manipulate it idempotently
+- Phase 22 stays system-pref-only — no localStorage, no Supabase, no toggle UI (Plans 02, 03)
+- `@theme inline` (NOT `@theme`) for the bridge so `.tpc-dark`-scoped overrides reach utilities (Plan 02; honored by Plan 04's allowlist for `src/ui/tokens/**`)
+
+**Estimated plan count**: 4
 **UI hint**: yes
 
 ### Phase 23: Typography Pipeline
