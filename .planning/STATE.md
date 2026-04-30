@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UI Overhaul
-status: planning
-stopped_at: "Phase 22 plans ready to execute"
+status: executing
+stopped_at: "Plan 22-01 complete; Plan 22-02 next (Wave 2)"
 last_updated: "2026-04-30"
 last_activity: 2026-04-30
 progress:
   total_phases: 9
   completed_phases: 0
   total_plans: 27
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 4
 ---
 
 # Project State
@@ -25,17 +25,21 @@ See: .planning/PROJECT.md (updated 2026-04-28)
 
 ## Current Position
 
-Phase: 22 Foundation Tokens (planned)
-Plan: 22-01 (Wave 1) -- next to execute
-Status: Ready to execute (4 plans across 3 waves)
-Last activity: 2026-04-30 -- Phase 22 plans created and verified
-Resume file: .planning/phases/22-foundation-tokens/22-01-token-scaffold-PLAN.md
+Phase: 22 Foundation Tokens (in flight)
+Plan: 22-02 (Wave 2) -- next to execute (Plan 22-03 runs in parallel — disjoint files)
+Status: Plan 22-01 complete (3/3 tasks committed); Wave 2 unblocked
+Last activity: 2026-04-30 -- Plan 22-01 (token scaffold) completed in 7 minutes
+Resume file: .planning/phases/22-foundation-tokens/22-02-bridge-dark-variant-PLAN.md
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [▓░░░░░░░░░] 4%
 
 ## Performance Metrics
 
-**v1.2 UI Overhaul:** TBD (in flight)
+**v1.2 UI Overhaul:** in flight
+
+| Phase | Plan | Duration | Tasks | Files | Date |
+|-------|------|----------|-------|-------|------|
+| 22 | 01 | 7 min | 3 | 5 | 2026-04-30 |
 
 **Historical (v1.0 + v1.1 combined):**
 
@@ -59,6 +63,7 @@ None.
 - DEPLOY-04: Branch protection deferred (GitHub Free plan limitation on private repos) -- carried from v1.1
 - Backlog item 999.1: Stream photos from Storage during extension import (large house visits balloon export JSON to 200-450MB) -- carried from v1.1
 - Offline session display strategy still needs decision for future work -- carried from v1.1
+- 18 pre-existing test failures (`localStorage.clear is not a function`) in `persist-scoping.test.ts` and `photo-migration.test.ts` -- discovered during Plan 22-01 verification; verified pre-existing at HEAD~3; tracked in `.planning/phases/22-foundation-tokens/deferred-items.md` -- not blocking Phase 22 plans 02/03/04
 
 ### Quick Tasks Completed
 
@@ -81,5 +86,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-30
-Stopped at: Phase 22 plans ready to execute
-Resume file: .planning/phases/22-foundation-tokens/22-01-token-scaffold-PLAN.md
+Stopped at: Plan 22-01 complete; Plan 22-02 next (Wave 2)
+Resume file: .planning/phases/22-foundation-tokens/22-02-bridge-dark-variant-PLAN.md
