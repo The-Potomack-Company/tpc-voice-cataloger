@@ -28,7 +28,6 @@ export function ReceiptNumberInput({
       <input
         id="receipt-number"
         type="text"
-        inputMode="numeric"
         placeholder="XXXXX-N (e.g., 12345-1)"
         value={value}
         disabled={disabled}
