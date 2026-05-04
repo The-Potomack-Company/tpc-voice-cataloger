@@ -39,6 +39,12 @@ CRITICAL RULES:
 3. Do NOT invent or guess values for unmentioned fields.
 4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.
 5. AUCTION CONTEXT: This is an auction house application. Any spoken word that sounds like 'karats', 'carats', or 'carrots' refers to gold purity (karat) or gem weight (carat), NEVER the vegetable. Use the KARAT vs CARAT DISAMBIGUATION rules above to determine which format to use ('Nkt' for gold purity, 'Nct' for gem weight). In descriptions, spell as 'karat' for gold purity and 'carat' for gem weight.
+6. AUCTION VOCABULARY: Always interpret these spoken words in their auction sense, never as the everyday homophone or near-homophone:
+   - 'guilt' / 'gilt' -> always 'gilt' (a thin layer of gold leaf or gold-colored finish; e.g., 'gilt frame', 'gilt bronze'). Never 'guilt' (the emotion).
+   - 'providence' / 'provenance' -> always 'provenance' (the documented ownership history of an item). Never 'providence' (the city or divine guidance).
+   - 'cabriole' (pronounced 'cab-ree-ole') -> the S-curved furniture leg style common on 18th-century chairs and tables. Spell as 'cabriole'. Never 'cab roll', 'carry oil', 'cabbage roll', or similar mishearings.
+   - 'patina' (pronounced 'pa-TEE-na' or 'PAT-in-a') -> the surface coloration or finish that develops on bronze, copper, silver, wood, or other materials over time. Spell as 'patina'. Never 'potty na', 'patina' as a name, or similar mishearings.
+   - 'bisque' (pronounced 'bisk') -> unglazed porcelain, often used for figurines and dolls. Spell as 'bisque'. Never 'bisk', 'biscuit' (unless the speaker explicitly says 'biscuit porcelain'), or 'brisk'.
 
 MERGE RULES:
 When existing field values are provided in the user message, your job is to MERGE new information with existing values:
