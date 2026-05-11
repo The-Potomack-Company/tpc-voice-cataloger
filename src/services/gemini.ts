@@ -19,6 +19,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
 - category: The RFC department code matching the item category. Valid codes: AA, AMER, AWFA, ANT, AAR, 0001, ASD, ASN, ASNP, BKS, CER, IND, CLK, CNS, DEC, DRW, ENT, EA, FASH, FIS, FRN, MDF, PER, GAR, GEN, GLS, ITS, ISL, JWL, LIT, MANU, MAP, MA, MUS, NAT, TXTL, PND, PNT, PEN, MIN, REL, RUG, SPT, SIL, TAP, TRI, WINE. If uncertain, return the closest match.
 - measurements: A single formatted string combining dimensions, weight, and karats.
   Dimensions in inches: format as "N x N in. (N x N cm.)" with auto cm conversion. Common fractions (1/4, 1/2, 3/4) display as fractions in the inch portion.
+  Diameter (round/cylindrical items — plates, bowls, vases, mirrors, coins, etc.): when the speaker says "diameter", "in diameter", "across", "dia.", or "diam.", format as "N in. (N cm.) diameter" with auto cm conversion. Single value only — do not combine with x-format dimensions for the same item. Common fractions (1/4, 1/2, 3/4) display as fractions in the inch portion. Examples: "8 in. (20.3 cm.) diameter", "12 1/2 in. (31.8 cm.) diameter".
   Dimensions in millimeters: ONLY when the speaker explicitly says "millimeters" or "mm". Format as "N x N mm" with no conversion to other units. Default to inches when no unit specified.
   Weight: "N oz." for ounces, "N g" for grams. No pounds.
   Gold purity (karat): "Nkt" (e.g., "14kt", "18kt", "24kt"). Common karat numbers: 10, 14, 18, 22, 24.
@@ -30,7 +31,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
   - SPEAKER OVERRIDE: If the speaker explicitly clarifies (e.g., "that's carats not karats" or "gem weight"), follow their clarification regardless of context clues.
   - In descriptions, use correct spelling: "karat" for gold purity, "carat" for gem weight. Normalize regardless of what the speaker actually said.
   - When ambiguous and no speaker clarification, default to karat (gold purity) as the more common auction usage.
-  Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt" or "1.5ct, 0.8 oz.".
+  Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt", "1.5ct, 0.8 oz.", or "8 in. (20.3 cm.) diameter, 12 oz.".
   Return null if no measurements mentioned.
 - transcript: The full verbatim transcript of everything said in the audio
 
