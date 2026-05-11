@@ -6,6 +6,7 @@ import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
 import { useSessionStore } from "../stores/sessionStore";
 import { applySpokenQuotes } from "../utils/spokenPunctuation";
+import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
@@ -259,7 +260,7 @@ export async function processAudioWithAi(
       supabaseUpdate.category = mappedCategory;
     }
     if (fields.measurements !== null) {
-      supabaseUpdate.measurements = fields.measurements;
+      supabaseUpdate.measurements = reformatMeasurements(fields.measurements);
     }
     if (fields.transcript !== null) {
       supabaseUpdate.transcript = fields.transcript;
