@@ -106,9 +106,11 @@ export function parseDiameter(raw: string): number | null {
   if (!raw || raw.trim() === "") return null;
 
   // Match any of: diameter, diam, dia, across — with an optional trailing
-  // period. Anchored by non-word lookaround so "diamond" is not matched
-  // and the dotted forms ("diam.", "dia.") are fully consumed.
-  const diameterRe = /(?<!\w)(?:diameter|diam|dia|across)\.?(?!\w)/i;
+  // period. Uses \b on the left (well-supported) and a non-word lookahead
+  // on the right so that dotted forms ("diam.", "dia.") are fully consumed
+  // and "diamond" is not matched. No lookbehind — older Safari/iOS would
+  // refuse to parse a lookbehind literal and crash module load.
+  const diameterRe = /\b(?:diameter|diam|dia|across)\.?(?!\w)/i;
   if (!diameterRe.test(raw)) return null;
 
   let cleaned = raw.replace(/\(.*\)/, "");
