@@ -105,7 +105,10 @@ export function parseMeasurements(raw: string): number[] | null {
 export function parseDiameter(raw: string): number | null {
   if (!raw || raw.trim() === "") return null;
 
-  const diameterRe = /\b(?:diameter|diam\.?|dia\.?|across)\b/i;
+  // Match any of: diameter, diam, dia, across — with an optional trailing
+  // period. Anchored by non-word lookaround so "diamond" is not matched
+  // and the dotted forms ("diam.", "dia.") are fully consumed.
+  const diameterRe = /(?<!\w)(?:diameter|diam|dia|across)\.?(?!\w)/i;
   if (!diameterRe.test(raw)) return null;
 
   let cleaned = raw.replace(/\(.*\)/, "");

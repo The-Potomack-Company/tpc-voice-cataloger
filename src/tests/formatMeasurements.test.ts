@@ -183,4 +183,30 @@ describe("parseDiameter", () => {
   it("returns null for empty string", () => {
     expect(parseDiameter("")).toBeNull();
   });
+
+  it("parses 'diam.' abbreviation", () => {
+    expect(parseDiameter("8 diam.")).toBe(8);
+  });
+
+  it("parses 'dia.' abbreviation", () => {
+    expect(parseDiameter("8 dia.")).toBe(8);
+  });
+
+  it("parses 'diam' without period", () => {
+    expect(parseDiameter("8 diam")).toBe(8);
+  });
+
+  it("does not match 'diamond' as a diameter marker", () => {
+    expect(parseDiameter("8 diamond")).toBeNull();
+  });
+});
+
+describe("reformatMeasurements dotted-abbreviation diameter", () => {
+  it("reformats 'N diam.' to canonical diameter", () => {
+    expect(reformatMeasurements("8 diam.")).toBe("8 in. (20.3 cm.) diameter");
+  });
+
+  it("reformats 'N dia.' to canonical diameter", () => {
+    expect(reformatMeasurements("8 dia.")).toBe("8 in. (20.3 cm.) diameter");
+  });
 });
