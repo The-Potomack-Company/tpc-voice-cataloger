@@ -69,7 +69,20 @@ export function useAudioRecorder(): AudioRecorderReturn {
       chunksRef.current = [];
 
       navigator.mediaDevices
-        .getUserMedia({ audio: true, video: false })
+        .getUserMedia({
+          audio: {
+            // Suppress non-voice background sounds (HVAC, crowd hum, etc.)
+            noiseSuppression: true,
+            // Strip room echo / PA bleed
+            echoCancellation: true,
+            // Intentionally OFF: AGC normalises loudness, which would erase
+            // the natural gap between the close auctioneer and bystander
+            // chatter — that gap is the signal Gemini uses to focus on the
+            // intended voice.
+            autoGainControl: false,
+          },
+          video: false,
+        })
         .then((stream) => {
           streamRef.current = stream;
 

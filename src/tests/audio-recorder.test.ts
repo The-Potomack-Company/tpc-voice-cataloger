@@ -36,7 +36,7 @@ describe("useAudioRecorder", () => {
     expect(result.current.status).toBe("recording");
   });
 
-  it("startRecording calls getUserMedia with { audio: true, video: false }", async () => {
+  it("startRecording calls getUserMedia with noise/echo suppression constraints and AGC off", async () => {
     const { result } = renderHook(() => useAudioRecorder());
 
     await act(async () => {
@@ -45,7 +45,11 @@ describe("useAudioRecorder", () => {
     });
 
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
-      audio: true,
+      audio: {
+        noiseSuppression: true,
+        echoCancellation: true,
+        autoGainControl: false,
+      },
       video: false,
     });
   });
