@@ -41,6 +41,32 @@ export function formatMeasurements(inches: number[]): string {
 }
 
 /**
+ * Format a single diameter measurement (round / cylindrical items).
+ * "N in. (N cm.) diameter"
+ */
+export function formatDiameter(inches: number): string {
+  return `${formatInch(inches)} in. (${inchesToCm(inches)} cm.) diameter`;
+}
+
+function parseInchValue(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const fractionMatch = trimmed.match(/^(\d+)?\s*(\d+)\/(\d+)$/);
+  if (fractionMatch) {
+    const whole = fractionMatch[1] ? Number(fractionMatch[1]) : 0;
+    const num = Number(fractionMatch[2]);
+    const den = Number(fractionMatch[3]);
+    if (den === 0) return null;
+    return whole + num / den;
+  }
+
+  const num = Number(trimmed);
+  if (isNaN(num)) return null;
+  return num;
+}
+
+/**
  * Parse a measurement string back into an array of inch values.
  * Returns null if unparseable, empty, or more than 3 dimensions.
  */
@@ -60,27 +86,9 @@ export function parseMeasurements(raw: string): number[] | null {
   const values: number[] = [];
 
   for (const part of parts) {
-    const trimmed = part.trim();
-    if (!trimmed) return null;
-
-    // Handle fraction notation: "12 1/2" or standalone "1/4"
-    const fractionMatch = trimmed.match(
-      /^(\d+)?\s*(\d+)\/(\d+)$/
-    );
-
-    if (fractionMatch) {
-      const whole = fractionMatch[1] ? Number(fractionMatch[1]) : 0;
-      const num = Number(fractionMatch[2]);
-      const den = Number(fractionMatch[3]);
-      if (den === 0) return null;
-      values.push(whole + num / den);
-      continue;
-    }
-
-    // Plain number
-    const num = Number(trimmed);
-    if (isNaN(num)) return null;
-    values.push(num);
+    const value = parseInchValue(part);
+    if (value === null) return null;
+    values.push(value);
   }
 
   if (values.length === 0 || values.length > 3) return null;
@@ -89,11 +97,42 @@ export function parseMeasurements(raw: string): number[] | null {
 }
 
 /**
+ * Parse a diameter measurement string. Recognises tokens "diameter", "dia.",
+ * "diam", and "across" — and matching speech forms ("in diameter").
+ * Returns the inch value, or null if the string doesn't carry a diameter
+ * marker or the number can't be parsed.
+ */
+export function parseDiameter(raw: string): number | null {
+  if (!raw || raw.trim() === "") return null;
+
+  const diameterRe = /\b(?:diameter|diam\.?|dia\.?|across)\b/i;
+  if (!diameterRe.test(raw)) return null;
+
+  let cleaned = raw.replace(/\(.*\)/, "");
+  cleaned = cleaned.replace(diameterRe, "");
+  // Strip unit words: "inches", "inch", "in." or bare "in"
+  cleaned = cleaned.replace(/\b(?:inches|inch|in)\.?/gi, "");
+  cleaned = cleaned.replace(/[,;]/g, "").trim();
+
+  return parseInchValue(cleaned);
+}
+
+/**
  * Reformat a measurement string. If parseable, formats to standard
  * auction catalog convention. If not parseable, returns as-is.
+ *
+ * Single-diameter strings ("8 in. diameter", "8 inches in diameter")
+ * are reformatted to "N in. (N cm.) diameter". X-separated dimensions
+ * are reformatted to "N x N in. (N x N cm.)". Rich combined strings
+ * (with weight, karat, mm, multiple components) pass through unchanged.
  */
 export function reformatMeasurements(raw: string): string {
   if (!raw || raw.trim() === "") return "";
+
+  const diameterValue = parseDiameter(raw);
+  if (diameterValue !== null) {
+    return formatDiameter(diameterValue);
+  }
 
   const parsed = parseMeasurements(raw);
   if (!parsed) return raw;

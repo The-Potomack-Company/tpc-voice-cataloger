@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   formatMeasurements,
+  formatDiameter,
   parseMeasurements,
+  parseDiameter,
   reformatMeasurements,
 } from "../utils/formatMeasurements";
 
@@ -106,5 +108,79 @@ describe("reformatMeasurements", () => {
 
   it("passes through mm format unchanged", () => {
     expect(reformatMeasurements("8 x 6 mm, 2.1 oz.")).toBe("8 x 6 mm, 2.1 oz.");
+  });
+
+  it("reformats a plain inches-diameter string", () => {
+    expect(reformatMeasurements("8 inches diameter")).toBe(
+      "8 in. (20.3 cm.) diameter"
+    );
+  });
+
+  it("reformats 'in diameter' phrasing", () => {
+    expect(reformatMeasurements("8 in diameter")).toBe(
+      "8 in. (20.3 cm.) diameter"
+    );
+  });
+
+  it("reformats fractional diameter", () => {
+    expect(reformatMeasurements("12 1/2 in diameter")).toBe(
+      "12 1/2 in. (31.8 cm.) diameter"
+    );
+  });
+
+  it("passes through already-formatted diameter unchanged", () => {
+    expect(reformatMeasurements("8 in. (20.3 cm.) diameter")).toBe(
+      "8 in. (20.3 cm.) diameter"
+    );
+  });
+
+  it("recognises 'across' as a diameter marker", () => {
+    expect(reformatMeasurements("10 inches across")).toBe(
+      "10 in. (25.4 cm.) diameter"
+    );
+  });
+});
+
+describe("formatDiameter", () => {
+  it("formats whole inch diameter", () => {
+    expect(formatDiameter(8)).toBe("8 in. (20.3 cm.) diameter");
+  });
+
+  it("formats fractional diameter", () => {
+    expect(formatDiameter(12.5)).toBe("12 1/2 in. (31.8 cm.) diameter");
+  });
+
+  it("drops trailing .0 from cm value", () => {
+    expect(formatDiameter(10)).toBe("10 in. (25.4 cm.) diameter");
+  });
+});
+
+describe("parseDiameter", () => {
+  it("parses plain phrase", () => {
+    expect(parseDiameter("8 inches diameter")).toBe(8);
+  });
+
+  it("parses 'in diameter'", () => {
+    expect(parseDiameter("8 in diameter")).toBe(8);
+  });
+
+  it("parses formatted diameter string", () => {
+    expect(parseDiameter("8 in. (20.3 cm.) diameter")).toBe(8);
+  });
+
+  it("parses fraction notation", () => {
+    expect(parseDiameter("12 1/2 in diameter")).toBe(12.5);
+  });
+
+  it("parses 'across' phrasing", () => {
+    expect(parseDiameter("10 inches across")).toBe(10);
+  });
+
+  it("returns null for x-format dimensions", () => {
+    expect(parseDiameter("36 x 24")).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(parseDiameter("")).toBeNull();
   });
 });
