@@ -2,6 +2,10 @@ import { supabase } from "../lib/supabase";
 import { enqueueWrite } from "../hooks/useWriteAheadQueue";
 import pkg from "../../package.json";
 
+// app_source is a stable data-layer identifier; do NOT change when the
+// package is renamed (e.g. tpc-app → tpc-voice-cataloger). Existing
+// analytics_events rows are keyed on this value, and the dashboard
+// queries rely on its continuity.
 const APP_SOURCE = "tpc-app";
 const APP_VERSION = (pkg as { version: string }).version;
 
