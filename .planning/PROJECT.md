@@ -8,6 +8,21 @@ A mobile-first PWA for The Potomack Company auction house that enables auctionee
 
 Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with the entries flowing directly into RFC Invaluable.
 
+
+<!-- VAULT:decisions-start -->
+<!-- Auto-generated from _workspace/Decisions/. Do not hand-edit this block. -->
+<!-- To add or supersede a decision, edit the file under _workspace/Decisions/ and
+     rerun: python3 /home/spoods/Projects/TPC/.claude/hooks/decisions-to-projects.py -->
+
+## Cross-app decisions (active)
+
+Decisions that apply to **app**. Bodies live in the vault — IDs only here.
+
+- **[D-001](../../_workspace/Decisions/D-001-shared-supabase.md)** — All three TPC apps read/write the same Supabase project; RLS is the only boundary.
+- **[D-002](../../_workspace/Decisions/D-002-tpc-app-owns-auth.md)** — TPC App is the auth-of-record; dashboard shares the same Supabase auth; cataloger maps Chrome Identity to Supabase users at write time.
+- **[D-003](../../_workspace/Decisions/D-003-anon-key-public-rls-boundary.md)** _(scope: schema)_ — Treat the Supabase anon key as public; security comes entirely from RLS. Service-role keys never appear in client bundles.
+
+<!-- VAULT:decisions-end -->
 ## Current Milestone: v1.2 UI Overhaul
 
 **Goal:** Adopt the unified TPC design system end-to-end -- replace existing Tailwind 4 `@theme` styling with new tokens (cool near-white surfaces, teal-blue primary accent, EB Garamond italic display, Inter UI, IBM Plex Mono metadata, 6 px radii), ship a reusable component library, restyle every screen, and add motion + WCAG AA polish -- without changing the app's information architecture or feature set.
