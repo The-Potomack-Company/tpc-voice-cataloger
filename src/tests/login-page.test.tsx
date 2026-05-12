@@ -35,9 +35,13 @@ describe('LoginPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders "TPC Catalog" heading', () => {
+  it('renders the Potomack Co. branding pair (eyebrow + display title)', () => {
+    // Phase 28 reskin: the "TPC Catalog" wordmark was split into an
+    // Eyebrow ("The Potomack Co.") + italic display title ("Catalog")
+    // per the unified design language.
     renderLogin();
-    expect(screen.getByText('TPC Catalog')).toBeInTheDocument();
+    expect(screen.getByText('The Potomack Co.')).toBeInTheDocument();
+    expect(screen.getByText('Catalog')).toBeInTheDocument();
   });
 
   it('renders subtitle "Speech-to-catalog tool for auctioneers"', () => {
