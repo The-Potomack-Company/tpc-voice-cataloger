@@ -13,6 +13,9 @@
     "db:types": "npx supabase gen types --lang=typescript --schema public --project-id wgrknodfxdjtddsirldw > src/db/database.types.ts"
   },
   "dependencies": {
+    "@fontsource-variable/eb-garamond": "^5.2.7",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@google/genai": "^1.44.0",
     "@supabase/supabase-js": "^2.99.2",
     "dexie": "^4.3.0",

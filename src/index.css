@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./ui/tokens/fonts.css";
 @import "./ui/tokens/tokens.css";
 @import "./ui/tokens/base.css";
 

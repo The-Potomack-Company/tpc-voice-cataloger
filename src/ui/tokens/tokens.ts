@@ -76,10 +76,17 @@ export const tpcUnifiedDark: Record<keyof typeof tpcUnifiedLight, string> = {
   errWash:  'oklch(0.30 0.05 28)',
 };
 
+// Phase 23: @fontsource-variable packages register WOFF2 files under the
+// "<Family> Variable" name (e.g. "Inter Variable"). Tokens.css lists both
+// the variable and historical names in its font-family fallback stack;
+// downstream consumers can reach for either. The `*Variable` exports below
+// are the names the browser sees when the variable @font-face rules win.
 export const fonts = {
-  display: 'EB Garamond',     // 400 + 400 italic + 500 italic
-  ui:      'Inter',           // 400 / 500 / 600
-  mono:    'IBM Plex Mono',   // 400 / 500
+  display:         'EB Garamond',           // historical name (still resolves via fallback)
+  displayVariable: 'EB Garamond Variable',  // 400 + 400 italic + 500 italic (Phase 23 self-host)
+  ui:              'Inter',                 // historical name
+  uiVariable:      'Inter Variable',        // 400 / 500 / 600 (Phase 23 self-host)
+  mono:            'IBM Plex Mono',         // 400 / 500 (Phase 23 self-host; no variable build)
 } as const;
 
 export const radii = {
