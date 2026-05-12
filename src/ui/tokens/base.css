@@ -232,7 +232,8 @@
   transition: color .12s;
 }
 .tpc .tpc-tab[aria-current="page"],
-.tpc .tpc-tab[data-active="true"] {
+.tpc .tpc-tab[data-active="true"],
+.tpc .tpc-tab-active {
   color: var(--accent);
 }
 .tpc .tpc-tab:focus-visible {
@@ -295,6 +296,25 @@
     opacity: 0;
     transition: opacity 150ms ease-out;
   }
+}
+
+/* Recording pill (Phase 26) — header timer with mono font + tnum digits */
+.tpc .tpc-record-pill {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Theme picker (Phase 25) — segmented control */
+.tpc .tpc-theme-picker {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+}
+.tpc .tpc-theme-picker-option {
+  flex: 1 1 auto;
 }
 
 /* Success ping (Phase 27, MOTION-04) */

@@ -39,13 +39,14 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
         onClick={handleClick}
         disabled={isRequesting}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
+        aria-pressed={isRecording}
         className={`
           w-24 h-24 flex items-center justify-center shadow-lg transition-all
           ${
             isRecording
-              ? "rounded-lg bg-red-600 ring-4 ring-red-300 animate-pulse"
+              ? "rounded-lg bg-red-600 ring-4 ring-red-300 tpc-record-pulse"
               : isRequesting
-                ? "rounded-full bg-red-500 opacity-50 animate-pulse cursor-not-allowed"
+                ? "rounded-full bg-red-500 opacity-50 tpc-record-pulse cursor-not-allowed"
                 : "rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700"
           }
         `}

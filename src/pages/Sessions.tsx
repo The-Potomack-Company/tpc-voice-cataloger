@@ -6,6 +6,7 @@ import { useWalkthroughStatus } from "../components/walkthrough/useWalkthroughSt
 import { SessionSearch } from "../components/SessionSearch";
 import { SessionCard } from "../components/SessionCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { Eyebrow } from "../ui/Eyebrow";
 import { useActiveSessions, useSubmittedSessions, useReturnedSessions, useExportedSessions, useSessionItemCount, useNameMap } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
 import { deleteSession, updateSession } from "../db/sessions";
@@ -350,6 +351,13 @@ export function SessionsPage() {
 
   return (
     <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
+      <header className="mb-5">
+        <Eyebrow>The Potomack Co.</Eyebrow>
+        <h1 className="tpc-display tpc-display-3 mt-1 text-ink">
+          Sessions
+        </h1>
+      </header>
+
       {/* Offline banner */}
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 py-2 px-4 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg" role="status" aria-live="polite">
