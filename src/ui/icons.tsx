@@ -1,3 +1,9 @@
+/* eslint-disable react-refresh/only-export-components --
+ * The icon registry is conceptually static design-data co-located with
+ * the Icon component that consumes it. Splitting them would require
+ * every consumer to import from two files for what is functionally a
+ * single primitive. HMR boundaries are still respected for component
+ * edits because the registry never mutates at runtime. */
 /**
  * src/ui/icons.tsx
  *

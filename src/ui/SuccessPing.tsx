@@ -1,3 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect --
+ * This effect IS the side-effect synchronizer: it observes a `trigger`
+ * prop diff and flips internal animation state (tick + visibility),
+ * then schedules a self-clearing timer. Splitting it across useReducer
+ * doesn't change the cascade structure; the cascade is intentional and
+ * bounded to one re-render per trigger change. */
 /**
  * src/ui/SuccessPing.tsx
  *
@@ -5,7 +11,7 @@
  * Animation gated by `prefers-reduced-motion` via base.css.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Icon } from "./icons";
 
 export interface SuccessPingProps {
@@ -19,13 +25,16 @@ export interface SuccessPingProps {
 }
 
 export function SuccessPing({ trigger, label = "Saved", durationMs = 1600 }: SuccessPingProps) {
-  const [visible, setVisible] = useState(false);
   const [tick, setTick] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const prevTriggerRef = useRef<unknown>(undefined);
 
   useEffect(() => {
     if (trigger === undefined || trigger === null || trigger === false) return;
-    setVisible(true);
+    if (trigger === prevTriggerRef.current) return;
+    prevTriggerRef.current = trigger;
     setTick((t) => t + 1);
+    setVisible(true);
     const handle = window.setTimeout(() => setVisible(false), durationMs);
     return () => window.clearTimeout(handle);
   }, [trigger, durationMs]);
