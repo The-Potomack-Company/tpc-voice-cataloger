@@ -3,13 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <!-- Pre-paint dark-mode bootstrap. ≤5 lines, synchronous and blocking
-       so it cannot introduce FOUC. Phase 22 is system-pref-only; Phase 25
-       will extend this to read a user preference. Allowlisted for
-       TOKENS-04 because index.html is outside src/ and is not scanned. -->
+  <!-- Pre-paint dark-mode bootstrap. Synchronous + blocking so it cannot
+       introduce FOUC. Phase 25 (Codex P2 fix): consult the persisted
+       `tpc-theme` preference first; only fall back to the system pref
+       when the user has not chosen explicitly. Mirrors the same priority
+       order as themeStore + initTheme so the cold paint matches the
+       resolved runtime state. Allowlisted for TOKENS-04 because
+       index.html is outside src/ and is not scanned. -->
   <script>
-    try { if (matchMedia('(prefers-color-scheme: dark)').matches)
-      document.documentElement.classList.add('tpc-dark'); } catch (_) {}
+    try {
+      var pref = null;
+      try { pref = localStorage.getItem('tpc-theme'); } catch (_) {}
+      var dark;
+      if (pref === 'dark') dark = true;
+      else if (pref === 'light') dark = false;
+      else dark = matchMedia('(prefers-color-scheme: dark)').matches;
+      if (dark) document.documentElement.classList.add('tpc-dark');
+    } catch (_) {}
   </script>
   <!-- Paired <meta name="theme-color">. Modern browsers select the matching
        one; legacy browsers fall back to the default (light). The hex values

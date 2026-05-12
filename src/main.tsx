@@ -14,10 +14,14 @@ import { useThemeStore } from "./stores/themeStore";
 const teardownTheme = initTheme({ override: useThemeStore.getState().preference });
 
 // Hydrate cloud preference once a user is known. The store handles the
-// missing-column / first-session case gracefully (falls back to LS).
+// missing-column / first-session case gracefully (falls back to LS). On
+// sign-out, clear the hydration marker so the next user on the same tab
+// re-hydrates from their own profile (Codex P2 fix).
 useAuthStore.subscribe((state, prev) => {
   if (state.user && state.user.id !== prev.user?.id) {
     useThemeStore.getState().hydrateFromSupabase(state.user.id).catch(() => {});
+  } else if (!state.user && prev.user) {
+    useThemeStore.getState().resetHydration();
   }
 });
 

@@ -255,6 +255,23 @@ export function useAudioRecorder(): AudioRecorderReturn {
         streamRef.current = null;
       }
 
+      // Phase 27 (Codex P2 fix) — tear down the AnalyserNode loop here too.
+      // Without this, the RAF + AudioContext live until component unmount,
+      // and repeated record/stop cycles stack duplicate loops.
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      analyserRef.current = null;
+      if (audioContextRef.current) {
+        try {
+          void audioContextRef.current.close();
+        } catch {
+          /* ignore */
+        }
+        audioContextRef.current = null;
+      }
+
       setStatus("idle");
       store.getState().setRecording(false);
     });
