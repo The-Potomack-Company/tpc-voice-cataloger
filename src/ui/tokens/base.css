@@ -148,4 +148,169 @@
 
 /* Dataviz primitives */
 .tpc .bar-track { height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden; }
-.tpc .bar-fill  { height: 100%; background: var(--accent); border-radius: 2px; }
+.tpc .bar-fill  { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.tpc .bar-fill-accent { background: var(--accent); }
+.tpc .bar-fill-warn   { background: var(--warn); }
+.tpc .bar-fill-ok     { background: var(--ok); }
+.tpc .bar-fill-err    { background: var(--err); }
+.tpc .bar-fill-sand   { background: var(--sand); }
+
+/* ============================================================
+   Phase 24 — Component-library additions.
+   These extend the v1.0 primitives above with sizing, full-width,
+   focus rings, card variants, and input-field labels. All read
+   from tokens — no hardcoded literals.
+   ============================================================ */
+
+/* Button sizing + full-width */
+.tpc .tpc-btn-sm        { padding: 4px 9px; font-size: 11.5px; }
+.tpc .tpc-btn-fullwidth { width: 100%; }
+
+/* Focus-visible accent ring (LIB-01..04 / A11Y-02). */
+.tpc .tpc-btn:focus-visible,
+.tpc .tpc-card-interactive:focus-visible,
+.tpc .tpc-badge[role="button"]:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+/* Card variants */
+.tpc .tpc-card-accent-wash { background: var(--accent-wash); }
+.tpc .tpc-card-sand-wash   { background: var(--sand-wash); }
+.tpc .tpc-card-interactive {
+  cursor: pointer;
+  transition: background .12s, border-color .12s, transform .12s;
+  text-align: inherit;
+  border: 1px solid var(--rule);
+  display: block;
+}
+.tpc .tpc-card-interactive:hover { background: var(--bg-2); }
+.tpc .tpc-card-interactive:active { transform: scale(0.998); }
+
+/* Input field wrapper (LIB-03 — label + hint + error stack) */
+.tpc .tpc-input-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.tpc .tpc-input-label { margin-bottom: 2px; }
+.tpc .tpc-input-hint  { font-size: 11px; color: var(--ink-3); }
+.tpc .tpc-input-error { font-size: 11px; color: var(--err); }
+.tpc .tpc-input[aria-invalid="true"] {
+  border-color: var(--err);
+}
+.tpc .tpc-input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px var(--err-wash);
+}
+
+/* Bottom-tab chrome (SCREEN-10) */
+.tpc .tpc-tabbar {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  border-top: 1px solid var(--rule);
+  background: var(--bg);
+}
+.tpc .tpc-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 12px;
+  min-height: 48px;
+  min-width: 48px;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color .12s;
+}
+.tpc .tpc-tab[aria-current="page"],
+.tpc .tpc-tab[data-active="true"] {
+  color: var(--accent);
+}
+.tpc .tpc-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Eyebrow / display rhythm */
+.tpc .tpc-display-1 { font-size: 32px; }
+.tpc .tpc-display-2 { font-size: 26px; }
+.tpc .tpc-display-3 { font-size: 22px; }
+.tpc .tpc-display-4 { font-size: 18px; }
+
+/* Hatched recording-pulse halo (Phase 27 hook; declared here so the
+ * primitive's class exists from Phase 24, but the animation is opt-in). */
+.tpc .tpc-record-pulse { position: relative; }
+.tpc .tpc-record-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: tpc-pulse 1.4s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes tpc-pulse {
+  0%   { transform: scale(0.92); opacity: 0.7; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tpc .tpc-record-pulse::after { animation: none; opacity: 0; }
+}
+
+/* Live waveform bars (Phase 27, MOTION-02). */
+.tpc .tpc-waveform {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  height: 56px;
+}
+.tpc .tpc-waveform-bar {
+  flex: 1 1 0;
+  background: var(--ink-4);
+  border-radius: 1px;
+  transition: height .08s linear, background .2s;
+  min-height: 2px;
+}
+.tpc .tpc-waveform-bar[data-active="true"] { background: var(--accent); }
+
+/* Route transition fade — gated by prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  .tpc-route-fade-enter { opacity: 0; }
+  .tpc-route-fade-enter-active {
+    opacity: 1;
+    transition: opacity 150ms ease-in;
+  }
+  .tpc-route-fade-exit { opacity: 1; }
+  .tpc-route-fade-exit-active {
+    opacity: 0;
+    transition: opacity 150ms ease-out;
+  }
+}
+
+/* Success ping (Phase 27, MOTION-04) */
+.tpc .tpc-success-ping {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ok);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tpc .tpc-success-ping[data-animate="true"] {
+    animation: tpc-ping-in 320ms ease-out;
+  }
+}
+@keyframes tpc-ping-in {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
