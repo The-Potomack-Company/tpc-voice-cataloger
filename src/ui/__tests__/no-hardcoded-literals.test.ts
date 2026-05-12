@@ -41,6 +41,10 @@ const ALLOW_PREFIXES: readonly string[] = [
 // Scope is single-file: only this exact path is excluded, not all of __tests__.
 const ALLOW_FILES: readonly string[] = [
   ["ui", "__tests__", "no-hardcoded-literals.test.ts"].join(sep),
+  // The Phase 30 contrast test parses tokens.css and comments reference
+  // `oklch(...)` literals inline. Same "the file IS the fixture" escape
+  // hatch as the guard test itself (D-16). Single-file scope.
+  ["ui", "__tests__", "contrast.test.ts"].join(sep),
 ];
 
 // D-15 patterns. Three regexes.
