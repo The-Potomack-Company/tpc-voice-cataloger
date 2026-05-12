@@ -1,10 +1,27 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSessionStore } from "../stores/sessionStore";
+import { useAuthStore } from "../stores/authStore";
 import { listAccounts } from "../services/adminApi";
+import { filterDevSessions } from "../constants/devUsers";
 import type { Tables } from "../db/database.types";
 
-export function useActiveSessions() {
+/**
+ * Returns the sessions list with dev-user (Josh) cross-user data filtered
+ * out. The viewer still sees their OWN sessions even if the viewer is a
+ * dev user. Behavior change: only sessions owned/assigned to a dev user
+ * OTHER than the current viewer are excluded.
+ */
+function useScopedSessions(): Tables<"sessions">[] {
   const sessions = useSessionStore((s) => s.sessions);
+  const viewerId = useAuthStore((s) => s.user?.id ?? null);
+  return useMemo(
+    () => filterDevSessions(sessions, viewerId),
+    [sessions, viewerId],
+  );
+}
+
+export function useActiveSessions() {
+  const sessions = useScopedSessions();
   return useMemo(
     () => sessions.filter((sess) => sess.status === "active"),
     [sessions],
@@ -12,7 +29,7 @@ export function useActiveSessions() {
 }
 
 export function useSubmittedSessions() {
-  const sessions = useSessionStore((s) => s.sessions);
+  const sessions = useScopedSessions();
   return useMemo(
     () => sessions.filter((sess) => sess.status === "submitted"),
     [sessions],
@@ -20,7 +37,7 @@ export function useSubmittedSessions() {
 }
 
 export function useReturnedSessions() {
-  const sessions = useSessionStore((s) => s.sessions);
+  const sessions = useScopedSessions();
   return useMemo(
     () => sessions.filter((sess) => sess.status === "returned"),
     [sessions],
@@ -28,7 +45,7 @@ export function useReturnedSessions() {
 }
 
 export function useExportedSessions() {
-  const sessions = useSessionStore((s) => s.sessions);
+  const sessions = useScopedSessions();
   return useMemo(
     () => sessions.filter((sess) => sess.status === "exported"),
     [sessions],

@@ -105,9 +105,10 @@ export function SettingsPage() {
 
   return (
     <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-        Settings
-      </h1>
+      <header className="mb-6">
+        <Eyebrow>The Potomack Co.</Eyebrow>
+        <h1 className="tpc-display tpc-display-2 mt-1 text-ink">Settings</h1>
+      </header>
 
       {/* Appearance section (Phase 25) */}
       <section className="mb-8">

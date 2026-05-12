@@ -10,6 +10,8 @@ import { AccountRow } from '../components/AccountRow'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useAuthStore } from '../stores/authStore'
 import { Eyebrow } from '../ui/Eyebrow'
+import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
 import { Icon } from '../ui/icons'
 
 export function AccountManagementPage() {
@@ -77,7 +79,6 @@ export function AccountManagementPage() {
         password,
         displayName: displayName.trim(),
       })
-      // Success: collapse form, reset fields, re-fetch
       setFormOpen(false)
       setDisplayName('')
       setEmail('')
@@ -87,7 +88,6 @@ export function AccountManagementPage() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Something went wrong. Please try again.'
-      // Map common Supabase errors
       if (message.includes('User already registered')) {
         setCreateError('An account with this email already exists.')
       } else {
@@ -104,7 +104,6 @@ export function AccountManagementPage() {
     setDeactivateTarget(null)
     setTogglingId(target.id)
 
-    // Optimistic update
     setAccounts((prev) =>
       prev.map((a) => (a.id === target.id ? { ...a, is_active: false } : a))
     )
@@ -112,7 +111,6 @@ export function AccountManagementPage() {
     try {
       await toggleAccountActive(target.id, false)
     } catch {
-      // Revert optimistic update
       setAccounts((prev) =>
         prev.map((a) => (a.id === target.id ? { ...a, is_active: true } : a))
       )
@@ -128,7 +126,6 @@ export function AccountManagementPage() {
   const handleReactivate = async (account: Account) => {
     setTogglingId(account.id)
 
-    // Optimistic update
     setAccounts((prev) =>
       prev.map((a) => (a.id === account.id ? { ...a, is_active: true } : a))
     )
@@ -136,7 +133,6 @@ export function AccountManagementPage() {
     try {
       await toggleAccountActive(account.id, true)
     } catch {
-      // Revert optimistic update
       setAccounts((prev) =>
         prev.map((a) => (a.id === account.id ? { ...a, is_active: false } : a))
       )
@@ -162,120 +158,80 @@ export function AccountManagementPage() {
       {/* Back navigation */}
       <Link
         to="/settings"
-        className="text-sm text-accent font-medium flex items-center gap-1 mb-4 hover:text-accent-hover"
+        className="inline-flex items-center gap-1 text-accent text-sm font-medium mb-4 hover:underline"
       >
-        <Icon name="back" size={16} aria-hidden />
+        <Icon name="back" size={14} aria-hidden />
         Settings
       </Link>
 
       {/* Page title — italic display per unified design language */}
       <header className="mb-6">
         <Eyebrow>Admin</Eyebrow>
-        <h1 className="tpc-display tpc-display-3 mt-1 text-ink">
+        <h1 className="tpc-display tpc-display-2 mt-1 text-ink">
           Account Management
         </h1>
       </header>
 
       {/* Add Specialist / Discard toggle button */}
       {!formOpen ? (
-        <button
+        <Button
+          variant="secondary"
+          fullWidth
           onClick={() => setFormOpen(true)}
-          className="min-h-12 w-full rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-accent text-sm font-semibold hover:border-accent hover:bg-accent/5 dark:hover:border-accent dark:hover:bg-accent/5 transition-colors flex items-center justify-center gap-2"
+          icon={<Icon name="plus" size={14} aria-hidden />}
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
           Add Specialist
-        </button>
+        </Button>
       ) : (
-        <button
-          onClick={handleDiscard}
-          className="min-h-12 w-full rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-        >
+        <Button variant="ghost" fullWidth onClick={handleDiscard}>
           Discard
-        </button>
+        </Button>
       )}
 
       {/* Inline creation form */}
       {formOpen && (
         <form
           onSubmit={handleCreate}
-          className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-3"
+          className="tpc-card p-4 mt-3 flex flex-col gap-4"
+          style={{ background: 'var(--bg-2)' }}
         >
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="displayName"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Display Name
-              </label>
-              <input
-                id="displayName"
-                type="text"
-                placeholder="Full name"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent min-h-12"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent min-h-12"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Temporary password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent min-h-12"
-              />
-            </div>
-          </div>
+          <Input
+            id="displayName"
+            label="Display Name"
+            type="text"
+            placeholder="Full name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required
+          />
+          <Input
+            id="email"
+            label="Email"
+            type="email"
+            placeholder="email@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            id="password"
+            label="Password"
+            type="password"
+            placeholder="Temporary password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
           {createError && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400 mt-2">
+            <p role="alert" className="text-sm text-err">
               {createError}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={creating}
-            className="w-full min-h-12 rounded-lg bg-accent text-white font-semibold text-sm hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-          >
-            {creating ? 'Creating...' : 'Create Account'}
-          </button>
+          <Button type="submit" variant="primary" fullWidth disabled={creating}>
+            {creating ? 'Creating…' : 'Create Account'}
+          </Button>
         </form>
       )}
 
@@ -283,16 +239,15 @@ export function AccountManagementPage() {
       <div className="space-y-3 mt-6">
         {loading ? (
           <>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 h-20 animate-pulse" />
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 h-20 animate-pulse" />
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 h-20 animate-pulse" />
+            <div className="tpc-card p-4 h-20 animate-pulse" style={{ background: 'var(--bg-2)' }} />
+            <div className="tpc-card p-4 h-20 animate-pulse" style={{ background: 'var(--bg-2)' }} />
+            <div className="tpc-card p-4 h-20 animate-pulse" style={{ background: 'var(--bg-2)' }} />
           </>
         ) : loadError ? (
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-            <p className="text-red-700 dark:text-red-300 text-sm">
-              {loadError}
-            </p>
+          <div className="tpc-card p-4" style={{ background: 'var(--err-wash)' }}>
+            <p className="text-err text-sm">{loadError}</p>
             <button
+              type="button"
               onClick={() => {
                 setLoading(true)
                 fetchAccounts()
@@ -303,13 +258,10 @@ export function AccountManagementPage() {
             </button>
           </div>
         ) : accounts.length === 0 ? (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-            <p className="font-semibold text-gray-900 dark:text-gray-100">
-              No accounts yet
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Add your first specialist account to get started with session
-              assignment.
+          <div className="tpc-card p-6 text-center" style={{ background: 'var(--bg-2)' }}>
+            <p className="text-ink font-medium">No accounts yet</p>
+            <p className="text-sm text-ink-3 mt-1">
+              Add your first specialist account to get started with session assignment.
             </p>
           </div>
         ) : (
@@ -323,9 +275,7 @@ export function AccountManagementPage() {
                 isToggling={togglingId === account.id}
               />
               {toggleError && toggleError.id === account.id && (
-                <p className="text-sm text-red-600 dark:text-red-400 mt-1 px-4">
-                  {toggleError.message}
-                </p>
+                <p className="text-sm text-err mt-1 px-4">{toggleError.message}</p>
               )}
             </div>
           ))

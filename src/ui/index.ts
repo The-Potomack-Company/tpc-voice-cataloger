@@ -35,6 +35,9 @@ export type { WaveformProps } from "./Waveform";
 export { SuccessPing } from "./SuccessPing";
 export type { SuccessPingProps } from "./SuccessPing";
 
+export { StatStrip } from "./StatStrip";
+export type { StatStripProps, StatItem } from "./StatStrip";
+
 export { ThemePicker } from "./ThemePicker";
 
 // Re-export token utilities for convenience.

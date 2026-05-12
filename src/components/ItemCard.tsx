@@ -110,9 +110,16 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
     }
   };
 
+  // Status dot tone \u2014 mirrors mockup item-status dots (ok / warn / err / info).
+  const dotTone: "ok" | "warn" | "err" | "info" =
+    isFailed ? "err"
+      : isQueued || isProcessing ? "info"
+      : !item.title ? "warn"
+      : "ok";
+
   return (
     <SwipeableRow onDelete={() => setShowDeleteConfirm(true)} disabled={readOnly}>
-      <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg${isQueued ? " opacity-50" : ""}`}>
+      <div className={`tpc-card${isQueued ? " opacity-50" : ""}`} style={{ background: "var(--bg-2)" }}>
         {/* Collapsed row - always visible (div instead of button to allow nested mic button) */}
         <div
           role="button"
@@ -121,18 +128,38 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
             navigate(`/session/${sessionId}/item/${item.id}`);
           }}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/session/${sessionId}/item/${item.id}`); } }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
+          className="w-full grid items-start gap-3 px-3 py-2.5 text-left cursor-pointer"
+          style={{ gridTemplateColumns: "auto 1fr auto" }}
+          data-testid="item-card"
         >
-          {/* Item number + header preview */}
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate block">
+          {/* Item number + status dot (mockup column 1) */}
+          <div className="flex flex-col items-center gap-1 pt-0.5 min-w-[28px]" aria-hidden>
+            <span
+              className="tnum tpc-mono"
+              style={{
+                fontSize: 11,
+                color: "var(--accent)",
+                fontWeight: 500,
+              }}
+            >
               {item.mode === "sale" && item.receipt_number
                 ? `#${item.receipt_number}`
-                : `Item ${item.sort_order + 1}`}
-              {item.title ? ` \u2014 ${item.title}` : ""}
+                : String(item.sort_order + 1).padStart(3, "0")}
+            </span>
+            <span
+              className={`tpc-status-dot tpc-status-dot-${dotTone}`}
+              data-testid="item-status-dot"
+              data-tone={dotTone}
+            />
+          </div>
+
+          {/* Title + description preview */}
+          <div className="min-w-0">
+            <span className="text-sm font-medium text-ink truncate block">
+              {item.title || "\u2014 needs title \u2014"}
             </span>
             {item.description && (
-              <span className="text-xs text-gray-500 dark:text-gray-400 truncate block mt-0.5">
+              <span className="text-xs text-ink-3 truncate block mt-0.5">
                 {item.description}
               </span>
             )}

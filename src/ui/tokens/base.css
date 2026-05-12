@@ -342,3 +342,154 @@
   60%  { transform: scale(1.05); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ============================================================
+   Phase 31 — Mockup-completion sweep (SCREEN-01..03)
+   Tile/Mode primitive, three-stat strip, item-status dot,
+   ink utilities, search-affordance helpers.
+   ============================================================ */
+
+/* Mode tile — small 40x40 letter tile w/ accent/sand wash per mode.
+ * SCREEN-01 (Sessions list) shows one tile per session row. */
+.tpc .tpc-mode-tile {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1;
+}
+.tpc .tpc-mode-tile-sale  { background: var(--accent-wash); color: var(--accent); }
+.tpc .tpc-mode-tile-house { background: var(--sand-wash);   color: var(--sand); }
+
+/* Date-group eyebrow header used inside Sessions list. */
+.tpc .tpc-date-group {
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Three-stat strip — used on the Recording & SessionDetail screens. */
+.tpc .tpc-stat-strip {
+  display: flex;
+  gap: 14px;
+}
+.tpc .tpc-stat {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.tpc .tpc-stat-label {
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.tpc .tpc-stat-value {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--ink);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.tpc .tpc-stat-total {
+  color: var(--ink-4);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* Item status dot (Review/SessionDetail item list). */
+.tpc .tpc-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+.tpc .tpc-status-dot-ok   { background: var(--ok); }
+.tpc .tpc-status-dot-warn { background: var(--warn); }
+.tpc .tpc-status-dot-err  { background: var(--err); }
+.tpc .tpc-status-dot-info { background: var(--accent); }
+
+/* Sticky header used on Review screen (SCREEN-03). */
+.tpc .tpc-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Search affordance container — surfaces .tpc-input on a chrome-colored
+ * tile per the SCREEN-01 mockup row of:
+ *   [search-icon] [placeholder/value]              [filter-icon]
+ */
+.tpc .tpc-search-affordance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+}
+.tpc .tpc-search-affordance input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+}
+.tpc .tpc-search-affordance input::placeholder { color: var(--ink-3); }
+.tpc .tpc-search-affordance:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+/* Recording surface stat strip variant — slightly larger figure for the
+ * three KPIs under the live waveform. */
+.tpc .tpc-stat-strip-lg .tpc-stat-value { font-size: 22px; }
+
+/* Mono / display type helpers — token-driven so consumers don't inline
+ * fontFamily literals (which trip TOKENS-04's hardcoded-literal guard). */
+.tpc .tpc-mono { font-family: var(--font-mono); }
+.tpc .tpc-display-text {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+/* Per-mode accent-wash card (used on NewSession mode picker tiles). */
+.tpc .tpc-card-mode {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  transition: background .12s, border-color .12s, transform .12s;
+}
+.tpc .tpc-card-mode:hover { background: var(--bg-2); }
+.tpc .tpc-card-mode[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+.tpc .tpc-card-mode-sale[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+.tpc .tpc-card-mode-house[aria-pressed="true"] {
+  border-color: color-mix(in oklch, var(--sand) 50%, var(--rule-2));
+  background: var(--sand-wash);
+}

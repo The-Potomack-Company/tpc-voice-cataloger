@@ -10,6 +10,7 @@ import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
 import { RecordButton } from "../components/RecordButton";
 import { Waveform } from "../ui/Waveform";
+import { StatStrip } from "../ui/StatStrip";
 import { useRecordingStore } from "../stores/recordingStore";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
@@ -20,16 +21,68 @@ import { useSessionStore } from "../stores/sessionStore";
 import { createBlankItem, updateItemField, deleteItem } from "../db/items";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
+import { formatDuration } from "../utils/audio";
 import type { ItemPhoto } from "../db/types";
 
 /** Phase 27: visible-only-while-recording waveform wrapper. */
 function RecordingWaveform() {
   const isRecording = useRecordingStore((s) => s.isRecording);
+  const currentDurationMs = useRecordingStore((s) => s.currentDurationMs);
   if (!isRecording) return null;
   return (
-    <div className="px-2 py-3 rounded-lg border border-rule bg-bg-2">
+    <div className="tpc-card p-3" style={{ background: "var(--bg-2)" }}>
       <Waveform />
+      <div
+        className="tnum tpc-display-text mt-3 text-center"
+        style={{
+          fontSize: 22,
+          color: "var(--ink)",
+        }}
+      >
+        {formatDuration(currentDurationMs)}
+      </div>
     </div>
+  );
+}
+
+/**
+ * Three-stat strip beneath the record button (mockup SCREEN-02).
+ *
+ * Shows the live count of items entered, photos captured across this
+ * session, and the elapsed time relative to the session start. Reads
+ * directly from the items array passed in to avoid extra round trips.
+ */
+function RecordingStats({
+  itemCount,
+  photoCount,
+  startedAt,
+}: {
+  itemCount: number;
+  photoCount: number;
+  startedAt: string;
+}) {
+  // Elapsed minutes live in state; the effect samples Date.now on a 30s
+  // interval to avoid impure reads at render time and to keep the displayed
+  // value fresh. Cleanup + dep array reseed when the session start changes.
+  const [elapsedMin, setElapsedMin] = useState(0);
+  useEffect(() => {
+    const start = Date.parse(startedAt);
+    if (Number.isNaN(start)) return;
+    const recompute = () =>
+      setElapsedMin(Math.max(0, Math.round((Date.now() - start) / 60000)));
+    recompute();
+    const t = setInterval(recompute, 30_000);
+    return () => clearInterval(t);
+  }, [startedAt]);
+  return (
+    <StatStrip
+      stats={[
+        { label: "Items", value: itemCount, showBar: false },
+        { label: "Photos", value: photoCount, showBar: false },
+        { label: "Elapsed", value: `${elapsedMin} min`, showBar: false },
+      ]}
+      large
+    />
   );
 }
 
@@ -103,6 +156,23 @@ export function ItemEntryPage() {
     },
     [dexieItemId, itemId, mode],
     [] as ItemPhoto[],
+  );
+
+  // Session-wide photo count for the SCREEN-02 stat strip.
+  const sessionPhotoCount = useLiveQuery(
+    async () => {
+      if (!items.length || mode !== "house") return 0;
+      // Sum photos across every item in the session.
+      const counts = await Promise.all(
+        items.map(async (i) => {
+          const lookupId = (await getDexieItemId(i.id)) ?? i.id;
+          return db.photos.where("itemId").equals(lookupId).count();
+        }),
+      );
+      return counts.reduce((a, b) => a + b, 0);
+    },
+    [items.map((i) => i.id).join("|"), mode],
+    0,
   );
 
   // Receipt number state for sale mode
@@ -291,6 +361,16 @@ export function ItemEntryPage() {
                 static recording-active glyph instead. */}
             <RecordingWaveform />
 
+            {/* Mockup SCREEN-02 — three-stat strip below the record button
+                showing items entered, photos captured, and elapsed time. */}
+            {session && (
+              <RecordingStats
+                itemCount={totalItems}
+                photoCount={sessionPhotoCount}
+                startedAt={session.created_at}
+              />
+            )}
+
             {/* Recordings list */}
             <RecordingsList itemId={itemId} />
 
@@ -298,13 +378,11 @@ export function ItemEntryPage() {
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 min-h-12 rounded-lg
-                border border-red-200 dark:border-red-800
-                text-red-600 dark:text-red-400 font-medium
-                hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="tpc-btn tpc-btn-danger tpc-btn-fullwidth"
+              style={{ minHeight: 44 }}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
               </svg>
               <span>Delete Item</span>
             </button>

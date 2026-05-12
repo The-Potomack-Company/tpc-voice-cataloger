@@ -132,8 +132,13 @@ describe("ItemList", () => {
     render(<MemoryRouter><ItemList sessionId="session-1" mode="house" /></MemoryRouter>);
 
     await waitFor(() => {
-      expect(screen.getByText(/Item 1/)).toBeInTheDocument();
-      expect(screen.getByText(/Item 2/)).toBeInTheDocument();
+      // Mockup-faithful: each row shows title + 001/002 mono ordinal + status dot.
+      expect(screen.getByText(/Antique Chair/)).toBeInTheDocument();
+      expect(screen.getByText(/Oak Table/)).toBeInTheDocument();
+      expect(screen.getByText("001")).toBeInTheDocument();
+      expect(screen.getByText("002")).toBeInTheDocument();
+      // Two status dots, one per item.
+      expect(screen.getAllByTestId("item-status-dot")).toHaveLength(2);
     });
   });
 

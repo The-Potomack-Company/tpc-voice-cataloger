@@ -19,10 +19,11 @@ dist-ssr
 *.local
 .env
 
-# Playwright (Phase 30 smoke)
+# Playwright (Phase 30 smoke + Phase 31 mockup-fidelity)
 test-results/
 playwright-report/
 playwright/.cache/
+tests/e2e/screenshots/
 
 # Editor directories and files
 .vscode/*

@@ -33,6 +33,28 @@ export function LoginPage() {
     <div className="flex items-center justify-center h-dvh">
       <div className="w-full max-w-sm mx-4">
         <header className="text-center mb-8">
+          {/* Italic serif "P" monogram — the only place the italic display font
+              renders as a hero mark per docs/design-handoff/prototype-primitives.jsx */}
+          <span
+            aria-hidden
+            className="tpc-display-text"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 56,
+              height: 56,
+              border: "1px solid var(--ink)",
+              borderRadius: 10,
+              color: "var(--ink)",
+              fontSize: 40,
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              marginBottom: 18,
+            }}
+          >
+            P
+          </span>
           <Eyebrow>The Potomack Co.</Eyebrow>
           <h1 className="tpc-display tpc-display-2 mt-2 text-ink">
             Catalog
@@ -42,7 +64,7 @@ export function LoginPage() {
           </p>
         </header>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 tpc-card p-5" style={{ background: "var(--bg-2)" }}>
           <Input
             id="email"
             type="email"

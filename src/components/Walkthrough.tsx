@@ -32,62 +32,67 @@ export function Walkthrough({ role, onComplete }: WalkthroughProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full px-8 py-12">
-      <div className="max-w-sm w-full text-center">
-        {/* Role section label - only on first role-specific step */}
-        {step.roleSection && (
-          <Eyebrow className="mb-4">
-            {step.roleSection === 'admin' ? 'Admin features' : 'Your workflow'}
-          </Eyebrow>
-        )}
-
-        {/* Step icon */}
-        {step.icon}
-
-        {/* Step title — italic display per unified design language */}
-        <h2 className="tpc-display tpc-display-3 mb-4 text-ink">{step.title}</h2>
-
-        {/* Step description */}
-        <p className="text-ink-2 mb-10 leading-relaxed">
-          {step.description}
-        </p>
-
-        {/* Navigation buttons */}
-        <div className="flex gap-3 w-full">
-          {currentStep > 0 && (
-            <Button variant="ghost" onClick={handleBack}>
-              Back
-            </Button>
+    <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
+      <div className="max-w-sm w-full">
+        {/* Card-style step container */}
+        <div className="tpc-card p-7 text-center" style={{ background: "var(--bg-2)" }}>
+          {/* Role section label - only on first role-specific step */}
+          {step.roleSection && (
+            <Eyebrow className="mb-4">
+              {step.roleSection === 'admin' ? 'Admin features' : 'Your workflow'}
+            </Eyebrow>
           )}
-          <Button onClick={handleNext} fullWidth>
-            {isLastStep ? 'Start Cataloging' : 'Next'}
-          </Button>
-        </div>
-      </div>
 
-      {/* Progress indicator */}
-      <div className="flex items-center gap-2 mt-8">
-        <span className="text-sm text-ink-3 tnum">
-          {currentStep + 1} / {totalSteps}
-        </span>
-        <div className="flex gap-2">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i <= currentStep ? 'bg-accent' : 'bg-rule'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
+          {/* Step icon */}
+          {step.icon}
 
-      {/* Skip link - visible from step 1 onward */}
-      {currentStep > 0 && (
-        <Button variant="ghost" size="sm" onClick={handleSkip} className="mt-4">
-          Skip tutorial
-        </Button>
-      )}
+          {/* Step title — italic display per unified design language */}
+          <h2 className="tpc-display tpc-display-3 mb-3 text-ink">{step.title}</h2>
+
+          {/* Step description */}
+          <p className="text-ink-2 mb-6 leading-relaxed text-sm">
+            {step.description}
+          </p>
+
+          {/* Navigation buttons */}
+          <div className="flex gap-3 w-full">
+            {currentStep > 0 && (
+              <Button variant="ghost" onClick={handleBack}>
+                Back
+              </Button>
+            )}
+            <Button onClick={handleNext} fullWidth>
+              {isLastStep ? 'Start Cataloging' : 'Next'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Progress indicator */}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <span className="text-sm text-ink-3 tnum">
+            {currentStep + 1} / {totalSteps}
+          </span>
+          <div className="flex gap-2">
+            {steps.map((_, i) => (
+              <div
+                key={i}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  i <= currentStep ? 'bg-accent' : 'bg-rule'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Skip link - visible from step 1 onward */}
+        {currentStep > 0 && (
+          <div className="text-center mt-3">
+            <Button variant="ghost" size="sm" onClick={handleSkip}>
+              Skip tutorial
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

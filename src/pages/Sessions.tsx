@@ -4,149 +4,125 @@ import { useUIStore } from "../stores/uiStore";
 import { Walkthrough } from "../components/Walkthrough";
 import { useWalkthroughStatus } from "../components/walkthrough/useWalkthroughStatus";
 import { SessionSearch } from "../components/SessionSearch";
-import { SessionCard } from "../components/SessionCard";
+import { SessionTile } from "../components/SessionTile";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Eyebrow } from "../ui/Eyebrow";
-import { useActiveSessions, useSubmittedSessions, useReturnedSessions, useExportedSessions, useSessionItemCount, useNameMap } from "../hooks/useSessions";
+import { Button } from "../ui/Button";
+import {
+  useActiveSessions,
+  useSubmittedSessions,
+  useReturnedSessions,
+  useExportedSessions,
+  useSessionItemCount,
+  useNameMap,
+} from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
 import { deleteSession, updateSession } from "../db/sessions";
+import { groupByDate, sessionShortId } from "../utils/groupByDate";
 import type { Tables } from "../db/database.types";
 
 type SupabaseSession = Tables<"sessions">;
 
-/** Group sessions by assigned_to UUID, resolving names via nameMap */
-function groupByAssignee(
-  sessions: SupabaseSession[],
-  nameMap: Map<string, string>,
-): { name: string; id: string; sessions: SupabaseSession[] }[] {
-  const groups = new Map<string, SupabaseSession[]>();
-  for (const session of sessions) {
-    const key = session.assigned_to ?? "unassigned";
-    const group = groups.get(key) ?? [];
-    group.push(session);
-    groups.set(key, group);
-  }
-  return Array.from(groups.entries())
-    .map(([id, sess]) => ({
-      id,
-      name: id === "unassigned" ? "Unassigned" : (nameMap.get(id) ?? "Loading\u2026"),
-      sessions: sess,
-    }))
-    .sort((a, b) => {
-      // Unassigned always at the bottom
-      if (a.id === "unassigned") return 1;
-      if (b.id === "unassigned") return -1;
-      return a.name.localeCompare(b.name);
-    });
+interface TileBlockProps {
+  sessions: SupabaseSession[];
+  onTap: (s: SupabaseSession) => void;
+  onDelete: (s: SupabaseSession) => void;
+  onRename: (s: SupabaseSession, newName: string) => void;
+  assigneeNameFor?: (s: SupabaseSession) => string | undefined;
 }
 
-/** Specialist group header with collapsible session list */
-function SpecialistGroup({
-  name,
+/** Wrapper to look up the item count for a single tile. */
+function TileWithCount({
+  session,
+  onTap,
+  onDelete,
+  onRename,
+  showDivider,
+  assigneeName,
+}: {
+  session: SupabaseSession;
+  onTap: () => void;
+  onDelete: () => void;
+  onRename: (newName: string) => void;
+  showDivider: boolean;
+  assigneeName?: string;
+}) {
+  const count = useSessionItemCount(session.id);
+  return (
+    <SessionTile
+      session={session}
+      itemCount={count}
+      shortId={sessionShortId(session)}
+      onTap={onTap}
+      onDelete={onDelete}
+      onRename={onRename}
+      showDivider={showDivider}
+      assigneeName={assigneeName}
+    />
+  );
+}
+
+/** Date-grouped block of tiles, each group wrapped in a tpc-card container. */
+function DateGroupedTiles({
   sessions,
   onTap,
   onDelete,
   onRename,
-  defaultExpanded = true,
-}: {
-  name: string;
-  sessions: SupabaseSession[];
-  onTap: (s: SupabaseSession) => void;
-  onDelete: (s: SupabaseSession) => void;
-  onRename: (s: SupabaseSession, n: string) => void;
-  defaultExpanded?: boolean;
-}) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  assigneeNameFor,
+}: TileBlockProps) {
+  const groups = groupByDate(sessions, (s) => s.updated_at);
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 mb-2 ml-1 min-h-12"
-      >
-        <svg
-          className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          {name} ({sessions.length})
-        </span>
-      </button>
-      {expanded && (
-        <div className="space-y-2">
-          {sessions.map((session) => (
-            <AdminSessionCard
-              key={session.id}
-              session={session}
-              onTap={() => onTap(session)}
-              onDelete={() => onDelete(session)}
-              onRename={(newName) => onRename(session, newName)}
-            />
-          ))}
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <div key={group.key}>
+          <Eyebrow className="tpc-date-group">{group.label}</Eyebrow>
+          <div className="tpc-card overflow-hidden">
+            {group.items.map((s, i) => (
+              <TileWithCount
+                key={s.id}
+                session={s}
+                onTap={() => onTap(s)}
+                onDelete={() => onDelete(s)}
+                onRename={(newName) => onRename(s, newName)}
+                showDivider={i < group.items.length - 1}
+                assigneeName={assigneeNameFor?.(s)}
+              />
+            ))}
+          </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }
 
-/** Admin session card wrapper that passes assigneeName and sessionStatus */
-function AdminSessionCard({
-  session,
-  onTap,
-  onDelete,
-  onRename,
-}: {
-  session: SupabaseSession;
-  onTap: () => void;
-  onDelete: () => void;
-  onRename: (newName: string) => void;
-}) {
-  const itemCount = useSessionItemCount(session.id);
-  return (
-    <SessionCard
-      session={session}
-      itemCount={itemCount}
-      onTap={onTap}
-      onDelete={onDelete}
-      onRename={onRename}
-      sessionStatus={session.status}
-    />
-  );
-}
-
-/** Collapsible admin section with specialist grouping */
-function CollapsibleAdminSection({
+/** Section header used at the top level (Active / Submitted / etc.). */
+function SectionHeader({
   title,
-  sessions,
-  groups,
-  onTap,
-  onDelete,
-  onRename,
-  defaultExpanded,
+  count,
+  collapsible,
+  expanded,
+  onToggle,
+  tone = "neutral",
 }: {
   title: string;
-  sessions: SupabaseSession[];
-  groups: { name: string; id: string; sessions: SupabaseSession[] }[];
-  onTap: (s: SupabaseSession) => void;
-  onDelete: (s: SupabaseSession) => void;
-  onRename: (s: SupabaseSession, n: string) => void;
-  defaultExpanded: boolean;
+  count: number;
+  collapsible?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
+  tone?: "neutral" | "warn";
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  return (
-    <section className="mt-8">
+  const colorClass =
+    tone === "warn" ? "text-warn" : "text-ink-3";
+
+  if (collapsible) {
+    return (
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 mb-3"
+        onClick={onToggle}
+        className={`flex items-center gap-2 mb-3 ${colorClass}`}
       >
         <svg
-          className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
+          className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -154,54 +130,38 @@ function CollapsibleAdminSection({
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
-        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          {title} ({sessions.length})
-        </h2>
+        <span className="tpc-eyebrow">
+          {title} ({count})
+        </span>
       </button>
-      {expanded && (
-        <div className="space-y-4">
-          {groups.map((g) => (
-            <SpecialistGroup
-              key={g.id}
-              name={g.name}
-              sessions={g.sessions}
-              onTap={onTap}
-              onDelete={onDelete}
-              onRename={onRename}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
+    );
+  }
 
-/** Wrapper that calls useSessionItemCount for a single session (specialist view) */
-function SessionCardWithCount({
-  session,
-  onTap,
-  onDelete,
-  onRename,
-}: {
-  session: SupabaseSession;
-  onTap: () => void;
-  onDelete: () => void;
-  onRename: (newName: string) => void;
-}) {
-  const itemCount = useSessionItemCount(session.id);
   return (
-    <SessionCard
-      session={session}
-      itemCount={itemCount}
-      onTap={onTap}
-      onDelete={onDelete}
-      onRename={onRename}
-    />
+    <div className={`flex items-center gap-2 mb-3 ${colorClass}`}>
+      {tone === "warn" && (
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+          <path
+            fillRule="evenodd"
+            d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z"
+            clipRule="evenodd"
+          />
+        </svg>
+      )}
+      <span className="tpc-eyebrow">
+        {title} ({count})
+      </span>
+    </div>
   );
 }
 
 export function SessionsPage() {
-  const { walkthroughCompleted, role: walkthroughRole, loading: walkthroughLoading, completeWalkthrough } = useWalkthroughStatus();
+  const {
+    walkthroughCompleted,
+    role: walkthroughRole,
+    loading: walkthroughLoading,
+    completeWalkthrough,
+  } = useWalkthroughStatus();
   const isOnline = useUIStore((s) => s.isOnline);
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
@@ -214,6 +174,7 @@ export function SessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [submittedExpanded, setSubmittedExpanded] = useState(true);
   const [exportedExpanded, setExportedExpanded] = useState(false);
+  const [returnedExpandedAdmin, setReturnedExpandedAdmin] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<SupabaseSession | null>(null);
 
   // Gate: default to "completed" while loading to avoid flash of walkthrough for returning users
@@ -230,7 +191,7 @@ export function SessionsPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-[72px] rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse"
+              className="h-[72px] rounded-lg bg-bg-2 animate-pulse"
             />
           ))}
         </div>
@@ -238,7 +199,11 @@ export function SessionsPage() {
     );
   }
 
-  const totalSessions = activeSessions.length + submittedSessions.length + returnedSessions.length + exportedSessions.length;
+  const totalSessions =
+    activeSessions.length +
+    submittedSessions.length +
+    returnedSessions.length +
+    exportedSessions.length;
 
   // Filter by search query
   const filterFn = (s: SupabaseSession) =>
@@ -248,7 +213,11 @@ export function SessionsPage() {
   const filteredSubmitted = submittedSessions.filter(filterFn);
   const filteredReturned = returnedSessions.filter(filterFn);
   const filteredExported = exportedSessions.filter(filterFn);
-  const filteredTotal = filteredActive.length + filteredSubmitted.length + filteredReturned.length + filteredExported.length;
+  const filteredTotal =
+    filteredActive.length +
+    filteredSubmitted.length +
+    filteredReturned.length +
+    filteredExported.length;
 
   const handleTap = (session: SupabaseSession) => {
     navigate(`/session/${session.id}`);
@@ -271,49 +240,11 @@ export function SessionsPage() {
     }
   };
 
-  /** Render an admin section with specialist grouping */
-  const renderAdminSection = (
-    title: string,
-    sessions: SupabaseSession[],
-    collapsible: boolean,
-    defaultExpanded: boolean,
-  ) => {
-    if (sessions.length === 0) return null;
-    const groups = groupByAssignee(sessions, nameMap);
-
-    if (!collapsible) {
-      return (
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-            {title} ({sessions.length})
-          </h2>
-          <div className="space-y-4">
-            {groups.map((g) => (
-              <SpecialistGroup
-                key={g.id}
-                name={g.name}
-                sessions={g.sessions}
-                onTap={handleTap}
-                onDelete={handleDeleteRequest}
-                onRename={handleRename}
-              />
-            ))}
-          </div>
-        </section>
-      );
-    }
-
-    return (
-      <CollapsibleAdminSection
-        title={title}
-        sessions={sessions}
-        groups={groups}
-        onTap={handleTap}
-        onDelete={handleDeleteRequest}
-        onRename={handleRename}
-        defaultExpanded={defaultExpanded}
-      />
-    );
+  // Resolve the assignee display name (admin cross-user view).
+  const assigneeNameFor = (s: SupabaseSession): string | undefined => {
+    if (!isAdmin) return undefined;
+    if (!s.assigned_to) return "Unassigned";
+    return nameMap.get(s.assigned_to) ?? "Loading…";
   };
 
   // Empty state -- no sessions at all
@@ -321,7 +252,7 @@ export function SessionsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-full portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-12">
         <svg
-          className="w-20 h-20 text-gray-300 dark:text-gray-600 mb-6"
+          className="w-20 h-20 text-ink-4 mb-6"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -333,15 +264,14 @@ export function SessionsPage() {
             d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
           />
         </svg>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          No sessions yet
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">
+        <h2 className="tpc-display tpc-display-3 text-ink mb-2">No sessions yet</h2>
+        <p className="text-ink-3 mb-8 text-center">
           Create your first cataloging session to get started.
         </p>
         <Link
           to="/new"
-          className="bg-accent hover:bg-accent-hover text-white font-medium py-3 px-8 rounded-lg min-h-12 flex items-center justify-center transition-colors"
+          className="tpc-btn tpc-btn-primary tpc-btn-fullwidth"
+          style={{ maxWidth: 280 }}
         >
           Start New Session
         </Link>
@@ -351,20 +281,59 @@ export function SessionsPage() {
 
   return (
     <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
-      <header className="mb-5">
-        <Eyebrow>The Potomack Co.</Eyebrow>
-        <h1 className="tpc-display tpc-display-3 mt-1 text-ink">
-          Sessions
-        </h1>
+      {/* Header — eyebrow + display title + New button */}
+      <header className="mb-5 flex items-baseline justify-between gap-3">
+        <div>
+          <Eyebrow>The Potomack Co.</Eyebrow>
+          <h1 className="tpc-display tpc-display-2 mt-1 text-ink">Sessions</h1>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          }
+          onClick={() => navigate("/new")}
+          aria-label="New session"
+        >
+          New
+        </Button>
       </header>
 
       {/* Offline banner */}
       {!isOnline && (
-        <div className="flex items-center justify-center gap-2 py-2 px-4 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg" role="status" aria-live="polite">
-          <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 010 12.728M5.636 5.636a9 9 0 000 12.728M3.757 3.757l16.486 16.486" />
+        <div
+          className="flex items-center justify-center gap-2 py-2 px-4 mb-4 bg-bg-2 rounded-md text-ink-3"
+          role="status"
+          aria-live="polite"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M18.364 5.636a9 9 0 010 12.728M5.636 5.636a9 9 0 000 12.728M3.757 3.757l16.486 16.486"
+            />
           </svg>
-          <span className="text-sm text-gray-500 dark:text-gray-400">You're offline. Changes will sync when you reconnect.</span>
+          <span className="text-sm">You're offline. Changes will sync when you reconnect.</span>
         </div>
       )}
 
@@ -373,140 +342,149 @@ export function SessionsPage() {
 
       {/* Empty search results */}
       {searchQuery && filteredTotal === 0 && (
-        <p className="text-center text-gray-500 dark:text-gray-400 mt-8">
+        <p className="text-center text-ink-3 mt-8">
           No sessions match "{searchQuery}"
         </p>
       )}
 
       {isAdmin ? (
         <>
-          {/* Admin view: Awaiting Review, Active, Returned, Exported */}
-          {renderAdminSection("Awaiting Review", filteredSubmitted, false, true)}
-          {renderAdminSection("Active Sessions", filteredActive, false, true)}
-          {renderAdminSection("Returned", filteredReturned, true, true)}
-          {renderAdminSection("Exported", filteredExported, true, false)}
-        </>
-      ) : (
-        <>
-          {/* Specialist view: Needs Attention, Active, Submitted, Exported */}
-
-          {/* Needs Attention (returned sessions) -- always visible, not collapsible */}
-          {filteredReturned.length > 0 && (
-            <section className="mt-6">
-              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-3">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-                Needs Attention ({filteredReturned.length})
-              </h2>
-              <div className="space-y-3">
-                {filteredReturned.map((session) => (
-                  <SessionCardWithCount
-                    key={session.id}
-                    session={session}
-                    onTap={() => handleTap(session)}
-                    onDelete={() => handleDeleteRequest(session)}
-                    onRename={(newName) => handleRename(session, newName)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Active Sessions -- always visible, not collapsible */}
-          {filteredActive.length > 0 && (
-            <section className={filteredReturned.length > 0 ? "mt-8" : "mt-6"}>
-              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                Active Sessions ({filteredActive.length})
-              </h2>
-              <div className="space-y-3">
-                {filteredActive.map((session) => (
-                  <SessionCardWithCount
-                    key={session.id}
-                    session={session}
-                    onTap={() => handleTap(session)}
-                    onDelete={() => handleDeleteRequest(session)}
-                    onRename={(newName) => handleRename(session, newName)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Submitted -- collapsible, expanded by default */}
+          {/* Admin view — Awaiting Review / Active / Returned / Exported */}
           {filteredSubmitted.length > 0 && (
+            <section className="mt-6">
+              <SectionHeader title="Awaiting Review" count={filteredSubmitted.length} />
+              <DateGroupedTiles
+                sessions={filteredSubmitted}
+                onTap={handleTap}
+                onDelete={handleDeleteRequest}
+                onRename={handleRename}
+                assigneeNameFor={assigneeNameFor}
+              />
+            </section>
+          )}
+
+          {filteredActive.length > 0 && (
             <section className="mt-8">
-              <button
-                type="button"
-                onClick={() => setSubmittedExpanded(!submittedExpanded)}
-                className="flex items-center gap-2 mb-3"
-              >
-                <svg
-                  className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                    submittedExpanded ? "rotate-90" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Submitted ({filteredSubmitted.length})
-                </h2>
-              </button>
-              {submittedExpanded && (
-                <div className="space-y-3">
-                  {filteredSubmitted.map((session) => (
-                    <SessionCardWithCount
-                      key={session.id}
-                      session={session}
-                      onTap={() => handleTap(session)}
-                      onDelete={() => handleDeleteRequest(session)}
-                      onRename={(newName) => handleRename(session, newName)}
-                    />
-                  ))}
-                </div>
+              <SectionHeader title="Active Sessions" count={filteredActive.length} />
+              <DateGroupedTiles
+                sessions={filteredActive}
+                onTap={handleTap}
+                onDelete={handleDeleteRequest}
+                onRename={handleRename}
+                assigneeNameFor={assigneeNameFor}
+              />
+            </section>
+          )}
+
+          {filteredReturned.length > 0 && (
+            <section className="mt-8">
+              <SectionHeader
+                title="Returned"
+                count={filteredReturned.length}
+                collapsible
+                expanded={returnedExpandedAdmin}
+                onToggle={() => setReturnedExpandedAdmin((v) => !v)}
+              />
+              {returnedExpandedAdmin && (
+                <DateGroupedTiles
+                  sessions={filteredReturned}
+                  onTap={handleTap}
+                  onDelete={handleDeleteRequest}
+                  onRename={handleRename}
+                  assigneeNameFor={assigneeNameFor}
+                />
               )}
             </section>
           )}
 
-          {/* Exported -- collapsible, collapsed by default */}
           {filteredExported.length > 0 && (
             <section className="mt-8">
-              <button
-                type="button"
-                onClick={() => setExportedExpanded(!exportedExpanded)}
-                className="flex items-center gap-2 mb-3"
-              >
-                <svg
-                  className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                    exportedExpanded ? "rotate-90" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Exported ({filteredExported.length})
-                </h2>
-              </button>
+              <SectionHeader
+                title="Exported"
+                count={filteredExported.length}
+                collapsible
+                expanded={exportedExpanded}
+                onToggle={() => setExportedExpanded((v) => !v)}
+              />
               {exportedExpanded && (
-                <div className="space-y-3">
-                  {filteredExported.map((session) => (
-                    <SessionCardWithCount
-                      key={session.id}
-                      session={session}
-                      onTap={() => handleTap(session)}
-                      onDelete={() => handleDeleteRequest(session)}
-                      onRename={(newName) => handleRename(session, newName)}
-                    />
-                  ))}
-                </div>
+                <DateGroupedTiles
+                  sessions={filteredExported}
+                  onTap={handleTap}
+                  onDelete={handleDeleteRequest}
+                  onRename={handleRename}
+                  assigneeNameFor={assigneeNameFor}
+                />
+              )}
+            </section>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Specialist view — Needs Attention / Active / Submitted / Exported */}
+          {filteredReturned.length > 0 && (
+            <section className="mt-6">
+              <SectionHeader
+                title={`Needs Attention`}
+                count={filteredReturned.length}
+                tone="warn"
+              />
+              <DateGroupedTiles
+                sessions={filteredReturned}
+                onTap={handleTap}
+                onDelete={handleDeleteRequest}
+                onRename={handleRename}
+              />
+            </section>
+          )}
+
+          {filteredActive.length > 0 && (
+            <section className={filteredReturned.length > 0 ? "mt-8" : "mt-6"}>
+              <SectionHeader title="Active Sessions" count={filteredActive.length} />
+              <DateGroupedTiles
+                sessions={filteredActive}
+                onTap={handleTap}
+                onDelete={handleDeleteRequest}
+                onRename={handleRename}
+              />
+            </section>
+          )}
+
+          {filteredSubmitted.length > 0 && (
+            <section className="mt-8">
+              <SectionHeader
+                title="Submitted"
+                count={filteredSubmitted.length}
+                collapsible
+                expanded={submittedExpanded}
+                onToggle={() => setSubmittedExpanded((v) => !v)}
+              />
+              {submittedExpanded && (
+                <DateGroupedTiles
+                  sessions={filteredSubmitted}
+                  onTap={handleTap}
+                  onDelete={handleDeleteRequest}
+                  onRename={handleRename}
+                />
+              )}
+            </section>
+          )}
+
+          {filteredExported.length > 0 && (
+            <section className="mt-8">
+              <SectionHeader
+                title="Exported"
+                count={filteredExported.length}
+                collapsible
+                expanded={exportedExpanded}
+                onToggle={() => setExportedExpanded((v) => !v)}
+              />
+              {exportedExpanded && (
+                <DateGroupedTiles
+                  sessions={filteredExported}
+                  onTap={handleTap}
+                  onDelete={handleDeleteRequest}
+                  onRename={handleRename}
+                />
               )}
             </section>
           )}
