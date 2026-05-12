@@ -80,7 +80,17 @@ export function AppLayout() {
       <OfflineIndicator />
       <PhotoMigrationBanner />
       <main className="flex-1 overflow-y-auto">
-        <Outlet />
+        {/* Phase 27 (MOTION-03): keyed wrapper triggers the route cross-fade
+            declared in base.css. The keyframes are wrapped in a
+            prefers-reduced-motion: no-preference media query, so users with
+            the reduced-motion pref see instant transitions instead. */}
+        <div
+          key={location.pathname}
+          className="tpc-route-fade-in"
+          data-testid="route-fade"
+        >
+          <Outlet />
+        </div>
       </main>
       <nav
         className="tpc-tabbar pb-[env(safe-area-inset-bottom)]"

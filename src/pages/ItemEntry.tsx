@@ -9,6 +9,8 @@ import { EditableField } from "../components/EditableField";
 import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
 import { RecordButton } from "../components/RecordButton";
+import { Waveform } from "../ui/Waveform";
+import { useRecordingStore } from "../stores/recordingStore";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -19,6 +21,17 @@ import { createBlankItem, updateItemField, deleteItem } from "../db/items";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
 import type { ItemPhoto } from "../db/types";
+
+/** Phase 27: visible-only-while-recording waveform wrapper. */
+function RecordingWaveform() {
+  const isRecording = useRecordingStore((s) => s.isRecording);
+  if (!isRecording) return null;
+  return (
+    <div className="px-2 py-3 rounded-lg border border-rule bg-bg-2">
+      <Waveform />
+    </div>
+  );
+}
 
 export function ItemEntryPage() {
   const { sessionId, itemId } = useParams<{
@@ -271,6 +284,12 @@ export function ItemEntryPage() {
         {itemId && !isNewItem && (
           <>
             <RecordButton itemId={itemId} sessionId={sessionId!} />
+
+            {/* Phase 27 (MOTION-02): live waveform driven by AnalyserNode.
+                Only visible while actively recording so the surface stays
+                quiet during idle moments. Reduced-motion path renders a
+                static recording-active glyph instead. */}
+            <RecordingWaveform />
 
             {/* Recordings list */}
             <RecordingsList itemId={itemId} />

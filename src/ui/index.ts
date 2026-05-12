@@ -29,6 +29,14 @@ export type { PlaceholderProps } from "./Placeholder";
 export { Icon, iconRegistry } from "./icons";
 export type { IconName, IconProps } from "./icons";
 
+export { Waveform } from "./Waveform";
+export type { WaveformProps } from "./Waveform";
+
+export { SuccessPing } from "./SuccessPing";
+export type { SuccessPingProps } from "./SuccessPing";
+
+export { ThemePicker } from "./ThemePicker";
+
 // Re-export token utilities for convenience.
 export { initTheme } from "./tokens/initTheme";
 export type { InitThemeOpts, ThemeOverride } from "./tokens/initTheme";

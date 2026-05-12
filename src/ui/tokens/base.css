@@ -283,19 +283,27 @@
   min-height: 2px;
 }
 .tpc .tpc-waveform-bar[data-active="true"] { background: var(--accent); }
+.tpc .tpc-waveform-static {
+  align-items: center;
+  justify-content: center;
+}
+.tpc .tpc-waveform-static-glyph {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
 /* Route transition fade — gated by prefers-reduced-motion */
 @media (prefers-reduced-motion: no-preference) {
-  .tpc-route-fade-enter { opacity: 0; }
-  .tpc-route-fade-enter-active {
-    opacity: 1;
-    transition: opacity 150ms ease-in;
+  .tpc .tpc-route-fade-in {
+    animation: tpc-route-fade 150ms ease-out;
   }
-  .tpc-route-fade-exit { opacity: 1; }
-  .tpc-route-fade-exit-active {
-    opacity: 0;
-    transition: opacity 150ms ease-out;
-  }
+}
+@keyframes tpc-route-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Recording pill (Phase 26) — header timer with mono font + tnum digits */
