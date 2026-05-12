@@ -9,6 +9,8 @@ import {
 import { AccountRow } from '../components/AccountRow'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useAuthStore } from '../stores/authStore'
+import { Eyebrow } from '../ui/Eyebrow'
+import { Icon } from '../ui/icons'
 
 export function AccountManagementPage() {
   const user = useAuthStore((s) => s.user)
@@ -160,28 +162,19 @@ export function AccountManagementPage() {
       {/* Back navigation */}
       <Link
         to="/settings"
-        className="text-sm text-accent font-semibold flex items-center gap-1 mb-4"
+        className="text-sm text-accent font-medium flex items-center gap-1 mb-4 hover:text-accent-hover"
       >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M15.75 19.5L8.25 12l7.5-7.5"
-          />
-        </svg>
+        <Icon name="back" size={16} aria-hidden />
         Settings
       </Link>
 
-      {/* Page title */}
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-        Account Management
-      </h1>
+      {/* Page title — italic display per unified design language */}
+      <header className="mb-6">
+        <Eyebrow>Admin</Eyebrow>
+        <h1 className="tpc-display tpc-display-3 mt-1 text-ink">
+          Account Management
+        </h1>
+      </header>
 
       {/* Add Specialist / Discard toggle button */}
       {!formOpen ? (
