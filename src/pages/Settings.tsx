@@ -4,6 +4,8 @@ import { useAuthStore } from "../stores/authStore";
 import { useWalkthroughStatus } from "../components/walkthrough/useWalkthroughStatus";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { supabase } from "../lib/supabase";
+import { ThemePicker } from "../ui/ThemePicker";
+import { Eyebrow } from "../ui/Eyebrow";
 
 export function SettingsPage() {
   const { resetWalkthrough } = useWalkthroughStatus();
@@ -106,6 +108,17 @@ export function SettingsPage() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
         Settings
       </h1>
+
+      {/* Appearance section (Phase 25) */}
+      <section className="mb-8">
+        <Eyebrow>Appearance</Eyebrow>
+        <div className="mt-3 flex flex-col gap-2">
+          <ThemePicker />
+          <p className="text-xs text-ink-3">
+            Choose Light, Dark, or System (follows your OS).
+          </p>
+        </div>
+      </section>
 
       {/* About section */}
       <section className="mb-8">

@@ -1,20 +1,23 @@
 /**
  * src/ui/tokens/initTheme.ts
  *
- * Runtime dark-mode listener for Phase 22 (system-pref only).
+ * Runtime dark-mode listener.
  *
- * Two-piece bootstrap (per Phase 22 CONTEXT D-07):
- *   1. The inline <script> in index.html does the synchronous pre-paint pass
- *      (mandatory for no-FOUC on cold load).
- *   2. This helper handles runtime live updates — when the OS dark/light
- *      preference flips during a session, .tpc-dark flips on <html>
- *      without a reload.
+ * Phase 22 (system-pref only): toggle `.tpc-dark` on `<html>` per
+ * `prefers-color-scheme: dark` and live-update on change.
  *
- * Phase 25 will pass `{ override: 'light' | 'dark' | 'system' }` via opts to
- * apply a user-chosen preference. Phase 22 stays strictly system-pref-only:
- * does NOT read localStorage, does NOT read from Supabase, does NOT ship UI.
- * The opts param is accepted and ignored here so Phase 25 can add behavior
- * without changing call sites.
+ * Phase 25 (override): accept `{ override: 'light' | 'dark' | 'system' }`.
+ *   - "light" — force `.tpc-dark` off, ignore matchMedia.
+ *   - "dark"  — force `.tpc-dark` on, ignore matchMedia.
+ *   - "system" (default) — follow `prefers-color-scheme: dark` live.
+ *
+ * Idempotent: calling initTheme() again replaces the previous listener
+ * via its returned teardown (the caller is expected to teardown before
+ * re-calling, which our store does in the new preference flow).
+ *
+ * Single writer of `.tpc-dark`. Avoids racing the inline pre-paint
+ * script in index.html — that script runs once at parse time; this
+ * function manages the live cascade afterwards.
  */
 
 export type ThemeOverride = "light" | "dark" | "system";
@@ -23,45 +26,59 @@ export interface InitThemeOpts {
   override?: ThemeOverride;
 }
 
-/**
- * Attach a matchMedia('change') listener that toggles `.tpc-dark` on
- * `document.documentElement` whenever the OS preference changes. Returns
- * a teardown callable that removes the listener.
- *
- * Idempotent: re-applies the current state on call, so it converges with
- * the inline pre-paint script's state. Safe under React StrictMode (the
- * function runs once at module top-level in main.tsx, not inside a
- * component effect).
- */
-export function initTheme(opts: InitThemeOpts = {}): () => void {
-  // Phase 22 ignores opts.override (system-pref-only per D-08). The param is
-  // accepted so Phase 25 can populate it without changing call sites; the
-  // explicit `void` reference satisfies the project's
-  // @typescript-eslint/no-unused-vars rule (no argsIgnorePattern configured).
-  void opts;
+// Module-level handle for the active system listener (so multiple
+// initTheme calls don't leak listeners when callers forget teardown).
+let activeTeardown: (() => void) | null = null;
 
-  // SSR / legacy webview guard. Returns a no-op teardown so callers can
-  // unconditionally store the return value.
+function setDark(on: boolean): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.classList.toggle("tpc-dark", on);
+}
+
+export function initTheme(opts: InitThemeOpts = {}): () => void {
+  // Always tear down any previous registration first.
+  if (activeTeardown) {
+    try {
+      activeTeardown();
+    } catch {
+      /* swallow — best effort */
+    }
+    activeTeardown = null;
+  }
+
+  const override = opts.override ?? "system";
+
+  // Light / dark overrides short-circuit matchMedia entirely.
+  if (override === "light") {
+    setDark(false);
+    const teardown = () => {};
+    activeTeardown = teardown;
+    return teardown;
+  }
+  if (override === "dark") {
+    setDark(true);
+    const teardown = () => {};
+    activeTeardown = teardown;
+    return teardown;
+  }
+
+  // System mode (the default). SSR / legacy webview guard returns
+  // a no-op teardown so callers can unconditionally store it.
   if (typeof window === "undefined" || !window.matchMedia) {
-    return () => {};
+    const teardown = () => {};
+    activeTeardown = teardown;
+    return teardown;
   }
 
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  setDark(mq.matches);
 
-  const apply = (matches: boolean): void => {
-    document.documentElement.classList.toggle("tpc-dark", matches);
-  };
-
-  // Idempotent re-sync. The inline script in index.html already did this,
-  // but running again here ensures correctness if the inline script was
-  // skipped (e.g., dev tools blocked it) or if the OS pref changed between
-  // HTML parse and this call.
-  apply(mq.matches);
-
-  const listener = (e: MediaQueryListEvent): void => apply(e.matches);
-  // Use addEventListener('change'), not the deprecated addListener
-  // (per RESEARCH Anti-Pattern §5).
+  const listener = (e: MediaQueryListEvent): void => setDark(e.matches);
   mq.addEventListener("change", listener);
 
-  return () => mq.removeEventListener("change", listener);
+  const teardown = () => {
+    mq.removeEventListener("change", listener);
+  };
+  activeTeardown = teardown;
+  return teardown;
 }

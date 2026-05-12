@@ -6,9 +6,20 @@ import App from "./App";
 import { useAuthStore } from "./stores/authStore";
 import { trackEvent } from "./services/analytics";
 import { initTheme } from "./ui/tokens";
+import { useThemeStore } from "./stores/themeStore";
 
-// Initialize theme listener before React renders (per Phase 22 CONTEXT D-06).
-const teardownTheme = initTheme();
+// Initialize theme listener before React renders. Honors the persisted
+// user preference (localStorage) from the start so cold loads don't flash
+// the wrong theme. Phase 25 — extended over Phase 22's system-pref-only.
+const teardownTheme = initTheme({ override: useThemeStore.getState().preference });
+
+// Hydrate cloud preference once a user is known. The store handles the
+// missing-column / first-session case gracefully (falls back to LS).
+useAuthStore.subscribe((state, prev) => {
+  if (state.user && state.user.id !== prev.user?.id) {
+    useThemeStore.getState().hydrateFromSupabase(state.user.id).catch(() => {});
+  }
+});
 
 // Initialize auth listener before React renders
 const unsubscribe = useAuthStore.getState().initialize();
