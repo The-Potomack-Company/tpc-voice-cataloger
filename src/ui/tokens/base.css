@@ -420,7 +420,8 @@
 .tpc .tpc-sticky-header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  isolation: isolate;
+  z-index: 30;
   background: var(--bg);
   border-bottom: 1px solid var(--rule);
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useUIStore } from "../stores/uiStore";
 import { Walkthrough } from "../components/Walkthrough";
@@ -18,8 +18,11 @@ import {
 } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
 import { deleteSession, updateSession } from "../db/sessions";
-import { groupByDate, sessionShortId } from "../utils/groupByDate";
+import { groupByAssignee, groupByDate, sessionShortId } from "../utils/groupByDate";
 import type { Tables } from "../db/database.types";
+
+type GroupMode = "date" | "specialist";
+const GROUP_MODE_STORAGE_KEY = "tpc.sessions.groupMode";
 
 type SupabaseSession = Tables<"sessions">;
 
@@ -86,6 +89,58 @@ function DateGroupedTiles({
                 onRename={(newName) => onRename(s, newName)}
                 showDivider={i < group.items.length - 1}
                 assigneeName={assigneeNameFor?.(s)}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Specialist-grouped block — admin-only secondary grouping by assignee. */
+function AssigneeGroupedTiles({
+  sessions,
+  onTap,
+  onDelete,
+  onRename,
+  nameMap,
+  nameMapReady,
+}: TileBlockProps & {
+  nameMap: Map<string, string>;
+  nameMapReady: boolean;
+}) {
+  if (!nameMapReady) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-[72px] rounded-lg bg-bg-2 animate-pulse"
+          />
+        ))}
+      </div>
+    );
+  }
+  const groups = groupByAssignee(
+    sessions,
+    (s) => s.assigned_to ?? null,
+    nameMap,
+  );
+  return (
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <div key={group.key}>
+          <Eyebrow className="tpc-date-group">{group.label}</Eyebrow>
+          <div className="tpc-card overflow-hidden">
+            {group.items.map((s, i) => (
+              <TileWithCount
+                key={s.id}
+                session={s}
+                onTap={() => onTap(s)}
+                onDelete={() => onDelete(s)}
+                onRename={(newName) => onRename(s, newName)}
+                showDivider={i < group.items.length - 1}
               />
             ))}
           </div>
@@ -176,6 +231,15 @@ export function SessionsPage() {
   const [exportedExpanded, setExportedExpanded] = useState(false);
   const [returnedExpandedAdmin, setReturnedExpandedAdmin] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<SupabaseSession | null>(null);
+  const [groupMode, setGroupMode] = useState<GroupMode>(() => {
+    if (typeof window === "undefined") return "date";
+    const stored = window.localStorage.getItem(GROUP_MODE_STORAGE_KEY);
+    return stored === "specialist" ? "specialist" : "date";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(GROUP_MODE_STORAGE_KEY, groupMode);
+  }, [groupMode]);
 
   // Gate: default to "completed" while loading to avoid flash of walkthrough for returning users
   if (!walkthroughLoading && walkthroughCompleted === false) {
@@ -246,6 +310,37 @@ export function SessionsPage() {
     if (!s.assigned_to) return "Unassigned";
     return nameMap.get(s.assigned_to) ?? "Loading…";
   };
+
+  // nameMap is async — treat as "ready" once any names have loaded, or when
+  // there are no assigned sessions to wait on.
+  const hasAssigned =
+    activeSessions.some((s) => s.assigned_to) ||
+    submittedSessions.some((s) => s.assigned_to) ||
+    returnedSessions.some((s) => s.assigned_to) ||
+    exportedSessions.some((s) => s.assigned_to);
+  const nameMapReady = !hasAssigned || nameMap.size > 0;
+
+  // Admin grouping switcher — uses specialist grouping when toggle is set,
+  // otherwise falls back to the existing date-grouped layout.
+  const renderAdminGroup = (sessions: SupabaseSession[]) =>
+    groupMode === "specialist" ? (
+      <AssigneeGroupedTiles
+        sessions={sessions}
+        onTap={handleTap}
+        onDelete={handleDeleteRequest}
+        onRename={handleRename}
+        nameMap={nameMap}
+        nameMapReady={nameMapReady}
+      />
+    ) : (
+      <DateGroupedTiles
+        sessions={sessions}
+        onTap={handleTap}
+        onDelete={handleDeleteRequest}
+        onRename={handleRename}
+        assigneeNameFor={assigneeNameFor}
+      />
+    );
 
   // Empty state -- no sessions at all
   if (totalSessions === 0) {
@@ -340,6 +435,37 @@ export function SessionsPage() {
       {/* Search */}
       <SessionSearch onSearch={setSearchQuery} />
 
+      {/* Admin-only group-by toggle (date vs specialist). Specialists only
+          ever see their own work per RLS, so the toggle is moot for them. */}
+      {isAdmin && (
+        <div
+          className="tpc-theme-picker mt-3"
+          role="group"
+          aria-label="Group sessions by"
+        >
+          <button
+            type="button"
+            onClick={() => setGroupMode("date")}
+            aria-pressed={groupMode === "date"}
+            className={`tpc-btn tpc-btn-sm tpc-theme-picker-option ${
+              groupMode === "date" ? "tpc-btn-primary" : "tpc-btn-ghost"
+            }`}
+          >
+            By date
+          </button>
+          <button
+            type="button"
+            onClick={() => setGroupMode("specialist")}
+            aria-pressed={groupMode === "specialist"}
+            className={`tpc-btn tpc-btn-sm tpc-theme-picker-option ${
+              groupMode === "specialist" ? "tpc-btn-primary" : "tpc-btn-ghost"
+            }`}
+          >
+            By specialist
+          </button>
+        </div>
+      )}
+
       {/* Empty search results */}
       {searchQuery && filteredTotal === 0 && (
         <p className="text-center text-ink-3 mt-8">
@@ -353,26 +479,14 @@ export function SessionsPage() {
           {filteredSubmitted.length > 0 && (
             <section className="mt-6">
               <SectionHeader title="Awaiting Review" count={filteredSubmitted.length} />
-              <DateGroupedTiles
-                sessions={filteredSubmitted}
-                onTap={handleTap}
-                onDelete={handleDeleteRequest}
-                onRename={handleRename}
-                assigneeNameFor={assigneeNameFor}
-              />
+              {renderAdminGroup(filteredSubmitted)}
             </section>
           )}
 
           {filteredActive.length > 0 && (
             <section className="mt-8">
               <SectionHeader title="Active Sessions" count={filteredActive.length} />
-              <DateGroupedTiles
-                sessions={filteredActive}
-                onTap={handleTap}
-                onDelete={handleDeleteRequest}
-                onRename={handleRename}
-                assigneeNameFor={assigneeNameFor}
-              />
+              {renderAdminGroup(filteredActive)}
             </section>
           )}
 
@@ -385,15 +499,7 @@ export function SessionsPage() {
                 expanded={returnedExpandedAdmin}
                 onToggle={() => setReturnedExpandedAdmin((v) => !v)}
               />
-              {returnedExpandedAdmin && (
-                <DateGroupedTiles
-                  sessions={filteredReturned}
-                  onTap={handleTap}
-                  onDelete={handleDeleteRequest}
-                  onRename={handleRename}
-                  assigneeNameFor={assigneeNameFor}
-                />
-              )}
+              {returnedExpandedAdmin && renderAdminGroup(filteredReturned)}
             </section>
           )}
 
@@ -406,15 +512,7 @@ export function SessionsPage() {
                 expanded={exportedExpanded}
                 onToggle={() => setExportedExpanded((v) => !v)}
               />
-              {exportedExpanded && (
-                <DateGroupedTiles
-                  sessions={filteredExported}
-                  onTap={handleTap}
-                  onDelete={handleDeleteRequest}
-                  onRename={handleRename}
-                  assigneeNameFor={assigneeNameFor}
-                />
-              )}
+              {exportedExpanded && renderAdminGroup(filteredExported)}
             </section>
           )}
         </>

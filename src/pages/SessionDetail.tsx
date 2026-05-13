@@ -19,6 +19,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Icon } from "../ui/icons";
 import { StatStrip } from "../ui/StatStrip";
+import { WarnBanner } from "../ui/WarnBanner";
 import { sessionShortId } from "../utils/groupByDate";
 
 function formatRelativeTime(dateStr: string): string {
@@ -178,7 +179,7 @@ export function SessionDetailPage() {
           </svg>
           Back
         </button>
-        <p className="text-gray-500 dark:text-gray-400">Session not found.</p>
+        <p className="text-ink-3">Session not found.</p>
       </div>
     );
   }
@@ -333,7 +334,7 @@ export function SessionDetailPage() {
   );
 
   return (
-    <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-24">
+    <div className="relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-24">
       {/* Sticky header — eyebrow ("Review · TPCXX") + italic display ("N items · M min") + Sync action */}
       <div className="tpc-sticky-header py-3 -mx-4 portrait:px-4 landscape:px-8 mb-4">
         <div className="flex items-center gap-3">
@@ -375,7 +376,7 @@ export function SessionDetailPage() {
             )}
           </div>
 
-          {/* Sync action — admin export trigger from the header (mockup behavior). */}
+          {/* Finalize action — admin export trigger from the header (mockup behavior). */}
           {isAdmin && (
             <Button
               variant="primary"
@@ -383,9 +384,10 @@ export function SessionDetailPage() {
               onClick={handleExportClick}
               disabled={exporting || queuedCount > 0}
               icon={<Icon name="upload" size={14} aria-hidden />}
-              aria-label="Sync session"
+              aria-label="Finalize and export session"
+              title="Export session JSON and mark as exported"
             >
-              Sync
+              Finalize
             </Button>
           )}
         </div>
@@ -418,7 +420,7 @@ export function SessionDetailPage() {
                 tone: "accent",
               },
               {
-                label: "AI cataloged",
+                label: "Processed",
                 value: items.filter((i) => i.title).length,
                 total: itemCount,
                 tone: "accent",
@@ -498,31 +500,19 @@ export function SessionDetailPage() {
 
       {/* Submitted status banner -- specialist only */}
       {session.status === 'submitted' && isSpecialist && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg
-                        bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800
-                        px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
-          <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-          </svg>
+        <div className="mb-6 flex items-center gap-3 rounded-lg bg-accent-wash text-accent px-4 py-3 text-sm">
+          <Icon name="info" size={20} className="shrink-0" aria-hidden />
           Submitted &mdash; awaiting admin review
         </div>
       )}
 
-      {/* Returned / review notes banner -- specialist only, sticky */}
+      {/* Returned / review notes banner -- specialist only */}
       {session.status === 'returned' && isSpecialist && (
-        <div className="sticky top-0 z-20 mb-6 rounded-lg
-                        bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800
-                        px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-          <div className="flex items-start gap-2">
-            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <p className="font-semibold">Returned by Admin</p>
-              {session.review_notes && <p className="mt-1">{session.review_notes}</p>}
-            </div>
-          </div>
-        </div>
+        <WarnBanner
+          className="mb-6"
+          title="Returned by Admin"
+          body={session.review_notes ?? undefined}
+        />
       )}
 
       {/* Admin-only assignee field */}
@@ -535,8 +525,8 @@ export function SessionDetailPage() {
               value={session.assigned_to ?? ""}
               onChange={(e) => handleReassign(e.target.value)}
               onBlur={() => setEditingAssignee(false)}
-              className="text-sm font-medium rounded border border-gray-300 dark:border-gray-600
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+              className="text-sm font-medium rounded border border-rule
+                         bg-bg text-ink
                          px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {accounts.map((a) => (
@@ -548,7 +538,7 @@ export function SessionDetailPage() {
           ) : (
             <span
               onClick={() => setEditingAssignee(true)}
-              className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer
+              className="text-sm font-medium text-ink cursor-pointer
                          hover:text-accent transition-colors"
               title="Tap to reassign"
             >
@@ -560,42 +550,22 @@ export function SessionDetailPage() {
       )}
       {/* Reassign error */}
       {reassignError && (
-        <p className="text-sm text-red-600 dark:text-red-400 -mt-4 mb-6" role="alert">
+        <p className="text-sm text-err -mt-4 mb-6" role="alert">
           {reassignError}
         </p>
       )}
 
       {/* Interrupted recording banner */}
       {isInterrupted && !showDismissedBanner && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
-          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-              A recording may have been interrupted.
-            </p>
-            <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
-              Check your items for missing audio.
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setRecordingSession(null);
-              setShowDismissedBanner(true);
-            }}
-            className="shrink-0 text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
-            aria-label="Dismiss"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <WarnBanner
+          className="mb-6"
+          title="A recording may have been interrupted."
+          body="Check your items for missing audio."
+          onDismiss={() => {
+            setRecordingSession(null);
+            setShowDismissedBanner(true);
+          }}
+        />
       )}
 
       {/* Metadata section */}
@@ -620,10 +590,10 @@ export function SessionDetailPage() {
       <section className="mb-6">
         <Eyebrow className="mb-2">Notes</Eyebrow>
         {isReadOnly ? (
-          <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700
-                          bg-gray-50 dark:bg-gray-800 p-3 text-sm
-                          text-gray-900 dark:text-gray-100 min-h-[4.5rem]">
-            {session.notes || <span className="text-gray-400 dark:text-gray-500">No notes</span>}
+          <div className="w-full rounded-lg border border-rule
+                          bg-bg-2 p-3 text-sm
+                          text-ink min-h-[4.5rem]">
+            {session.notes || <span className="text-ink-3">No notes</span>}
           </div>
         ) : (
           <textarea
@@ -632,10 +602,10 @@ export function SessionDetailPage() {
             onBlur={handleNotesSave}
             placeholder="Add notes..."
             rows={3}
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700
-                       bg-gray-50 dark:bg-gray-800 p-3 text-sm
-                       text-gray-900 dark:text-gray-100
-                       placeholder:text-gray-400 dark:placeholder:text-gray-500
+            className="w-full rounded-lg border border-rule
+                       bg-bg-2 p-3 text-sm
+                       text-ink
+                       placeholder:text-ink-3
                        focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
                        resize-none"
           />
@@ -716,7 +686,7 @@ export function SessionDetailPage() {
 
       {/* Floating Add Item button */}
       {!isReadOnly && (
-        <div className="fixed bottom-24 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-30">
+        <div className="fixed bottom-24 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
           <Button
             variant="primary"
             fullWidth
@@ -734,7 +704,7 @@ export function SessionDetailPage() {
 
       {/* Import toast feedback */}
       {importToast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-3 rounded-xl shadow-lg animate-[slideUp_0.3s_ease-out]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-ink text-bg px-4 py-3 rounded-xl shadow-lg animate-[slideUp_0.3s_ease-out]">
           <span className="text-sm">{importToast}</span>
         </div>
       )}

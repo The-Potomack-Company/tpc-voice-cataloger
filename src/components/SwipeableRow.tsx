@@ -96,7 +96,7 @@ export function SwipeableRow({
   if (disabled) {
     return (
       <div className="relative overflow-hidden" style={{ touchAction: "pan-y" }}>
-        <div className="relative z-20 bg-white dark:bg-gray-900">
+        <div className="relative z-20 bg-bg">
           {children}
         </div>
       </div>
@@ -109,7 +109,7 @@ export function SwipeableRow({
       <button
         type="button"
         onClick={handleDeleteClick}
-        className="absolute inset-y-0 right-0 z-10 flex w-[120px] items-center justify-center bg-red-500 text-white font-medium"
+        className="absolute inset-y-0 right-0 z-10 flex w-[120px] items-center justify-center bg-err text-white font-medium tracking-wide"
       >
         {deleteLabel}
       </button>
@@ -120,7 +120,7 @@ export function SwipeableRow({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="relative z-20 bg-white dark:bg-gray-900"
+        className="relative z-20 bg-bg"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isSwiping ? "none" : "transform 0.2s ease-out",

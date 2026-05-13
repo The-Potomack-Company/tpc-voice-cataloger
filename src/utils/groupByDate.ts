@@ -79,6 +79,49 @@ export function groupByDate<T>(
 }
 
 /**
+ * Group a list of items by assignee id. Used by the Sessions list's
+ * admin-only "specialist" grouping mode. Each group's `key` is the
+ * assignee id (or "__unassigned" sentinel for null), and `label` is the
+ * display name resolved from `nameMap`. Groups are sorted alphabetically
+ * by label, with the Unassigned bucket always last.
+ */
+export function groupByAssignee<T>(
+  items: readonly T[],
+  pickAssigneeId: (item: T) => string | null,
+  nameMap: Map<string, string>,
+): DateGroup<T>[] {
+  const UNASSIGNED_KEY = "__unassigned";
+  const buckets = new Map<string, { label: string; items: T[] }>();
+
+  for (const item of items) {
+    const id = pickAssigneeId(item);
+    if (id == null) {
+      let b = buckets.get(UNASSIGNED_KEY);
+      if (!b) {
+        b = { label: "Unassigned", items: [] };
+        buckets.set(UNASSIGNED_KEY, b);
+      }
+      b.items.push(item);
+      continue;
+    }
+    let b = buckets.get(id);
+    if (!b) {
+      b = { label: nameMap.get(id) ?? "Loading…", items: [] };
+      buckets.set(id, b);
+    }
+    b.items.push(item);
+  }
+
+  return Array.from(buckets.entries())
+    .map(([key, { label, items }]) => ({ key, label, items }))
+    .sort((a, b) => {
+      if (a.key === UNASSIGNED_KEY) return 1;
+      if (b.key === UNASSIGNED_KEY) return -1;
+      return a.label.localeCompare(b.label);
+    });
+}
+
+/**
  * Build a short-id from a session UUID / created_at — used as the eyebrow
  * label on Sessions list rows (mockup shows TPC23 / HSE-04 style ids).
  * Falls back to the last 4 hex chars of the UUID if no created_at is

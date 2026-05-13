@@ -74,12 +74,12 @@ export function AppLayout() {
   return (
     <div
       data-testid="app-layout"
-      className="flex flex-col h-dvh bg-white dark:bg-gray-900 pt-[env(safe-area-inset-top)]"
+      className="flex flex-col h-dvh bg-bg pt-[env(safe-area-inset-top)]"
     >
       <InstallBanner />
       <OfflineIndicator />
       <PhotoMigrationBanner />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto isolate">
         {/* Phase 27 (MOTION-03): keyed wrapper triggers the route cross-fade
             declared in base.css. The keyframes are wrapped in a
             prefers-reduced-motion: no-preference media query, so users with

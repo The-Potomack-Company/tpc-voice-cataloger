@@ -6,6 +6,8 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { supabase } from "../lib/supabase";
 import { ThemePicker } from "../ui/ThemePicker";
 import { Eyebrow } from "../ui/Eyebrow";
+import { Badge } from "../ui/Badge";
+import { Input } from "../ui/Input";
 
 export function SettingsPage() {
   const { resetWalkthrough } = useWalkthroughStatus();
@@ -123,14 +125,12 @@ export function SettingsPage() {
 
       {/* About section */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-          About
-        </h2>
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-          <p className="text-gray-900 dark:text-gray-100 font-medium">
+        <Eyebrow className="mb-3">About</Eyebrow>
+        <div className="bg-bg-2 rounded-lg p-4">
+          <p className="text-ink font-medium">
             TPC Catalog v1.1
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-ink-3 mt-1">
             Speech-to-catalog tool for auctioneers
           </p>
         </div>
@@ -139,16 +139,14 @@ export function SettingsPage() {
       {/* Admin section (admin-only) */}
       {isAdmin && (
         <section className="mb-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-            Admin
-          </h2>
+          <Eyebrow className="mb-3">Admin</Eyebrow>
           <button
             onClick={() => navigate("/admin/accounts")}
-            className="w-full bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left text-gray-900 dark:text-gray-100 min-h-12 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+            className="w-full bg-bg-2 rounded-lg p-4 text-left text-ink min-h-12 hover:bg-bg-2 transition-colors flex items-center justify-between"
           >
             <span>Account Management</span>
             <svg
-              className="w-5 h-5 text-gray-400"
+              className="w-5 h-5 text-ink-3"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -166,34 +164,28 @@ export function SettingsPage() {
 
       {/* Storage section */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-          Storage
-        </h2>
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+        <Eyebrow className="mb-3">Storage</Eyebrow>
+        <div className="bg-bg-2 rounded-lg p-4">
           <div className="flex items-center justify-between">
-            <span className="text-gray-900 dark:text-gray-100">Database</span>
-            <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-              Active
-            </span>
+            <span className="text-ink">Database</span>
+            <Badge tone="ok">Active</Badge>
           </div>
         </div>
       </section>
 
       {/* Account section */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-          Account
-        </h2>
+        <Eyebrow className="mb-3">Account</Eyebrow>
 
         {/* Change Password expandable row */}
         {!passwordExpanded ? (
           <button
             onClick={() => setPasswordExpanded(true)}
-            className="w-full bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left text-gray-900 dark:text-gray-100 min-h-12 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+            className="w-full bg-bg-2 rounded-lg p-4 text-left text-ink min-h-12 hover:bg-bg-2 transition-colors flex items-center justify-between"
           >
             <span>Change Password</span>
             <svg
-              className="w-5 h-5 text-gray-400"
+              className="w-5 h-5 text-ink-3"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -207,86 +199,60 @@ export function SettingsPage() {
             </svg>
           </button>
         ) : (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-            <form onSubmit={handlePasswordChange}>
-              <div className="mb-4">
-                <label
-                  htmlFor="currentPassword"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Current Password
-                </label>
-                <input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  className="w-full min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="newPassword"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  New Password
-                </label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  className="w-full min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Confirm New Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="w-full min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-accent focus:border-accent outline-none"
-                />
-              </div>
+          <div className="bg-bg-2 rounded-lg p-4">
+            <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                label="Current Password"
+              />
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                label="New Password"
+              />
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                label="Confirm New Password"
+              />
 
               {passwordError && (
                 <p
                   role="alert"
-                  className="text-sm text-red-600 dark:text-red-400 mt-2"
+                  className="text-sm text-err"
                 >
                   {passwordError}
                 </p>
               )}
 
               {passwordSuccess && (
-                <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                <p className="text-sm text-ok">
                   Password updated successfully
                 </p>
               )}
 
-              <div className="flex justify-end gap-3 mt-4">
+              <div className="flex justify-end gap-3 mt-1">
                 <button
                   type="button"
                   onClick={handleDiscardPasswordChange}
-                  className="min-h-12 rounded-lg px-4 py-3 text-gray-700 dark:text-gray-300"
+                  className="tpc-btn tpc-btn-ghost min-h-12"
                 >
                   Discard Changes
                 </button>
                 <button
                   type="submit"
                   disabled={passwordSubmitting}
-                  className="min-h-12 rounded-lg px-4 py-3 font-medium text-white bg-accent disabled:opacity-50"
+                  className="tpc-btn tpc-btn-primary min-h-12 disabled:opacity-50"
                 >
                   {passwordSubmitting ? (
                     <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full inline-block" />
@@ -302,20 +268,18 @@ export function SettingsPage() {
 
       {/* Actions section */}
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-          Actions
-        </h2>
+        <Eyebrow className="mb-3">Actions</Eyebrow>
         <button
           onClick={resetWalkthrough}
-          className="w-full bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left
-                     text-gray-900 dark:text-gray-100 min-h-12
-                     hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="w-full bg-bg-2 rounded-lg p-4 text-left
+                     text-ink min-h-12
+                     hover:bg-bg-2 transition-colors"
         >
           Reset Walkthrough
         </button>
         <button
           onClick={() => setShowSignOutConfirm(true)}
-          className="w-full bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-left text-red-600 dark:text-red-400 min-h-12 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mt-3"
+          className="w-full bg-bg-2 rounded-lg p-4 text-left text-err min-h-12 hover:bg-bg-2 transition-colors mt-3"
         >
           Sign Out
         </button>

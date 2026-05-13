@@ -15,7 +15,6 @@ import { useRecordingStore } from "../stores/recordingStore";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { RecordingsList } from "../components/RecordingsList";
 import { useSession, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
 import { createBlankItem, updateItemField, deleteItem } from "../db/items";
@@ -46,43 +45,52 @@ function RecordingWaveform() {
 }
 
 /**
- * Three-stat strip beneath the record button (mockup SCREEN-02).
+ * Two-stat strip beneath the record button (mockup SCREEN-02).
  *
- * Shows the live count of items entered, photos captured across this
- * session, and the elapsed time relative to the session start. Reads
- * directly from the items array passed in to avoid extra round trips.
+ * Shows the live count of items entered and photos captured across this
+ * session. Reads directly from the items array passed in to avoid extra
+ * round trips. Elapsed time has its own mono caption below the per-item
+ * timer (see SessionTimerCaption).
  */
 function RecordingStats({
   itemCount,
   photoCount,
-  startedAt,
 }: {
   itemCount: number;
   photoCount: number;
-  startedAt: string;
 }) {
-  // Elapsed minutes live in state; the effect samples Date.now on a 30s
-  // interval to avoid impure reads at render time and to keep the displayed
-  // value fresh. Cleanup + dep array reseed when the session start changes.
-  const [elapsedMin, setElapsedMin] = useState(0);
-  useEffect(() => {
-    const start = Date.parse(startedAt);
-    if (Number.isNaN(start)) return;
-    const recompute = () =>
-      setElapsedMin(Math.max(0, Math.round((Date.now() - start) / 60000)));
-    recompute();
-    const t = setInterval(recompute, 30_000);
-    return () => clearInterval(t);
-  }, [startedAt]);
   return (
     <StatStrip
       stats={[
         { label: "Items", value: itemCount, showBar: false },
         { label: "Photos", value: photoCount, showBar: false },
-        { label: "Elapsed", value: `${elapsedMin} min`, showBar: false },
       ]}
       large
     />
+  );
+}
+
+/**
+ * Mono session-timer caption (mockup tpc-voice.jsx:145-147).
+ * Renders the total elapsed time of the session ("session 00:38:14")
+ * below the per-item recording timer. Updates once per second.
+ */
+function SessionTimerCaption({ startedAt }: { startedAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const start = Date.parse(startedAt);
+  if (Number.isNaN(start)) return null;
+  const elapsedSec = Math.max(0, Math.floor((now - start) / 1000));
+  const hh = String(Math.floor(elapsedSec / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, "0");
+  const ss = String(elapsedSec % 60).padStart(2, "0");
+  return (
+    <div className="font-mono text-ink-3 text-sm text-center">
+      session {hh}:{mm}:{ss}
+    </div>
   );
 }
 
@@ -247,7 +255,7 @@ export function ItemEntryPage() {
   if (!session || (isNewItem && !item)) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-gray-400 dark:text-gray-500">Loading...</div>
+        <div className="text-ink-3">Loading...</div>
       </div>
     );
   }
@@ -255,7 +263,7 @@ export function ItemEntryPage() {
   if (!item && !isNewItem) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-gray-400 dark:text-gray-500">Loading item...</div>
+        <div className="text-ink-3">Loading item...</div>
       </div>
     );
   }
@@ -289,7 +297,7 @@ export function ItemEntryPage() {
 
         {/* Editable fields for both modes */}
         {item && (
-          <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="space-y-3 border border-rule rounded-lg p-3">
             <EditableField
               label="Header"
               value={item.title ?? undefined}
@@ -335,11 +343,11 @@ export function ItemEntryPage() {
 
         {/* Raw transcript */}
         {item?.transcript && (
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <div className="border border-rule rounded-lg p-3">
+            <span className="text-xs font-medium text-ink-3 uppercase tracking-wide">
               Raw Transcript
             </span>
-            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+            <p className="mt-1 text-sm text-ink-2 whitespace-pre-wrap italic">
               {item.transcript}
             </p>
           </div>
@@ -361,18 +369,18 @@ export function ItemEntryPage() {
                 static recording-active glyph instead. */}
             <RecordingWaveform />
 
-            {/* Mockup SCREEN-02 — three-stat strip below the record button
-                showing items entered, photos captured, and elapsed time. */}
+            {/* Session-elapsed caption (mockup tpc-voice.jsx:145-147) —
+                single mono line under the per-item timer. */}
+            {session && <SessionTimerCaption startedAt={session.created_at} />}
+
+            {/* Mockup SCREEN-02 — two-stat strip below the record button
+                showing items entered and photos captured. */}
             {session && (
               <RecordingStats
                 itemCount={totalItems}
                 photoCount={sessionPhotoCount}
-                startedAt={session.created_at}
               />
             )}
-
-            {/* Recordings list */}
-            <RecordingsList itemId={itemId} />
 
             {/* Delete Item button */}
             <button
@@ -425,12 +433,12 @@ export function ItemEntryPage() {
             onClick={() => prevItem && navigate(`/session/${sessionId}/item/${prevItem.id}`)}
             disabled={!prevItem}
             className={`fixed top-1/2 left-1 -translate-y-1/2 w-10 h-10 rounded-full
-              bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700
+              bg-bg shadow-lg border border-rule
               flex items-center justify-center z-30 transition-opacity
-              ${!prevItem ? "opacity-30 pointer-events-none" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+              ${!prevItem ? "opacity-30 pointer-events-none" : "hover:bg-bg-2"}`}
             aria-label="Previous item"
           >
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg className="w-5 h-5 text-ink-2" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
           </button>
@@ -440,12 +448,12 @@ export function ItemEntryPage() {
             type="button"
             onClick={handleArrowRight}
             className="fixed top-1/2 right-1 -translate-y-1/2 w-10 h-10 rounded-full
-              bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700
+              bg-bg shadow-lg border border-rule
               flex items-center justify-center z-30
-              hover:bg-gray-100 dark:hover:bg-gray-700 transition-opacity"
+              hover:bg-bg-2 transition-opacity"
             aria-label={nextItem ? "Next item" : "Create new item"}
           >
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg className="w-5 h-5 text-ink-2" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </button>

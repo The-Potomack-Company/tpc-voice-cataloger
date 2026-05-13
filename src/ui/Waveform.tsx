@@ -78,7 +78,7 @@ export function Waveform({ ariaLabel = "Recording level", className }: WaveformP
             key={i}
             className="tpc-waveform-bar"
             data-active={isRecent && level > 0.02 ? "true" : "false"}
-            style={{ height }}
+            style={{ height, opacity: isRecent ? 1 : 0.5 }}
           />
         );
       })}

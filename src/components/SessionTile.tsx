@@ -55,7 +55,6 @@ export function SessionTile({
   const [editName, setEditName] = useState(session.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const recordingSessionId = useUIStore((s) => s.recordingSessionId);
-  const isInterrupted = recordingSessionId === session.id;
 
   const startEditing = useCallback(() => {
     setEditName(session.name);
@@ -96,7 +95,10 @@ export function SessionTile({
   const isSale = session.mode === "sale";
   const modeLabel = isSale ? "Sale" : "House";
   const statusBadge = statusBadgeFor(session.status);
-  const isActiveRecording = session.status === "active" && isInterrupted;
+  // Recording in progress when the UI store's current recording session id
+  // matches this row AND the session is still in the active state.
+  const isCurrentlyRecording =
+    recordingSessionId === session.id && session.status === "active";
 
   return (
     <SwipeableRow onDelete={onDelete}>
@@ -142,7 +144,7 @@ export function SessionTile({
             )}
             {shortId && <span style={{ fontSize: 11, color: "var(--ink-4)" }}>·</span>}
             <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{modeLabel}</span>
-            {isActiveRecording && (
+            {isCurrentlyRecording && (
               <Badge tone="info" dot>
                 Recording
               </Badge>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useUIStore } from "../stores/uiStore";
 import { useLongPress } from "../hooks/useLongPress";
 import { SwipeableRow } from "./SwipeableRow";
+import { Badge } from "../ui/Badge";
 import type { Tables } from "../db/database.types";
 
 type SupabaseSession = Tables<"sessions">;
@@ -107,9 +108,9 @@ export function SessionCard({
       <div
         onClick={handleCardClick}
         {...(isEditing ? {} : longPressHandlers)}
-        className="bg-white dark:bg-gray-800 rounded-xl p-4 min-h-[72px]
-                   border border-gray-200 dark:border-gray-700 cursor-pointer
-                   active:bg-gray-50 dark:active:bg-gray-750 select-none"
+        className="bg-bg-2 rounded-xl p-4 min-h-[72px]
+                   border border-rule cursor-pointer
+                   active:bg-bg-2 select-none"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -121,22 +122,20 @@ export function SessionCard({
                 onChange={(e) => setEditName(e.target.value)}
                 onBlur={saveName}
                 onKeyDown={handleKeyDown}
-                className="w-full px-2 py-1 -ml-2 rounded bg-gray-100 dark:bg-gray-700
-                           text-gray-900 dark:text-gray-100 font-semibold
+                className="w-full px-2 py-1 -ml-2 rounded bg-bg-2
+                           text-ink font-semibold
                            focus:outline-none focus:ring-2 focus:ring-accent"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+              <h3 className="font-semibold text-ink truncate">
                 {session.name}
               </h3>
             )}
 
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                {modeLabel}
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <Badge>{modeLabel}</Badge>
+              <span className="text-xs text-ink-3">
                 {itemCount} item{itemCount !== 1 ? "s" : ""}
               </span>
               {sessionStatus && statusColors[sessionStatus] && (
@@ -154,21 +153,14 @@ export function SessionCard({
                 </span>
               )}
               {isInterrupted && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                <Badge tone="warn" dot>
                   Recording interrupted
-                </span>
+                </Badge>
               )}
             </div>
           </div>
 
-          <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap shrink-0 mt-1">
+          <span className="text-xs text-ink-3 whitespace-nowrap shrink-0 mt-1">
             {formatRelativeTime(session.updated_at)}
           </span>
         </div>
