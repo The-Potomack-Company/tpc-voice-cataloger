@@ -6,6 +6,7 @@ import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
 import { useSessionStore } from "../stores/sessionStore";
 import { applySpokenQuotes } from "../utils/spokenPunctuation";
+import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 
 const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
@@ -18,6 +19,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
 - category: The RFC department code matching the item category. Valid codes: AA, AMER, AWFA, ANT, AAR, 0001, ASD, ASN, ASNP, BKS, CER, IND, CLK, CNS, DEC, DRW, ENT, EA, FASH, FIS, FRN, MDF, PER, GAR, GEN, GLS, ITS, ISL, JWL, LIT, MANU, MAP, MA, MUS, NAT, TXTL, PND, PNT, PEN, MIN, REL, RUG, SPT, SIL, TAP, TRI, WINE. If uncertain, return the closest match.
 - measurements: A single formatted string combining dimensions, weight, and karats.
   Dimensions in inches: format as "N x N in. (N x N cm.)" with auto cm conversion. Common fractions (1/4, 1/2, 3/4) display as fractions in the inch portion.
+  Diameter (round/cylindrical items — plates, bowls, vases, mirrors, coins, etc.): when the speaker says "diameter", "in diameter", "across", "dia.", or "diam.", format as "N in. (N cm.) diameter" with auto cm conversion. Single value only — do not combine with x-format dimensions for the same item. Common fractions (1/4, 1/2, 3/4) display as fractions in the inch portion. Examples: "8 in. (20.3 cm.) diameter", "12 1/2 in. (31.8 cm.) diameter".
   Dimensions in millimeters: ONLY when the speaker explicitly says "millimeters" or "mm". Format as "N x N mm" with no conversion to other units. Default to inches when no unit specified.
   Weight: "N oz." for ounces, "N g" for grams. No pounds.
   Gold purity (karat): "Nkt" (e.g., "14kt", "18kt", "24kt"). Common karat numbers: 10, 14, 18, 22, 24.
@@ -29,7 +31,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
   - SPEAKER OVERRIDE: If the speaker explicitly clarifies (e.g., "that's carats not karats" or "gem weight"), follow their clarification regardless of context clues.
   - In descriptions, use correct spelling: "karat" for gold purity, "carat" for gem weight. Normalize regardless of what the speaker actually said.
   - When ambiguous and no speaker clarification, default to karat (gold purity) as the more common auction usage.
-  Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt" or "1.5ct, 0.8 oz.".
+  Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt", "1.5ct, 0.8 oz.", or "8 in. (20.3 cm.) diameter, 12 oz.".
   Return null if no measurements mentioned.
 - transcript: The full verbatim transcript of everything said in the audio
 
@@ -38,8 +40,15 @@ CRITICAL RULES:
 2. If a field is not mentioned in the audio, return null for that field.
 3. Do NOT invent or guess values for unmentioned fields.
 4. If the speaker says "oak table, kinda beat up, maybe two hundred", return those exact words in the appropriate fields.
-5. AUCTION CONTEXT: This is an auction house application. Any spoken word that sounds like 'karats', 'carats', or 'carrots' refers to gold purity (karat) or gem weight (carat), NEVER the vegetable. Use the KARAT vs CARAT DISAMBIGUATION rules above to determine which format to use ('Nkt' for gold purity, 'Nct' for gem weight). In descriptions, spell as 'karat' for gold purity and 'carat' for gem weight.
-6. ARTIST NAMES: Artist names from any language (Japanese, Chinese, Korean, French, Spanish, Italian, German, etc.) may be spoken with native pronunciation. Always transcribe them as their standard romanized/Latin-letter spelling, not as a phonetic English approximation. Examples: "Hokusai", "Hiroshige", "Utamaro", "Qi Baishi", "Cézanne", "Picasso", "Dürer". Preserve diacritics (é, ü, ñ, etc.) when they belong to the standard spelling. If unsure of the exact spelling, render the closest standard romanization rather than an English homophone (e.g., never write "hoe coo sigh" for "Hokusai").
+5. PRIMARY SPEAKER ONLY: The recording is made on a live auction floor and may capture bystander conversations, distant chatter, or PA announcements alongside the auctioneer's own dictation. Transcribe ONLY the closest/loudest voice — the one with the strongest signal that is clearly dictating the catalog entry. Treat quieter background speech as ambient noise and exclude it from all fields, including the transcript. If two voices have similar loudness, prefer the one that uses auction cataloging vocabulary (titles, conditions, estimates, departmental categories).
+6. AUCTION CONTEXT: This is an auction house application. Any spoken word that sounds like 'karats', 'carats', or 'carrots' refers to gold purity (karat) or gem weight (carat), NEVER the vegetable. Use the KARAT vs CARAT DISAMBIGUATION rules above to determine which format to use ('Nkt' for gold purity, 'Nct' for gem weight). In descriptions, spell as 'karat' for gold purity and 'carat' for gem weight.
+7. AUCTION VOCABULARY: Always interpret these spoken words in their auction sense, never as the everyday homophone or near-homophone:
+   - 'guilt' / 'gilt' -> always 'gilt' (a thin layer of gold leaf or gold-colored finish; e.g., 'gilt frame', 'gilt bronze'). Never 'guilt' (the emotion).
+   - 'providence' / 'provenance' -> always 'provenance' (the documented ownership history of an item). Never 'providence' (the city or divine guidance).
+   - 'cabriole' (pronounced 'cab-ree-ole') -> the S-curved furniture leg style common on 18th-century chairs and tables. Spell as 'cabriole'. Never 'cab roll', 'carry oil', 'cabbage roll', or similar mishearings.
+   - 'patina' (pronounced 'pa-TEE-na' or 'PAT-in-a') -> the surface coloration or finish that develops on bronze, copper, silver, wood, or other materials over time. Spell as 'patina'. Never 'potty na', 'patina' as a name, or similar mishearings.
+   - 'bisque' (pronounced 'bisk') -> unglazed porcelain, often used for figurines and dolls. Spell as 'bisque'. Never 'bisk', 'biscuit' (unless the speaker explicitly says 'biscuit porcelain'), or 'brisk'.
+8. ARTIST NAMES: Artist names from any language (Japanese, Chinese, Korean, French, Spanish, Italian, German, etc.) may be spoken with native pronunciation. Always transcribe them as their standard romanized/Latin-letter spelling, not as a phonetic English approximation. Examples: "Hokusai", "Hiroshige", "Utamaro", "Qi Baishi", "Cézanne", "Picasso", "Dürer". Preserve diacritics (é, ü, ñ, etc.) when they belong to the standard spelling. If unsure of the exact spelling, render the closest standard romanization rather than an English homophone (e.g., never write "hoe coo sigh" for "Hokusai").
 
 MERGE RULES:
 When existing field values are provided in the user message, your job is to MERGE new information with existing values:
@@ -254,7 +263,7 @@ export async function processAudioWithAi(
       supabaseUpdate.category = mappedCategory;
     }
     if (fields.measurements !== null) {
-      supabaseUpdate.measurements = fields.measurements;
+      supabaseUpdate.measurements = reformatMeasurements(fields.measurements);
     }
     if (fields.transcript !== null) {
       supabaseUpdate.transcript = fields.transcript;
