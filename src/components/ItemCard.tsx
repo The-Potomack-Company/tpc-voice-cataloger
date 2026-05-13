@@ -109,7 +109,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
             navigate(`/session/${sessionId}/item/${item.id}`);
           }}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/session/${sessionId}/item/${item.id}`); } }}
-          className="w-full grid items-start gap-3 px-3 py-2.5 text-left cursor-pointer"
+          className="w-full grid items-start gap-3 px-4 py-3 text-left cursor-pointer"
           style={{ gridTemplateColumns: "auto 1fr auto" }}
           data-testid="item-card"
         >
@@ -136,11 +136,11 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
 
           {/* Title + description preview */}
           <div className="min-w-0">
-            <span className="text-sm font-medium text-ink truncate block">
+            <span className={`text-sm font-medium truncate block ${dotTone === "err" ? "text-err" : "text-ink"}`}>
               {item.title || "\u2014 needs title \u2014"}
             </span>
             {item.description && (
-              <span className="text-xs text-ink-3 truncate block mt-0.5">
+              <span className="text-xs text-ink-3 mt-0.5 line-clamp-2 leading-snug block">
                 {item.description}
               </span>
             )}
@@ -190,29 +190,33 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               </Badge>
             )}
 
-            {/* Chevron -- in house mode, stops propagation to toggle expand instead of navigating */}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onToggle(); }}
-              className="p-0.5 -m-0.5 rounded hover:bg-bg-2 transition-colors"
-              aria-label={isExpanded ? "Collapse details" : "Expand details"}
-            >
-              <svg
-                className={`w-4 h-4 text-ink-3 transition-transform ${
-                  isExpanded ? "rotate-90" : ""
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
+            {/* Chevron — house mode only. Sale mode navigates to detail, so
+                an inline expand toggle would be dead weight. House mode keeps
+                it for the read-only field summary which has no other surface. */}
+            {item.mode === "house" && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                className="p-0.5 -m-0.5 rounded hover:bg-bg-2 transition-colors"
+                aria-label={isExpanded ? "Collapse details" : "Expand details"}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                />
-              </svg>
-            </button>
+                <svg
+                  className={`w-4 h-4 text-ink-3 transition-transform ${
+                    isExpanded ? "rotate-90" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -304,16 +308,21 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               />
             )}
 
-            {/* Raw transcript */}
+            {/* Raw transcript — collapsed by default. */}
             {item.transcript && (
-              <div className="pt-2 border-t border-rule">
-                <span className="text-xs font-medium text-ink-3 uppercase tracking-wide">
-                  Raw Transcript
-                </span>
-                <p className="mt-1 text-sm text-ink-2 whitespace-pre-wrap italic">
+              <details className="pt-2 border-t border-rule">
+                <summary className="text-xs font-medium text-ink-3 uppercase tracking-wide cursor-pointer flex items-center gap-2">
+                  <span className="tpc-disclosure-chev">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  Raw transcript
+                </summary>
+                <p className="mt-2 text-sm text-ink-2 whitespace-pre-wrap italic">
                   {item.transcript}
                 </p>
-              </div>
+              </details>
             )}
 
             {/* Retry AI button for failed or stuck-processing items */}

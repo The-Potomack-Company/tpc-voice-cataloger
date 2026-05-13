@@ -64,11 +64,14 @@ export function Waveform({ ariaLabel = "Recording level", className }: WaveformP
     );
   }
 
+  const isIdle = levels.length === 0;
+
   return (
     <div
       className={["tpc-waveform", className].filter(Boolean).join(" ")}
       role="img"
       aria-label={ariaLabel}
+      data-idle={isIdle ? "true" : "false"}
     >
       {bars.map((level, i) => {
         const isRecent = i >= BAR_COUNT - ACCENT_LATEST;

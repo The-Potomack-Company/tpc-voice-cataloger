@@ -188,24 +188,6 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
 
   return (
     <div className={`space-y-1.5 ${selectMode ? "pb-20" : ""}`}>
-      {/* Add Item button at top */}
-      {!readOnly && !selectMode && (
-        <button
-          type="button"
-          onClick={handleAddItem}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg
-                     border border-dashed border-rule
-                     text-sm text-ink-2 font-medium
-                     hover:border-accent hover:text-accent
-                     transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add Item
-        </button>
-      )}
-
       {!readOnly && !selectMode && stuckItems.length > 0 && (
         <button
           type="button"

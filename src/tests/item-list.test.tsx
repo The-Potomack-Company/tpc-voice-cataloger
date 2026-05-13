@@ -177,7 +177,7 @@ describe("ItemList", () => {
     expect(screen.queryByText("Title")).not.toBeInTheDocument();
   });
 
-  it("shows Add Item button when items exist", async () => {
+  it("does not render an inline Add Item button (FAB in SessionDetail is the canonical affordance)", async () => {
     mockItems.current = [
       {
         id: "item-uuid-1",
@@ -200,7 +200,8 @@ describe("ItemList", () => {
     render(<MemoryRouter><ItemList sessionId="session-1" mode="house" /></MemoryRouter>);
 
     await waitFor(() => {
-      expect(screen.getByText("Add Item")).toBeInTheDocument();
+      expect(screen.getByText(/Item A/)).toBeInTheDocument();
     });
+    expect(screen.queryByText("Add Item")).not.toBeInTheDocument();
   });
 });

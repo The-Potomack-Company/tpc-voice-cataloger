@@ -29,14 +29,18 @@ export interface StatStripProps {
   stats: StatItem[];
   /** When true, the strip uses the larger display size (Recording screen). */
   large?: boolean;
+  /** "strip" (default) is the open strip layout; "cards" lays each stat
+   *  out as a small centered card — used on the ItemEntry recording surface. */
+  variant?: "strip" | "cards";
   className?: string;
   children?: ReactNode;
 }
 
-export function StatStrip({ stats, large, className }: StatStripProps) {
+export function StatStrip({ stats, large, variant = "strip", className }: StatStripProps) {
   const classes = [
     "tpc-stat-strip",
     large ? "tpc-stat-strip-lg" : "",
+    variant === "cards" ? "tpc-stat-strip-cards" : "",
     className ?? "",
   ]
     .filter(Boolean)

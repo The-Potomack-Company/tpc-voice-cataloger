@@ -9,6 +9,7 @@ import { EditableField } from "../components/EditableField";
 import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
 import { RecordButton } from "../components/RecordButton";
+import { Icon } from "../ui/icons";
 import { Waveform } from "../ui/Waveform";
 import { StatStrip } from "../ui/StatStrip";
 import { useRecordingStore } from "../stores/recordingStore";
@@ -23,23 +24,30 @@ import { getDexieItemId } from "../db/idMapping";
 import { formatDuration } from "../utils/audio";
 import type { ItemPhoto } from "../db/types";
 
-/** Phase 27: visible-only-while-recording waveform wrapper. */
+/** Always-visible waveform wrapper. Renders the bars dimmed when idle and
+ *  swaps the timer copy for a "Tap to record" prompt so the surface always
+ *  occupies its space. */
 function RecordingWaveform() {
   const isRecording = useRecordingStore((s) => s.isRecording);
   const currentDurationMs = useRecordingStore((s) => s.currentDurationMs);
-  if (!isRecording) return null;
   return (
     <div className="tpc-card p-3" style={{ background: "var(--bg-2)" }}>
       <Waveform />
-      <div
-        className="tnum tpc-display-text mt-3 text-center"
-        style={{
-          fontSize: 22,
-          color: "var(--ink)",
-        }}
-      >
-        {formatDuration(currentDurationMs)}
-      </div>
+      {isRecording ? (
+        <div
+          className="tnum tpc-display-text mt-3 text-center"
+          style={{
+            fontSize: 22,
+            color: "var(--ink)",
+          }}
+        >
+          {formatDuration(currentDurationMs)}
+        </div>
+      ) : (
+        <div className="mt-3 text-center text-sm text-ink-3">
+          Tap to record
+        </div>
+      )}
     </div>
   );
 }
@@ -49,8 +57,7 @@ function RecordingWaveform() {
  *
  * Shows the live count of items entered and photos captured across this
  * session. Reads directly from the items array passed in to avoid extra
- * round trips. Elapsed time has its own mono caption below the per-item
- * timer (see SessionTimerCaption).
+ * round trips.
  */
 function RecordingStats({
   itemCount,
@@ -61,36 +68,13 @@ function RecordingStats({
 }) {
   return (
     <StatStrip
+      variant="cards"
       stats={[
         { label: "Items", value: itemCount, showBar: false },
         { label: "Photos", value: photoCount, showBar: false },
       ]}
       large
     />
-  );
-}
-
-/**
- * Mono session-timer caption (mockup tpc-voice.jsx:145-147).
- * Renders the total elapsed time of the session ("session 00:38:14")
- * below the per-item recording timer. Updates once per second.
- */
-function SessionTimerCaption({ startedAt }: { startedAt: string }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const start = Date.parse(startedAt);
-  if (Number.isNaN(start)) return null;
-  const elapsedSec = Math.max(0, Math.floor((now - start) / 1000));
-  const hh = String(Math.floor(elapsedSec / 3600)).padStart(2, "0");
-  const mm = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, "0");
-  const ss = String(elapsedSec % 60).padStart(2, "0");
-  return (
-    <div className="font-mono text-ink-3 text-sm text-center">
-      session {hh}:{mm}:{ss}
-    </div>
   );
 }
 
@@ -269,7 +253,7 @@ export function ItemEntryPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-40">
       {/* Back button */}
       <div className="py-2">
         <BackButton sessionId={sessionId!} />
@@ -341,40 +325,33 @@ export function ItemEntryPage() {
           </div>
         )}
 
-        {/* Raw transcript */}
+        {/* Raw transcript — collapsed by default so the long copy doesn't
+            dominate the screen. Native <details> keeps it a11y-correct. */}
         {item?.transcript && (
-          <div className="border border-rule rounded-lg p-3">
-            <span className="text-xs font-medium text-ink-3 uppercase tracking-wide">
-              Raw Transcript
-            </span>
-            <p className="mt-1 text-sm text-ink-2 whitespace-pre-wrap italic">
+          <details className="border border-rule rounded-lg p-3">
+            <summary className="text-xs font-medium text-ink-3 uppercase tracking-wide cursor-pointer flex items-center gap-2">
+              <span className="tpc-disclosure-chev"><Icon name="chev" size={12} aria-hidden /></span>
+              Raw transcript
+            </summary>
+            <p className="mt-2 text-sm text-ink-2 whitespace-pre-wrap italic">
               {item.transcript}
             </p>
-          </div>
+          </details>
         )}
 
         {/* Item counter */}
         <ItemCounter current={currentPosition} total={displayTotal} />
       </div>
 
-      {/* Record button + recordings + next item */}
+      {/* Always-on waveform + recording stats, then a Delete-Item button.
+          Record button moved into the bottom trio (mockup tpc-voice.jsx:151-161). */}
       <div className="pb-4 pt-2 space-y-3">
         {itemId && !isNewItem && (
           <>
-            <RecordButton itemId={itemId} sessionId={sessionId!} />
-
-            {/* Phase 27 (MOTION-02): live waveform driven by AnalyserNode.
-                Only visible while actively recording so the surface stays
-                quiet during idle moments. Reduced-motion path renders a
-                static recording-active glyph instead. */}
+            {/* Live waveform — always rendered; dims when idle. */}
             <RecordingWaveform />
 
-            {/* Session-elapsed caption (mockup tpc-voice.jsx:145-147) —
-                single mono line under the per-item timer. */}
-            {session && <SessionTimerCaption startedAt={session.created_at} />}
-
-            {/* Mockup SCREEN-02 — two-stat strip below the record button
-                showing items entered and photos captured. */}
+            {/* Two-stat strip — items entered and photos captured. */}
             {session && (
               <RecordingStats
                 itemCount={totalItems}
@@ -424,40 +401,60 @@ export function ItemEntryPage() {
         onCancel={() => setShowDeleteConfirm(false)}
       />
 
-      {/* Left/right navigation arrows for both modes */}
-      {item && !isNewItem && (
-        <>
-          {/* Left arrow */}
-          <button
-            type="button"
-            onClick={() => prevItem && navigate(`/session/${sessionId}/item/${prevItem.id}`)}
-            disabled={!prevItem}
-            className={`fixed top-1/2 left-1 -translate-y-1/2 w-10 h-10 rounded-full
-              bg-bg shadow-lg border border-rule
-              flex items-center justify-center z-30 transition-opacity
-              ${!prevItem ? "opacity-30 pointer-events-none" : "hover:bg-bg-2"}`}
-            aria-label="Previous item"
-          >
-            <svg className="w-5 h-5 text-ink-2" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
+      {/* Bottom control trio — prev item / record / next item (mockup
+          tpc-voice.jsx:151-161). Anchored above the tab bar so it stays
+          reachable on small screens. */}
+      {item && !isNewItem && itemId && (
+        <div className="fixed bottom-20 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
+          <div className="flex items-center justify-around">
+            {/* Previous item */}
+            <button
+              type="button"
+              onClick={() => prevItem && navigate(`/session/${sessionId}/item/${prevItem.id}`)}
+              disabled={!prevItem}
+              aria-label="Previous item"
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "var(--bg-2)",
+                border: "1px solid var(--rule-2)",
+                color: "var(--ink-2)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: prevItem ? 1 : 0.3,
+                cursor: prevItem ? "pointer" : "default",
+              }}
+            >
+              <Icon name="back" size={20} aria-hidden />
+            </button>
 
-          {/* Right arrow */}
-          <button
-            type="button"
-            onClick={handleArrowRight}
-            className="fixed top-1/2 right-1 -translate-y-1/2 w-10 h-10 rounded-full
-              bg-bg shadow-lg border border-rule
-              flex items-center justify-center z-30
-              hover:bg-bg-2 transition-opacity"
-            aria-label={nextItem ? "Next item" : "Create new item"}
-          >
-            <svg className="w-5 h-5 text-ink-2" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        </>
+            {/* Record (FAB) */}
+            <RecordButton itemId={itemId} sessionId={sessionId!} />
+
+            {/* Next item / create new */}
+            <button
+              type="button"
+              onClick={handleArrowRight}
+              aria-label={nextItem ? "Next item" : "Create new item"}
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "var(--accent-wash)",
+                border: "1px solid color-mix(in oklch, var(--accent) 30%, transparent)",
+                color: "var(--accent)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <Icon name="plus" size={20} aria-hidden />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

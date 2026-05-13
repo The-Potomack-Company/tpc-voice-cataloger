@@ -283,6 +283,9 @@
   min-height: 2px;
 }
 .tpc .tpc-waveform-bar[data-active="true"] { background: var(--accent); }
+/* Idle waveform — when no levels have arrived yet, dim the bars so the
+   surface still occupies its space without demanding attention. */
+.tpc .tpc-waveform[data-idle="true"] .tpc-waveform-bar { opacity: 0.25; }
 .tpc .tpc-waveform-static {
   align-items: center;
   justify-content: center;
@@ -466,6 +469,53 @@
   font-family: var(--font-display);
   font-style: italic;
 }
+
+/* Record FAB — center of the bottom control trio on ItemEntry. 76x76 with
+   a soft halo so it reads as the primary action. Token-driven so the
+   no-hardcoded-literals guard stays green. */
+.tpc .tpc-record-fab {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--err);
+  color: white;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--err) 15%, transparent);
+  transition: transform .12s, box-shadow .12s;
+}
+.tpc .tpc-record-fab:hover { transform: translateY(-1px); }
+.tpc .tpc-record-fab:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Cards variant of the stat strip — used on ItemEntry recording surface so
+   the two figures sit as small centered cards instead of an open strip. */
+.tpc .tpc-stat-strip-cards {
+  gap: 12px;
+  justify-content: center;
+}
+.tpc .tpc-stat-strip-cards .tpc-stat {
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+  flex: 1 1 0;
+  max-width: 140px;
+}
+.tpc .tpc-stat-strip-cards .tpc-stat-label,
+.tpc .tpc-stat-strip-cards .tpc-stat-value { text-align: center; }
+
+/* Native <details> chrome — used for the collapsible Raw transcript panel.
+   Marker hidden so we can render our own rotating chevron. */
+.tpc details > summary { list-style: none; }
+.tpc details > summary::-webkit-details-marker { display: none; }
+.tpc details > summary .tpc-disclosure-chev {
+  display: inline-flex;
+  transition: transform 0.15s;
+}
+.tpc details[open] > summary .tpc-disclosure-chev { transform: rotate(90deg); }
 
 /* Per-mode accent-wash card (used on NewSession mode picker tiles). */
 .tpc .tpc-card-mode {
