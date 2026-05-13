@@ -15,10 +15,9 @@ import { StatStrip } from "../ui/StatStrip";
 import { useRecordingStore } from "../stores/recordingStore";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
-import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useSession, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
-import { createBlankItem, updateItemField, deleteItem } from "../db/items";
+import { createBlankItem, updateItemField } from "../db/items";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
 import { formatDuration } from "../utils/audio";
@@ -86,7 +85,6 @@ export function ItemEntryPage() {
   const navigate = useNavigate();
   const creatingRef = useRef(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load session from Zustand
   const session = useSession(sessionId!);
@@ -219,14 +217,6 @@ export function ItemEntryPage() {
     }
   }, [nextItem, sessionId, mode, navigate]);
 
-  // Delete item handler
-  const handleDeleteItem = useCallback(async () => {
-    if (!itemId || isNewItem || !sessionId) return;
-    setShowDeleteConfirm(false);
-    await deleteItem(itemId, sessionId);
-    navigate(`/session/${sessionId}`);
-  }, [itemId, isNewItem, sessionId, navigate]);
-
   // Lightbox delete handler
   const handleLightboxDelete = useCallback(
     async (photoId: number) => {
@@ -343,8 +333,9 @@ export function ItemEntryPage() {
         <ItemCounter current={currentPosition} total={displayTotal} />
       </div>
 
-      {/* Always-on waveform + recording stats, then a Delete-Item button.
-          Record button moved into the bottom trio (mockup tpc-voice.jsx:151-161). */}
+      {/* Always-on waveform + recording stats. Record button lives in the
+          bottom trio (mockup tpc-voice.jsx:151-161). Item deletion is handled
+          exclusively from SessionDetail's SwipeableRow swipe-to-delete. */}
       <div className="pb-4 pt-2 space-y-3">
         {itemId && !isNewItem && (
           <>
@@ -358,19 +349,6 @@ export function ItemEntryPage() {
                 photoCount={sessionPhotoCount}
               />
             )}
-
-            {/* Delete Item button */}
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="tpc-btn tpc-btn-danger tpc-btn-fullwidth"
-              style={{ minHeight: 44 }}
-            >
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              </svg>
-              <span>Delete Item</span>
-            </button>
           </>
         )}
       </div>
@@ -388,18 +366,6 @@ export function ItemEntryPage() {
           onDelete={handleLightboxDelete}
         />
       )}
-
-      {/* Delete item confirmation */}
-      <ConfirmDialog
-        open={showDeleteConfirm}
-        title="Delete Item"
-        message="Delete this item and all its recordings and photos? This cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        destructive
-        onConfirm={handleDeleteItem}
-        onCancel={() => setShowDeleteConfirm(false)}
-      />
 
       {/* Bottom control trio — prev item / record / next item (mockup
           tpc-voice.jsx:151-161). Anchored above the tab bar so it stays
