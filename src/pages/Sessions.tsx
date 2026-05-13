@@ -14,6 +14,7 @@ import {
   useReturnedSessions,
   useExportedSessions,
   useSessionItemCount,
+  useSessionReviewCount,
   useNameMap,
 } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
@@ -51,6 +52,7 @@ function TileWithCount({
   assigneeName?: string;
 }) {
   const count = useSessionItemCount(session.id);
+  const reviewCount = useSessionReviewCount(session.id);
   return (
     <SessionTile
       session={session}
@@ -61,6 +63,7 @@ function TileWithCount({
       onRename={onRename}
       showDivider={showDivider}
       assigneeName={assigneeName}
+      reviewCount={reviewCount}
     />
   );
 }

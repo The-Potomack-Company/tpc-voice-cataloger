@@ -4,6 +4,7 @@ import { useAuthStore } from "../stores/authStore";
 import { listAccounts } from "../services/adminApi";
 import { filterDevSessions } from "../constants/devUsers";
 import type { Tables } from "../db/database.types";
+import { isNeedsReview } from "../utils/itemStatus";
 
 /**
  * Returns the sessions list with dev-user (Josh) cross-user data filtered
@@ -74,6 +75,12 @@ export function useSessionItems(sessionId: string) {
 export function useSessionItemCount(sessionId: string) {
   return useSessionStore(
     (s) => (s.itemsBySession[sessionId] ?? EMPTY_ITEMS).length,
+  );
+}
+
+export function useSessionReviewCount(sessionId: string): number {
+  return useSessionStore(
+    (s) => (s.itemsBySession[sessionId] ?? EMPTY_ITEMS).filter(isNeedsReview).length,
   );
 }
 

@@ -12,6 +12,7 @@ const {
   mockUseReturnedSessions,
   mockUseExportedSessions,
   mockUseSessionItemCount,
+  mockUseSessionReviewCount,
   mockUseNameMap,
   mockUseUIStore,
   mockUseAuthStore,
@@ -23,6 +24,7 @@ const {
   mockUseReturnedSessions: vi.fn(),
   mockUseExportedSessions: vi.fn(),
   mockUseSessionItemCount: vi.fn(),
+  mockUseSessionReviewCount: vi.fn(),
   mockUseNameMap: vi.fn(),
   mockUseUIStore: vi.fn(),
   mockUseAuthStore: vi.fn(),
@@ -42,6 +44,7 @@ vi.mock("../hooks/useSessions", () => ({
   useReturnedSessions: mockUseReturnedSessions,
   useExportedSessions: mockUseExportedSessions,
   useSessionItemCount: mockUseSessionItemCount,
+  useSessionReviewCount: mockUseSessionReviewCount,
   useNameMap: mockUseNameMap,
 }));
 
@@ -99,6 +102,7 @@ describe("Sessions admin view (mockup-faithful date-grouped tiles)", () => {
       selector({ user: { id: "viewer-admin" } }),
     );
     mockUseSessionItemCount.mockReturnValue(3);
+    mockUseSessionReviewCount.mockReturnValue(0);
     mockListAccounts.mockResolvedValue([]);
   });
 

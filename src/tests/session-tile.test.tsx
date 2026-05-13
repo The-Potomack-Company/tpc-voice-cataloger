@@ -82,4 +82,35 @@ describe("SessionTile", () => {
     );
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
   });
+
+  it("renders Needs review badge with count when reviewCount > 0", () => {
+    render(
+      <MemoryRouter>
+        <SessionTile
+          session={baseSession}
+          itemCount={5}
+          reviewCount={3}
+          onTap={() => {}}
+          onDelete={() => {}}
+          onRename={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/Needs review · 3/)).toBeInTheDocument();
+  });
+
+  it("does not render Needs review badge when reviewCount is 0 or undefined", () => {
+    render(
+      <MemoryRouter>
+        <SessionTile
+          session={baseSession}
+          itemCount={5}
+          onTap={() => {}}
+          onDelete={() => {}}
+          onRename={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/Needs review/)).not.toBeInTheDocument();
+  });
 });

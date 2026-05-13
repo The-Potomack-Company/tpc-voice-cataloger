@@ -32,6 +32,8 @@ interface SessionTileProps {
   showDivider?: boolean;
   /** Optional assignee label (admin cross-user view). */
   assigneeName?: string;
+  /** Count of items that need human review (failed AI or missing title). */
+  reviewCount?: number;
 }
 
 function statusBadgeFor(status: string) {
@@ -50,6 +52,7 @@ export function SessionTile({
   onRename,
   showDivider = true,
   assigneeName,
+  reviewCount,
 }: SessionTileProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(session.name);
@@ -152,6 +155,11 @@ export function SessionTile({
             {statusBadge && (
               <Badge tone={statusBadge.tone}>{statusBadge.label}</Badge>
             )}
+            {reviewCount && reviewCount > 0 ? (
+              <Badge tone="warn" dot>
+                Needs review · {reviewCount}
+              </Badge>
+            ) : null}
           </div>
 
           {/* Title — italic display is reserved for hero; row title is sans */}

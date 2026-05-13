@@ -21,6 +21,7 @@ import { Icon } from "../ui/icons";
 import { StatStrip } from "../ui/StatStrip";
 import { WarnBanner } from "../ui/WarnBanner";
 import { sessionShortId } from "../utils/groupByDate";
+import { isNeedsReview } from "../utils/itemStatus";
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -302,9 +303,7 @@ export function SessionDetailPage() {
 
   // Three-stat strip: AI-cataloged / Needs review / Total
   const transcribedCount = items.filter((i) => i.ai_status === "done").length;
-  const failedCount = items.filter(
-    (i) => i.ai_status === "failed" || (!i.title && (i.ai_status ?? "") !== "queued"),
-  ).length;
+  const failedCount = items.filter(isNeedsReview).length;
   const statusBadgeTone =
     session.status === "submitted"
       ? "warn"
@@ -323,15 +322,6 @@ export function SessionDetailPage() {
           : session.status === "active"
             ? "Active"
             : session.status;
-
-  const sessionMinutes = Math.max(
-    0,
-    Math.round(
-      (new Date(session.updated_at).getTime() -
-        new Date(session.created_at).getTime()) /
-        60000,
-    ),
-  );
 
   return (
     <div className="relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-24">
@@ -403,7 +393,7 @@ export function SessionDetailPage() {
               color: "var(--ink-3)",
             }}
           >
-            {sessionMinutes} min · {itemCount} item{itemCount === 1 ? "" : "s"}
+            {itemCount} item{itemCount === 1 ? "" : "s"}
           </span>
         </div>
       </div>
