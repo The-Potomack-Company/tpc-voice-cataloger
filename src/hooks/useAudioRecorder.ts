@@ -29,6 +29,12 @@ export function useAudioRecorder(): AudioRecorderReturn {
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const detectedMimeTypeRef = useRef<string>("");
 
+  // Phase 27 (MOTION-02): AnalyserNode for live waveform amplitude.
+  // Optional — gracefully degrades when AudioContext is unavailable.
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const rafRef = useRef<number | null>(null);
+
   // Store a resolve function for the stopRecording promise
   const stopResolveRef = useRef<((id: number) => void) | null>(null);
 
@@ -57,6 +63,74 @@ export function useAudioRecorder(): AudioRecorderReturn {
       mediaRecorderRef.current.stop();
     }
     mediaRecorderRef.current = null;
+
+    // Phase 27 — teardown the analyser loop and audio graph.
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    analyserRef.current = null;
+    if (audioContextRef.current) {
+      try {
+        void audioContextRef.current.close();
+      } catch {
+        /* ignore */
+      }
+      audioContextRef.current = null;
+    }
+  }, []);
+
+  const startLevelLoop = useCallback((stream: MediaStream) => {
+    // Honor prefers-reduced-motion — skip the loop entirely.
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+    const Ctor =
+      (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    try {
+      const ctx = new Ctor();
+      audioContextRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.6;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      let lastPush = 0;
+      const push = useRecordingStore.getState().pushLevel;
+
+      const loop = () => {
+        const a = analyserRef.current;
+        if (!a) return;
+        a.getByteTimeDomainData(data);
+        // Compute RMS amplitude normalized to ~[0, 1].
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        // Throttle to ~20 fps so the store doesn't churn.
+        const now = performance.now();
+        if (now - lastPush > 50) {
+          push(Math.min(1, rms * 2.2));
+          lastPush = now;
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
+    } catch (e) {
+      // Audio context unavailable / permission revoked mid-flow — no-op.
+      console.warn("[useAudioRecorder] analyser setup failed:", e);
+    }
   }, []);
 
   const startRecording = useCallback(
@@ -143,6 +217,12 @@ export function useAudioRecorder(): AudioRecorderReturn {
 
           setStatus("recording");
           store.getState().setRecording(true);
+
+          // Phase 27 — kick off the AnalyserNode loop. Honors
+          // prefers-reduced-motion: when set, we skip the RAF loop and
+          // never push samples; the waveform component will render its
+          // static glyph fallback.
+          startLevelLoop(stream);
         })
         .catch((err: DOMException) => {
           let message = "Failed to access microphone";
@@ -158,7 +238,7 @@ export function useAudioRecorder(): AudioRecorderReturn {
           setError(message);
         });
     },
-    [store],
+    [store, startLevelLoop],
   );
 
   const stopRecording = useCallback((): Promise<number | undefined> => {
@@ -186,6 +266,23 @@ export function useAudioRecorder(): AudioRecorderReturn {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+      }
+
+      // Phase 27 (Codex P2 fix) — tear down the AnalyserNode loop here too.
+      // Without this, the RAF + AudioContext live until component unmount,
+      // and repeated record/stop cycles stack duplicate loops.
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      analyserRef.current = null;
+      if (audioContextRef.current) {
+        try {
+          void audioContextRef.current.close();
+        } catch {
+          /* ignore */
+        }
+        audioContextRef.current = null;
       }
 
       setStatus("idle");

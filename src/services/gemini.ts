@@ -48,6 +48,7 @@ CRITICAL RULES:
    - 'cabriole' (pronounced 'cab-ree-ole') -> the S-curved furniture leg style common on 18th-century chairs and tables. Spell as 'cabriole'. Never 'cab roll', 'carry oil', 'cabbage roll', or similar mishearings.
    - 'patina' (pronounced 'pa-TEE-na' or 'PAT-in-a') -> the surface coloration or finish that develops on bronze, copper, silver, wood, or other materials over time. Spell as 'patina'. Never 'potty na', 'patina' as a name, or similar mishearings.
    - 'bisque' (pronounced 'bisk') -> unglazed porcelain, often used for figurines and dolls. Spell as 'bisque'. Never 'bisk', 'biscuit' (unless the speaker explicitly says 'biscuit porcelain'), or 'brisk'.
+8. ARTIST NAMES: Artist names from any language (Japanese, Chinese, Korean, French, Spanish, Italian, German, etc.) may be spoken with native pronunciation. Always transcribe them as their standard romanized/Latin-letter spelling, not as a phonetic English approximation. Examples: "Hokusai", "Hiroshige", "Utamaro", "Qi Baishi", "Cézanne", "Picasso", "Dürer". Preserve diacritics (é, ü, ñ, etc.) when they belong to the standard spelling. If unsure of the exact spelling, render the closest standard romanization rather than an English homophone (e.g., never write "hoe coo sigh" for "Hokusai").
 
 MERGE RULES:
 When existing field values are provided in the user message, your job is to MERGE new information with existing values:

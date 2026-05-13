@@ -18,9 +18,12 @@ export function RecordingIndicator() {
         style={{ animationDuration: "2s" }}
       />
 
-      {/* Timer display — top right */}
+      {/* Timer pill — top right (Phase 26 reskin: token-driven surface +
+          mono / tnum for stable digits; pulse animation gated by
+          prefers-reduced-motion). */}
       <div className="fixed top-4 right-4 z-40 pointer-events-none">
-        <span className="text-lg font-mono text-red-500 bg-white/80 dark:bg-gray-900/80 px-3 py-1 rounded-full shadow">
+        <span className="tpc-badge tpc-badge-err tnum tpc-record-pulse tpc-record-pill">
+          <span className="tpc-dot" aria-hidden="true" />
           {formatDuration(currentDurationMs)}
         </span>
       </div>

@@ -93,22 +93,24 @@ describe('AccountManagement', () => {
     expect(screen.getByText('deactivated@test.com')).toBeInTheDocument()
   })
 
-  it('Admin role badge shows "Admin" with blue styling; Specialist shows "Specialist" with indigo styling', async () => {
+  it('Admin role badge uses the info tone; Specialist uses the neutral tone', async () => {
     renderPage()
 
     await waitFor(() => {
       expect(screen.getByText('Admin User')).toBeInTheDocument()
     })
 
-    // Find Admin badge
+    // Admin badge uses the token-driven info tone.
     const adminBadge = screen.getAllByText('Admin').find(
-      (el) => el.classList.contains('bg-blue-100'),
+      (el) => el.classList.contains('tpc-badge-info'),
     )
     expect(adminBadge).toBeTruthy()
 
-    // Find Specialist badges
+    // Specialist badge uses the default (neutral) tone — no tpc-badge-info.
     const specialistBadges = screen.getAllByText('Specialist').filter(
-      (el) => el.classList.contains('bg-indigo-100'),
+      (el) =>
+        el.classList.contains('tpc-badge') &&
+        !el.classList.contains('tpc-badge-info'),
     )
     expect(specialistBadges.length).toBeGreaterThanOrEqual(1)
   })

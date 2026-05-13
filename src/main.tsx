@@ -5,6 +5,25 @@ import "./index.css";
 import App from "./App";
 import { useAuthStore } from "./stores/authStore";
 import { trackEvent } from "./services/analytics";
+import { initTheme } from "./ui/tokens";
+import { useThemeStore } from "./stores/themeStore";
+
+// Initialize theme listener before React renders. Honors the persisted
+// user preference (localStorage) from the start so cold loads don't flash
+// the wrong theme. Phase 25 — extended over Phase 22's system-pref-only.
+const teardownTheme = initTheme({ override: useThemeStore.getState().preference });
+
+// Hydrate cloud preference once a user is known. The store handles the
+// missing-column / first-session case gracefully (falls back to LS). On
+// sign-out, clear the hydration marker so the next user on the same tab
+// re-hydrates from their own profile (Codex P2 fix).
+useAuthStore.subscribe((state, prev) => {
+  if (state.user && state.user.id !== prev.user?.id) {
+    useThemeStore.getState().hydrateFromSupabase(state.user.id).catch(() => {});
+  } else if (!state.user && prev.user) {
+    useThemeStore.getState().resetHydration();
+  }
+});
 
 // Initialize auth listener before React renders
 const unsubscribe = useAuthStore.getState().initialize();
@@ -39,7 +58,10 @@ window.addEventListener("unhandledrejection", (e) => {
 
 // Cleanup on HMR
 if (import.meta.hot) {
-  import.meta.hot.dispose(() => unsubscribe());
+  import.meta.hot.dispose(() => {
+    unsubscribe();
+    teardownTheme();
+  });
 }
 
 createRoot(document.getElementById("root")!).render(

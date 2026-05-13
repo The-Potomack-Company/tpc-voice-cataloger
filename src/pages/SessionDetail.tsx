@@ -14,6 +14,14 @@ import { ItemList } from "../components/ItemList";
 import { ExportHistoryList } from "../components/ExportHistoryList";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
+import { Eyebrow } from "../ui/Eyebrow";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
+import { Icon } from "../ui/icons";
+import { StatStrip } from "../ui/StatStrip";
+import { WarnBanner } from "../ui/WarnBanner";
+import { sessionShortId } from "../utils/groupByDate";
+import { isNeedsReview } from "../utils/itemStatus";
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -172,7 +180,7 @@ export function SessionDetailPage() {
           </svg>
           Back
         </button>
-        <p className="text-gray-500 dark:text-gray-400">Session not found.</p>
+        <p className="text-ink-3">Session not found.</p>
       </div>
     );
   }
@@ -291,215 +299,224 @@ export function SessionDetailPage() {
     }
   };
 
-  return (
-    <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6 pb-24">
-      {/* Sticky header with back button */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center justify-center w-10 h-10 -ml-2 rounded-lg
-                     text-accent hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          aria-label="Back to sessions"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-        </button>
+  const shortId = sessionShortId(session);
 
-        <div className="flex-1 min-w-0">
-          {isEditingName ? (
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onBlur={saveNameEdit}
-              onKeyDown={handleNameKeyDown}
-              className="w-full text-2xl font-bold px-2 py-1 -ml-2 rounded-lg
-                         bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                         focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          ) : isReadOnly ? (
-            <h1
-              className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate"
+  // Three-stat strip: AI-cataloged / Needs review / Total
+  const transcribedCount = items.filter((i) => i.ai_status === "done").length;
+  const failedCount = items.filter(isNeedsReview).length;
+  const statusBadgeTone =
+    session.status === "submitted"
+      ? "warn"
+      : session.status === "returned"
+        ? "warn"
+        : session.status === "exported"
+          ? "ok"
+          : "info";
+  const statusBadgeLabel =
+    session.status === "submitted"
+      ? "Submitted"
+      : session.status === "returned"
+        ? "Returned"
+        : session.status === "exported"
+          ? "Exported"
+          : session.status === "active"
+            ? "Active"
+            : session.status;
+
+  return (
+    <div className="relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-24">
+      {/* Sticky header — eyebrow ("Review · TPCXX") + italic display ("N items · M min") + Sync action */}
+      <div className="tpc-sticky-header py-3 -mx-4 portrait:px-4 landscape:px-8 mb-4">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="tpc-btn tpc-btn-ghost"
+            style={{ padding: 6 }}
+            aria-label="Back to sessions"
+          >
+            <Icon name="back" size={16} aria-hidden />
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <Eyebrow>
+              Review · {shortId}
+            </Eyebrow>
+            {isEditingName ? (
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={saveNameEdit}
+                onKeyDown={handleNameKeyDown}
+                className="w-full mt-1 px-2 py-1 -ml-2 rounded bg-bg-2 text-ink tpc-display tpc-display-4 focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            ) : (
+              <h1
+                onClick={isReadOnly ? undefined : startEditingName}
+                title={isReadOnly ? undefined : "Tap to edit name"}
+                className={
+                  "tpc-display tpc-display-4 truncate text-ink mt-0.5" +
+                  (isReadOnly ? "" : " cursor-pointer hover:text-accent transition-colors")
+                }
+              >
+                {session.name}
+              </h1>
+            )}
+          </div>
+
+          {/* Finalize action — admin export trigger from the header (mockup behavior). */}
+          {isAdmin && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleExportClick}
+              disabled={exporting || queuedCount > 0}
+              icon={<Icon name="upload" size={14} aria-hidden />}
+              aria-label="Finalize and export session"
+              title="Export session JSON and mark as exported"
             >
-              {session.name}
-            </h1>
-          ) : (
-            <h1
-              onClick={startEditingName}
-              className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate cursor-pointer
-                         hover:text-accent dark:hover:text-accent transition-colors"
-              title="Tap to edit name"
-            >
-              {session.name}
-            </h1>
+              Finalize
+            </Button>
           )}
+        </div>
+
+        {/* Mode + status badges, mono assigned-to */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <Badge>{modeLabel}</Badge>
+          <Badge tone={statusBadgeTone}>{statusBadgeLabel}</Badge>
+          <span
+            className="tnum tpc-mono"
+            style={{
+              fontSize: 11,
+              color: "var(--ink-3)",
+            }}
+          >
+            {itemCount} item{itemCount === 1 ? "" : "s"}
+          </span>
         </div>
       </div>
 
-      {/* Badges */}
-      <div className="flex items-center gap-2 mb-6 flex-wrap">
-        <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                         bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-          {modeLabel}
-        </span>
-        {session.status !== 'active' && (
-          <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${
-            session.status === 'submitted'
-              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-              : session.status === 'returned'
-                ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
-                : session.status === 'exported'
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                  : ''
-          }`}>
-            {session.status === 'submitted' ? 'Submitted'
-              : session.status === 'returned' ? 'Returned'
-              : session.status === 'exported' ? 'Exported'
-              : session.status}
-          </span>
-        )}
-      </div>
+      {/* Three-stat strip with mini bars (mockup SCREEN-03) */}
+      {itemCount > 0 && (
+        <section className="mb-6">
+          <StatStrip
+            stats={[
+              {
+                label: "Transcribed",
+                value: transcribedCount,
+                total: itemCount,
+                tone: "accent",
+              },
+              {
+                label: "Processed",
+                value: items.filter((i) => i.title).length,
+                total: itemCount,
+                tone: "accent",
+              },
+              {
+                label: "Needs review",
+                value: failedCount,
+                total: itemCount,
+                tone: "warn",
+              },
+            ]}
+          />
+        </section>
+      )}
 
-      {/* Lifecycle header buttons -- per CONTEXT.md: Submit, Export, Return all in header area */}
+      {/* Lifecycle action stack — admin Sync lives in the sticky header (mockup).
+          Remaining actions: specialist Submit, admin Spreadsheet export, Return, Reopen. */}
       {!roleLoading && (
         <div className="flex flex-col gap-2 mb-6">
           {/* Submit for Review -- specialist only, active or returned sessions */}
           {isSpecialist && (session.status === 'active' || session.status === 'returned') && (
-            <button
+            <Button
+              variant="primary"
+              fullWidth
               onClick={() => {
                 if (queuedCount > 0) return;
                 setConfirmAction('submit');
               }}
               disabled={queuedCount > 0}
-              className="w-full min-h-12 rounded-lg bg-accent text-white font-semibold
-                         hover:opacity-90 transition-opacity
-                         disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {queuedCount > 0
                 ? `${queuedCount} items still processing`
                 : 'Submit for Review'}
-            </button>
-          )}
-
-          {/* Export button -- admin only */}
-          {isAdmin && (
-            <button
-              onClick={handleExportClick}
-              disabled={exporting || queuedCount > 0}
-              className="w-full min-h-12 rounded-lg border border-accent text-accent font-semibold
-                         hover:bg-accent/10 transition-colors flex items-center justify-center gap-2
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {exporting ? (
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : queuedCount > 0 ? null : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-              )}
-              {queuedCount > 0
-                ? `${queuedCount} item${queuedCount === 1 ? '' : 's'} still queued`
-                : exporting ? 'Exporting...' : 'Export Session'}
-            </button>
+            </Button>
           )}
 
           {/* Export Spreadsheet button -- admin only, no confirmation needed */}
           {isAdmin && (
-            <button
+            <Button
+              variant="secondary"
+              fullWidth
               onClick={handleExportSpreadsheet}
               disabled={exportingXlsx || queuedCount > 0}
-              className="w-full min-h-12 rounded-lg border border-green-600 text-green-600 font-semibold
-                         hover:bg-green-600/10 transition-colors flex items-center justify-center gap-2
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+              icon={<Icon name="download" size={14} aria-hidden />}
             >
-              {exportingXlsx ? (
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : queuedCount > 0 ? null : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125" />
-                </svg>
-              )}
               {queuedCount > 0
                 ? `${queuedCount} item${queuedCount === 1 ? '' : 's'} still queued`
-                : exportingXlsx ? 'Exporting...' : 'Export Spreadsheet'}
-            </button>
+                : exportingXlsx
+                  ? 'Exporting…'
+                  : 'Export Spreadsheet'}
+            </Button>
           )}
 
           {/* Return to Specialist -- admin only, submitted sessions */}
           {isAdmin && session.status === 'submitted' && (
-            <button
+            <Button
+              variant="secondary"
+              fullWidth
               onClick={() => setShowReturnDialog(true)}
-              className="w-full min-h-12 rounded-lg border border-amber-300 dark:border-amber-700
-                         text-amber-700 dark:text-amber-400 font-semibold
-                         hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
             >
               Return to Specialist
-            </button>
+            </Button>
           )}
 
           {/* Reopen Session -- admin only, exported sessions */}
           {isAdmin && session.status === 'exported' && (
-            <button
+            <Button
+              variant="ghost"
+              fullWidth
               onClick={() => setConfirmAction('reopen')}
-              className="w-full min-h-12 rounded-lg border border-gray-300 dark:border-gray-600
-                         text-gray-700 dark:text-gray-300 font-semibold
-                         hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Reopen Session
-            </button>
+            </Button>
           )}
         </div>
       )}
 
       {/* Submitted status banner -- specialist only */}
       {session.status === 'submitted' && isSpecialist && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg
-                        bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800
-                        px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
-          <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-          </svg>
+        <div className="mb-6 flex items-center gap-3 rounded-lg bg-accent-wash text-accent px-4 py-3 text-sm">
+          <Icon name="info" size={20} className="shrink-0" aria-hidden />
           Submitted &mdash; awaiting admin review
         </div>
       )}
 
-      {/* Returned / review notes banner -- specialist only, sticky */}
+      {/* Returned / review notes banner -- specialist only */}
       {session.status === 'returned' && isSpecialist && (
-        <div className="sticky top-0 z-20 mb-6 rounded-lg
-                        bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800
-                        px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-          <div className="flex items-start gap-2">
-            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <p className="font-semibold">Returned by Admin</p>
-              {session.review_notes && <p className="mt-1">{session.review_notes}</p>}
-            </div>
-          </div>
-        </div>
+        <WarnBanner
+          className="mb-6"
+          title="Returned by Admin"
+          body={session.review_notes ?? undefined}
+        />
       )}
 
       {/* Admin-only assignee field */}
       {isAdmin && session && (
-        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 mb-6">
-          <span className="text-sm text-gray-500 dark:text-gray-400">Assigned to</span>
+        <div className="tpc-card flex items-center justify-between px-4 py-3 mb-6" style={{ background: "var(--bg-2)" }}>
+          <span className="text-sm text-ink-3">Assigned to</span>
           {editingAssignee ? (
             <select
               autoFocus
               value={session.assigned_to ?? ""}
               onChange={(e) => handleReassign(e.target.value)}
               onBlur={() => setEditingAssignee(false)}
-              className="text-sm font-medium rounded border border-gray-300 dark:border-gray-600
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+              className="text-sm font-medium rounded border border-rule
+                         bg-bg text-ink
                          px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {accounts.map((a) => (
@@ -511,7 +528,7 @@ export function SessionDetailPage() {
           ) : (
             <span
               onClick={() => setEditingAssignee(true)}
-              className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer
+              className="text-sm font-medium text-ink cursor-pointer
                          hover:text-accent transition-colors"
               title="Tap to reassign"
             >
@@ -523,78 +540,50 @@ export function SessionDetailPage() {
       )}
       {/* Reassign error */}
       {reassignError && (
-        <p className="text-sm text-red-600 dark:text-red-400 -mt-4 mb-6" role="alert">
+        <p className="text-sm text-err -mt-4 mb-6" role="alert">
           {reassignError}
         </p>
       )}
 
       {/* Interrupted recording banner */}
       {isInterrupted && !showDismissedBanner && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
-          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-              A recording may have been interrupted.
-            </p>
-            <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
-              Check your items for missing audio.
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setRecordingSession(null);
-              setShowDismissedBanner(true);
-            }}
-            className="shrink-0 text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
-            aria-label="Dismiss"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <WarnBanner
+          className="mb-6"
+          title="A recording may have been interrupted."
+          body="Check your items for missing audio."
+          onDismiss={() => {
+            setRecordingSession(null);
+            setShowDismissedBanner(true);
+          }}
+        />
       )}
 
       {/* Metadata section */}
       <section className="mb-6">
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+        <div className="tpc-card p-4 space-y-3" style={{ background: "var(--bg-2)" }}>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Items</span>
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {itemCount}
-            </span>
+            <span className="text-sm text-ink-3">Items</span>
+            <span className="tnum text-sm font-medium text-ink">{itemCount}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Created</span>
-            <span className="text-sm text-gray-900 dark:text-gray-100">
-              {formatDate(session.created_at)}
-            </span>
+            <span className="text-sm text-ink-3">Created</span>
+            <span className="tnum text-sm text-ink">{formatDate(session.created_at)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Last updated</span>
-            <span className="text-sm text-gray-900 dark:text-gray-100">
-              {formatRelativeTime(session.updated_at)}
-            </span>
+            <span className="text-sm text-ink-3">Last updated</span>
+            <span className="tnum text-sm text-ink">{formatRelativeTime(session.updated_at)}</span>
           </div>
         </div>
       </section>
 
       {/* Notes section */}
       <section className="mb-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-          Notes
-        </h2>
+        <Eyebrow className="mb-2">Notes</Eyebrow>
         {isReadOnly ? (
-          <div className="w-full rounded-lg border border-gray-200 dark:border-gray-700
-                          bg-gray-50 dark:bg-gray-800 p-3 text-sm
-                          text-gray-900 dark:text-gray-100 min-h-[4.5rem]">
-            {session.notes || <span className="text-gray-400 dark:text-gray-500">No notes</span>}
+          <div className="w-full rounded-lg border border-rule
+                          bg-bg-2 p-3 text-sm
+                          text-ink min-h-[4.5rem]">
+            {session.notes || <span className="text-ink-3">No notes</span>}
           </div>
         ) : (
           <textarea
@@ -603,10 +592,10 @@ export function SessionDetailPage() {
             onBlur={handleNotesSave}
             placeholder="Add notes..."
             rows={3}
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700
-                       bg-gray-50 dark:bg-gray-800 p-3 text-sm
-                       text-gray-900 dark:text-gray-100
-                       placeholder:text-gray-400 dark:placeholder:text-gray-500
+            className="w-full rounded-lg border border-rule
+                       bg-bg-2 p-3 text-sm
+                       text-ink
+                       placeholder:text-ink-3
                        focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
                        resize-none"
           />
@@ -615,9 +604,7 @@ export function SessionDetailPage() {
 
       {/* Item list section */}
       <section className="mb-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-          Items ({itemCount})
-        </h2>
+        <Eyebrow className="mb-3">Items ({itemCount})</Eyebrow>
         <ItemList sessionId={sessionId!} mode={session.mode as "house" | "sale"} onAddItemRef={addItemRef} readOnly={isReadOnly} />
       </section>
 
@@ -626,14 +613,13 @@ export function SessionDetailPage() {
 
       {/* Bottom action -- Delete only (lifecycle buttons are in header) */}
       <section className="space-y-3">
-        <button
+        <Button
+          variant="danger"
+          fullWidth
           onClick={() => setConfirmAction("delete")}
-          className="w-full min-h-12 rounded-lg border border-red-300 dark:border-red-700
-                     text-red-600 dark:text-red-400 font-medium
-                     hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         >
           Delete Session
-        </button>
+        </Button>
       </section>
 
       {/* Submit confirmation */}
@@ -690,24 +676,25 @@ export function SessionDetailPage() {
 
       {/* Floating Add Item button */}
       {!isReadOnly && (
-        <div className="fixed bottom-24 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-30">
-          <button
+        <div className="fixed bottom-24 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
+          <Button
+            variant="primary"
+            fullWidth
             onClick={handleAddItem}
-            className="w-full bg-accent hover:bg-accent-hover text-white font-medium
-                       py-3 px-6 rounded-lg min-h-12 flex items-center justify-center gap-2
-                       shadow-lg transition-colors"
+            icon={<Icon name="plus" size={14} aria-hidden />}
+            style={{
+              minHeight: 48,
+              boxShadow: "0 8px 24px var(--accent-wash)",
+            }}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
             {itemCount === 0 ? "Start Cataloging" : "Add Item"}
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Import toast feedback */}
       {importToast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-3 rounded-xl shadow-lg animate-[slideUp_0.3s_ease-out]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-ink text-bg px-4 py-3 rounded-xl shadow-lg animate-[slideUp_0.3s_ease-out]">
           <span className="text-sm">{importToast}</span>
         </div>
       )}

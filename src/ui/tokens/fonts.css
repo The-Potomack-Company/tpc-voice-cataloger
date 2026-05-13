@@ -1,0 +1,37 @@
+/* src/ui/tokens/fonts.css
+ * Self-hosted typography pipeline (Phase 23).
+ *
+ * Imports the @fontsource family of npm packages so EB Garamond, Inter,
+ * and IBM Plex Mono are served from the app origin (zero requests to
+ * fonts.googleapis.com or fonts.gstatic.com in production).
+ *
+ * Loaded BEFORE tokens.css in src/index.css so the @font-face rules
+ * register the family names referenced by --font-display, --font-ui,
+ * --font-mono.
+ *
+ * Variable WOFF2s for Inter and EB Garamond register as
+ * "Inter Variable" / "EB Garamond Variable" — tokens.css lists both
+ * the variable and the historical names in its font-family fallback
+ * stack so the cascade resolves regardless of which package style is
+ * loaded.
+ *
+ * IBM Plex Mono has no official @fontsource-variable build today, so
+ * static 400 + 500 (roman only) are imported. Italic + extra weights
+ * are out of scope for v1.2 per ROADMAP.
+ */
+
+/* Inter — variable WOFF2 covering 100..900 (we use 400, 500, 600).
+ * The single import covers latin, latin-ext, cyrillic, greek, vietnamese
+ * via separate @font-face rules with unicode-range constraints, so only
+ * the subset the page actually needs hits the network. */
+@import "@fontsource-variable/inter/wght.css";
+
+/* EB Garamond — variable WOFF2 covering 400..800 + italic axis.
+ * The italic axis ships as a separate file. Both must be imported so
+ * the .tpc-display italic title resolves. */
+@import "@fontsource-variable/eb-garamond/wght.css";
+@import "@fontsource-variable/eb-garamond/wght-italic.css";
+
+/* IBM Plex Mono — static per-weight files. 400 + 500, roman only. */
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";

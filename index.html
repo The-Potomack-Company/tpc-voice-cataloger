@@ -1,9 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="tpc">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#2563eb" />
+  <!-- Pre-paint dark-mode bootstrap. Synchronous + blocking so it cannot
+       introduce FOUC. Phase 25 (Codex P2 fix): consult the persisted
+       `tpc-theme` preference first; only fall back to the system pref
+       when the user has not chosen explicitly. Mirrors the same priority
+       order as themeStore + initTheme so the cold paint matches the
+       resolved runtime state. Allowlisted for TOKENS-04 because
+       index.html is outside src/ and is not scanned. -->
+  <script>
+    try {
+      var pref = null;
+      try { pref = localStorage.getItem('tpc-theme'); } catch (_) {}
+      var dark;
+      if (pref === 'dark') dark = true;
+      else if (pref === 'light') dark = false;
+      else dark = matchMedia('(prefers-color-scheme: dark)').matches;
+      if (dark) document.documentElement.classList.add('tpc-dark');
+    } catch (_) {}
+  </script>
+  <!-- Paired <meta name="theme-color">. Modern browsers select the matching
+       one; legacy browsers fall back to the default (light). The hex values
+       are sRGB conversions of the --accent OKLCH tokens:
+         light --accent  oklch(0.58 0.13 225) -> #0089b4
+         dark  --accent  oklch(0.72 0.13 225) -> #22b5e1
+       Update both alongside any change to --accent in tokens.css. These
+       two static hex values are the only design literals in index.html
+       and are not scanned by TOKENS-04 (file is outside src/). -->
+  <meta name="theme-color" content="#0089b4" />
+  <meta name="theme-color" content="#22b5e1" media="(prefers-color-scheme: dark)" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="TPC Catalog" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

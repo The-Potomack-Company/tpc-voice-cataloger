@@ -1,4 +1,6 @@
 import type { Account } from '../services/adminApi'
+import { Badge } from '../ui/Badge'
+import { Button } from '../ui/Button'
 
 interface AccountRowProps {
   account: Account
@@ -8,6 +10,11 @@ interface AccountRowProps {
   isToggling: boolean
 }
 
+/**
+ * Mockup-aligned admin account row. Uses .tpc-card chrome + Badge primitive
+ * so the cascade resolves through the unified token set. The action button
+ * sits to the right; the row itself is non-interactive.
+ */
 export function AccountRow({
   account,
   isCurrentUser,
@@ -16,55 +23,51 @@ export function AccountRow({
   isToggling,
 }: AccountRowProps) {
   return (
-    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 flex items-center justify-between gap-3">
+    <div
+      className="tpc-card flex items-center justify-between gap-3 p-4"
+      style={{ background: 'var(--bg-2)' }}
+      data-testid="account-row"
+    >
       <div className="min-w-0 flex-1">
-        <p className="font-normal text-gray-900 dark:text-gray-100 truncate">
-          {account.display_name}
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-          {account.email}
-        </p>
-        <div className="flex items-center gap-2 mt-1">
+        <p className="text-ink font-medium truncate">{account.display_name}</p>
+        <p className="text-sm text-ink-3 mt-0.5 truncate">{account.email}</p>
+        <div className="flex items-center gap-2 mt-1.5">
           {account.role === 'admin' ? (
-            <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-              Admin
-            </span>
+            <Badge tone="info">Admin</Badge>
           ) : (
-            <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
-              Specialist
-            </span>
+            <Badge>Specialist</Badge>
           )}
           {account.is_active ? (
-            <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+            <Badge tone="ok" dot>
               Active
-            </span>
+            </Badge>
           ) : (
-            <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
-              Deactivated
-            </span>
+            <Badge tone="err">Deactivated</Badge>
           )}
         </div>
       </div>
       {!isCurrentUser && (
         <div className="shrink-0">
           {account.is_active ? (
-            <button
+            <Button
+              variant="danger"
+              size="sm"
               onClick={onDeactivate}
               disabled={isToggling}
               aria-label={`Deactivate ${account.display_name}`}
-              className="min-h-12 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isToggling ? '...' : 'Deactivate'}
-            </button>
+              {isToggling ? '…' : 'Deactivate'}
+            </Button>
           ) : (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={onReactivate}
               disabled={isToggling}
               aria-label={`Reactivate ${account.display_name}`}
-              className="min-h-12 px-3 py-2 rounded-lg text-sm font-semibold text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isToggling ? '...' : 'Reactivate'}
-            </button>
+              {isToggling ? '…' : 'Reactivate'}
+            </Button>
           )}
         </div>
       )}

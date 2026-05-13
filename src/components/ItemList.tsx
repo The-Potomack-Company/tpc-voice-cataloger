@@ -176,8 +176,8 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
 
   if (items.length === 0) {
     return (
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 text-center">
-        <p className="text-gray-400 dark:text-gray-500 text-sm">
+      <div className="bg-bg-2 rounded-lg p-6 text-center">
+        <p className="text-ink-3 text-sm">
           No items yet. Tap "Add Item" to start cataloging.
         </p>
       </div>
@@ -188,34 +188,16 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
 
   return (
     <div className={`space-y-1.5 ${selectMode ? "pb-20" : ""}`}>
-      {/* Add Item button at top */}
-      {!readOnly && !selectMode && (
-        <button
-          type="button"
-          onClick={handleAddItem}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg
-                     border border-dashed border-gray-300 dark:border-gray-600
-                     text-sm text-gray-600 dark:text-gray-400 font-medium
-                     hover:border-accent hover:text-accent dark:hover:border-accent dark:hover:text-accent
-                     transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add Item
-        </button>
-      )}
-
       {!readOnly && !selectMode && stuckItems.length > 0 && (
         <button
           type="button"
           onClick={handleRetryAll}
           disabled={retryingAll}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg
-                     border border-amber-300 dark:border-amber-700
-                     bg-amber-50 dark:bg-amber-900/20
-                     text-sm text-amber-700 dark:text-amber-400 font-medium
-                     hover:bg-amber-100 dark:hover:bg-amber-900/40
+                     border border-warn
+                     bg-warn-wash
+                     text-sm text-warn font-medium
+                     hover:opacity-80
                      disabled:opacity-50 transition-colors"
         >
           {retryingAll ? (
@@ -258,7 +240,7 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
                 </svg>
               ) : (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="1.5" className="text-gray-400" />
+                  <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="1.5" className="text-ink-3" />
                 </svg>
               )}
             </button>
@@ -281,16 +263,16 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
 
       {/* Floating merge toolbar */}
       {selectMode && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg px-4 py-3 flex items-center justify-between z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-bg border-t border-rule shadow-lg px-4 py-3 flex items-center justify-between z-50">
           <button
             type="button"
             onClick={cancelSelectMode}
-            className="text-gray-600 dark:text-gray-400 font-medium px-3 py-2"
+            className="text-ink-2 font-medium px-3 py-2"
           >
             Cancel
           </button>
 
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-sm text-ink-3">
             {selectedIds.size} selected
           </span>
 

@@ -7,11 +7,11 @@ import { EditableField } from "./EditableField";
 import { SwipeableRow } from "./SwipeableRow";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { updateItemField, deleteItem } from "../db/items";
-import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { processAudioWithAi } from "../services/gemini";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
 import { hasPendingForItem } from "../hooks/useWriteAheadQueue";
+import { Badge } from "../ui/Badge";
 
 type SupabaseItem = Tables<"items">;
 
@@ -27,7 +27,6 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const { status, startRecording, stopRecording } = useAudioRecorder();
   const isQueued = item.ai_status === "queued";
   const isFailed = item.ai_status === "failed";
   const isProcessing = item.ai_status === "processing";
@@ -92,27 +91,16 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
     setShowDeleteConfirm(false);
   };
 
-  const handleMicClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (status === "recording") {
-      const audioId = await stopRecording();
-      if (audioId != null) {
-        if (navigator.onLine) {
-          processAudioWithAi(audioId, item.id, sessionId).catch((err) =>
-            console.error("AI processing failed:", err),
-          );
-        } else {
-          updateItemField(item.id, sessionId, "ai_status", "queued").catch(console.error);
-        }
-      }
-    } else if (status === "idle") {
-      startRecording(item.id, sessionId);
-    }
-  };
+  // Status dot tone \u2014 mirrors mockup item-status dots (ok / warn / err / info).
+  const dotTone: "ok" | "warn" | "err" | "info" =
+    isFailed ? "err"
+      : isQueued || isProcessing ? "info"
+      : !item.title ? "warn"
+      : "ok";
 
   return (
     <SwipeableRow onDelete={() => setShowDeleteConfirm(true)} disabled={readOnly}>
-      <div className={`bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg${isQueued ? " opacity-50" : ""}`}>
+      <div className={`tpc-card${isQueued ? " opacity-50" : ""}`} style={{ background: "var(--bg-2)" }}>
         {/* Collapsed row - always visible (div instead of button to allow nested mic button) */}
         <div
           role="button"
@@ -121,18 +109,38 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
             navigate(`/session/${sessionId}/item/${item.id}`);
           }}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/session/${sessionId}/item/${item.id}`); } }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
+          className="w-full grid items-start gap-3 px-4 py-3 text-left cursor-pointer"
+          style={{ gridTemplateColumns: "auto 1fr auto" }}
+          data-testid="item-card"
         >
-          {/* Item number + header preview */}
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate block">
+          {/* Item number + status dot (mockup column 1) */}
+          <div className="flex flex-col items-center gap-1 pt-0.5 min-w-[28px]" aria-hidden>
+            <span
+              className="tnum tpc-mono"
+              style={{
+                fontSize: 11,
+                color: "var(--accent)",
+                fontWeight: 500,
+              }}
+            >
               {item.mode === "sale" && item.receipt_number
                 ? `#${item.receipt_number}`
-                : `Item ${item.sort_order + 1}`}
-              {item.title ? ` \u2014 ${item.title}` : ""}
+                : String(item.sort_order + 1).padStart(3, "0")}
+            </span>
+            <span
+              className={`tpc-status-dot tpc-status-dot-${dotTone}`}
+              data-testid="item-status-dot"
+              data-tone={dotTone}
+            />
+          </div>
+
+          {/* Title + description preview */}
+          <div className="min-w-0">
+            <span className={`text-sm font-medium truncate block ${dotTone === "err" ? "text-err" : "text-ink"}`}>
+              {item.title || "\u2014 needs title \u2014"}
             </span>
             {item.description && (
-              <span className="text-xs text-gray-500 dark:text-gray-400 truncate block mt-0.5">
+              <span className="text-xs text-ink-3 mt-0.5 line-clamp-2 leading-snug block">
                 {item.description}
               </span>
             )}
@@ -141,18 +149,17 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
           {/* Indicator icons */}
           <div className="flex items-center gap-2 shrink-0">
             {isPending && (
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                    aria-label="This change will sync when you reconnect">
+              <Badge tone="warn" aria-label="This change will sync when you reconnect">
                 <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 12a8 8 0 0116 0M20 12a8 8 0 01-16 0" />
                 </svg>
                 Pending sync
-              </span>
+              </Badge>
             )}
 
             {audioCount > 0 && (
               <svg
-                className="w-4 h-4 text-green-600 dark:text-green-400"
+                className="w-4 h-4 text-ok"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -161,7 +168,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
             )}
 
             {item.mode === "house" && photoCount > 0 && (
-              <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400">
+              <span className="flex items-center gap-0.5 text-accent">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
@@ -173,86 +180,50 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               </span>
             )}
 
-            {isQueued && (
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                Queued
-              </span>
-            )}
+            {isQueued && <Badge tone="warn">Queued</Badge>}
 
-            {isFailed && (
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                Failed
-              </span>
-            )}
+            {isFailed && <Badge tone="err">Failed</Badge>}
 
             {isProcessing && (
-              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 animate-pulse">
+              <Badge tone="info" className="animate-pulse">
                 Processing...
-              </span>
+              </Badge>
             )}
 
-            {/* Mic icon for re-record (hidden in house mode) */}
-            {!readOnly && !isQueued && !isProcessing && item.mode !== "house" && <button
-              type="button"
-              onClick={handleMicClick}
-              className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
-                status === "recording"
-                  ? "bg-red-500 text-white animate-pulse"
-                  : "text-gray-500 dark:text-gray-400 hover:text-accent dark:hover:text-accent hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
-              aria-label={status === "recording" ? "Stop recording" : "Record audio"}
-            >
-              {status === "recording" ? (
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                  <rect x="6" y="6" width="12" height="12" rx="1" />
-                </svg>
-              ) : (
+            {/* Chevron — house mode only. Sale mode navigates to detail, so
+                an inline expand toggle would be dead weight. House mode keeps
+                it for the read-only field summary which has no other surface. */}
+            {item.mode === "house" && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                className="p-0.5 -m-0.5 rounded hover:bg-bg-2 transition-colors"
+                aria-label={isExpanded ? "Collapse details" : "Expand details"}
+              >
                 <svg
-                  className="w-3.5 h-3.5"
+                  className={`w-4 h-4 text-ink-3 transition-transform ${
+                    isExpanded ? "rotate-90" : ""
+                  }`}
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke="currentColor"
                   strokeWidth={2}
+                  stroke="currentColor"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
                   />
                 </svg>
-              )}
-            </button>}
-
-            {/* Chevron -- in house mode, stops propagation to toggle expand instead of navigating */}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onToggle(); }}
-              className="p-0.5 -m-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              aria-label={isExpanded ? "Collapse details" : "Expand details"}
-            >
-              <svg
-                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${
-                  isExpanded ? "rotate-90" : ""
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                />
-              </svg>
-            </button>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Expanded section -- queued waiting message */}
         {isExpanded && isQueued && (
-          <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-6 text-center">
-            <p className="text-sm text-gray-400 dark:text-gray-500">
+          <div className="border-t border-rule px-3 py-6 text-center">
+            <p className="text-sm text-ink-3">
               Waiting for connectivity to process...
             </p>
           </div>
@@ -260,7 +231,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
 
         {/* Expanded section -- house mode: read-only field summary */}
         {isExpanded && !isQueued && item.mode === "house" && (
-          <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-2">
+          <div className="border-t border-rule px-3 py-3 space-y-2">
             {([
               ["Header", item.title],
               ["Description", item.description],
@@ -270,8 +241,8 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               ["Category", item.category],
             ] as const).filter(([, val]) => val).map(([label, val]) => (
               <div key={label}>
-                <span className="text-xs font-medium text-gray-500 uppercase">{label}</span>
-                <p className="text-sm text-gray-900 dark:text-gray-100">{val}</p>
+                <span className="text-xs font-medium text-ink-3 uppercase">{label}</span>
+                <p className="text-sm text-ink">{val}</p>
               </div>
             ))}
           </div>
@@ -279,7 +250,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
 
         {/* Expanded section -- sale mode: editable fields (non-queued only) */}
         {isExpanded && !isQueued && item.mode !== "house" && (
-          <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-3">
+          <div className="border-t border-rule px-3 py-3 space-y-3">
             <EditableField
               label="Header"
               value={item.title ?? undefined}
@@ -337,16 +308,21 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               />
             )}
 
-            {/* Raw transcript */}
+            {/* Raw transcript — collapsed by default. */}
             {item.transcript && (
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Raw Transcript
-                </span>
-                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+              <details className="pt-2 border-t border-rule">
+                <summary className="text-xs font-medium text-ink-3 uppercase tracking-wide cursor-pointer flex items-center gap-2">
+                  <span className="tpc-disclosure-chev">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  Raw transcript
+                </summary>
+                <p className="mt-2 text-sm text-ink-2 whitespace-pre-wrap italic">
                   {item.transcript}
                 </p>
-              </div>
+              </details>
             )}
 
             {/* Retry AI button for failed or stuck-processing items */}
@@ -356,9 +332,9 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
                 onClick={handleRetryAi}
                 disabled={retrying || !latestAudioId}
                 title={!latestAudioId ? "No audio to retry" : undefined}
-                className="w-full text-sm text-blue-600 dark:text-blue-400 font-medium
-                           py-2 rounded-lg border border-blue-200 dark:border-blue-800
-                           hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors
+                className="w-full text-sm text-accent font-medium
+                           py-2 rounded-lg border border-accent
+                           hover:bg-accent-wash transition-colors
                            disabled:opacity-50"
               >
                 {retrying ? (
@@ -376,9 +352,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full mt-2 text-sm text-red-600 dark:text-red-400 font-medium
-                           py-2 rounded-lg border border-red-200 dark:border-red-800
-                           hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                className="tpc-btn tpc-btn-danger tpc-btn-fullwidth mt-2"
               >
                 Delete Item
               </button>

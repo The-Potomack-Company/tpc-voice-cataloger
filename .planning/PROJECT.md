@@ -8,6 +8,37 @@ A mobile-first PWA for The Potomack Company auction house that enables auctionee
 
 Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with the entries flowing directly into RFC Invaluable.
 
+
+<!-- VAULT:decisions-start -->
+<!-- Auto-generated from _workspace/Decisions/. Do not hand-edit this block. -->
+<!-- To add or supersede a decision, edit the file under _workspace/Decisions/ and
+     rerun: python3 /home/spoods/Projects/TPC/.claude/hooks/decisions-to-projects.py -->
+
+## Cross-app decisions (active)
+
+Decisions that apply to **app**. Bodies live in the vault — IDs only here.
+
+- **[D-001](../../_workspace/Decisions/D-001-shared-supabase.md)** — All three TPC apps read/write the same Supabase project; RLS is the only boundary.
+- **[D-002](../../_workspace/Decisions/D-002-tpc-app-owns-auth.md)** — TPC App is the auth-of-record; dashboard shares the same Supabase auth; cataloger maps Chrome Identity to Supabase users at write time.
+- **[D-003](../../_workspace/Decisions/D-003-anon-key-public-rls-boundary.md)** _(scope: schema)_ — Treat the Supabase anon key as public; security comes entirely from RLS. Service-role keys never appear in client bundles.
+
+<!-- VAULT:decisions-end -->
+## Current Milestone: v1.2 UI Overhaul
+
+**Goal:** Adopt the unified TPC design system end-to-end -- replace existing Tailwind 4 `@theme` styling with new tokens (cool near-white surfaces, teal-blue primary accent, EB Garamond italic display, Inter UI, IBM Plex Mono metadata, 6 px radii), ship a reusable component library, restyle every screen, and add motion + WCAG AA polish -- without changing the app's information architecture or feature set.
+
+**Target features:**
+- Unified design tokens (light + dark + system-follow) replace existing Tailwind 4 `@theme` blocks as the single source of truth
+- Self-hosted typography (EB Garamond / Inter / IBM Plex Mono via `@fontsource`) -- no Google Fonts CDN dependency
+- Reusable component library in `src/ui/` (Button, Badge, Card, Input, Eyebrow, Display, Bar, Placeholder, Mono numerics) consumed by every screen
+- Mockup-faithful restyle of Sessions list, Recording, and Review screens
+- Extrapolated restyle of unmocked screens (item detail/edit, admin accounts, admin assignments, admin review queue, login, walkthrough) -- derived from tokens & primitives, reviewed per phase
+- Live recording pulse + real waveform render + screen transitions (respecting `prefers-reduced-motion`)
+- WCAG AA contrast verification across light + dark token sets
+- Theme toggle in Settings + auto-follow OS preference
+
+**Out of milestone scope:** Information architecture changes (no nav restructure), admin/specialist UX divergence, feature additions, and the v1.0 48 px+ tap-target baseline (mockup density adopted verbatim).
+
 ## Requirements
 
 ### Validated
@@ -40,10 +71,17 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 - ✓ Smart field merging for re-recordings (non-destructive) -- v1.1
 - ✓ Measurements as rich format string (dimensions, mm, weight, karats) -- v1.1
 - ✓ Spoken punctuation conversion by AI across all fields -- v1.1
+- ✓ Unified TPC design tokens replace Tailwind 4 `@theme` (single source of truth in `src/ui/tokens/`, light + dark cascade via `.tpc` / `.tpc-dark`, system-pref dark-mode auto-flip with no FOUC, build-time guard rejects raw hex/oklch/font-family literals outside `src/ui/tokens/`) -- v1.2 Phase 22 (TOKENS-01, TOKENS-02, TOKENS-04 -- visual smoke pending)
 
 ### Active
 
-(None -- next milestone not yet planned. Run `/gsd:new-milestone` to define.)
+v1.2 UI Overhaul -- see `.planning/REQUIREMENTS.md` for the full REQ-ID list. Categories:
+- TOKENS -- token system replacement, dark mode, theme toggle
+- TYPE -- self-hosted font pipeline (EB Garamond / Inter / IBM Plex Mono)
+- LIB -- shared component library in `src/ui/`
+- SCREEN -- per-screen restyle (mockup-faithful + extrapolated)
+- MOTION -- live waveform, recording pulse, screen transitions, reduced-motion compliance
+- A11Y -- WCAG AA contrast pass, focus rings, reduced-motion fallbacks
 
 ### Out of Scope
 
@@ -106,6 +144,30 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 | Photo upload queue with offline support | Fire-and-forget with bounded concurrency and backoff | ✓ Good -- non-blocking UX |
 | Smart field merging via AI | Existing values passed as context; AI returns merged result | ✓ Good -- non-destructive re-recordings |
 | Measurements as rich format string | Supports dimensions, mm, weight, karats in one field | ✓ Good -- flexible without schema changes |
+| Unified TPC design system (v1.2) | Single token source, EB Garamond/Inter/Plex Mono, 6 px radii, light + dark + system-follow | TBD -- v1.2 in flight |
+| Self-hosted fonts via `@fontsource` (v1.2) | Avoid Google CDN dependency, deterministic offline behavior, satisfies stricter CSP | TBD -- v1.2 in flight |
+| Replace Tailwind 4 `@theme` with unified tokens (v1.2) | Single source of truth; future dashboard repo consumes the same `src/ui/` primitives | ✓ Good -- Phase 22 shipped: 21 color vars + 3 radii + 3 fonts bridged via `@theme inline` over `.tpc` / `.tpc-dark` cascade; TOKENS-04 build-time guard live in CI |
+| `@theme inline` (not `@theme`) for the bridge (v1.2) | Bridge resolves at use site, so `.tpc-dark` scoped overrides reach every Tailwind utility — required for class-based dark variant to work | ✓ Good -- Phase 22; cascade flips utilities without component changes |
+| `.tpc-dark` class on `<html>` as the single dark-mode signal (v1.2) | Pre-paint inline script + runtime `initTheme` listener both manipulate one class idempotently; Phase 25 user-toggle UI can supersede without touching `index.html` | ✓ Good -- Phase 22; Phase 25 contract preserved via extensible `initTheme(opts?)` signature |
+| Adopt mockup density verbatim (v1.2) | Drop the v1.0 48 px+ tap-target baseline in favour of designer-specified density | TBD -- monitor field-use feedback |
+| Extrapolate unmocked screens (v1.2) | Item detail/edit, admin views, login, walkthrough derived from tokens & primitives in discuss-phase reviews | TBD -- per-phase approval gate |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check -- still the right priority?
+3. Audit Out of Scope -- reasons still valid?
+4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 after v1.1 milestone completion*
+*Last updated: 2026-04-30 -- Phase 22 (Foundation Tokens) shipped; visual smoke pending*

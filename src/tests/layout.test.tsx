@@ -42,13 +42,16 @@ describe("AppLayout", () => {
     expect(links).toHaveLength(3);
   });
 
-  test("each NavLink has min-h-12 and min-w-12 classes for 48px tap targets", () => {
+  test("each NavLink uses .tpc-tab which guarantees 48px tap targets via tokens", () => {
+    // Phase 26 reskin: the inline Tailwind `min-h-12 min-w-12` classes were
+    // replaced by the `.tpc-tab` rule in src/ui/tokens/base.css which sets
+    // `min-height: 48px; min-width: 48px;` directly. We verify the class is
+    // applied; the 48px guarantee lives in the CSS rule.
     renderAppLayout();
     const nav = document.querySelector("nav");
     const links = nav!.querySelectorAll("a");
     links.forEach((link) => {
-      expect(link.className).toContain("min-h-12");
-      expect(link.className).toContain("min-w-12");
+      expect(link.className).toContain("tpc-tab");
     });
   });
 

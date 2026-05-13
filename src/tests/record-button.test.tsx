@@ -51,12 +51,10 @@ describe("RecordButton", () => {
     expect(screen.getByTestId("stop-icon")).toBeInTheDocument();
   });
 
-  it("has minimum dimensions of 96px (w-24 h-24)", () => {
+  it("renders with the tpc-record-fab class (76x76 token-driven FAB)", () => {
     render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
-    // w-24 h-24 = 6rem = 96px
-    expect(button.className).toMatch(/w-24/);
-    expect(button.className).toMatch(/h-24/);
+    expect(button.className).toMatch(/tpc-record-fab/);
   });
 
   it("calls startRecording on tap when idle", async () => {
@@ -81,7 +79,7 @@ describe("RecordButton", () => {
     render(<RecordButton itemId="item-1" sessionId="session-1" />);
     const button = screen.getByRole("button");
     expect(button).toBeDisabled();
-    expect(button.className).toMatch(/opacity-50/);
+    expect(button.style.opacity).toBe("0.5");
   });
 
   it("shows error message when status is error", () => {

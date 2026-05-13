@@ -96,35 +96,42 @@ export function SwipeableRow({
   if (disabled) {
     return (
       <div className="relative overflow-hidden" style={{ touchAction: "pan-y" }}>
-        <div className="relative z-20 bg-white dark:bg-gray-900">
+        <div className="relative z-20 bg-bg">
           {children}
         </div>
       </div>
     );
   }
 
+  const showDelete = translateX !== 0 || isSwiping;
+
   return (
     <div className="relative overflow-hidden" style={{ touchAction: "pan-y" }}>
-      {/* Delete button behind content */}
-      <button
-        type="button"
-        onClick={handleDeleteClick}
-        className="absolute inset-y-0 right-0 z-10 flex w-[120px] items-center justify-center bg-red-500 text-white font-medium"
-      >
-        {deleteLabel}
-      </button>
+      {/* Delete button behind content — only mounted while swiping/open so
+          there's no red bar leaking from under the rest position. */}
+      {showDelete && (
+        <button
+          type="button"
+          onClick={handleDeleteClick}
+          className="absolute inset-y-0 right-0 z-10 flex w-[120px] items-center justify-center bg-err text-white font-medium tracking-wide"
+        >
+          {deleteLabel}
+        </button>
+      )}
 
-      {/* Sliding content */}
+      {/* Sliding content — bg-bg-2 matches the inner tpc-card; border-radius
+          inherit keeps the corners flush with the wrapper. */}
       <div
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className="relative z-20 bg-white dark:bg-gray-900"
+        className="relative z-20 bg-bg-2"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isSwiping ? "none" : "transform 0.2s ease-out",
           willChange: isSwiping ? "transform" : "auto",
+          borderRadius: "inherit",
         }}
       >
         {children}

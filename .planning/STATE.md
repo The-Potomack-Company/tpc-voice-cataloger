@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Accounts & Deploy
+milestone: v1.2
+milestone_name: Phase Detail
 status: completed
-stopped_at: Milestone v1.1 archived
-last_updated: "2026-03-31"
-last_activity: 2026-03-31
+stopped_at: Phase 23 context gathered
+last_updated: "2026-04-30T17:34:14.203Z"
+last_activity: 2026-04-30 -- Plan 22-04 (Wave 3) completed; TOKENS-04 build-time guard live in CI
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 36
-  completed_plans: 36
+  total_phases: 10
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 4
   percent: 100
 ---
 
@@ -18,35 +18,36 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-31)
+See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Planning next milestone
+**Current focus:** v1.2 UI Overhaul -- Phase 22 plans ready to execute
 
 ## Current Position
 
-Phase: All v1.1 phases complete
-Plan: N/A
-Status: Milestone v1.1 shipped and archived
-Last activity: 2026-04-07 - Completed quick task 260407-ke7: Jewelry karat vs carat differentiation in specialist
+Phase: 22 Foundation Tokens — COMPLETE (4/4 plans)
+Plan: Phase 23 next (Typography Pipeline)
+Status: All four Phase 22 plans complete; TOKENS-01, TOKENS-02, TOKENS-04 delivered
+Last activity: 2026-04-30 -- Plan 22-04 (Wave 3) completed; TOKENS-04 build-time guard live in CI
+Resume file: .planning/phases/23-typography-pipeline/23-CONTEXT.md
 
-Progress: [██████████] 100%
+Progress: [▓▓░░░░░░░░] 15%
 
 ## Performance Metrics
 
-**Velocity (v1.1):**
+**v1.2 UI Overhaul:** in flight
 
-- Total plans completed: 36
-- Timeline: 14 days (2026-03-17 -> 2026-03-31)
-- Commits: 261
-- Files changed: 287
-- LOC: 33,636 (TS/TSX/JS)
+| Phase | Plan | Duration | Tasks | Files | Date |
+|-------|------|----------|-------|-------|------|
+| 22 | 01 | 7 min | 3 | 5 | 2026-04-30 |
+| 22 | 04 | 5 min | 1 | 1 | 2026-04-30 |
 
-**Combined (v1.0 + v1.1):**
+**Historical (v1.0 + v1.1 combined):**
 
 - Total plans completed: 63
 - Total commits: 475
 - Timeline: 25 days (2026-03-06 -> 2026-03-31)
+- LOC delta: 33,636 (TS/TSX/JS) at v1.1 close
 
 ## Accumulated Context
 
@@ -54,15 +55,21 @@ Progress: [██████████] 100%
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
+**Phase 22 Plan 04 decisions (2026-04-30):**
+
+- Narrow per-file allowlist for the TOKENS-04 guard test itself (D-16 escape hatch — the file IS the fixture: its regex source code contains the literal patterns it scans for). Single-entry `ALLOW_FILES = [src/ui/__tests__/no-hardcoded-literals.test.ts]`; does NOT widen to all of `__tests__`.
+- `/// <reference types="node" />` triple-slash directive at the top of `src/ui/__tests__/no-hardcoded-literals.test.ts` to opt only this file into Node typings under `tsconfig.app.json` (which doesn't load `@types/node` by default and includes `src/ui/__tests__/`, unlike `src/tests/` which is excluded).
+
 ### Pending Todos
 
 None.
 
 ### Blockers/Concerns
 
-- DEPLOY-04: Branch protection deferred (GitHub Free plan limitation on private repos)
-- Backlog item 999.1: Stream photos from Storage during extension import (large house visits balloon export JSON to 200-450MB)
-- Offline session display strategy still needs decision for future work
+- DEPLOY-04: Branch protection deferred (GitHub Free plan limitation on private repos) -- carried from v1.1
+- Backlog item 999.1: Stream photos from Storage during extension import (large house visits balloon export JSON to 200-450MB) -- carried from v1.1
+- Offline session display strategy still needs decision for future work -- carried from v1.1
+- 18 pre-existing test failures (`localStorage.clear is not a function`) in `persist-scoping.test.ts` and `photo-migration.test.ts` -- discovered during Plan 22-01 verification; verified pre-existing at HEAD~3; tracked in `.planning/phases/22-foundation-tokens/deferred-items.md` -- not blocking Phase 22 plans 02/03/04
 
 ### Quick Tasks Completed
 
@@ -80,10 +87,10 @@ None.
 
 - v1.0 MVP: Phases 1-9 + 5.1 (shipped 2026-03-17)
 - v1.1 Accounts & Deploy: Phases 11-21 (shipped 2026-03-31)
-- Next milestone: TBD (run /gsd:new-milestone)
+- v1.2 UI Overhaul: in flight (started 2026-04-28, branch `milestone/v1.2-ui-overhaul`)
 
 ## Session Continuity
 
-Last session: 2026-03-31
-Stopped at: Milestone v1.1 archived
-Resume file: None
+Last session: 2026-04-30T17:34:14.194Z
+Stopped at: Phase 23 context gathered
+Resume file: Phase 23 not yet planned — run `/gsd-transition` to advance, then plan Phase 23.

@@ -1,0 +1,146 @@
+/* ============================================================
+   TPC Unified — Base Primitives
+   v1.0 · companion to tpc-unified-tokens.css
+   ------------------------------------------------------------
+   Buttons, badges, inputs, cards, type utilities, placeholders.
+   Reads from the tokens — never hard-code colors here.
+   Load AFTER tpc-unified-tokens.css.
+   ============================================================ */
+
+/* ---------- Type utilities ---------- */
+.tpc .tpc-eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.tpc .tpc-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+.tpc .tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---------- Buttons ---------- */
+.tpc .tpc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  line-height: 1.1;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .12s, border-color .12s, color .12s;
+  white-space: nowrap;
+}
+
+.tpc .tpc-btn-primary    { background: var(--accent); color: var(--accent-ink); }
+.tpc .tpc-btn-primary:hover { background: var(--accent-hover); }
+
+.tpc .tpc-btn-secondary  { background: var(--bg); color: var(--ink); border-color: var(--rule-2); }
+.tpc .tpc-btn-secondary:hover { background: var(--bg-2); }
+
+.tpc .tpc-btn-ghost      { background: transparent; color: var(--ink-2); }
+.tpc .tpc-btn-ghost:hover { background: var(--bg-2); color: var(--ink); }
+
+.tpc .tpc-btn-danger     {
+  background: transparent;
+  color: var(--err);
+  border-color: color-mix(in oklch, var(--err) 40%, transparent);
+}
+.tpc .tpc-btn-danger:hover { background: var(--err-wash); }
+
+/* ---------- Badges ---------- */
+.tpc .tpc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  background: var(--bg-3);
+  color: var(--ink-2);
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+.tpc .tpc-badge-ok   { background: var(--ok-wash);     color: var(--ok); }
+.tpc .tpc-badge-warn { background: var(--warn-wash);   color: var(--warn); }
+.tpc .tpc-badge-err  { background: var(--err-wash);    color: var(--err); }
+.tpc .tpc-badge-info { background: var(--accent-wash); color: var(--accent); }
+
+.tpc .tpc-dot {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- Inputs ---------- */
+.tpc .tpc-input {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .12s, box-shadow .12s;
+}
+.tpc .tpc-input::placeholder { color: var(--ink-4); }
+.tpc .tpc-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+/* ---------- Cards ---------- */
+.tpc .tpc-card {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+}
+
+/* ---------- Misc ---------- */
+.tpc .hide-scroll::-webkit-scrollbar { display: none; }
+.tpc .hide-scroll { scrollbar-width: none; }
+
+.tpc .tpc-kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Hatched placeholder — for missing imagery during build */
+.tpc .tpc-placeholder {
+  background-image: repeating-linear-gradient(135deg,
+    var(--bg-3) 0, var(--bg-3) 6px,
+    var(--bg-2) 6px, var(--bg-2) 12px);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+}
+
+/* Dataviz primitives */
+.tpc .bar-track { height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden; }
+.tpc .bar-fill  { height: 100%; background: var(--accent); border-radius: 2px; }

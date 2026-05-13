@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { getStepsForRole } from './walkthrough/walkthroughSteps';
+import { Button } from '../ui/Button';
+import { Eyebrow } from '../ui/Eyebrow';
 
 interface WalkthroughProps {
   role: string | null;
@@ -30,73 +32,67 @@ export function Walkthrough({ role, onComplete }: WalkthroughProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full px-8 py-12 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <div className="max-w-sm w-full text-center">
-        {/* Role section label - only on first role-specific step */}
-        {step.roleSection && (
-          <p className="text-xs font-semibold uppercase tracking-wider text-accent mb-4">
-            {step.roleSection === 'admin' ? 'ADMIN FEATURES' : 'YOUR WORKFLOW'}
-          </p>
-        )}
-
-        {/* Step icon */}
-        {step.icon}
-
-        {/* Step title */}
-        <h2 className="text-2xl font-semibold mb-4">{step.title}</h2>
-
-        {/* Step description */}
-        <p className="text-gray-600 dark:text-gray-400 mb-10 leading-relaxed">
-          {step.description}
-        </p>
-
-        {/* Navigation buttons */}
-        <div className="flex gap-3 w-full">
-          {currentStep > 0 && (
-            <button
-              onClick={handleBack}
-              className="min-h-12 px-4 py-3 text-accent font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              Back
-            </button>
+    <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
+      <div className="max-w-sm w-full">
+        {/* Card-style step container */}
+        <div className="tpc-card p-7 text-center" style={{ background: "var(--bg-2)" }}>
+          {/* Role section label - only on first role-specific step */}
+          {step.roleSection && (
+            <Eyebrow className="mb-4">
+              {step.roleSection === 'admin' ? 'Admin features' : 'Your workflow'}
+            </Eyebrow>
           )}
-          <button
-            onClick={handleNext}
-            className="flex-1 min-h-12 bg-accent hover:bg-accent-hover text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-          >
-            {isLastStep ? 'Start Cataloging' : 'Next'}
-          </button>
-        </div>
-      </div>
 
-      {/* Progress indicator */}
-      <div className="flex items-center gap-2 mt-8">
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {currentStep + 1} / {totalSteps}
-        </span>
-        <div className="flex gap-2">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i <= currentStep
-                  ? 'bg-accent'
-                  : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
+          {/* Step icon */}
+          {step.icon}
 
-      {/* Skip link - visible from step 1 onward */}
-      {currentStep > 0 && (
-        <button
-          onClick={handleSkip}
-          className="mt-4 text-sm text-gray-500 dark:text-gray-400 underline hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          Skip tutorial
-        </button>
-      )}
+          {/* Step title — italic display per unified design language */}
+          <h2 className="tpc-display tpc-display-3 mb-3 text-ink">{step.title}</h2>
+
+          {/* Step description */}
+          <p className="text-ink-2 mb-6 leading-relaxed text-sm">
+            {step.description}
+          </p>
+
+          {/* Navigation buttons */}
+          <div className="flex gap-3 w-full">
+            {currentStep > 0 && (
+              <Button variant="ghost" onClick={handleBack}>
+                Back
+              </Button>
+            )}
+            <Button onClick={handleNext} fullWidth>
+              {isLastStep ? 'Start Cataloging' : 'Next'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Progress indicator */}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <span className="text-sm text-ink-3 tnum">
+            {currentStep + 1} / {totalSteps}
+          </span>
+          <div className="flex gap-2">
+            {steps.map((_, i) => (
+              <div
+                key={i}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  i <= currentStep ? 'bg-accent' : 'bg-rule'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Skip link - visible from step 1 onward */}
+        {currentStep > 0 && (
+          <div className="text-center mt-3">
+            <Button variant="ghost" size="sm" onClick={handleSkip}>
+              Skip tutorial
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

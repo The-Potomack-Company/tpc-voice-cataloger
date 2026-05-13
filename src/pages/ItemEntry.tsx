@@ -9,16 +9,73 @@ import { EditableField } from "../components/EditableField";
 import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
 import { RecordButton } from "../components/RecordButton";
+import { Icon } from "../ui/icons";
+import { Waveform } from "../ui/Waveform";
+import { StatStrip } from "../ui/StatStrip";
+import { useRecordingStore } from "../stores/recordingStore";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
-import { ConfirmDialog } from "../components/ConfirmDialog";
-import { RecordingsList } from "../components/RecordingsList";
 import { useSession, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
-import { createBlankItem, updateItemField, deleteItem } from "../db/items";
+import { createBlankItem, updateItemField } from "../db/items";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
+import { formatDuration } from "../utils/audio";
 import type { ItemPhoto } from "../db/types";
+
+/** Always-visible waveform wrapper. Renders the bars dimmed when idle and
+ *  swaps the timer copy for a "Tap to record" prompt so the surface always
+ *  occupies its space. */
+function RecordingWaveform() {
+  const isRecording = useRecordingStore((s) => s.isRecording);
+  const currentDurationMs = useRecordingStore((s) => s.currentDurationMs);
+  return (
+    <div className="tpc-card p-3" style={{ background: "var(--bg-2)" }}>
+      <Waveform />
+      {isRecording ? (
+        <div
+          className="tnum tpc-display-text mt-3 text-center"
+          style={{
+            fontSize: 22,
+            color: "var(--ink)",
+          }}
+        >
+          {formatDuration(currentDurationMs)}
+        </div>
+      ) : (
+        <div className="mt-3 text-center text-sm text-ink-3">
+          Tap to record
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Two-stat strip beneath the record button (mockup SCREEN-02).
+ *
+ * Shows the live count of items entered and photos captured across this
+ * session. Reads directly from the items array passed in to avoid extra
+ * round trips.
+ */
+function RecordingStats({
+  itemCount,
+  photoCount,
+}: {
+  itemCount: number;
+  photoCount: number;
+}) {
+  return (
+    <StatStrip
+      variant="cards"
+      stats={[
+        { label: "Items", value: itemCount, showBar: false },
+        { label: "Photos", value: photoCount, showBar: false },
+      ]}
+      large
+    />
+  );
+}
 
 export function ItemEntryPage() {
   const { sessionId, itemId } = useParams<{
@@ -28,7 +85,6 @@ export function ItemEntryPage() {
   const navigate = useNavigate();
   const creatingRef = useRef(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load session from Zustand
   const session = useSession(sessionId!);
@@ -92,6 +148,23 @@ export function ItemEntryPage() {
     [] as ItemPhoto[],
   );
 
+  // Session-wide photo count for the SCREEN-02 stat strip.
+  const sessionPhotoCount = useLiveQuery(
+    async () => {
+      if (!items.length || mode !== "house") return 0;
+      // Sum photos across every item in the session.
+      const counts = await Promise.all(
+        items.map(async (i) => {
+          const lookupId = (await getDexieItemId(i.id)) ?? i.id;
+          return db.photos.where("itemId").equals(lookupId).count();
+        }),
+      );
+      return counts.reduce((a, b) => a + b, 0);
+    },
+    [items.map((i) => i.id).join("|"), mode],
+    0,
+  );
+
   // Receipt number state for sale mode
   const [receiptValue, setReceiptValue] = useState("");
 
@@ -144,14 +217,6 @@ export function ItemEntryPage() {
     }
   }, [nextItem, sessionId, mode, navigate]);
 
-  // Delete item handler
-  const handleDeleteItem = useCallback(async () => {
-    if (!itemId || isNewItem || !sessionId) return;
-    setShowDeleteConfirm(false);
-    await deleteItem(itemId, sessionId);
-    navigate(`/session/${sessionId}`);
-  }, [itemId, isNewItem, sessionId, navigate]);
-
   // Lightbox delete handler
   const handleLightboxDelete = useCallback(
     async (photoId: number) => {
@@ -164,7 +229,7 @@ export function ItemEntryPage() {
   if (!session || (isNewItem && !item)) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-gray-400 dark:text-gray-500">Loading...</div>
+        <div className="text-ink-3">Loading...</div>
       </div>
     );
   }
@@ -172,13 +237,13 @@ export function ItemEntryPage() {
   if (!item && !isNewItem) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-gray-400 dark:text-gray-500">Loading item...</div>
+        <div className="text-ink-3">Loading item...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-40">
       {/* Back button */}
       <div className="py-2">
         <BackButton sessionId={sessionId!} />
@@ -206,7 +271,7 @@ export function ItemEntryPage() {
 
         {/* Editable fields for both modes */}
         {item && (
-          <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="space-y-3 border border-rule rounded-lg p-3">
             <EditableField
               label="Header"
               value={item.title ?? undefined}
@@ -250,45 +315,40 @@ export function ItemEntryPage() {
           </div>
         )}
 
-        {/* Raw transcript */}
+        {/* Raw transcript — collapsed by default so the long copy doesn't
+            dominate the screen. Native <details> keeps it a11y-correct. */}
         {item?.transcript && (
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Raw Transcript
-            </span>
-            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic">
+          <details className="border border-rule rounded-lg p-3">
+            <summary className="text-xs font-medium text-ink-3 uppercase tracking-wide cursor-pointer flex items-center gap-2">
+              <span className="tpc-disclosure-chev"><Icon name="chev" size={12} aria-hidden /></span>
+              Raw transcript
+            </summary>
+            <p className="mt-2 text-sm text-ink-2 whitespace-pre-wrap italic">
               {item.transcript}
             </p>
-          </div>
+          </details>
         )}
 
         {/* Item counter */}
         <ItemCounter current={currentPosition} total={displayTotal} />
       </div>
 
-      {/* Record button + recordings + next item */}
+      {/* Always-on waveform + recording stats. Record button lives in the
+          bottom trio (mockup tpc-voice.jsx:151-161). Item deletion is handled
+          exclusively from SessionDetail's SwipeableRow swipe-to-delete. */}
       <div className="pb-4 pt-2 space-y-3">
         {itemId && !isNewItem && (
           <>
-            <RecordButton itemId={itemId} sessionId={sessionId!} />
+            {/* Live waveform — always rendered; dims when idle. */}
+            <RecordingWaveform />
 
-            {/* Recordings list */}
-            <RecordingsList itemId={itemId} />
-
-            {/* Delete Item button */}
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 min-h-12 rounded-lg
-                border border-red-200 dark:border-red-800
-                text-red-600 dark:text-red-400 font-medium
-                hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-              </svg>
-              <span>Delete Item</span>
-            </button>
+            {/* Two-stat strip — items entered and photos captured. */}
+            {session && (
+              <RecordingStats
+                itemCount={totalItems}
+                photoCount={sessionPhotoCount}
+              />
+            )}
           </>
         )}
       </div>
@@ -307,52 +367,60 @@ export function ItemEntryPage() {
         />
       )}
 
-      {/* Delete item confirmation */}
-      <ConfirmDialog
-        open={showDeleteConfirm}
-        title="Delete Item"
-        message="Delete this item and all its recordings and photos? This cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        destructive
-        onConfirm={handleDeleteItem}
-        onCancel={() => setShowDeleteConfirm(false)}
-      />
+      {/* Bottom control trio — prev item / record / next item (mockup
+          tpc-voice.jsx:151-161). Anchored above the tab bar so it stays
+          reachable on small screens. */}
+      {item && !isNewItem && itemId && (
+        <div className="fixed bottom-20 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
+          <div className="flex items-center justify-around">
+            {/* Previous item */}
+            <button
+              type="button"
+              onClick={() => prevItem && navigate(`/session/${sessionId}/item/${prevItem.id}`)}
+              disabled={!prevItem}
+              aria-label="Previous item"
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "var(--bg-2)",
+                border: "1px solid var(--rule-2)",
+                color: "var(--ink-2)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: prevItem ? 1 : 0.3,
+                cursor: prevItem ? "pointer" : "default",
+              }}
+            >
+              <Icon name="back" size={20} aria-hidden />
+            </button>
 
-      {/* Left/right navigation arrows for both modes */}
-      {item && !isNewItem && (
-        <>
-          {/* Left arrow */}
-          <button
-            type="button"
-            onClick={() => prevItem && navigate(`/session/${sessionId}/item/${prevItem.id}`)}
-            disabled={!prevItem}
-            className={`fixed top-1/2 left-1 -translate-y-1/2 w-10 h-10 rounded-full
-              bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700
-              flex items-center justify-center z-30 transition-opacity
-              ${!prevItem ? "opacity-30 pointer-events-none" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
-            aria-label="Previous item"
-          >
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
+            {/* Record (FAB) */}
+            <RecordButton itemId={itemId} sessionId={sessionId!} />
 
-          {/* Right arrow */}
-          <button
-            type="button"
-            onClick={handleArrowRight}
-            className="fixed top-1/2 right-1 -translate-y-1/2 w-10 h-10 rounded-full
-              bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700
-              flex items-center justify-center z-30
-              hover:bg-gray-100 dark:hover:bg-gray-700 transition-opacity"
-            aria-label={nextItem ? "Next item" : "Create new item"}
-          >
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
-        </>
+            {/* Next item / create new */}
+            <button
+              type="button"
+              onClick={handleArrowRight}
+              aria-label={nextItem ? "Next item" : "Create new item"}
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "var(--accent-wash)",
+                border: "1px solid color-mix(in oklch, var(--accent) 30%, transparent)",
+                color: "var(--accent)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <Icon name="plus" size={20} aria-hidden />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

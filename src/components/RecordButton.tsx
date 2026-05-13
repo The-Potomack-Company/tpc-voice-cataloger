@@ -32,6 +32,14 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
     }
   };
 
+  const fabClass = [
+    "tpc-record-fab",
+    isRecording ? "tpc-record-pulse" : "",
+    isRequesting ? "tpc-record-pulse" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="flex flex-col items-center gap-3">
       <button
@@ -39,21 +47,15 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
         onClick={handleClick}
         disabled={isRequesting}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
-        className={`
-          w-24 h-24 flex items-center justify-center shadow-lg transition-all
-          ${
-            isRecording
-              ? "rounded-lg bg-red-600 ring-4 ring-red-300 animate-pulse"
-              : isRequesting
-                ? "rounded-full bg-red-500 opacity-50 animate-pulse cursor-not-allowed"
-                : "rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700"
-          }
-        `}
+        aria-pressed={isRecording}
+        className={fabClass}
+        style={isRequesting ? { opacity: 0.5 } : undefined}
       >
         {isRecording ? (
           <svg
             data-testid="stop-icon"
-            className="w-9 h-9 text-white"
+            width={22}
+            height={22}
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -62,7 +64,8 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
         ) : (
           <svg
             data-testid="mic-icon"
-            className="w-9 h-9 text-white"
+            width={28}
+            height={28}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -79,11 +82,11 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
 
       {isError && error && (
         <div className="text-center">
-          <p className="text-sm text-red-500">{error}</p>
+          <p className="text-sm text-err">{error}</p>
           <button
             type="button"
             onClick={() => startRecording(itemId, sessionId)}
-            className="text-sm text-red-500 underline mt-1"
+            className="text-sm text-err underline mt-1"
           >
             Try Again
           </button>
