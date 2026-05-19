@@ -26,6 +26,7 @@
 
 ## Blockers / follow-up
 
+- SQL-level JOIN blocker: the current Edge Function uses `@supabase/supabase-js`/PostgREST, not a raw SQL client. In this source shape there is no reliable direct SQL JOIN from `public.profiles` to `private.dev_users`, so the patch uses the plan's accepted fallback read of `private.dev_users` plus response filtering.
 - `deno` is not installed in this worktree environment (`command -v deno` returned empty), so I could not run:
   - `cd supabase/functions/admin-list-users && deno test`
   - `cd supabase/functions/admin-list-users && deno check index.ts index.test.ts`
