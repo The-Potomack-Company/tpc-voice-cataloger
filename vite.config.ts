@@ -64,6 +64,6 @@ export default defineConfig(({ command }) => ({
     setupFiles: ["src/tests/setup.ts"],
     // Playwright specs live in tests/e2e/ and require a real browser —
     // not run under Vitest's jsdom.
-    exclude: ["**/node_modules/**", "**/dist/**", "tests/e2e/**"],
+    exclude: ["**/node_modules/**", "**/dist/**", "tests/e2e/**", "supabase/functions/**"],
   },
 }));

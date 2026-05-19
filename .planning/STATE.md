@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Phase Detail
-status: completed
-stopped_at: Phase 23 context gathered
-last_updated: "2026-04-30T17:34:14.203Z"
-last_activity: 2026-04-30 -- Plan 22-04 (Wave 3) completed; TOKENS-04 build-time guard live in CI
+milestone: v1.3
+milestone_name: TBD
+status: not_started
+stopped_at: "v1.2 SHIPPED 2026-05-13 (PR #11 mega-PR covering all phases 22-30). v1.3 scope pending — likely subsumed by cross-app Unified 3.0 / tpc-hub effort which merges voice-cataloger + dashboard into a single repo with Field/Office mode switcher. Active backlog: 999.1 Stream photos from Supabase Storage during extension import."
+last_updated: "2026-05-13T17:55:00.000Z"
+last_activity: 2026-05-13 -- v1.2 closed out; ready for v1.3 scoping (or hub migration)
 progress:
-  total_phases: 10
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State

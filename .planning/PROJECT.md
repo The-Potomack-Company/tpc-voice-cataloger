@@ -19,7 +19,7 @@ Auctioneers can dictate catalog entries by voice and get structured, accurate au
 Decisions that apply to **app**. Bodies live in the vault — IDs only here.
 
 - **[D-001](../../_workspace/Decisions/D-001-shared-supabase.md)** — All three TPC apps read/write the same Supabase project; RLS is the only boundary.
-- **[D-002](../../_workspace/Decisions/D-002-tpc-app-owns-auth.md)** — TPC App is the auth-of-record; dashboard shares the same Supabase auth; cataloger maps Chrome Identity to Supabase users at write time.
+- **[D-002](../../_workspace/Decisions/D-002-tpc-app-owns-auth.md)** — TPC Voice Cataloger is the auth-of-record; dashboard shares the same Supabase auth; cataloger maps Chrome Identity to Supabase users at write time.
 - **[D-003](../../_workspace/Decisions/D-003-anon-key-public-rls-boundary.md)** _(scope: schema)_ — Treat the Supabase anon key as public; security comes entirely from RLS. Service-role keys never appear in client bundles.
 
 <!-- VAULT:decisions-end -->
