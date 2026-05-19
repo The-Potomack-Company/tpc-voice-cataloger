@@ -59,19 +59,23 @@ const devUsers: DevUserRow[] = [
 ]
 
 async function loadHandler(adminUserId: string): Promise<ServedHandler> {
-  const originalServe = Deno.serve
+  const originalServeDescriptor = Object.getOwnPropertyDescriptor(Deno, 'serve')
   let servedHandler: ServedHandler | undefined
 
-  Deno.serve = ((...args: unknown[]) => {
-    servedHandler = (typeof args[0] === 'function' ? args[0] : args[1]) as ServedHandler
-    return {
-      finished: Promise.resolve(),
-      shutdown: () => {},
-      ref: () => {},
-      unref: () => {},
-      addr: { transport: 'tcp', hostname: '127.0.0.1', port: 0 },
-    }
-  }) as typeof Deno.serve
+  Object.defineProperty(Deno, 'serve', {
+    configurable: true,
+    writable: true,
+    value: (...args: unknown[]) => {
+      servedHandler = (typeof args[0] === 'function' ? args[0] : args[1]) as ServedHandler
+      return {
+        finished: Promise.resolve(),
+        shutdown: () => {},
+        ref: () => {},
+        unref: () => {},
+        addr: { transport: 'tcp', hostname: '127.0.0.1', port: 0 },
+      }
+    },
+  })
 
   ;(globalThis as typeof globalThis & { __adminListUsersTestRuntime?: unknown })
     .__adminListUsersTestRuntime = {
@@ -120,7 +124,9 @@ async function loadHandler(adminUserId: string): Promise<ServedHandler> {
   try {
     await import(`./index.ts?test=${crypto.randomUUID()}`)
   } finally {
-    Deno.serve = originalServe
+    if (originalServeDescriptor) {
+      Object.defineProperty(Deno, 'serve', originalServeDescriptor)
+    }
     delete (globalThis as typeof globalThis & { __adminListUsersTestRuntime?: unknown })
       .__adminListUsersTestRuntime
   }
