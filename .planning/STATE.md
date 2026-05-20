@@ -1,17 +1,19 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: TBD
-status: not_started
-stopped_at: "v1.2 SHIPPED 2026-05-13 (PR #11 mega-PR covering all phases 22-30). v1.3 scope pending — likely subsumed by cross-app Unified 3.0 / tpc-hub effort which merges voice-cataloger + dashboard into a single repo with Field/Office mode switcher. Active backlog: 999.1 Stream photos from Supabase Storage during extension import."
-last_updated: "2026-05-13T17:55:00.000Z"
-last_activity: 2026-05-13 -- v1.2 closed out; ready for v1.3 scoping (or hub migration)
+milestone: v1.2
+milestone_name: UI Overhaul
+status: shipped
+shipped_at: "2026-05-13"
+superseded_by: "v3.0-hub-merge (tpc-hub repo)"
+stopped_at: "v1.2 SHIPPED 2026-05-13 (PR #11 mega-PR covering phases 22-30, all 4/4 Phase 22 plans complete + downstream phases). v1.3 cancelled — work subsumed by cross-app v3.0 hub merge (see ../tpc-hub). This repo is in strangler-grace: hotfix lane only via /tpc-urgent until v3.0 cutover, then 301 → hub URL + 30-day archive."
+last_updated: "2026-05-20T09:34:28-04:00"
+last_activity: 2026-05-13 -- v1.2 closed out (PR #11); v1.3 cancelled in favor of v3.0 hub merge
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 4
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -21,17 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.2 UI Overhaul -- Phase 22 plans ready to execute
+**Current focus:** v1.2 SHIPPED (closed 2026-05-13). Repo is in strangler-grace under v3.0 hub merge. **No new milestones here.**
 
 ## Current Position
 
-Phase: 22 Foundation Tokens — COMPLETE (4/4 plans)
-Plan: Phase 23 next (Typography Pipeline)
-Status: All four Phase 22 plans complete; TOKENS-01, TOKENS-02, TOKENS-04 delivered
-Last activity: 2026-04-30 -- Plan 22-04 (Wave 3) completed; TOKENS-04 build-time guard live in CI
-Resume file: .planning/phases/23-typography-pipeline/23-CONTEXT.md
+Milestone: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
+Status: All v1.2 phases delivered; repo frozen pending v3.0 hub cutover
+Successor: ../tpc-hub (v3.0-hub-merge milestone)
+Hotfix policy: /tpc-urgent lane open for prod regressions; no new feature work
 
-Progress: [▓▓░░░░░░░░] 15%
+Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (v1.2 complete)
 
 ## Performance Metrics
 
