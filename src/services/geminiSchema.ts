@@ -29,6 +29,10 @@ export const catalogFieldsSchema = z.object({
     .string()
     .nullable()
     .describe("Full verbatim transcript of everything the speaker said, or null if audio is unintelligible"),
+  receipt_number: z
+    .string()
+    .nullish()
+    .describe("Receipt number in XXXXX-N format (5-digit lot prefix, dash, 1+ digit suffix). Extract when speaker says 'receipt number' or 'lot number' followed by digits. Spoken digit-by-digit ('three nine two five six') → digit string ('39256'). Spoken group numbers ('twenty-two') → digits ('22'). 'dash' or 'hyphen' → '-'. Example: 'receipt number three nine two five six dash twenty-two' → '39256-22'. Return null if not mentioned."),
 });
 
 export type CatalogFields = z.infer<typeof catalogFieldsSchema>;
