@@ -140,7 +140,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               {item.title || "\u2014 needs title \u2014"}
             </span>
             {item.description && (
-              <span className="text-xs text-ink-3 mt-0.5 line-clamp-2 leading-snug block">
+              <span className="text-xs text-ink-3 mt-0.5 line-clamp-2 leading-snug block whitespace-pre-wrap">
                 {item.description}
               </span>
             )}
@@ -242,7 +242,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
             ] as const).filter(([, val]) => val).map(([label, val]) => (
               <div key={label}>
                 <span className="text-xs font-medium text-ink-3 uppercase">{label}</span>
-                <p className="text-sm text-ink">{val}</p>
+                <p className="text-sm text-ink whitespace-pre-wrap">{val}</p>
               </div>
             ))}
           </div>
