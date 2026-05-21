@@ -358,7 +358,7 @@ export function ItemEntryPage() {
             {/* Live waveform — always rendered; dims when idle. Replaced by
                 a spinner while AI processes a just-finished recording. */}
             <RecordingWaveform
-              isProcessing={items.some((i) => i.ai_status === "processing")}
+              isProcessing={item?.ai_status === "processing"}
             />
 
             {/* Two-stat strip — items entered and photos captured. */}
