@@ -34,6 +34,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
   Combine all components separated by ", ". Example: "4 x 6 in. (10.2 x 15.2 cm.), 2.5 oz., 18kt", "1.5ct, 0.8 oz.", or "8 in. (20.3 cm.) diameter, 12 oz.".
   Return null if no measurements mentioned.
 - transcript: The full verbatim transcript of everything said in the audio
+- receipt_number: The auction receipt/lot number in XXXXX-N format. Only extract when the speaker explicitly says "receipt number" or "lot number" followed by digits. Spoken digit-by-digit strings ("three nine two five six") → digit string ("39256"). Spoken group numbers ("twenty-two") → digits ("22"). The spoken word "dash" or "hyphen" → "-". Example: speaker says "receipt number three nine two five six dash twenty-two" → "39256-22". Return null if receipt number is not mentioned.
 
 CRITICAL RULES:
 1. Use the speaker's EXACT words. Do not rephrase, improve, or formalize.
@@ -144,7 +145,7 @@ export async function processAudioWithAi(
     // Read existing field values for smart merge context (per D-02)
     const { data: currentItem } = await supabase
       .from("items")
-      .select("title, description, condition, estimate, category, measurements, transcript")
+      .select("title, description, condition, estimate, category, measurements, transcript, receipt_number")
       .eq("id", itemId)
       .maybeSingle();
 
@@ -174,7 +175,7 @@ export async function processAudioWithAi(
           parts: [
             {
               text: hasExistingData
-                ? `Extract and MERGE catalog fields from this audio recording with the existing values below.\n\nEXISTING VALUES:\nTitle: ${currentItem.title ?? "(empty)"}\nDescription: ${currentItem.description ?? "(empty)"}\nCondition: ${currentItem.condition ?? "(empty)"}\nEstimate: ${currentItem.estimate ?? "(empty)"}\nCategory: ${currentItem.category ?? "(empty)"}\nMeasurements: ${currentItem.measurements ?? "(empty)"}\nTranscript: ${currentItem.transcript ?? "(empty)"}`
+                ? `Extract and MERGE catalog fields from this audio recording with the existing values below.\n\nEXISTING VALUES:\nTitle: ${currentItem.title ?? "(empty)"}\nDescription: ${currentItem.description ?? "(empty)"}\nCondition: ${currentItem.condition ?? "(empty)"}\nEstimate: ${currentItem.estimate ?? "(empty)"}\nCategory: ${currentItem.category ?? "(empty)"}\nMeasurements: ${currentItem.measurements ?? "(empty)"}\nTranscript: ${currentItem.transcript ?? "(empty)"}\nReceipt Number: ${currentItem.receipt_number ?? "(empty)"}`
                 : "Extract catalog fields from this audio recording.",
             },
             {
@@ -275,6 +276,9 @@ export async function processAudioWithAi(
     }
     if (fields.transcript !== null) {
       supabaseUpdate.transcript = fields.transcript;
+    }
+    if (fields.receipt_number != null) {
+      supabaseUpdate.receipt_number = fields.receipt_number;
     }
 
     await supabase
