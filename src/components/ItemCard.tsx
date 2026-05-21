@@ -140,7 +140,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
               {item.title || "\u2014 needs title \u2014"}
             </span>
             {item.description && (
-              <span className="text-xs text-ink-3 mt-0.5 line-clamp-2 leading-snug block">
+              <span className="text-xs text-ink-3 mt-0.5 line-clamp-2 leading-snug block whitespace-pre-wrap">
                 {item.description}
               </span>
             )}

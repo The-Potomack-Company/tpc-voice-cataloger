@@ -63,3 +63,33 @@ export function applySpokenQuotes(text: string): string {
 
   return result;
 }
+
+/**
+ * Convert spoken "bullet:" markers into bullet-point lines.
+ *
+ * Each "bullet: <text>" segment becomes "• <text>" on its own line.
+ * Any prose before the first "bullet:" is preserved as-is.
+ * Marker is case-insensitive.
+ *
+ * Examples:
+ *   "bullet: gilded frame bullet: minor wear" -> "• gilded frame\n• minor wear"
+ *   "oak table bullet: cabriole legs bullet: worn finish" -> "oak table\n• cabriole legs\n• worn finish"
+ *   "no bullets here" -> "no bullets here" (unchanged)
+ */
+export function applySpokenBullets(text: string): string {
+  if (!text) return text;
+
+  const parts = text.split(/\bbullet:\s*/i);
+  if (parts.length <= 1) return text;
+
+  const result: string[] = [];
+  const prefix = parts[0].trimEnd();
+  if (prefix) result.push(prefix);
+
+  for (let i = 1; i < parts.length; i++) {
+    const content = parts[i].trim();
+    if (content) result.push(`• ${content}`);
+  }
+
+  return result.join("\n");
+}

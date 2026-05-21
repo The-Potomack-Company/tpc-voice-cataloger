@@ -5,7 +5,7 @@ import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
 import { toAllCaps } from "../utils/toAllCaps";
 import { useSessionStore } from "../stores/sessionStore";
-import { applySpokenQuotes } from "../utils/spokenPunctuation";
+import { applySpokenQuotes, applySpokenBullets } from "../utils/spokenPunctuation";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 
@@ -74,7 +74,8 @@ When the speaker says punctuation words, convert them to actual punctuation char
 For example: speaker says "quote 19th century unquote" -> output: "19th century" (with literal double-quote characters wrapping the phrase)
 - "exclamation point" or "exclamation mark" -> "!"
 - "question mark" -> "?"
-Use context to distinguish: "period" as punctuation vs "period" as a time era (e.g., "Victorian period" should NOT become "Victorian.").`;
+Use context to distinguish: "period" as punctuation vs "period" as a time era (e.g., "Victorian period" should NOT become "Victorian.").
+- "bullet:" followed by text (in description) -> starts a new bullet point on a new line using "• " prefix. Multiple "bullet:" markers produce multiple bullets. Example: speaker says "bullet: gilded frame bullet: minor scratches" -> output: "• gilded frame\n• minor scratches".`;
 
 /**
  * Convert a Blob to a base64 string.
@@ -238,6 +239,9 @@ export async function processAudioWithAi(
       if (fields[field] !== null) {
         fields[field] = applySpokenQuotes(fields[field]);
       }
+    }
+    if (fields.description !== null) {
+      fields.description = applySpokenBullets(fields.description);
     }
 
     // Write fields to Supabase items table

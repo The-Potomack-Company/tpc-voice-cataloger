@@ -89,7 +89,7 @@ export function EditableField({
           </span>
         )}
         <span
-          className={`rounded px-1 py-0.5 inline-block ${
+          className={`rounded px-1 py-0.5 inline-block ${multiline ? "whitespace-pre-wrap" : ""} ${
             isPlaceholder
               ? "text-gray-400 dark:text-gray-500 italic"
               : "text-gray-900 dark:text-gray-100"
@@ -113,7 +113,7 @@ export function EditableField({
           setDraft(value ?? "");
           setEditing(true);
         }}
-        className={`cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-1 py-0.5 inline-block ${
+        className={`cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-1 py-0.5 inline-block ${multiline ? "whitespace-pre-wrap" : ""} ${
           isPlaceholder
             ? "text-gray-400 dark:text-gray-500 italic"
             : "text-gray-900 dark:text-gray-100"

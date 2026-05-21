@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applySpokenQuotes } from "../utils/spokenPunctuation";
+import { applySpokenQuotes, applySpokenBullets } from "../utils/spokenPunctuation";
 
 describe("applySpokenQuotes", () => {
   it('converts "quote X unquote" to quoted text', () => {
@@ -57,5 +57,47 @@ describe("applySpokenQuotes", () => {
     expect(
       applySpokenQuotes("open quote first close quote and quote second unquote"),
     ).toBe('"first" and "second"');
+  });
+});
+
+describe("applySpokenBullets", () => {
+  it("converts a single bullet marker", () => {
+    expect(applySpokenBullets("bullet: gilded frame")).toBe("• gilded frame");
+  });
+
+  it("converts multiple bullet markers", () => {
+    expect(applySpokenBullets("bullet: gilded frame bullet: minor wear")).toBe(
+      "• gilded frame\n• minor wear",
+    );
+  });
+
+  it("preserves prose before the first bullet", () => {
+    expect(
+      applySpokenBullets("oak table bullet: cabriole legs bullet: worn finish"),
+    ).toBe("oak table\n• cabriole legs\n• worn finish");
+  });
+
+  it("leaves text without bullet markers unchanged", () => {
+    expect(applySpokenBullets("no bullets here at all")).toBe(
+      "no bullets here at all",
+    );
+  });
+
+  it("is case-insensitive", () => {
+    expect(applySpokenBullets("BULLET: first BULLET: second")).toBe(
+      "• first\n• second",
+    );
+  });
+
+  it("handles trailing whitespace after bullet:", () => {
+    expect(applySpokenBullets("bullet:  gilded frame")).toBe("• gilded frame");
+  });
+
+  it("handles empty string", () => {
+    expect(applySpokenBullets("")).toBe("");
+  });
+
+  it("skips empty bullet segments", () => {
+    expect(applySpokenBullets("bullet: ")).toBe("");
   });
 });
