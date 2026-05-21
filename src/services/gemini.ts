@@ -122,6 +122,10 @@ export async function processAudioWithAi(
       .update({ ai_status: "processing" })
       .eq("id", itemId);
 
+    // Refresh local store so UI (e.g. waveform → spinner swap) reflects
+    // the new processing state. fire-and-forget; failure is non-fatal.
+    useSessionStore.getState().fetchItems(sessionId).catch(() => {});
+
     // Fetch audio record from Dexie (blobs stay in IndexedDB)
     const audioRecord = await db.audio.get(audioId);
     if (!audioRecord) {
