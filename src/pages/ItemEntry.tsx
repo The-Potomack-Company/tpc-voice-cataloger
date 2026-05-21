@@ -25,13 +25,25 @@ import type { ItemPhoto } from "../db/types";
 
 /** Always-visible waveform wrapper. Renders the bars dimmed when idle and
  *  swaps the timer copy for a "Tap to record" prompt so the surface always
- *  occupies its space. */
-function RecordingWaveform() {
+ *  occupies its space. While AI is processing a just-finished recording
+ *  (and we are no longer recording), the bars are replaced by a spinner. */
+function RecordingWaveform({ isProcessing = false }: { isProcessing?: boolean }) {
   const isRecording = useRecordingStore((s) => s.isRecording);
   const currentDurationMs = useRecordingStore((s) => s.currentDurationMs);
+  const showSpinner = isProcessing && !isRecording;
   return (
     <div className="tpc-card p-3" style={{ background: "var(--bg-2)" }}>
-      <Waveform />
+      {showSpinner ? (
+        <div
+          className="tpc-waveform flex items-center justify-center"
+          role="status"
+          aria-label="Processing recording"
+        >
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
+        </div>
+      ) : (
+        <Waveform />
+      )}
       {isRecording ? (
         <div
           className="tnum tpc-display-text mt-3 text-center"
@@ -41,6 +53,10 @@ function RecordingWaveform() {
           }}
         >
           {formatDuration(currentDurationMs)}
+        </div>
+      ) : showSpinner ? (
+        <div className="mt-3 text-center text-sm text-ink-3">
+          Processing…
         </div>
       ) : (
         <div className="mt-3 text-center text-sm text-ink-3">
@@ -339,8 +355,11 @@ export function ItemEntryPage() {
       <div className="pb-4 pt-2 space-y-3">
         {itemId && !isNewItem && (
           <>
-            {/* Live waveform — always rendered; dims when idle. */}
-            <RecordingWaveform />
+            {/* Live waveform — always rendered; dims when idle. Replaced by
+                a spinner while AI processes a just-finished recording. */}
+            <RecordingWaveform
+              isProcessing={items.some((i) => i.ai_status === "processing")}
+            />
 
             {/* Two-stat strip — items entered and photos captured. */}
             {session && (

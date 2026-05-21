@@ -242,7 +242,7 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
             ] as const).filter(([, val]) => val).map(([label, val]) => (
               <div key={label}>
                 <span className="text-xs font-medium text-ink-3 uppercase">{label}</span>
-                <p className="text-sm text-ink">{val}</p>
+                <p className="text-sm text-ink whitespace-pre-wrap">{val}</p>
               </div>
             ))}
           </div>
