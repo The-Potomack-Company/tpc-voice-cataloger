@@ -348,7 +348,9 @@ export function SessionDetailPage() {
             : session.status;
 
   return (
-    <div className="relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-24">
+    <div className={`relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto ${
+      continuousActive ? "pb-32" : isReadOnly ? "pb-24" : "pb-60"
+    }`}>
       {/* Sticky header — eyebrow ("Review · TPCXX") + italic display ("N items · M min") + Sync action */}
       <div className="tpc-sticky-header py-3 -mx-4 portrait:px-4 landscape:px-8 mb-4">
         <div className="flex items-center gap-3">
