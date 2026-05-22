@@ -223,7 +223,11 @@ async function mergeFieldsIntoItem(
     updates.push(["measurements", reformatMeasurements(fields.measurements)]);
   }
   if (fields.transcript !== null) updates.push(["transcript", fields.transcript]);
-  if (fields.receipt_number != null) updates.push(["receipt_number", fields.receipt_number]);
+  // Intentionally skip receipt_number: in continuous mode the receipt is set exactly
+  // once when advanceItem creates the item. Chunk-level receipt_number emissions from
+  // Gemini (sometimes hallucinated from adjacent "hundred dollars" context) must never
+  // overwrite the established receipt. Manual mid-session receipt correction is deferred
+  // — user can edit the item directly after Stop if a fix is needed.
 
   const sessionStore = useSessionStore.getState();
   for (const [field, value] of updates) {
