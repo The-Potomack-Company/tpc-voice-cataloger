@@ -43,4 +43,30 @@ export const catalogFieldsSchema = z.object({
 });
 
 export type CatalogFields = z.infer<typeof catalogFieldsSchema>;
-export const catalogFieldsJsonSchema = toJSONSchema(catalogFieldsSchema);
+
+const GEMINI_INCOMPATIBLE_KEYS = [
+  "additionalProperties",
+  "$schema",
+  "$defs",
+  "definitions",
+  "$id",
+] as const;
+
+function sanitizeForGemini(node: unknown): void {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    node.forEach(sanitizeForGemini);
+    return;
+  }
+  const obj = node as Record<string, unknown>;
+  for (const key of GEMINI_INCOMPATIBLE_KEYS) {
+    delete obj[key];
+  }
+  for (const value of Object.values(obj)) {
+    sanitizeForGemini(value);
+  }
+}
+
+const rawJsonSchema = toJSONSchema(catalogFieldsSchema);
+sanitizeForGemini(rawJsonSchema);
+export const catalogFieldsJsonSchema = rawJsonSchema;
