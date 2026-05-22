@@ -59,6 +59,7 @@ describe("continuousModeStore", () => {
       active: false,
       sessionId: null,
       currentItemId: null,
+      epoch: 0,
       chunkIndex: 0,
       chunkBuffer: [],
       liveTranscript: "",
@@ -80,7 +81,9 @@ describe("continuousModeStore", () => {
 
     await useContinuousModeStore.getState().advanceItem("12345-2");
     expect(sessionState.createItem).toHaveBeenCalledWith("session-1", "sale", "12345-2");
+    expect(sessionState.updateItemField).not.toHaveBeenCalledWith("item-1", "session-1", "receipt_number", "12345-2");
     expect(useContinuousModeStore.getState().currentItemId).toBe("item-2");
+    expect(useContinuousModeStore.getState().epoch).toBe(1);
     expect(useContinuousModeStore.getState().chunkIndex).toBe(1);
 
     useContinuousModeStore.getState().exitMode();
@@ -97,6 +100,18 @@ describe("continuousModeStore", () => {
     await expect(useContinuousModeStore.getState().mergeChunksBackToPrevious()).resolves.toBe(true);
     expect(sessionState.deleteItem).toHaveBeenCalledWith("item-2", "session-1");
     expect(useContinuousModeStore.getState().currentItemId).toBe("item-1");
+  });
+
+  it("no-ops undo when a newer item advance superseded the toast target", async () => {
+    const { useContinuousModeStore } = await import("../stores/continuousModeStore");
+
+    useContinuousModeStore.getState().enterMode("session-1");
+    await useContinuousModeStore.getState().advanceItem("12345-2");
+    useContinuousModeStore.setState({ epoch: 2 });
+
+    await expect(useContinuousModeStore.getState().mergeChunksBackToPrevious()).resolves.toBe(false);
+    expect(sessionState.deleteItem).not.toHaveBeenCalled();
+    expect(useContinuousModeStore.getState().lastAdvance).toBeNull();
   });
 
   it("tracks failed chunks and retry state", async () => {

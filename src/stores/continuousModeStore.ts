@@ -13,12 +13,14 @@ type LastAdvance = {
   newItemId: string;
   receiptNumber: string | null;
   advancedAt: number;
+  epoch: number;
 };
 
 interface ContinuousModeState {
   active: boolean;
   sessionId: string | null;
   currentItemId: string | null;
+  epoch: number;
   chunkIndex: number;
   chunkBuffer: ChunkRef[];
   liveTranscript: string;
@@ -43,6 +45,7 @@ const blankState = {
   active: false,
   sessionId: null,
   currentItemId: null,
+  epoch: 0,
   chunkIndex: 0,
   chunkBuffer: [] as ChunkRef[],
   liveTranscript: "",
@@ -99,18 +102,12 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
       },
 
       advanceItem: async (nextReceiptNum) => {
-        const { sessionId, currentItemId } = get();
+        const { sessionId, currentItemId, epoch } = get();
         if (!sessionId) return null;
 
         const sessionStore = useSessionStore.getState();
-        const currentItem = currentItemId
-          ? sessionStore.itemsBySession[sessionId]?.find((item) => item.id === currentItemId)
-          : null;
 
         if (currentItemId) {
-          if (!currentItem?.receipt_number && nextReceiptNum) {
-            await sessionStore.updateItemField(currentItemId, sessionId, "receipt_number", nextReceiptNum);
-          }
           await sessionStore.updateItemField(currentItemId, sessionId, "ai_status", "done");
         }
 
@@ -122,6 +119,7 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
 
         set((state) => ({
           currentItemId: newItemId,
+          epoch: state.epoch + 1,
           chunkIndex: state.chunkIndex + 1,
           liveTranscript: "",
           lastAdvance: {
@@ -129,6 +127,7 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
             newItemId,
             receiptNumber: nextReceiptNum ?? null,
             advancedAt: Date.now(),
+            epoch: epoch + 1,
           },
         }));
 
@@ -136,8 +135,12 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
       },
 
       mergeChunksBackToPrevious: async () => {
-        const { sessionId, lastAdvance, chunkBuffer } = get();
+        const { sessionId, lastAdvance, chunkBuffer, epoch } = get();
         if (!sessionId || !lastAdvance?.previousItemId) return false;
+        if (epoch !== lastAdvance.epoch) {
+          set({ lastAdvance: null });
+          return false;
+        }
 
         const newItemHasChunks = chunkBuffer.some((chunk) => chunk.itemId === lastAdvance.newItemId);
         if (!newItemHasChunks) {
@@ -146,6 +149,7 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
 
         set((state) => ({
           currentItemId: lastAdvance.previousItemId,
+          epoch: state.epoch + 1,
           chunkIndex: Math.max(0, state.chunkIndex - 1),
           lastAdvance: null,
         }));
@@ -216,6 +220,7 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
         active: state.active,
         sessionId: state.sessionId,
         currentItemId: state.currentItemId,
+        epoch: state.epoch,
         chunkIndex: state.chunkIndex,
         chunkBuffer: state.chunkBuffer,
         liveTranscript: state.liveTranscript,
