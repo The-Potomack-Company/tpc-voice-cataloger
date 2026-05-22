@@ -57,6 +57,7 @@ describe("continuousModeStore", () => {
     const { useContinuousModeStore } = await import("../stores/continuousModeStore");
     useContinuousModeStore.setState({
       active: false,
+      finalizing: false,
       sessionId: null,
       currentItemId: null,
       epoch: 0,
@@ -75,9 +76,14 @@ describe("continuousModeStore", () => {
     useContinuousModeStore.getState().enterMode("session-1");
     expect(useContinuousModeStore.getState()).toMatchObject({
       active: true,
+      finalizing: false,
       sessionId: "session-1",
       currentItemId: "item-1",
     });
+
+    useContinuousModeStore.getState().setFinalizing(true);
+    expect(useContinuousModeStore.getState().finalizing).toBe(true);
+    expect(useContinuousModeStore.getState().active).toBe(true);
 
     await useContinuousModeStore.getState().advanceItem("12345-2");
     expect(sessionState.createItem).toHaveBeenCalledWith("session-1", "sale", "12345-2");
@@ -88,6 +94,7 @@ describe("continuousModeStore", () => {
 
     useContinuousModeStore.getState().exitMode();
     expect(useContinuousModeStore.getState().active).toBe(false);
+    expect(useContinuousModeStore.getState().finalizing).toBe(false);
     expect(useContinuousModeStore.getState().sessionId).toBeNull();
   });
 

@@ -18,6 +18,7 @@ type LastAdvance = {
 
 interface ContinuousModeState {
   active: boolean;
+  finalizing: boolean;
   sessionId: string | null;
   currentItemId: string | null;
   epoch: number;
@@ -30,6 +31,7 @@ interface ContinuousModeState {
 
   enterMode: (sessionId: string) => void;
   exitMode: () => void;
+  setFinalizing: (value: boolean) => void;
   advanceItem: (nextReceiptNum?: string | null) => Promise<string | null>;
   mergeChunksBackToPrevious: () => Promise<boolean>;
   pushChunk: (audioId: number, startedAt?: number) => void;
@@ -43,6 +45,7 @@ interface ContinuousModeState {
 
 const blankState = {
   active: false,
+  finalizing: false,
   sessionId: null,
   currentItemId: null,
   epoch: 0,
@@ -99,6 +102,10 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
 
       exitMode: () => {
         set({ ...blankState });
+      },
+
+      setFinalizing: (value) => {
+        set({ finalizing: value });
       },
 
       advanceItem: async (nextReceiptNum) => {
@@ -218,6 +225,7 @@ export const useContinuousModeStore = create<ContinuousModeState>()(
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         active: state.active,
+        finalizing: state.finalizing,
         sessionId: state.sessionId,
         currentItemId: state.currentItemId,
         epoch: state.epoch,
