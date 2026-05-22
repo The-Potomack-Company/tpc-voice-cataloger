@@ -100,7 +100,10 @@ export function SessionDetailPage() {
   const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   const [importToast, setImportToast] = useState<string | null>(null);
-  const continuousActive = useContinuousModeStore((s) => s.active && s.sessionId === sessionId);
+  const continuousActive = useContinuousModeStore(
+    (s) => (s.active || s.finalizing) && s.sessionId === sessionId,
+  );
+  const continuousFinalizing = useContinuousModeStore((s) => s.finalizing && s.sessionId === sessionId);
   const advanceContinuousItem = useContinuousModeStore((s) => s.advanceItem);
   const continuousRecorder = useContinuousRecorder();
   const continuousPaused = continuousRecorder.status === "paused";
@@ -730,6 +733,7 @@ export function SessionDetailPage() {
       {continuousActive && (
         <ContinuousModeControlBar
           paused={continuousPaused}
+          finalizing={continuousFinalizing}
           onStop={handleStopContinuous}
           onPause={continuousRecorder.pause}
           onResume={continuousRecorder.resume}

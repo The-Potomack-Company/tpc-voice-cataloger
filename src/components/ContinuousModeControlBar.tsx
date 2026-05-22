@@ -3,6 +3,7 @@ import { Icon } from "../ui/icons";
 
 interface ContinuousModeControlBarProps {
   paused: boolean;
+  finalizing: boolean;
   onStop: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -11,6 +12,7 @@ interface ContinuousModeControlBarProps {
 
 export function ContinuousModeControlBar({
   paused,
+  finalizing,
   onStop,
   onPause,
   onResume,
@@ -22,14 +24,16 @@ export function ContinuousModeControlBar({
         <Button
           variant="danger"
           onClick={onStop}
+          disabled={finalizing}
           icon={<Icon name="stop" size={14} aria-hidden />}
           className="flex-[1.2]"
         >
-          Stop
+          {finalizing ? "Finalizing..." : "Stop"}
         </Button>
         <Button
           variant="primary"
           onClick={onNewItem}
+          disabled={finalizing}
           iconRight={<Icon name="arrowRight" size={14} aria-hidden />}
           className="flex-1"
         >
@@ -38,6 +42,7 @@ export function ContinuousModeControlBar({
         <Button
           variant="ghost"
           onClick={paused ? onResume : onPause}
+          disabled={finalizing}
           icon={<Icon name={paused ? "play" : "pause"} size={14} aria-hidden />}
           aria-label={paused ? "Resume continuous recording" : "Pause continuous recording"}
         >

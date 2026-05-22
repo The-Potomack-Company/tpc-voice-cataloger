@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "../db";
-import { processContinuousChunk, type ContinuousChunkSnapshot } from "../services/geminiContinuous";
+import {
+  processContinuousChunk,
+  waitForSessionChunksDrain,
+  type ContinuousChunkSnapshot,
+} from "../services/geminiContinuous";
 import { useContinuousModeStore } from "../stores/continuousModeStore";
 import { useRecordingStore } from "../stores/recordingStore";
 import { useSessionStore } from "../stores/sessionStore";
 import { useUIStore } from "../stores/uiStore";
 import { getPreferredMimeType } from "../utils/audio";
 
-type ContinuousRecorderStatus = "idle" | "requesting" | "recording" | "paused" | "error";
+type ContinuousRecorderStatus = "idle" | "requesting" | "recording" | "paused" | "finalizing" | "error";
 
 interface ContinuousRecorderReturn {
   status: ContinuousRecorderStatus;
@@ -256,7 +260,14 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
-    const stopPromise = stopActiveRecorderAndWait();
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state === "recording") {
+      try {
+        recorder.stop();
+      } catch {
+        /* ignore */
+      }
+    }
     recorderRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -264,8 +275,8 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     useRecordingStore.getState().setRecording(false);
     useRecordingStore.getState().setDuration(0);
     useUIStore.getState?.().setRecordingSession(null);
-    await stopPromise;
-  }, [stopActiveRecorderAndWait, stopLevelLoop]);
+    useContinuousModeStore.getState().exitMode();
+  }, [stopLevelLoop]);
 
   const start = useCallback(
     async (sessionId: string, mode: "house" | "sale") => {
@@ -325,11 +336,39 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
   );
 
   const stop = useCallback(async () => {
-    await cleanup();
+    if (!activeRef.current) return;
+
+    const sessionId = sessionIdRef.current;
+    if (!sessionId) return;
+
+    useContinuousModeStore.getState().setFinalizing(true);
+    useContinuousModeStore.setState({ active: false });
+    activeRef.current = false;
+    setStatus("finalizing");
+
+    if (restartTimeoutRef.current !== null) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+    if (timerIntervalRef.current !== null) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    await stopActiveRecorderAndWait();
+    await waitForSessionChunksDrain(sessionId);
+
     useContinuousModeStore.getState().exitMode();
+    recorderRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    stopLevelLoop();
+    useRecordingStore.getState().setRecording(false);
+    useRecordingStore.getState().setDuration(0);
+    useUIStore.getState?.().setRecordingSession(null);
     setStatus("idle");
     setDurationMs(0);
-  }, [cleanup]);
+  }, [stopActiveRecorderAndWait, stopLevelLoop]);
 
   const pause = useCallback(() => {
     streamRef.current?.getAudioTracks().forEach((track) => {

@@ -13,14 +13,19 @@ const dbMock = vi.hoisted(() => ({
 }));
 
 const processContinuousChunk = vi.hoisted(() => vi.fn(async () => {}));
+const waitForSessionChunksDrain = vi.hoisted(() => vi.fn(async () => {}));
 const continuousState = vi.hoisted(() => ({
   active: true,
+  finalizing: false,
   sessionId: "session-1",
   currentItemId: "item-1",
   epoch: 0,
   chunkIndex: 0,
   enterMode: vi.fn(),
   exitMode: vi.fn(),
+  setFinalizing: vi.fn((value: boolean) => {
+    continuousState.finalizing = value;
+  }),
   pushChunk: vi.fn(),
 }));
 const sessionStore = vi.hoisted(() => ({
@@ -37,11 +42,13 @@ const uiStore = vi.hoisted(() => ({
 }));
 
 vi.mock("../db", () => ({ db: dbMock }));
-vi.mock("../services/geminiContinuous", () => ({ processContinuousChunk }));
+vi.mock("../services/geminiContinuous", () => ({ processContinuousChunk, waitForSessionChunksDrain }));
 vi.mock("../stores/continuousModeStore", () => ({
   useContinuousModeStore: {
     getState: () => continuousState,
-    setState: vi.fn((patch) => Object.assign(continuousState, patch)),
+    setState: vi.fn((patch) => {
+      Object.assign(continuousState, patch);
+    }),
   },
 }));
 vi.mock("../stores/sessionStore", () => ({
@@ -93,10 +100,13 @@ describe("useContinuousRecorder", () => {
     dbMock.sessionAudio.get.mockResolvedValue(undefined);
     dbMock.sessionAudio.put.mockResolvedValue(undefined);
     continuousState.active = true;
+    continuousState.finalizing = false;
     continuousState.sessionId = "session-1";
     continuousState.currentItemId = "item-1";
     continuousState.epoch = 0;
     continuousState.chunkIndex = 0;
+    processContinuousChunk.mockResolvedValue(undefined);
+    waitForSessionChunksDrain.mockResolvedValue(undefined);
     Object.defineProperty(globalThis, "MediaRecorder", {
       value: FakeMediaRecorder,
       configurable: true,
@@ -201,6 +211,48 @@ describe("useContinuousRecorder", () => {
       await stopPromise;
     });
 
+    expect(stopped).toBe(true);
+    expect(continuousState.setFinalizing).toHaveBeenCalledWith(true);
+    expect(waitForSessionChunksDrain).toHaveBeenCalledWith("session-1");
+    expect(continuousState.exitMode).toHaveBeenCalled();
+  });
+
+  it("stop drains final chunk processing before exiting continuous mode", async () => {
+    let resolveChunk: (() => void) | null = null;
+    const chunkPromise = new Promise<void>((resolve) => {
+      resolveChunk = resolve;
+    });
+    processContinuousChunk.mockReturnValue(chunkPromise);
+    waitForSessionChunksDrain.mockImplementation(async () => {
+      await chunkPromise;
+    });
+    const { useContinuousRecorder } = await import("../hooks/useContinuousRecorder");
+    const { result } = renderHook(() => useContinuousRecorder());
+
+    await act(async () => {
+      await result.current.start("session-1", "sale");
+    });
+
+    let stopped = false;
+    const stopPromise = result.current.stop().then(() => {
+      stopped = true;
+    });
+    await vi.waitFor(() => expect(processContinuousChunk).toHaveBeenCalled());
+
+    expect(processContinuousChunk).toHaveBeenCalledWith(11, "item-1", "session-1", 0, {
+      snapshot: { epoch: 0, itemId: "item-1", sessionId: "session-1" },
+      signal: expect.any(AbortSignal),
+    });
+    expect(waitForSessionChunksDrain).toHaveBeenCalledWith("session-1");
+    expect(continuousState.exitMode).not.toHaveBeenCalled();
+    expect(stopped).toBe(false);
+
+    resolveChunk?.();
+    await act(async () => {
+      await stopPromise;
+    });
+
+    expect(continuousState.exitMode).toHaveBeenCalled();
     expect(stopped).toBe(true);
   });
 });

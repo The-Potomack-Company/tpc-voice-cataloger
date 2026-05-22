@@ -31,6 +31,7 @@ export function ContinuousModePanel({ sessionId }: ContinuousModePanelProps) {
   const items = useSessionItems(sessionId);
   const currentItemId = useContinuousModeStore((s) => s.currentItemId);
   const liveTranscript = useContinuousModeStore((s) => s.liveTranscript);
+  const finalizing = useContinuousModeStore((s) => s.finalizing);
   const pendingCount = useContinuousModeStore((s) => s.pendingChunks.size);
   const failedCount = useContinuousModeStore((s) => s.failedChunks.size);
   const chunkIndex = useContinuousModeStore((s) => s.chunkIndex);
@@ -40,7 +41,9 @@ export function ContinuousModePanel({ sessionId }: ContinuousModePanelProps) {
   const itemNumber = currentItem ? items.indexOf(currentItem) + 1 : items.length + 1;
   const statusLabel = failedCount > 0
     ? `Failed - ${failedCount} chunk${failedCount === 1 ? "" : "s"} need retry`
-    : pendingCount > 0
+    : finalizing
+      ? "Finalizing..."
+      : pendingCount > 0
       ? `Processing chunk ${chunkIndex}...`
       : "Listening";
 
