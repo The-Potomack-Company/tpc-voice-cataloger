@@ -42,13 +42,11 @@ function targetItemExists(itemId: string, sessionId: string): boolean {
   return items.some((item) => item.id === itemId);
 }
 
-function canMergeFields(snapshot: ContinuousChunkSnapshot): boolean {
+function canProcessSession(sessionId: string): boolean {
   const continuousState = useContinuousModeStore.getState();
   return (
-    continuousState.active &&
-    continuousState.epoch === snapshot.epoch &&
-    continuousState.sessionId === snapshot.sessionId &&
-    targetItemExists(snapshot.itemId, snapshot.sessionId)
+    (continuousState.active || continuousState.finalizing) &&
+    continuousState.sessionId === sessionId
   );
 }
 
@@ -195,7 +193,22 @@ async function mergeFieldsIntoItem(
   return updates.map(([field]) => field);
 }
 
-const itemProcessingQueues = new Map<string, Promise<void>>();
+const sessionProcessingQueues = new Map<string, Promise<void>>();
+
+export async function waitForSessionChunksDrain(sessionId: string): Promise<void> {
+  while (sessionProcessingQueues.has(sessionId)) {
+    const current = sessionProcessingQueues.get(sessionId);
+    if (!current) break;
+    try {
+      await current;
+    } catch {
+      /* ignored */
+    }
+    if (sessionProcessingQueues.get(sessionId) === current) {
+      sessionProcessingQueues.delete(sessionId);
+    }
+  }
+}
 
 export async function processContinuousChunk(
   audioId: number,
@@ -205,7 +218,6 @@ export async function processContinuousChunk(
   options: ProcessContinuousChunkOptions = {},
 ): Promise<void> {
   const startedAt = performance.now();
-  const snapshot = options.snapshot ?? { epoch: useContinuousModeStore.getState().epoch, itemId, sessionId };
   const continuousStore = useContinuousModeStore.getState();
   continuousStore.markChunkPending(chunkIndex);
   trackEvent({
@@ -214,13 +226,26 @@ export async function processContinuousChunk(
     items_content: { item_id: itemId, continuous: true, chunk_index: chunkIndex },
   });
 
-  const previous = itemProcessingQueues.get(itemId) ?? Promise.resolve();
+  const previous = sessionProcessingQueues.get(sessionId) ?? Promise.resolve();
   const queued = previous.catch(() => undefined).then(async () => {
+    let liveItemId: string | null = null;
     try {
       throwIfAborted(options.signal);
-      if (canMergeFields(snapshot)) {
-        await useSessionStore.getState().updateItemField(itemId, sessionId, "ai_status", "processing");
+
+      const liveState = useContinuousModeStore.getState();
+      const allowed = (liveState.active || liveState.finalizing) && liveState.sessionId === sessionId;
+      if (!allowed) {
+        useContinuousModeStore.getState().markChunkDone(chunkIndex);
+        return;
       }
+
+      liveItemId = liveState.currentItemId;
+      if (!liveItemId || !targetItemExists(liveItemId, sessionId)) {
+        useContinuousModeStore.getState().markChunkDone(chunkIndex);
+        return;
+      }
+
+      await useSessionStore.getState().updateItemField(liveItemId, sessionId, "ai_status", "processing");
 
       const audioRecord = await db.audio.get(audioId);
       throwIfAborted(options.signal);
@@ -228,7 +253,7 @@ export async function processContinuousChunk(
         throw new Error(`Audio record ${audioId} not found`);
       }
 
-      const currentItem = await fetchCurrentItem(itemId);
+      const currentItem = await fetchCurrentItem(liveItemId);
       throwIfAborted(options.signal);
       if (!currentItem) {
         continuousStore.markChunkDone(chunkIndex);
@@ -243,18 +268,7 @@ export async function processContinuousChunk(
       }
 
       let updatedFields: string[] = [];
-      if (canMergeFields(snapshot)) {
-        updatedFields = await mergeFieldsIntoItem(itemId, sessionId, fields);
-      } else {
-        console.info("[processContinuousChunk] Discarding stale continuous chunk field merge", {
-          audioId,
-          itemId,
-          sessionId,
-          chunkIndex,
-          snapshotEpoch: snapshot.epoch,
-          currentEpoch: useContinuousModeStore.getState().epoch,
-        });
-      }
+      updatedFields = await mergeFieldsIntoItem(liveItemId, sessionId, fields);
 
       useContinuousModeStore.getState().markChunkDone(chunkIndex);
       trackEvent({
@@ -262,7 +276,7 @@ export async function processContinuousChunk(
         session_id: sessionId,
         execution_time_ms: Math.round(performance.now() - startedAt),
         items_content: {
-          item_id: itemId,
+          item_id: liveItemId,
           continuous: true,
           chunk_index: chunkIndex,
           fields: updatedFields,
@@ -270,7 +284,13 @@ export async function processContinuousChunk(
       });
 
       if (fields.new_item_detected?.triggered) {
-        if (canMergeFields(snapshot)) {
+        const wakeState = useContinuousModeStore.getState();
+        if (
+          (wakeState.active || wakeState.finalizing) &&
+          wakeState.sessionId === sessionId &&
+          wakeState.currentItemId === liveItemId &&
+          targetItemExists(liveItemId, sessionId)
+        ) {
           const newItemId = await useContinuousModeStore
             .getState()
             .advanceItem(fields.new_item_detected.receipt_number ?? null);
@@ -279,7 +299,7 @@ export async function processContinuousChunk(
             throwIfAborted(options.signal);
             const postAdvanceState = useContinuousModeStore.getState();
             if (
-              postAdvanceState.active &&
+              (postAdvanceState.active || postAdvanceState.finalizing) &&
               postAdvanceState.sessionId === sessionId &&
               postAdvanceState.currentItemId === newItemId &&
               targetItemExists(newItemId, sessionId)
@@ -318,8 +338,8 @@ export async function processContinuousChunk(
         items_content: { item_id: itemId, continuous: true, chunk_index: chunkIndex },
       });
       try {
-        if (canMergeFields(snapshot)) {
-          await useSessionStore.getState().updateItemField(itemId, sessionId, "ai_status", "failed");
+        if (liveItemId && canProcessSession(sessionId) && targetItemExists(liveItemId, sessionId)) {
+          await useSessionStore.getState().updateItemField(liveItemId, sessionId, "ai_status", "failed");
         }
       } catch (dbError) {
         console.error("Failed to mark continuous chunk failed:", dbError);
@@ -327,12 +347,12 @@ export async function processContinuousChunk(
     }
   });
 
-  itemProcessingQueues.set(itemId, queued);
+  sessionProcessingQueues.set(sessionId, queued);
   try {
     await queued;
   } finally {
-    if (itemProcessingQueues.get(itemId) === queued) {
-      itemProcessingQueues.delete(itemId);
+    if (sessionProcessingQueues.get(sessionId) === queued) {
+      sessionProcessingQueues.delete(sessionId);
     }
   }
 }
