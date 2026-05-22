@@ -221,7 +221,7 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     stopLevelLoop();
     useRecordingStore.getState().setRecording(false);
     useRecordingStore.getState().setDuration(0);
-    useUIStore.getState().setRecordingSession(null);
+    useUIStore.getState?.().setRecordingSession(null);
   }, [stopLevelLoop]);
 
   const start = useCallback(

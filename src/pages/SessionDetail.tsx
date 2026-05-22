@@ -11,9 +11,14 @@ import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ReturnDialog } from "../components/ReturnDialog";
 import { ItemList } from "../components/ItemList";
+import { ContinuousModeControlBar } from "../components/ContinuousModeControlBar";
+import { ContinuousModeFAB } from "../components/ContinuousModeFAB";
+import { ContinuousModePanel } from "../components/ContinuousModePanel";
 import { ExportHistoryList } from "../components/ExportHistoryList";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
+import { useContinuousRecorder } from "../hooks/useContinuousRecorder";
+import { useContinuousModeStore } from "../stores/continuousModeStore";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -95,6 +100,10 @@ export function SessionDetailPage() {
   const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   const [importToast, setImportToast] = useState<string | null>(null);
+  const continuousActive = useContinuousModeStore((s) => s.active && s.sessionId === sessionId);
+  const advanceContinuousItem = useContinuousModeStore((s) => s.advanceItem);
+  const continuousRecorder = useContinuousRecorder();
+  const continuousPaused = continuousRecorder.status === "paused";
 
   // Admin reassignment state
   const { isAdmin, loading: roleLoading } = useUserRole();
@@ -297,6 +306,18 @@ export function SessionDetailPage() {
     } else {
       await createBlankItem(sessionId!, session.mode as "house" | "sale");
     }
+  };
+
+  const handleStartContinuous = async () => {
+    await continuousRecorder.start(sessionId!, session.mode as "house" | "sale");
+  };
+
+  const handleStopContinuous = async () => {
+    await continuousRecorder.stop();
+  };
+
+  const handleContinuousNewItem = () => {
+    void advanceContinuousItem(null);
   };
 
   const shortId = sessionShortId(session);
@@ -605,7 +626,14 @@ export function SessionDetailPage() {
       {/* Item list section */}
       <section className="mb-8">
         <Eyebrow className="mb-3">Items ({itemCount})</Eyebrow>
-        <ItemList sessionId={sessionId!} mode={session.mode as "house" | "sale"} onAddItemRef={addItemRef} readOnly={isReadOnly} />
+        {continuousActive && <ContinuousModePanel sessionId={sessionId!} />}
+        <ItemList
+          sessionId={sessionId!}
+          mode={session.mode as "house" | "sale"}
+          onAddItemRef={addItemRef}
+          readOnly={isReadOnly || continuousActive}
+          compact={continuousActive}
+        />
       </section>
 
       {/* Export History */}
@@ -675,7 +703,7 @@ export function SessionDetailPage() {
       />
 
       {/* Floating Add Item button */}
-      {!isReadOnly && (
+      {!isReadOnly && !continuousActive && (
         <div className="fixed bottom-24 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
           <Button
             variant="primary"
@@ -690,6 +718,23 @@ export function SessionDetailPage() {
             {itemCount === 0 ? "Start Cataloging" : "Add Item"}
           </Button>
         </div>
+      )}
+
+      {!isReadOnly && !continuousActive && (
+        <ContinuousModeFAB
+          onStart={handleStartContinuous}
+          disabled={continuousRecorder.status === "requesting"}
+        />
+      )}
+
+      {continuousActive && (
+        <ContinuousModeControlBar
+          paused={continuousPaused}
+          onStop={handleStopContinuous}
+          onPause={continuousRecorder.pause}
+          onResume={continuousRecorder.resume}
+          onNewItem={handleContinuousNewItem}
+        />
       )}
 
       {/* Import toast feedback */}

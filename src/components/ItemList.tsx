@@ -6,25 +6,29 @@ import { createBlankItem } from "../db/items";
 import { processAudioWithAi } from "../services/gemini";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { mergeItems } from "../services/mergeItems";
+import { ItemPeekModal } from "./ItemPeekModal";
 
 interface ItemListProps {
   sessionId: string;
   mode: "house" | "sale";
   onAddItemRef?: React.MutableRefObject<(() => Promise<void>) | null>;
   readOnly?: boolean;
+  compact?: boolean;
 }
 
-export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListProps) {
+export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = false }: ItemListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [newItemId, setNewItemId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [merging, setMerging] = useState(false);
+  const [peekItemId, setPeekItemId] = useState<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
 
   const items = useSessionItems(sessionId);
+  const peekItem = items.find((item) => item.id === peekItemId) ?? null;
 
   const toggleExpand = useCallback((itemId: string) => {
     setExpandedIds((prev) => {
@@ -185,6 +189,44 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly }: ItemListPr
   }
 
   const mergeInfo = getMergeItemNumbers();
+
+  if (compact) {
+    return (
+      <div className="space-y-1.5">
+        {items.map((item) => {
+          const hasReceipt = Boolean(item.receipt_number);
+          const preview = item.description ?? item.title ?? "No description yet";
+          return (
+            <button
+              key={item.id}
+              type="button"
+              data-item-id={item.id}
+              onClick={() => setPeekItemId(item.id)}
+              className="w-full grid grid-cols-[minmax(5rem,8rem)_auto_1fr] items-center gap-2 rounded-lg border border-rule bg-bg-2 px-3 py-2 text-left"
+            >
+              <span className={`tnum text-xs truncate ${hasReceipt ? "text-ink" : "text-err"}`}>
+                {item.receipt_number ?? `Item ${item.sort_order + 1}`}
+              </span>
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  item.ai_status === "done"
+                    ? "bg-ok"
+                    : item.ai_status === "failed"
+                      ? "bg-err"
+                      : item.ai_status === "processing"
+                        ? "bg-accent"
+                        : "bg-ink-4"
+                }`}
+                aria-hidden
+              />
+              <span className="text-sm text-ink-2 truncate">{preview}</span>
+            </button>
+          );
+        })}
+        <ItemPeekModal item={peekItem} onClose={() => setPeekItemId(null)} />
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-1.5 ${selectMode ? "pb-20" : ""}`}>
