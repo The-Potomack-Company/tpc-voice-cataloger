@@ -13,6 +13,45 @@ import { catalogFieldsJsonSchema, catalogFieldsSchema } from "./geminiSchema";
 
 const CONTINUOUS_CHUNK_TIMEOUT_MS = 30_000;
 
+export type ContinuousChunkSnapshot = {
+  epoch: number;
+  itemId: string;
+  sessionId: string;
+};
+
+type ProcessContinuousChunkOptions = {
+  snapshot?: ContinuousChunkSnapshot;
+  signal?: AbortSignal;
+};
+
+class ContinuousChunkAbortError extends Error {
+  constructor() {
+    super("Continuous chunk processing aborted");
+    this.name = "AbortError";
+  }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new ContinuousChunkAbortError();
+  }
+}
+
+function targetItemExists(itemId: string, sessionId: string): boolean {
+  const items = useSessionStore.getState().itemsBySession[sessionId] ?? [];
+  return items.some((item) => item.id === itemId);
+}
+
+function canMergeFields(snapshot: ContinuousChunkSnapshot): boolean {
+  const continuousState = useContinuousModeStore.getState();
+  return (
+    continuousState.active &&
+    continuousState.epoch === snapshot.epoch &&
+    continuousState.sessionId === snapshot.sessionId &&
+    targetItemExists(snapshot.itemId, snapshot.sessionId)
+  );
+}
+
 function responseSchemaForGemini(): Record<string, unknown> {
   const raw = catalogFieldsJsonSchema as Record<string, unknown>;
   return Object.fromEntries(
@@ -39,13 +78,20 @@ function mergeContextText(currentItem: NonNullable<Awaited<ReturnType<typeof fet
   return `Extract and MERGE catalog fields from this continuous session audio chunk with the existing values below. If a wake phrase starts the next item, set new_item_detected and do not include that phrase or next-item speech in the current item fields.\n\nEXISTING VALUES:\nTitle: ${currentItem.title ?? "(empty)"}\nDescription: ${currentItem.description ?? "(empty)"}\nCondition: ${currentItem.condition ?? "(empty)"}\nEstimate: ${currentItem.estimate ?? "(empty)"}\nCategory: ${currentItem.category ?? "(empty)"}\nMeasurements: ${currentItem.measurements ?? "(empty)"}\nTranscript: ${currentItem.transcript ?? "(empty)"}\nReceipt Number: ${currentItem.receipt_number ?? "(empty)"}`;
 }
 
-async function sendChunkToGemini(audioBlob: Blob, mimeType: string, currentItem: NonNullable<Awaited<ReturnType<typeof fetchCurrentItem>>>) {
+async function sendChunkToGemini(
+  audioBlob: Blob,
+  mimeType: string,
+  currentItem: NonNullable<Awaited<ReturnType<typeof fetchCurrentItem>>>,
+  signal?: AbortSignal,
+) {
   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
   if (!proxyUrl) {
     throw new Error("VITE_GEMINI_PROXY_URL is not configured. Create a .env file from .env.example.");
   }
 
+  throwIfAborted(signal);
   const base64Audio = await blobToBase64(audioBlob);
+  throwIfAborted(signal);
   const baseMimeType = mimeType.split(";")[0];
   const payload = {
     system_instruction: {
@@ -70,8 +116,10 @@ async function sendChunkToGemini(audioBlob: Blob, mimeType: string, currentItem:
     },
   };
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), CONTINUOUS_CHUNK_TIMEOUT_MS);
+  const timeoutController = new AbortController();
+  const abortTimeout = () => timeoutController.abort();
+  signal?.addEventListener("abort", abortTimeout, { once: true });
+  const timeout = setTimeout(abortTimeout, CONTINUOUS_CHUNK_TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetch(proxyUrl, {
@@ -81,18 +129,21 @@ async function sendChunkToGemini(audioBlob: Blob, mimeType: string, currentItem:
         model: "gemini-2.5-flash",
         payload,
       }),
-      signal: controller.signal,
+      signal: timeoutController.signal,
     });
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener("abort", abortTimeout);
   }
 
+  throwIfAborted(signal);
   if (!response.ok) {
     const errorText = await response.text().catch(() => "unknown");
     throw new Error(`Proxy returned HTTP ${response.status}: ${errorText}`);
   }
 
   const data = await response.json();
+  throwIfAborted(signal);
   const text = data.candidates[0].content.parts[0].text;
   const parsed = JSON.parse(text);
   const result = catalogFieldsSchema.safeParse(parsed);
@@ -144,13 +195,17 @@ async function mergeFieldsIntoItem(
   return updates.map(([field]) => field);
 }
 
+const itemProcessingQueues = new Map<string, Promise<void>>();
+
 export async function processContinuousChunk(
   audioId: number,
   itemId: string,
   sessionId: string,
   chunkIndex: number,
+  options: ProcessContinuousChunkOptions = {},
 ): Promise<void> {
   const startedAt = performance.now();
+  const snapshot = options.snapshot ?? { epoch: useContinuousModeStore.getState().epoch, itemId, sessionId };
   const continuousStore = useContinuousModeStore.getState();
   continuousStore.markChunkPending(chunkIndex);
   trackEvent({
@@ -159,58 +214,97 @@ export async function processContinuousChunk(
     items_content: { item_id: itemId, continuous: true, chunk_index: chunkIndex },
   });
 
-  try {
-    await useSessionStore.getState().updateItemField(itemId, sessionId, "ai_status", "processing");
-
-    const audioRecord = await db.audio.get(audioId);
-    if (!audioRecord) {
-      throw new Error(`Audio record ${audioId} not found`);
-    }
-
-    const currentItem = await fetchCurrentItem(itemId);
-    if (!currentItem) {
-      continuousStore.markChunkDone(chunkIndex);
-      return;
-    }
-
-    const fields = await sendChunkToGemini(audioRecord.blob, audioRecord.mimeType, currentItem);
-    const updatedFields = await mergeFieldsIntoItem(itemId, sessionId, fields);
-
-    if (fields.transcript !== null) {
-      useContinuousModeStore.getState().appendTranscript(fields.transcript);
-    }
-
-    useContinuousModeStore.getState().markChunkDone(chunkIndex);
-    trackEvent({
-      event_type: "ai.processing_succeeded",
-      session_id: sessionId,
-      execution_time_ms: Math.round(performance.now() - startedAt),
-      items_content: {
-        item_id: itemId,
-        continuous: true,
-        chunk_index: chunkIndex,
-        fields: updatedFields,
-      },
-    });
-
-    if (fields.new_item_detected?.triggered) {
-      await useContinuousModeStore.getState().advanceItem(fields.new_item_detected.receipt_number ?? null);
-    }
-  } catch (error) {
-    console.error("Continuous AI processing error:", error);
-    useContinuousModeStore.getState().markChunkFailed(chunkIndex);
-    trackEvent({
-      event_type: "ai.processing_failed",
-      session_id: sessionId,
-      execution_time_ms: Math.round(performance.now() - startedAt),
-      error_message: error instanceof Error ? error.message : String(error),
-      error_count: 1,
-      items_content: { item_id: itemId, continuous: true, chunk_index: chunkIndex },
-    });
+  const previous = itemProcessingQueues.get(itemId) ?? Promise.resolve();
+  const queued = previous.catch(() => undefined).then(async () => {
     try {
-      await useSessionStore.getState().updateItemField(itemId, sessionId, "ai_status", "failed");
-    } catch (dbError) {
-      console.error("Failed to mark continuous chunk failed:", dbError);
+      throwIfAborted(options.signal);
+      if (canMergeFields(snapshot)) {
+        await useSessionStore.getState().updateItemField(itemId, sessionId, "ai_status", "processing");
+      }
+
+      const audioRecord = await db.audio.get(audioId);
+      throwIfAborted(options.signal);
+      if (!audioRecord) {
+        throw new Error(`Audio record ${audioId} not found`);
+      }
+
+      const currentItem = await fetchCurrentItem(itemId);
+      throwIfAborted(options.signal);
+      if (!currentItem) {
+        continuousStore.markChunkDone(chunkIndex);
+        return;
+      }
+
+      const fields = await sendChunkToGemini(audioRecord.blob, audioRecord.mimeType, currentItem, options.signal);
+      throwIfAborted(options.signal);
+
+      if (fields.transcript !== null) {
+        useContinuousModeStore.getState().appendTranscript(fields.transcript);
+      }
+
+      let updatedFields: string[] = [];
+      if (canMergeFields(snapshot)) {
+        updatedFields = await mergeFieldsIntoItem(itemId, sessionId, fields);
+      } else {
+        console.info("[processContinuousChunk] Discarding stale continuous chunk field merge", {
+          audioId,
+          itemId,
+          sessionId,
+          chunkIndex,
+          snapshotEpoch: snapshot.epoch,
+          currentEpoch: useContinuousModeStore.getState().epoch,
+        });
+      }
+
+      useContinuousModeStore.getState().markChunkDone(chunkIndex);
+      trackEvent({
+        event_type: "ai.processing_succeeded",
+        session_id: sessionId,
+        execution_time_ms: Math.round(performance.now() - startedAt),
+        items_content: {
+          item_id: itemId,
+          continuous: true,
+          chunk_index: chunkIndex,
+          fields: updatedFields,
+        },
+      });
+
+      if (fields.new_item_detected?.triggered) {
+        if (canMergeFields(snapshot)) {
+          await useContinuousModeStore.getState().advanceItem(fields.new_item_detected.receipt_number ?? null);
+        }
+      }
+    } catch (error) {
+      if (error instanceof ContinuousChunkAbortError || (error instanceof DOMException && error.name === "AbortError")) {
+        useContinuousModeStore.getState().markChunkDone(chunkIndex);
+        return;
+      }
+      console.error("Continuous AI processing error:", error);
+      useContinuousModeStore.getState().markChunkFailed(chunkIndex);
+      trackEvent({
+        event_type: "ai.processing_failed",
+        session_id: sessionId,
+        execution_time_ms: Math.round(performance.now() - startedAt),
+        error_message: error instanceof Error ? error.message : String(error),
+        error_count: 1,
+        items_content: { item_id: itemId, continuous: true, chunk_index: chunkIndex },
+      });
+      try {
+        if (canMergeFields(snapshot)) {
+          await useSessionStore.getState().updateItemField(itemId, sessionId, "ai_status", "failed");
+        }
+      } catch (dbError) {
+        console.error("Failed to mark continuous chunk failed:", dbError);
+      }
+    }
+  });
+
+  itemProcessingQueues.set(itemId, queued);
+  try {
+    await queued;
+  } finally {
+    if (itemProcessingQueues.get(itemId) === queued) {
+      itemProcessingQueues.delete(itemId);
     }
   }
 }

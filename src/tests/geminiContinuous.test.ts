@@ -7,6 +7,9 @@ const dbMock = vi.hoisted(() => ({
 }));
 
 const continuousStore = vi.hoisted(() => ({
+  active: true,
+  epoch: 0,
+  sessionId: "session-1",
   markChunkPending: vi.fn(),
   markChunkDone: vi.fn(),
   markChunkFailed: vi.fn(),
@@ -15,6 +18,9 @@ const continuousStore = vi.hoisted(() => ({
 }));
 
 const sessionStore = vi.hoisted(() => ({
+  itemsBySession: {
+    "session-1": [{ id: "item-1" }],
+  } as Record<string, Array<{ id: string }>>,
   updateItemField: vi.fn(async () => {}),
 }));
 
@@ -61,6 +67,26 @@ function mockGeminiResponse(fields: Record<string, unknown>) {
   })));
 }
 
+function mockDelayedGeminiResponses(responses: Array<{ fields: Record<string, unknown>; delayMs: number }>) {
+  vi.stubGlobal("fetch", vi.fn(async () => {
+    const next = responses.shift();
+    if (!next) throw new Error("Unexpected fetch");
+    await new Promise((resolve) => setTimeout(resolve, next.delayMs));
+    return {
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: JSON.stringify(next.fields) }],
+            },
+          },
+        ],
+      }),
+    };
+  }));
+}
+
 const baseFields = {
   title: "brass lamp",
   description: "Antique brass lamp",
@@ -76,6 +102,12 @@ describe("processContinuousChunk", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://proxy.test");
+    continuousStore.active = true;
+    continuousStore.epoch = 0;
+    continuousStore.sessionId = "session-1";
+    sessionStore.itemsBySession = {
+      "session-1": [{ id: "item-1" }],
+    };
     dbMock.audio.get.mockResolvedValue({
       blob: new Blob(["audio"], { type: "audio/webm" }),
       mimeType: "audio/webm;codecs=opus",
@@ -125,5 +157,93 @@ describe("processContinuousChunk", () => {
     expect(sessionStore.updateItemField).toHaveBeenCalledWith("item-1", "session-1", "description", "Antique brass lamp");
     expect(continuousStore.advanceItem).not.toHaveBeenCalled();
     expect(continuousStore.markChunkDone).toHaveBeenCalledWith(2);
+  });
+
+  it("discards stale epoch field merges while still appending transcript", async () => {
+    let resolveFetch: (() => void) | null = null;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      await new Promise<void>((resolve) => {
+        resolveFetch = resolve;
+      });
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: JSON.stringify({ ...baseFields, new_item_detected: null }) }],
+              },
+            },
+          ],
+        }),
+      };
+    }));
+    const { processContinuousChunk } = await import("../services/geminiContinuous");
+
+    const processing = processContinuousChunk(1, "item-1", "session-1", 3, {
+      snapshot: { epoch: 0, itemId: "item-1", sessionId: "session-1" },
+    });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+
+    continuousStore.epoch = 1;
+    resolveFetch?.();
+    await processing;
+
+    expect(continuousStore.appendTranscript).toHaveBeenCalledWith("Antique brass lamp");
+    expect(sessionStore.updateItemField).not.toHaveBeenCalledWith("item-1", "session-1", "title", "BRASS LAMP");
+    expect(sessionStore.updateItemField).not.toHaveBeenCalledWith("item-1", "session-1", "description", "Antique brass lamp");
+  });
+
+  it("serializes same-item chunks so field writes stay FIFO", async () => {
+    mockDelayedGeminiResponses([
+      { fields: { ...baseFields, title: "first", transcript: "first", new_item_detected: null }, delayMs: 30 },
+      { fields: { ...baseFields, title: "second", transcript: "second", new_item_detected: null }, delayMs: 0 },
+      { fields: { ...baseFields, title: "third", transcript: "third", new_item_detected: null }, delayMs: 0 },
+    ]);
+    const { processContinuousChunk } = await import("../services/geminiContinuous");
+
+    await Promise.all([
+      processContinuousChunk(1, "item-1", "session-1", 10),
+      processContinuousChunk(1, "item-1", "session-1", 11),
+      processContinuousChunk(1, "item-1", "session-1", 12),
+    ]);
+
+    const titleWrites = sessionStore.updateItemField.mock.calls
+      .filter((call) => call[2] === "title")
+      .map((call) => call[3]);
+    expect(titleWrites).toEqual(["FIRST", "SECOND", "THIRD"]);
+  });
+
+  it("does not mutate fields or transcript after abort", async () => {
+    let resolveFetch: (() => void) | null = null;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      await new Promise<void>((resolve) => {
+        resolveFetch = resolve;
+      });
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: JSON.stringify({ ...baseFields, new_item_detected: null }) }],
+              },
+            },
+          ],
+        }),
+      };
+    }));
+    const controller = new AbortController();
+    const { processContinuousChunk } = await import("../services/geminiContinuous");
+
+    const processing = processContinuousChunk(1, "item-1", "session-1", 4, { signal: controller.signal });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    controller.abort();
+    resolveFetch?.();
+    await processing;
+
+    expect(continuousStore.appendTranscript).not.toHaveBeenCalled();
+    expect(sessionStore.updateItemField).not.toHaveBeenCalledWith("item-1", "session-1", "title", "BRASS LAMP");
+    expect(continuousStore.markChunkDone).toHaveBeenCalledWith(4);
   });
 });
