@@ -30,6 +30,12 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
   const items = useSessionItems(sessionId);
   const peekItem = items.find((item) => item.id === peekItemId) ?? null;
 
+  useEffect(() => {
+    if (peekItemId !== null && !peekItem) {
+      setPeekItemId(null);
+    }
+  }, [peekItemId, peekItem]);
+
   const toggleExpand = useCallback((itemId: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -223,7 +229,7 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
             </button>
           );
         })}
-        <ItemPeekModal item={peekItem} onClose={() => setPeekItemId(null)} />
+        {peekItem ? <ItemPeekModal item={peekItem} onClose={() => setPeekItemId(null)} /> : null}
       </div>
     );
   }
