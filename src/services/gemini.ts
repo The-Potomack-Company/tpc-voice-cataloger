@@ -9,7 +9,7 @@ import { applySpokenQuotes, applySpokenBullets } from "../utils/spokenPunctuatio
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 
-const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
+export const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
 Your job is to extract the following fields from EXACTLY what the speaker says:
 - title: The item name/type as spoken
