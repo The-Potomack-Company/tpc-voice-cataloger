@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dbMock = vi.hoisted(() => ({
+  transaction: vi.fn(async (_mode: string, _table: unknown, callback: () => Promise<void>) => callback()),
   audio: {
     add: vi.fn(async () => 11),
   },
@@ -13,9 +14,13 @@ const dbMock = vi.hoisted(() => ({
 
 const processContinuousChunk = vi.hoisted(() => vi.fn(async () => {}));
 const continuousState = vi.hoisted(() => ({
+  active: true,
+  sessionId: "session-1",
   currentItemId: "item-1",
+  epoch: 0,
   chunkIndex: 0,
   enterMode: vi.fn(),
+  exitMode: vi.fn(),
   pushChunk: vi.fn(),
 }));
 const sessionStore = vi.hoisted(() => ({
@@ -84,7 +89,13 @@ describe("useContinuousRecorder", () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     FakeMediaRecorder.instances = [];
+    dbMock.transaction.mockImplementation(async (_mode: string, _table: unknown, callback: () => Promise<void>) => callback());
+    dbMock.sessionAudio.get.mockResolvedValue(undefined);
+    dbMock.sessionAudio.put.mockResolvedValue(undefined);
+    continuousState.active = true;
+    continuousState.sessionId = "session-1";
     continuousState.currentItemId = "item-1";
+    continuousState.epoch = 0;
     continuousState.chunkIndex = 0;
     Object.defineProperty(globalThis, "MediaRecorder", {
       value: FakeMediaRecorder,
@@ -124,7 +135,10 @@ describe("useContinuousRecorder", () => {
       sessionId: "session-1",
       mimeType: "audio/webm",
     }));
-    expect(processContinuousChunk).toHaveBeenCalledWith(11, "item-1", "session-1", 0);
+    expect(processContinuousChunk).toHaveBeenCalledWith(11, "item-1", "session-1", 0, {
+      snapshot: { epoch: 0, itemId: "item-1", sessionId: "session-1" },
+      signal: expect.any(AbortSignal),
+    });
 
     await act(async () => {
       vi.advanceTimersByTime(200);
@@ -132,5 +146,61 @@ describe("useContinuousRecorder", () => {
     });
 
     expect(FakeMediaRecorder.instances).toHaveLength(2);
+  });
+
+  it("serializes session audio appends inside a Dexie transaction", async () => {
+    const stored = { current: undefined as { blob: Blob; durationMs: number; mimeType: string; createdAt: Date; updatedAt: Date } | undefined };
+    let txChain = Promise.resolve();
+    dbMock.transaction.mockImplementation((_mode: string, _table: unknown, callback: () => Promise<void>) => {
+      const next = txChain.then(callback);
+      txChain = next.catch(() => undefined);
+      return next;
+    });
+    dbMock.sessionAudio.get.mockImplementation(async () => stored.current);
+    dbMock.sessionAudio.put.mockImplementation(async (record) => {
+      stored.current = record;
+    });
+    const { appendSessionAudio } = await import("../hooks/useContinuousRecorder");
+
+    await Promise.all([
+      appendSessionAudio("session-1", new Blob(["first"], { type: "audio/webm" }), "audio/webm", 100),
+      appendSessionAudio("session-1", new Blob(["second"], { type: "audio/webm" }), "audio/webm", 200),
+    ]);
+
+    await expect(stored.current?.blob.text()).resolves.toBe("firstsecond");
+    expect(stored.current?.durationMs).toBe(300);
+  });
+
+  it("stop waits for the final slice session audio append", async () => {
+    let resolvePut: (() => void) | null = null;
+    dbMock.sessionAudio.put.mockImplementation(
+      () => new Promise<void>((resolve) => {
+        resolvePut = resolve;
+      }),
+    );
+    const { useContinuousRecorder } = await import("../hooks/useContinuousRecorder");
+    const { result } = renderHook(() => useContinuousRecorder());
+
+    await act(async () => {
+      await result.current.start("session-1", "sale");
+    });
+
+    let stopped = false;
+    const stopPromise = result.current.stop().then(() => {
+      stopped = true;
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(stopped).toBe(false);
+    expect(dbMock.sessionAudio.put).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "session-1" }));
+
+    resolvePut?.();
+    await act(async () => {
+      await stopPromise;
+    });
+
+    expect(stopped).toBe(true);
   });
 });

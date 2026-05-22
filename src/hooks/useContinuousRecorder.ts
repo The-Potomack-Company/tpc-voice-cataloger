@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "../db";
-import { processContinuousChunk } from "../services/geminiContinuous";
+import { processContinuousChunk, type ContinuousChunkSnapshot } from "../services/geminiContinuous";
 import { useContinuousModeStore } from "../stores/continuousModeStore";
 import { useRecordingStore } from "../stores/recordingStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -22,6 +22,30 @@ interface ContinuousRecorderReturn {
 const CHUNK_MS = 15_000;
 const RESTART_DELAY_MS = 200;
 
+export async function appendSessionAudio(
+  sessionId: string,
+  blob: Blob,
+  mimeType: string,
+  durationForChunk: number,
+): Promise<void> {
+  await db.transaction("rw", db.sessionAudio, async () => {
+    const now = new Date();
+    const existing = await db.sessionAudio.get(sessionId);
+    const nextBlob = existing
+      ? new Blob([existing.blob, blob], { type: existing.mimeType || mimeType })
+      : blob;
+
+    await db.sessionAudio.put({
+      sessionId,
+      blob: nextBlob,
+      mimeType,
+      durationMs: (existing?.durationMs ?? 0) + durationForChunk,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    });
+  });
+}
+
 export function useContinuousRecorder(): ContinuousRecorderReturn {
   const [status, setStatus] = useState<ContinuousRecorderStatus>("idle");
   const [durationMs, setDurationMs] = useState(0);
@@ -35,11 +59,15 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
   const sessionIdRef = useRef<string | null>(null);
   const currentItemIdForSliceRef = useRef<string | null>(null);
   const chunkIndexForSliceRef = useRef(0);
+  const sliceSequenceRef = useRef(0);
+  const sliceSnapshotRef = useRef<ContinuousChunkSnapshot | null>(null);
   const sliceStartRef = useRef(0);
   const recordingStartRef = useRef(0);
   const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startSliceRef = useRef<() => void>(() => {});
+  const finalizePromiseRef = useRef<Promise<void> | null>(null);
+  const chunkAbortControllerRef = useRef<AbortController | null>(null);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -111,30 +139,12 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     }
   }, []);
 
-  const appendSessionAudio = useCallback(
-    async (sessionId: string, blob: Blob, mimeType: string, durationForChunk: number) => {
-      const now = new Date();
-      const existing = await db.sessionAudio.get(sessionId);
-      const nextBlob = existing
-        ? new Blob([existing.blob, blob], { type: existing.mimeType || mimeType })
-        : blob;
-
-      await db.sessionAudio.put({
-        sessionId,
-        blob: nextBlob,
-        mimeType,
-        durationMs: (existing?.durationMs ?? 0) + durationForChunk,
-        createdAt: existing?.createdAt ?? now,
-        updatedAt: now,
-      });
-    },
-    [],
-  );
-
   const saveAndProcessSlice = useCallback(
     async (blob: Blob, elapsedMs: number) => {
       const sessionId = sessionIdRef.current;
       const itemId = currentItemIdForSliceRef.current;
+      const snapshot = sliceSnapshotRef.current;
+      const chunkIndex = chunkIndexForSliceRef.current;
       if (!sessionId || !itemId || blob.size === 0) return;
 
       const id = await db.audio.add({
@@ -151,9 +161,12 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
       useContinuousModeStore.getState().pushChunk(audioId, sliceStartRef.current);
       await appendSessionAudio(sessionId, blob, mimeTypeRef.current || "audio/webm", elapsedMs);
 
-      void processContinuousChunk(audioId, itemId, sessionId, chunkIndexForSliceRef.current);
+      void processContinuousChunk(audioId, itemId, sessionId, chunkIndex, {
+        snapshot: snapshot ?? undefined,
+        signal: chunkAbortControllerRef.current?.signal,
+      });
     },
-    [appendSessionAudio],
+    [],
   );
 
   const startSlice = useCallback(() => {
@@ -166,8 +179,16 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     }
 
     chunksRef.current = [];
-    currentItemIdForSliceRef.current = useContinuousModeStore.getState().currentItemId;
-    chunkIndexForSliceRef.current = useContinuousModeStore.getState().chunkIndex;
+    const continuousState = useContinuousModeStore.getState();
+    currentItemIdForSliceRef.current = continuousState.currentItemId;
+    chunkIndexForSliceRef.current = sliceSequenceRef.current++;
+    sliceSnapshotRef.current = continuousState.currentItemId && continuousState.sessionId
+      ? {
+          epoch: continuousState.epoch,
+          itemId: continuousState.currentItemId,
+          sessionId: continuousState.sessionId,
+        }
+      : null;
     sliceStartRef.current = Date.now();
 
     const recorder = new MediaRecorder(stream, options);
@@ -182,7 +203,13 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || "audio/webm" });
       const elapsedMs = Date.now() - sliceStartRef.current;
-      void saveAndProcessSlice(blob, elapsedMs);
+      const finalize = saveAndProcessSlice(blob, elapsedMs);
+      const trackedFinalize = finalize.finally(() => {
+        if (finalizePromiseRef.current === trackedFinalize) {
+          finalizePromiseRef.current = null;
+        }
+      });
+      finalizePromiseRef.current = trackedFinalize;
 
       if (activeRef.current) {
         restartTimeoutRef.current = setTimeout(() => startSliceRef.current(), RESTART_DELAY_MS);
@@ -202,8 +229,25 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     startSliceRef.current = startSlice;
   }, [startSlice]);
 
-  const cleanup = useCallback(() => {
+  const stopActiveRecorderAndWait = useCallback((): Promise<void> => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "recording") {
+      return finalizePromiseRef.current ?? Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      const originalOnStop = recorder.onstop;
+      recorder.onstop = () => {
+        originalOnStop?.call(recorder, new Event("stop"));
+        void (finalizePromiseRef.current ?? Promise.resolve()).finally(resolve);
+      };
+      recorder.stop();
+    });
+  }, []);
+
+  const cleanup = useCallback(async () => {
     activeRef.current = false;
+    chunkAbortControllerRef.current?.abort();
     if (restartTimeoutRef.current !== null) {
       clearTimeout(restartTimeoutRef.current);
       restartTimeoutRef.current = null;
@@ -212,9 +256,7 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
-    if (recorderRef.current?.state === "recording") {
-      recorderRef.current.stop();
-    }
+    const stopPromise = stopActiveRecorderAndWait();
     recorderRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -222,7 +264,8 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     useRecordingStore.getState().setRecording(false);
     useRecordingStore.getState().setDuration(0);
     useUIStore.getState?.().setRecordingSession(null);
-  }, [stopLevelLoop]);
+    await stopPromise;
+  }, [stopActiveRecorderAndWait, stopLevelLoop]);
 
   const start = useCallback(
     async (sessionId: string, mode: "house" | "sale") => {
@@ -250,6 +293,8 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
         sessionIdRef.current = sessionId;
         mimeTypeRef.current = getPreferredMimeType();
         activeRef.current = true;
+        sliceSequenceRef.current = 0;
+        chunkAbortControllerRef.current = new AbortController();
         recordingStartRef.current = Date.now();
         useRecordingStore.getState().setRecording(true);
         useUIStore.getState().setRecordingSession(sessionId);
@@ -263,7 +308,7 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
         startLevelLoop(stream);
         startSlice();
       } catch (err) {
-        cleanup();
+        await cleanup();
         let message = "Failed to access microphone";
         if (err instanceof DOMException && err.name === "NotAllowedError") {
           message = "Microphone permission denied. Please allow access.";
@@ -280,7 +325,7 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
   );
 
   const stop = useCallback(async () => {
-    cleanup();
+    await cleanup();
     useContinuousModeStore.getState().exitMode();
     setStatus("idle");
     setDurationMs(0);
@@ -300,7 +345,11 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     setStatus("recording");
   }, []);
 
-  useEffect(() => cleanup, [cleanup]);
+  useEffect(() => {
+    return () => {
+      void cleanup();
+    };
+  }, [cleanup]);
 
   return { status, durationMs, error, start, stop, pause, resume };
 }
