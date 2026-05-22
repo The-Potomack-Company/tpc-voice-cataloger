@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { db } from "../db";
-import type { Session, HouseVisitItem, SaleItem } from "../db/types";
+import type { Session, HouseVisitItem, SaleItem, SessionAudio } from "../db/types";
 
 afterEach(async () => {
   await db.delete();
@@ -8,7 +8,7 @@ afterEach(async () => {
 });
 
 describe("Dexie database", () => {
-  it("opens successfully and has 9 tables", () => {
+  it("opens successfully and has 10 tables", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toEqual([
       "audio",
@@ -18,6 +18,7 @@ describe("Dexie database", () => {
       "photoUploadQueue",
       "photos",
       "saleItems",
+      "sessionAudio",
       "sessions",
       "writeAheadQueue",
     ]);
@@ -134,13 +135,14 @@ describe("Dexie database", () => {
 });
 
 describe("Dexie v6 migration", () => {
-  it("has 9 tables including exportHistory after v8 migration", () => {
+  it("has 10 tables including sessionAudio after v9 migration", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toContain("exportHistory");
     expect(tableNames).toContain("idMapping");
     expect(tableNames).toContain("writeAheadQueue");
     expect(tableNames).toContain("photoUploadQueue");
-    expect(tableNames).toHaveLength(9);
+    expect(tableNames).toContain("sessionAudio");
+    expect(tableNames).toHaveLength(10);
   });
 
   it("exportHistory table has sessionId and exportedAt indexes", () => {
@@ -162,6 +164,26 @@ describe("Dexie v6 migration", () => {
     expect(record).toBeDefined();
     expect(record!.sessionName).toBe("Test Session");
     expect(record!.itemCount).toBe(5);
+  });
+
+  it("can create and read a SessionAudio master blob", async () => {
+    const now = new Date();
+    const record: SessionAudio = {
+      sessionId: "session-uuid-1",
+      blob: new Blob(["audio"], { type: "audio/webm" }),
+      mimeType: "audio/webm",
+      durationMs: 15000,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db.sessionAudio.put(record);
+    const retrieved = await db.sessionAudio.get(record.sessionId);
+
+    expect(retrieved).toBeDefined();
+    expect(retrieved!.sessionId).toBe(record.sessionId);
+    expect(retrieved!.durationMs).toBe(15000);
+    expect(retrieved!.mimeType).toBe("audio/webm");
   });
 
   it("Session records have archivedAt as optional (undefined by default)", async () => {
