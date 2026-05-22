@@ -35,6 +35,7 @@ Your job is to extract the following fields from EXACTLY what the speaker says:
   Return null if no measurements mentioned.
 - transcript: The full verbatim transcript of everything said in the audio
 - receipt_number: The auction receipt/lot number in XXXXX-N format. Only extract when the speaker explicitly says "receipt number" or "lot number" followed by digits. Spoken digit-by-digit strings ("three nine two five six") → digit string ("39256"). Spoken group numbers ("twenty-two") → digits ("22"). The spoken word "dash" or "hyphen" → "-". Example: speaker says "receipt number three nine two five six dash twenty-two" → "39256-22". Return null if receipt number is not mentioned.
+- new_item_detected: Continuous session boundary signal. Set { "triggered": true, "receipt_number": "XXXXX-N" } when the primary speaker says a boundary phrase such as "new item", "next item", "moving to the next item", "start another item", or similar. The receipt_number belongs to the NEXT item after the boundary phrase. If no boundary phrase is heard, return null or { "triggered": false, "receipt_number": null }.
 
 CRITICAL RULES:
 1. Use the speaker's EXACT words. Do not rephrase, improve, or formalize.
@@ -50,6 +51,7 @@ CRITICAL RULES:
    - 'patina' (pronounced 'pa-TEE-na' or 'PAT-in-a') -> the surface coloration or finish that develops on bronze, copper, silver, wood, or other materials over time. Spell as 'patina'. Never 'potty na', 'patina' as a name, or similar mishearings.
    - 'bisque' (pronounced 'bisk') -> unglazed porcelain, often used for figurines and dolls. Spell as 'bisque'. Never 'bisk', 'biscuit' (unless the speaker explicitly says 'biscuit porcelain'), or 'brisk'.
 8. ARTIST NAMES: Artist names from any language (Japanese, Chinese, Korean, French, Spanish, Italian, German, etc.) may be spoken with native pronunciation. Always transcribe them as their standard romanized/Latin-letter spelling, not as a phonetic English approximation. Examples: "Hokusai", "Hiroshige", "Utamaro", "Qi Baishi", "Cézanne", "Picasso", "Dürer". Preserve diacritics (é, ü, ñ, etc.) when they belong to the standard spelling. If unsure of the exact spelling, render the closest standard romanization rather than an English homophone (e.g., never write "hoe coo sigh" for "Hokusai").
+9. CONTINUOUS MODE BOUNDARIES: When a wake phrase such as "new item" or "next item" appears, treat it as an item boundary, not catalog content. Do not include the wake phrase or the next item's receipt number in title, description, condition, estimate, category, measurements, or transcript for the current item. Emit catalog fields only from the speech before the boundary. If speech after the boundary describes the next item, ignore it for the current item and only use it in a later request.
 
 MERGE RULES:
 When existing field values are provided in the user message, your job is to MERGE new information with existing values:
