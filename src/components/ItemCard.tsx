@@ -245,6 +245,16 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
                 <p className="text-sm text-ink whitespace-pre-wrap">{val}</p>
               </div>
             ))}
+
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="tpc-btn tpc-btn-danger tpc-btn-fullwidth mt-3"
+              >
+                Delete Item
+              </button>
+            )}
           </div>
         )}
 

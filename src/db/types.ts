@@ -72,6 +72,15 @@ export interface ItemAudio {
   createdAt: Date;
 }
 
+export interface SessionAudio {
+  sessionId: string;
+  blob: Blob;
+  mimeType: string;
+  durationMs: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IdMapping {
   id?: number;
   oldId: number;

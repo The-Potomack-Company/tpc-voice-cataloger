@@ -33,7 +33,52 @@ export const catalogFieldsSchema = z.object({
     .string()
     .nullish()
     .describe("Receipt number in XXXXX-N format (5-digit lot prefix, dash, 1+ digit suffix). Extract when speaker says 'receipt number' or 'lot number' followed by digits. Spoken digit-by-digit ('three nine two five six') → digit string ('39256'). Spoken group numbers ('twenty-two') → digits ('22'). 'dash' or 'hyphen' → '-'. Example: 'receipt number three nine two five six dash twenty-two' → '39256-22'. Return null if not mentioned."),
+  new_item_detected: z
+    .object({
+      triggered: z.boolean(),
+      receipt_number: z.string().nullish(),
+      next_item: z
+        .object({
+          title: z.string().nullable(),
+          description: z.string().nullable(),
+          condition: z.string().nullable(),
+          estimate: z.string().nullable(),
+          category: z.string().nullable(),
+          measurements: z.string().nullable(),
+          transcript: z.string().nullable(),
+        })
+        .nullish()
+        .describe("Catalog fields extracted from speech AFTER the wake phrase, belonging to the NEXT item. Apply the same field-extraction rules as the top-level fields (formatting, vocabulary, punctuation, etc.). Null if no post-boundary speech was heard in this chunk."),
+    })
+    .nullish()
+    .describe("Continuous session wake-phrase signal. Set triggered true when the speaker says 'new item', 'next item', or a similar boundary phrase. Include the next item's receipt number when spoken. When speech continues after the wake phrase within the same chunk, extract those fields into next_item so the new item gets populated immediately — do NOT include that speech in the top-level (current-item) fields."),
 });
 
 export type CatalogFields = z.infer<typeof catalogFieldsSchema>;
-export const catalogFieldsJsonSchema = toJSONSchema(catalogFieldsSchema);
+
+const GEMINI_INCOMPATIBLE_KEYS = [
+  "additionalProperties",
+  "$schema",
+  "$defs",
+  "definitions",
+  "$id",
+] as const;
+
+function sanitizeForGemini(node: unknown): void {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    node.forEach(sanitizeForGemini);
+    return;
+  }
+  const obj = node as Record<string, unknown>;
+  for (const key of GEMINI_INCOMPATIBLE_KEYS) {
+    delete obj[key];
+  }
+  for (const value of Object.values(obj)) {
+    sanitizeForGemini(value);
+  }
+}
+
+const rawJsonSchema = toJSONSchema(catalogFieldsSchema);
+sanitizeForGemini(rawJsonSchema);
+export const catalogFieldsJsonSchema = rawJsonSchema;

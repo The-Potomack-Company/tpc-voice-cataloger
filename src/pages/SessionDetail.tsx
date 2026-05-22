@@ -11,9 +11,14 @@ import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ReturnDialog } from "../components/ReturnDialog";
 import { ItemList } from "../components/ItemList";
+import { ContinuousModeControlBar } from "../components/ContinuousModeControlBar";
+import { ContinuousModeFAB } from "../components/ContinuousModeFAB";
+import { ContinuousModePanel } from "../components/ContinuousModePanel";
 import { ExportHistoryList } from "../components/ExportHistoryList";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
+import { useContinuousRecorder } from "../hooks/useContinuousRecorder";
+import { useContinuousModeStore } from "../stores/continuousModeStore";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -95,6 +100,13 @@ export function SessionDetailPage() {
   const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   const [importToast, setImportToast] = useState<string | null>(null);
+  const continuousActive = useContinuousModeStore(
+    (s) => (s.active || s.finalizing) && s.sessionId === sessionId,
+  );
+  const continuousFinalizing = useContinuousModeStore((s) => s.finalizing && s.sessionId === sessionId);
+  const advanceContinuousItem = useContinuousModeStore((s) => s.advanceItem);
+  const continuousRecorder = useContinuousRecorder();
+  const continuousPaused = continuousRecorder.status === "paused";
 
   // Admin reassignment state
   const { isAdmin, loading: roleLoading } = useUserRole();
@@ -299,6 +311,18 @@ export function SessionDetailPage() {
     }
   };
 
+  const handleStartContinuous = async () => {
+    await continuousRecorder.start(sessionId!, session.mode as "house" | "sale");
+  };
+
+  const handleStopContinuous = async () => {
+    await continuousRecorder.stop();
+  };
+
+  const handleContinuousNewItem = () => {
+    void advanceContinuousItem(null);
+  };
+
   const shortId = sessionShortId(session);
 
   // Three-stat strip: AI-cataloged / Needs review / Total
@@ -324,7 +348,9 @@ export function SessionDetailPage() {
             : session.status;
 
   return (
-    <div className="relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-24">
+    <div className={`relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto ${
+      continuousActive ? "pb-32" : isReadOnly ? "pb-24" : "pb-60"
+    }`}>
       {/* Sticky header — eyebrow ("Review · TPCXX") + italic display ("N items · M min") + Sync action */}
       <div className="tpc-sticky-header py-3 -mx-4 portrait:px-4 landscape:px-8 mb-4">
         <div className="flex items-center gap-3">
@@ -605,7 +631,14 @@ export function SessionDetailPage() {
       {/* Item list section */}
       <section className="mb-8">
         <Eyebrow className="mb-3">Items ({itemCount})</Eyebrow>
-        <ItemList sessionId={sessionId!} mode={session.mode as "house" | "sale"} onAddItemRef={addItemRef} readOnly={isReadOnly} />
+        {continuousActive && <ContinuousModePanel sessionId={sessionId!} />}
+        <ItemList
+          sessionId={sessionId!}
+          mode={session.mode as "house" | "sale"}
+          onAddItemRef={addItemRef}
+          readOnly={isReadOnly || continuousActive}
+          compact={continuousActive}
+        />
       </section>
 
       {/* Export History */}
@@ -675,8 +708,8 @@ export function SessionDetailPage() {
       />
 
       {/* Floating Add Item button */}
-      {!isReadOnly && (
-        <div className="fixed bottom-24 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
+      {!isReadOnly && !continuousActive && (
+        <div className="fixed bottom-44 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
           <Button
             variant="primary"
             fullWidth
@@ -690,6 +723,24 @@ export function SessionDetailPage() {
             {itemCount === 0 ? "Start Cataloging" : "Add Item"}
           </Button>
         </div>
+      )}
+
+      {!isReadOnly && !continuousActive && (
+        <ContinuousModeFAB
+          onStart={handleStartContinuous}
+          disabled={continuousRecorder.status === "requesting"}
+        />
+      )}
+
+      {continuousActive && (
+        <ContinuousModeControlBar
+          paused={continuousPaused}
+          finalizing={continuousFinalizing}
+          onStop={handleStopContinuous}
+          onPause={continuousRecorder.pause}
+          onResume={continuousRecorder.resume}
+          onNewItem={handleContinuousNewItem}
+        />
       )}
 
       {/* Import toast feedback */}

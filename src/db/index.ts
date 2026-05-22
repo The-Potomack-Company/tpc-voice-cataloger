@@ -5,6 +5,7 @@ import type {
   SaleItem,
   ItemPhoto,
   ItemAudio,
+  SessionAudio,
   ExportHistoryRecord,
   IdMapping,
   WriteAheadEntry,
@@ -17,6 +18,7 @@ const db = new Dexie("TPCCatalog") as Dexie & {
   saleItems: EntityTable<SaleItem, "id">;
   photos: EntityTable<ItemPhoto, "id">;
   audio: EntityTable<ItemAudio, "id">;
+  sessionAudio: EntityTable<SessionAudio, "sessionId">;
   exportHistory: EntityTable<ExportHistoryRecord, "id">;
   idMapping: EntityTable<IdMapping, "id">;
   writeAheadQueue: EntityTable<WriteAheadEntry, "id">;
@@ -111,6 +113,20 @@ db.version(8).stores({
   idMapping: "++id, oldId, newId, type, [newId+type]",
   writeAheadQueue: "++id, createdAt",
   photoUploadQueue: '++id, status, dexiePhotoId, itemId, createdAt',
+});
+
+// v9: Add sessionAudio table for continuous-mode master recording blobs
+db.version(9).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  sessionAudio: "sessionId, updatedAt",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
 });
 
 export { db };
