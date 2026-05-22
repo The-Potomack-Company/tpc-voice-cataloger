@@ -12,6 +12,7 @@ import { blobToBase64, SYSTEM_PROMPT } from "./gemini";
 import { catalogFieldsJsonSchema, catalogFieldsSchema } from "./geminiSchema";
 
 const CONTINUOUS_CHUNK_TIMEOUT_MS = 30_000;
+const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75] as const;
 
 export type ContinuousChunkSnapshot = {
   epoch: number;
@@ -22,6 +23,7 @@ export type ContinuousChunkSnapshot = {
 type ProcessContinuousChunkOptions = {
   snapshot?: ContinuousChunkSnapshot;
   signal?: AbortSignal;
+  lookBackBytes?: Uint8Array;
 };
 
 class ContinuousChunkAbortError extends Error {
@@ -57,6 +59,41 @@ function responseSchemaForGemini(): Record<string, unknown> {
   );
 }
 
+function findWebmClusterOffset(bytes: Uint8Array): number {
+  for (let i = 0; i <= bytes.length - WEBM_CLUSTER_ID.length; i++) {
+    if (
+      bytes[i] === WEBM_CLUSTER_ID[0] &&
+      bytes[i + 1] === WEBM_CLUSTER_ID[1] &&
+      bytes[i + 2] === WEBM_CLUSTER_ID[2] &&
+      bytes[i + 3] === WEBM_CLUSTER_ID[3]
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+async function withLookBackAudio(audioBlob: Blob, lookBackBytes: Uint8Array | undefined): Promise<Blob> {
+  if (!lookBackBytes || lookBackBytes.length === 0) {
+    return audioBlob;
+  }
+
+  const currentBytes = new Uint8Array(await audioBlob.arrayBuffer());
+  const clusterOffset = findWebmClusterOffset(currentBytes);
+  if (clusterOffset <= 0) {
+    const combined = new Uint8Array(lookBackBytes.length + currentBytes.length);
+    combined.set(lookBackBytes, 0);
+    combined.set(currentBytes, lookBackBytes.length);
+    return new Blob([combined], { type: audioBlob.type });
+  }
+
+  const combined = new Uint8Array(currentBytes.length + lookBackBytes.length);
+  combined.set(currentBytes.slice(0, clusterOffset), 0);
+  combined.set(lookBackBytes, clusterOffset);
+  combined.set(currentBytes.slice(clusterOffset), clusterOffset + lookBackBytes.length);
+  return new Blob([combined], { type: audioBlob.type });
+}
+
 async function fetchCurrentItem(itemId: string) {
   const { data } = await supabase
     .from("items")
@@ -80,6 +117,7 @@ async function sendChunkToGemini(
   audioBlob: Blob,
   mimeType: string,
   currentItem: NonNullable<Awaited<ReturnType<typeof fetchCurrentItem>>>,
+  lookBackBytes?: Uint8Array,
   signal?: AbortSignal,
 ) {
   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
@@ -88,7 +126,9 @@ async function sendChunkToGemini(
   }
 
   throwIfAborted(signal);
-  const base64Audio = await blobToBase64(audioBlob);
+  const geminiAudioBlob = await withLookBackAudio(audioBlob, lookBackBytes);
+  throwIfAborted(signal);
+  const base64Audio = await blobToBase64(geminiAudioBlob);
   throwIfAborted(signal);
   const baseMimeType = mimeType.split(";")[0];
   const payload = {
@@ -260,7 +300,13 @@ export async function processContinuousChunk(
         return;
       }
 
-      const fields = await sendChunkToGemini(audioRecord.blob, audioRecord.mimeType, currentItem, options.signal);
+      const fields = await sendChunkToGemini(
+        audioRecord.blob,
+        audioRecord.mimeType,
+        currentItem,
+        options.lookBackBytes,
+        options.signal,
+      );
       throwIfAborted(options.signal);
 
       if (fields.transcript !== null) {
@@ -291,9 +337,18 @@ export async function processContinuousChunk(
           wakeState.currentItemId === liveItemId &&
           targetItemExists(liveItemId, sessionId)
         ) {
+          const detectedReceipt = fields.new_item_detected.receipt_number;
+          const liveCurrentItem = wakeState.currentItemId
+            ? await fetchCurrentItem(wakeState.currentItemId)
+            : null;
+          if (detectedReceipt && liveCurrentItem?.receipt_number === detectedReceipt) {
+            console.info("[processContinuousChunk] Suppressing duplicate wake-phrase advance", { detectedReceipt });
+            return;
+          }
+
           const newItemId = await useContinuousModeStore
             .getState()
-            .advanceItem(fields.new_item_detected.receipt_number ?? null);
+            .advanceItem(detectedReceipt ?? null);
           const nextItem = fields.new_item_detected.next_item;
           if (newItemId && nextItem) {
             throwIfAborted(options.signal);

@@ -24,7 +24,40 @@ interface ContinuousRecorderReturn {
 }
 
 const CHUNK_MS = 15_000;
-const RESTART_DELAY_MS = 200;
+const LOOK_BACK_TAIL_BYTES = 8_192;
+const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75] as const;
+
+function bytesToBlob(bytes: Uint8Array, mimeType: string): Blob {
+  const copy = new Uint8Array(bytes);
+  return new Blob([copy], { type: mimeType });
+}
+
+function findWebmClusterOffset(bytes: Uint8Array): number {
+  for (let i = 0; i <= bytes.length - WEBM_CLUSTER_ID.length; i++) {
+    if (
+      bytes[i] === WEBM_CLUSTER_ID[0] &&
+      bytes[i + 1] === WEBM_CLUSTER_ID[1] &&
+      bytes[i + 2] === WEBM_CLUSTER_ID[2] &&
+      bytes[i + 3] === WEBM_CLUSTER_ID[3]
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function extractWebmHeader(bytes: Uint8Array): Uint8Array | null {
+  const clusterOffset = findWebmClusterOffset(bytes);
+  if (clusterOffset <= 0) return null;
+  return bytes.slice(0, clusterOffset);
+}
+
+function prependHeader(headerBytes: Uint8Array, sliceBytes: Uint8Array, mimeType: string): Blob {
+  const combined = new Uint8Array(headerBytes.length + sliceBytes.length);
+  combined.set(headerBytes, 0);
+  combined.set(sliceBytes, headerBytes.length);
+  return bytesToBlob(combined, mimeType);
+}
 
 export async function appendSessionAudio(
   sessionId: string,
@@ -57,21 +90,18 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef("");
   const activeRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
-  const currentItemIdForSliceRef = useRef<string | null>(null);
-  const chunkIndexForSliceRef = useRef(0);
   const sliceSequenceRef = useRef(0);
-  const sliceSnapshotRef = useRef<ContinuousChunkSnapshot | null>(null);
   const sliceStartRef = useRef(0);
   const recordingStartRef = useRef(0);
-  const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startSliceRef = useRef<() => void>(() => {});
   const finalizePromiseRef = useRef<Promise<void> | null>(null);
+  const dataAvailableChainRef = useRef<Promise<void>>(Promise.resolve());
   const chunkAbortControllerRef = useRef<AbortController | null>(null);
+  const containerHeaderBytesRef = useRef<Uint8Array | null>(null);
+  const tailBufferRef = useRef<Uint8Array | null>(null);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -144,11 +174,17 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
   }, []);
 
   const saveAndProcessSlice = useCallback(
-    async (blob: Blob, elapsedMs: number) => {
+    async (
+      blob: Blob,
+      sessionBlob: Blob,
+      elapsedMs: number,
+      itemId: string | null,
+      chunkIndex: number,
+      sliceStart: number,
+      snapshot: ContinuousChunkSnapshot | null,
+      lookBackBytes: Uint8Array | null,
+    ) => {
       const sessionId = sessionIdRef.current;
-      const itemId = currentItemIdForSliceRef.current;
-      const snapshot = sliceSnapshotRef.current;
-      const chunkIndex = chunkIndexForSliceRef.current;
       if (!sessionId || !itemId || blob.size === 0) return;
 
       const id = await db.audio.add({
@@ -162,18 +198,73 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
 
       const audioId = id as number;
       useRecordingStore.getState().setLastSaved(audioId, elapsedMs);
-      useContinuousModeStore.getState().pushChunk(audioId, sliceStartRef.current);
-      await appendSessionAudio(sessionId, blob, mimeTypeRef.current || "audio/webm", elapsedMs);
+      useContinuousModeStore.getState().pushChunk(audioId, sliceStart);
+      await appendSessionAudio(sessionId, sessionBlob, mimeTypeRef.current || "audio/webm", elapsedMs);
 
       void processContinuousChunk(audioId, itemId, sessionId, chunkIndex, {
         snapshot: snapshot ?? undefined,
         signal: chunkAbortControllerRef.current?.signal,
+        lookBackBytes: lookBackBytes ?? undefined,
       });
     },
     [],
   );
 
-  const startSlice = useCallback(() => {
+  const finalizeRecorderData = useCallback(
+    async (data: Blob) => {
+      if (!data || data.size === 0) return;
+
+      const mimeType = mimeTypeRef.current || "audio/webm";
+      const bytes = new Uint8Array(await data.arrayBuffer());
+      const headerBytes = containerHeaderBytesRef.current;
+      let standaloneBlob = data;
+
+      if (headerBytes === null) {
+        const extractedHeader = extractWebmHeader(bytes);
+        if (extractedHeader) {
+          containerHeaderBytesRef.current = extractedHeader;
+        } else {
+          console.warn("[useContinuousRecorder] Could not locate WebM Cluster header; using first chunk as-is");
+        }
+      } else {
+        standaloneBlob = prependHeader(headerBytes, bytes, mimeType);
+      }
+
+      const continuousState = useContinuousModeStore.getState();
+      const itemId = continuousState.currentItemId;
+      const snapshot = continuousState.currentItemId && continuousState.sessionId
+        ? {
+            epoch: continuousState.epoch,
+            itemId: continuousState.currentItemId,
+            sessionId: continuousState.sessionId,
+          }
+        : null;
+      const chunkIndex = sliceSequenceRef.current++;
+      const sliceStart = sliceStartRef.current || Date.now();
+      const now = Date.now();
+      const elapsedMs = Math.max(0, now - sliceStart);
+      const lookBackBytes = tailBufferRef.current ? new Uint8Array(tailBufferRef.current) : null;
+
+      if (bytes.length > 0) {
+        tailBufferRef.current = bytes.slice(Math.max(0, bytes.length - LOOK_BACK_TAIL_BYTES));
+      }
+      sliceStartRef.current = now;
+
+      await saveAndProcessSlice(
+        standaloneBlob,
+        data,
+        elapsedMs,
+        itemId,
+        chunkIndex,
+        sliceStart,
+        snapshot,
+        lookBackBytes,
+      );
+    },
+    [saveAndProcessSlice],
+  );
+
+  const startRecorder = useCallback(() => {
     const stream = streamRef.current;
     if (!stream || !activeRef.current) return;
 
@@ -182,56 +273,32 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
       options.mimeType = mimeTypeRef.current;
     }
 
-    chunksRef.current = [];
-    const continuousState = useContinuousModeStore.getState();
-    currentItemIdForSliceRef.current = continuousState.currentItemId;
-    chunkIndexForSliceRef.current = sliceSequenceRef.current++;
-    sliceSnapshotRef.current = continuousState.currentItemId && continuousState.sessionId
-      ? {
-          epoch: continuousState.epoch,
-          itemId: continuousState.currentItemId,
-          sessionId: continuousState.sessionId,
-        }
-      : null;
     sliceStartRef.current = Date.now();
 
     const recorder = new MediaRecorder(stream, options);
     recorderRef.current = recorder;
 
     recorder.ondataavailable = (event: BlobEvent) => {
-      if (event.data && event.data.size > 0) {
-        chunksRef.current.push(event.data);
-      }
-    };
-
-    recorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || "audio/webm" });
-      const elapsedMs = Date.now() - sliceStartRef.current;
-      const finalize = saveAndProcessSlice(blob, elapsedMs);
-      const trackedFinalize = finalize.finally(() => {
+      if (!event.data || event.data.size === 0) return;
+      const nextFinalize = dataAvailableChainRef.current
+        .catch(() => undefined)
+        .then(() => finalizeRecorderData(event.data));
+      dataAvailableChainRef.current = nextFinalize;
+      const trackedFinalize = nextFinalize.finally(() => {
         if (finalizePromiseRef.current === trackedFinalize) {
           finalizePromiseRef.current = null;
         }
       });
       finalizePromiseRef.current = trackedFinalize;
-
-      if (activeRef.current) {
-        restartTimeoutRef.current = setTimeout(() => startSliceRef.current(), RESTART_DELAY_MS);
-      }
     };
 
-    recorder.start();
-    setStatus("recording");
-    restartTimeoutRef.current = setTimeout(() => {
-      if (recorder.state === "recording") {
-        recorder.stop();
-      }
-    }, CHUNK_MS);
-  }, [saveAndProcessSlice]);
+    recorder.onstop = () => {
+      recorderRef.current = null;
+    };
 
-  useEffect(() => {
-    startSliceRef.current = startSlice;
-  }, [startSlice]);
+    recorder.start(CHUNK_MS);
+    setStatus("recording");
+  }, [finalizeRecorderData]);
 
   const stopActiveRecorderAndWait = useCallback((): Promise<void> => {
     const recorder = recorderRef.current;
@@ -252,10 +319,6 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
   const cleanup = useCallback(async () => {
     activeRef.current = false;
     chunkAbortControllerRef.current?.abort();
-    if (restartTimeoutRef.current !== null) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
-    }
     if (timerIntervalRef.current !== null) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
@@ -305,6 +368,10 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
         mimeTypeRef.current = getPreferredMimeType();
         activeRef.current = true;
         sliceSequenceRef.current = 0;
+        containerHeaderBytesRef.current = null;
+        tailBufferRef.current = null;
+        dataAvailableChainRef.current = Promise.resolve();
+        finalizePromiseRef.current = null;
         chunkAbortControllerRef.current = new AbortController();
         recordingStartRef.current = Date.now();
         useRecordingStore.getState().setRecording(true);
@@ -317,7 +384,7 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
         }, 1000);
 
         startLevelLoop(stream);
-        startSlice();
+        startRecorder();
       } catch (err) {
         await cleanup();
         let message = "Failed to access microphone";
@@ -332,7 +399,7 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
         setStatus("error");
       }
     },
-    [cleanup, startLevelLoop, startSlice],
+    [cleanup, startLevelLoop, startRecorder],
   );
 
   const stop = useCallback(async () => {
@@ -346,10 +413,6 @@ export function useContinuousRecorder(): ContinuousRecorderReturn {
     activeRef.current = false;
     setStatus("finalizing");
 
-    if (restartTimeoutRef.current !== null) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
-    }
     if (timerIntervalRef.current !== null) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;

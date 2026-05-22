@@ -75,20 +75,32 @@ class FakeMediaRecorder {
   state: "inactive" | "recording" = "inactive";
   ondataavailable: ((event: BlobEvent) => void) | null = null;
   onstop: (() => void) | null = null;
+  startTimeslice: number | undefined;
 
   constructor() {
     FakeMediaRecorder.instances.push(this);
   }
 
-  start() {
+  start(timeslice?: number) {
+    this.startTimeslice = timeslice;
     this.state = "recording";
+  }
+
+  emit(data: Blob) {
+    this.ondataavailable?.({ data } as BlobEvent);
   }
 
   stop() {
     this.state = "inactive";
-    this.ondataavailable?.({ data: new Blob(["chunk"], { type: "audio/webm" }) } as BlobEvent);
+    this.ondataavailable?.({
+      data: new Blob([new Uint8Array([0xaa, 0xbb, 0x1f, 0x43, 0xb6, 0x75, 0x01])], { type: "audio/webm" }),
+    } as BlobEvent);
     this.onstop?.();
   }
+}
+
+async function blobBytes(blob: Blob): Promise<number[]> {
+  return Array.from(new Uint8Array(await blob.arrayBuffer()));
 }
 
 describe("useContinuousRecorder", () => {
@@ -122,7 +134,7 @@ describe("useContinuousRecorder", () => {
     });
   });
 
-  it("writes 15s chunks, appends session audio, and restarts after 200ms", async () => {
+  it("starts one continuous recorder with a 15s timeslice", async () => {
     const { useContinuousRecorder } = await import("../hooks/useContinuousRecorder");
     const { result } = renderHook(() => useContinuousRecorder());
 
@@ -131,9 +143,21 @@ describe("useContinuousRecorder", () => {
     });
 
     expect(FakeMediaRecorder.instances).toHaveLength(1);
+    expect(FakeMediaRecorder.instances[0].startTimeslice).toBe(15_000);
+  });
+
+  it("writes timeslice chunks and prepends the cached WebM header after the first chunk", async () => {
+    const { useContinuousRecorder } = await import("../hooks/useContinuousRecorder");
+    const { result } = renderHook(() => useContinuousRecorder());
 
     await act(async () => {
-      vi.advanceTimersByTime(15_000);
+      await result.current.start("session-1", "sale");
+    });
+
+    await act(async () => {
+      FakeMediaRecorder.instances[0].emit(new Blob([
+        new Uint8Array([0xaa, 0xbb, 0x1f, 0x43, 0xb6, 0x75, 0x01, 0x02, 0x03]),
+      ], { type: "audio/webm" }));
       await Promise.resolve();
     });
 
@@ -148,14 +172,28 @@ describe("useContinuousRecorder", () => {
     expect(processContinuousChunk).toHaveBeenCalledWith(11, "item-1", "session-1", 0, {
       snapshot: { epoch: 0, itemId: "item-1", sessionId: "session-1" },
       signal: expect.any(AbortSignal),
+      lookBackBytes: undefined,
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(200);
+      FakeMediaRecorder.instances[0].emit(new Blob([
+        new Uint8Array([0x1f, 0x43, 0xb6, 0x75, 0x04, 0x05]),
+      ], { type: "audio/webm" }));
       await Promise.resolve();
     });
 
-    expect(FakeMediaRecorder.instances).toHaveLength(2);
+    expect(FakeMediaRecorder.instances).toHaveLength(1);
+    expect(await blobBytes(dbMock.audio.add.mock.calls[0][0].blob)).toEqual([
+      0xaa, 0xbb, 0x1f, 0x43, 0xb6, 0x75, 0x01, 0x02, 0x03,
+    ]);
+    expect(await blobBytes(dbMock.audio.add.mock.calls[1][0].blob)).toEqual([
+      0xaa, 0xbb, 0x1f, 0x43, 0xb6, 0x75, 0x04, 0x05,
+    ]);
+    expect(processContinuousChunk).toHaveBeenLastCalledWith(11, "item-1", "session-1", 1, {
+      snapshot: { epoch: 0, itemId: "item-1", sessionId: "session-1" },
+      signal: expect.any(AbortSignal),
+      lookBackBytes: new Uint8Array([0xaa, 0xbb, 0x1f, 0x43, 0xb6, 0x75, 0x01, 0x02, 0x03]),
+    });
   });
 
   it("serializes session audio appends inside a Dexie transaction", async () => {
@@ -199,12 +237,9 @@ describe("useContinuousRecorder", () => {
     const stopPromise = result.current.stop().then(() => {
       stopped = true;
     });
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => expect(dbMock.sessionAudio.put).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "session-1" })));
 
     expect(stopped).toBe(false);
-    expect(dbMock.sessionAudio.put).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "session-1" }));
 
     resolvePut?.();
     await act(async () => {
@@ -242,6 +277,7 @@ describe("useContinuousRecorder", () => {
     expect(processContinuousChunk).toHaveBeenCalledWith(11, "item-1", "session-1", 0, {
       snapshot: { epoch: 0, itemId: "item-1", sessionId: "session-1" },
       signal: expect.any(AbortSignal),
+      lookBackBytes: undefined,
     });
     expect(waitForSessionChunksDrain).toHaveBeenCalledWith("session-1");
     expect(continuousState.exitMode).not.toHaveBeenCalled();

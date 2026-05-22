@@ -156,6 +156,30 @@ describe("processContinuousChunk", () => {
     expect(continuousStore.markChunkDone).toHaveBeenCalledWith(0);
   });
 
+  it("sends look-back bytes before the current chunk media payload", async () => {
+    dbMock.audio.get.mockResolvedValue({
+      blob: new Blob([
+        new Uint8Array([0xaa, 0xbb, 0x1f, 0x43, 0xb6, 0x75, 0x01]),
+      ], { type: "audio/webm" }),
+      mimeType: "audio/webm;codecs=opus",
+    });
+    mockGeminiResponse({
+      ...baseFields,
+      new_item_detected: null,
+    });
+    const { processContinuousChunk } = await import("../services/geminiContinuous");
+
+    await processContinuousChunk(1, "item-1", "session-1", 1, {
+      lookBackBytes: new Uint8Array([0x09, 0x08]),
+    });
+
+    const body = JSON.parse((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    const base64Audio = body.payload.contents[0].parts[1].inlineData.data;
+    expect(Array.from(Uint8Array.from(atob(base64Audio), (char) => char.charCodeAt(0)))).toEqual([
+      0xaa, 0xbb, 0x09, 0x08, 0x1f, 0x43, 0xb6, 0x75, 0x01,
+    ]);
+  });
+
   it("merges fields without advancing when no wake phrase is present", async () => {
     mockGeminiResponse({
       ...baseFields,
@@ -168,6 +192,93 @@ describe("processContinuousChunk", () => {
     expect(sessionStore.updateItemField).toHaveBeenCalledWith("item-1", "session-1", "description", "Antique brass lamp");
     expect(continuousStore.advanceItem).not.toHaveBeenCalled();
     expect(continuousStore.markChunkDone).toHaveBeenCalledWith(2);
+  });
+
+  it("suppresses duplicate wake phrase advancement when detected receipt matches the current item", async () => {
+    mockDelayedGeminiResponses([
+      {
+        fields: {
+          ...baseFields,
+          new_item_detected: {
+            triggered: true,
+            receipt_number: "12345-2",
+          },
+        },
+        delayMs: 0,
+      },
+      {
+        fields: {
+          ...baseFields,
+          title: null,
+          description: null,
+          transcript: null,
+          new_item_detected: {
+            triggered: true,
+            receipt_number: "12345-2",
+          },
+        },
+        delayMs: 0,
+      },
+    ]);
+    maybeSingle
+      .mockResolvedValueOnce({
+        data: {
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          category: null,
+          measurements: null,
+          transcript: null,
+          receipt_number: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          category: null,
+          measurements: null,
+          transcript: null,
+          receipt_number: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          category: null,
+          measurements: null,
+          transcript: null,
+          receipt_number: "12345-2",
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          title: null,
+          description: null,
+          condition: null,
+          estimate: null,
+          category: null,
+          measurements: null,
+          transcript: null,
+          receipt_number: "12345-2",
+        },
+      });
+    const { processContinuousChunk } = await import("../services/geminiContinuous");
+
+    await processContinuousChunk(1, "item-1", "session-1", 5);
+    await processContinuousChunk(1, "next-item", "session-1", 6, {
+      lookBackBytes: new Uint8Array([1, 2, 3]),
+    });
+
+    expect(continuousStore.advanceItem).toHaveBeenCalledTimes(1);
+    expect(continuousStore.advanceItem).toHaveBeenCalledWith("12345-2");
+    expect(continuousStore.markChunkDone).toHaveBeenCalledWith(6);
   });
 
   it("merges stale snapshot chunks into the live current item", async () => {
