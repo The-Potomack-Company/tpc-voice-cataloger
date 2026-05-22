@@ -704,7 +704,7 @@ export function SessionDetailPage() {
 
       {/* Floating Add Item button */}
       {!isReadOnly && !continuousActive && (
-        <div className="fixed bottom-24 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
+        <div className="fixed bottom-44 left-0 right-0 px-4 pb-[env(safe-area-inset-bottom)] landscape:max-w-3xl landscape:mx-auto z-40">
           <Button
             variant="primary"
             fullWidth
