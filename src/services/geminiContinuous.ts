@@ -271,7 +271,35 @@ export async function processContinuousChunk(
 
       if (fields.new_item_detected?.triggered) {
         if (canMergeFields(snapshot)) {
-          await useContinuousModeStore.getState().advanceItem(fields.new_item_detected.receipt_number ?? null);
+          const newItemId = await useContinuousModeStore
+            .getState()
+            .advanceItem(fields.new_item_detected.receipt_number ?? null);
+          const nextItem = fields.new_item_detected.next_item;
+          if (newItemId && nextItem) {
+            throwIfAborted(options.signal);
+            const postAdvanceState = useContinuousModeStore.getState();
+            if (
+              postAdvanceState.active &&
+              postAdvanceState.sessionId === sessionId &&
+              postAdvanceState.currentItemId === newItemId &&
+              targetItemExists(newItemId, sessionId)
+            ) {
+              if (nextItem.transcript) {
+                postAdvanceState.appendTranscript(nextItem.transcript);
+              }
+              await mergeFieldsIntoItem(newItemId, sessionId, {
+                title: nextItem.title,
+                description: nextItem.description,
+                condition: nextItem.condition,
+                estimate: nextItem.estimate,
+                category: nextItem.category,
+                measurements: nextItem.measurements,
+                transcript: nextItem.transcript,
+                receipt_number: null,
+                new_item_detected: null,
+              });
+            }
+          }
         }
       }
     } catch (error) {

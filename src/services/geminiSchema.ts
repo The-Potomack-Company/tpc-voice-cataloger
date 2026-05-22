@@ -37,9 +37,21 @@ export const catalogFieldsSchema = z.object({
     .object({
       triggered: z.boolean(),
       receipt_number: z.string().nullish(),
+      next_item: z
+        .object({
+          title: z.string().nullable(),
+          description: z.string().nullable(),
+          condition: z.string().nullable(),
+          estimate: z.string().nullable(),
+          category: z.string().nullable(),
+          measurements: z.string().nullable(),
+          transcript: z.string().nullable(),
+        })
+        .nullish()
+        .describe("Catalog fields extracted from speech AFTER the wake phrase, belonging to the NEXT item. Apply the same field-extraction rules as the top-level fields (formatting, vocabulary, punctuation, etc.). Null if no post-boundary speech was heard in this chunk."),
     })
     .nullish()
-    .describe("Continuous session wake-phrase signal. Set triggered true when the speaker says 'new item', 'next item', or a similar boundary phrase. Include the next item's receipt number when spoken."),
+    .describe("Continuous session wake-phrase signal. Set triggered true when the speaker says 'new item', 'next item', or a similar boundary phrase. Include the next item's receipt number when spoken. When speech continues after the wake phrase within the same chunk, extract those fields into next_item so the new item gets populated immediately — do NOT include that speech in the top-level (current-item) fields."),
 });
 
 export type CatalogFields = z.infer<typeof catalogFieldsSchema>;
