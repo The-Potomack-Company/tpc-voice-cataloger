@@ -46,6 +46,14 @@ describe('getCorsHeaders', () => {
     expect(headers['Vary']).toBe('Origin');
   });
 
+  it('allows the Authorization header in preflight (clients send Bearer JWT)', () => {
+    const req = new Request('https://proxy.example.com', {
+      headers: { Origin: 'https://tpc-cataloging-app.vercel.app' },
+    });
+    const headers = getCorsHeaders(req, env);
+    expect(headers['Access-Control-Allow-Headers']).toContain('Authorization');
+  });
+
   it('returns empty object for disallowed origin', () => {
     const req = new Request('https://proxy.example.com', {
       headers: { Origin: 'https://evil.com' },

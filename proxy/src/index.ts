@@ -46,7 +46,7 @@ export function getCorsHeaders(request: Request, env: Env): Record<string, strin
     return {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
       'Vary': 'Origin',
     };
   }
@@ -75,6 +75,7 @@ export default {
       });
     }
 
+    // Cheap pre-check on the declared length...
     const contentLength = request.headers.get('Content-Length');
     if (contentLength && Number(contentLength) > MAX_BODY_BYTES) {
       return new Response(JSON.stringify({ error: 'Payload too large' }), {
@@ -84,7 +85,17 @@ export default {
     }
 
     try {
-      const { model, payload } = (await request.json()) as {
+      // ...then enforce the cap on the actual body, since Content-Length can be
+      // absent or spoofed (chunked transfer). CF platform limits bound the read.
+      const bodyText = await request.text();
+      if (new TextEncoder().encode(bodyText).byteLength > MAX_BODY_BYTES) {
+        return new Response(JSON.stringify({ error: 'Payload too large' }), {
+          status: 413,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { model, payload } = JSON.parse(bodyText) as {
         model: string;
         payload: object;
       };
