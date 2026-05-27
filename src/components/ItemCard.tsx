@@ -10,6 +10,7 @@ import { updateItemField, deleteItem } from "../db/items";
 import { processAudioWithAi } from "../services/gemini";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
+import { audioRecordsForItem } from "../db/audioLookup";
 import { hasPendingForItem } from "../hooks/useWriteAheadQueue";
 import { Badge } from "../ui/Badge";
 
@@ -45,15 +46,14 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
 
   const audioData = useLiveQuery(
     async () => {
-      if (dexieItemId == null) return { count: 0, latestAudioId: null as number | null };
-      const audios = await db.audio.where("itemId").equals(dexieItemId).toArray();
+      const audios = await audioRecordsForItem(item.id);
       const count = audios.length;
       const latestAudioId = count > 0
         ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
         : null;
       return { count, latestAudioId };
     },
-    [dexieItemId],
+    [item.id],
     { count: 0, latestAudioId: null as number | null },
   );
 

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSessionItems } from "../hooks/useSessions";
-import { db } from "../db";
+import { audioRecordsForItem } from "../db/audioLookup";
 import { ItemCard } from "./ItemCard";
 import { createBlankItem } from "../db/items";
 import { processAudioWithAi } from "../services/gemini";
@@ -91,7 +91,7 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
     try {
       await Promise.all(
         stuckItems.map(async (item) => {
-          const audios = await db.audio.where("itemId").equals(item.id).toArray();
+          const audios = await audioRecordsForItem(item.id);
           if (audios.length === 0) return;
           const latestAudioId = audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!);
           return processAudioWithAi(latestAudioId, item.id, sessionId);
