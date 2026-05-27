@@ -5,6 +5,9 @@ interface Env {
   SUPABASE_ANON_KEY: string;
 }
 
+export const ALLOWED_MODELS = new Set(["gemini-2.5-flash"]);
+export const MAX_BODY_BYTES = 25 * 1024 * 1024;
+
 export function isAllowedOrigin(origin: string, allowedOrigins: string): boolean {
   if (!origin) return false;
   const allowed = allowedOrigins.split(',').map(s => s.trim());
@@ -72,11 +75,26 @@ export default {
       });
     }
 
+    const contentLength = request.headers.get('Content-Length');
+    if (contentLength && Number(contentLength) > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: 'Payload too large' }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     try {
       const { model, payload } = (await request.json()) as {
         model: string;
         payload: object;
       };
+
+      if (typeof model !== 'string' || !ALLOWED_MODELS.has(model)) {
+        return new Response(JSON.stringify({ error: 'Unsupported model' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
 

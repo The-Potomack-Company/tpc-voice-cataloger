@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { isAllowedOrigin, getCorsHeaders, verifyAuth } from './index';
+import { isAllowedOrigin, getCorsHeaders, verifyAuth, ALLOWED_MODELS, MAX_BODY_BYTES } from './index';
+import worker from './index';
 
 const ALLOWED = 'https://tpc-cataloging-app.vercel.app,https://localhost:5173';
 
@@ -98,5 +99,85 @@ describe('verifyAuth', () => {
     const req = new Request('https://proxy.example.com');
     expect(await verifyAuth(req, env)).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('ALLOWED_MODELS', () => {
+  it('contains gemini-2.5-flash', () => {
+    expect(ALLOWED_MODELS.has('gemini-2.5-flash')).toBe(true);
+  });
+
+  it('does not contain gemini-2.5-pro', () => {
+    expect(ALLOWED_MODELS.has('gemini-2.5-pro')).toBe(false);
+  });
+});
+
+describe('fetch handler hardening', () => {
+  const env = {
+    GEMINI_API_KEY: 'test',
+    ALLOWED_ORIGINS: ALLOWED,
+    SUPABASE_URL: 'https://example.supabase.co',
+    SUPABASE_ANON_KEY: 'anon-test-key',
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns 413 for oversized Content-Length and never hits Gemini', async () => {
+    const fetchMock = vi
+      .spyOn(global, 'fetch')
+      .mockResolvedValue({ status: 200, text: async () => '{}' } as unknown as Response);
+    const req = new Request('https://proxy.example.com', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer good',
+        Origin: 'https://tpc-cataloging-app.vercel.app',
+        'Content-Type': 'application/json',
+        'Content-Length': String(MAX_BODY_BYTES + 1),
+      },
+      body: '{}',
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(413);
+    expect(
+      fetchMock.mock.calls.some(c => String(c[0]).includes('generativelanguage')),
+    ).toBe(false);
+  });
+
+  it('returns 400 for a non-allowlisted model', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      status: 200,
+      text: async () => '{}',
+    } as unknown as Response);
+    const req = new Request('https://proxy.example.com', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer good',
+        Origin: 'https://tpc-cataloging-app.vercel.app',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: 'evil-model', payload: {} }),
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 200 for an allowlisted gemini-2.5-flash request', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      status: 200,
+      text: async () => '{}',
+    } as unknown as Response);
+    const req = new Request('https://proxy.example.com', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer good',
+        Origin: 'https://tpc-cataloging-app.vercel.app',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: 'gemini-2.5-flash', payload: {} }),
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(200);
   });
 });
