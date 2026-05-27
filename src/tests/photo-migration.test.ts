@@ -235,5 +235,66 @@ describe("photo migration", () => {
       expect(result.queued).toBe(0);
       expect(mockPhotos.toArray).not.toHaveBeenCalled();
     });
+
+    it("does NOT set the completion flag when a photo's item is not yet in Supabase, and retries it on a later run (DAT-6)", async () => {
+      // Two photos: item 10 exists in Supabase, item 20 does not yet.
+      mockPhotos.toArray.mockResolvedValue([
+        { id: 1, itemId: 10, sortOrder: 0 },
+        { id: 2, itemId: 20, sortOrder: 0 },
+      ]);
+      mockPhotoUploadQueue.toArray.mockResolvedValue([]);
+
+      setupIdMappingMock({ 10: "uuid-item-10", 20: "uuid-item-20" });
+      // Only uuid-item-10 resolves; uuid-item-20 returns null (not migrated yet).
+      setupSupabaseItemLookup({ "uuid-item-10": "uuid-session-1" });
+
+      const { migrateExistingPhotos } = await import(
+        "../services/photoMigration"
+      );
+      const result = await migrateExistingPhotos();
+
+      // (a) one skipped, the resolved one queued
+      expect(result.skipped).toBeGreaterThanOrEqual(1);
+      expect(result.queued).toBe(1);
+      expect(result.total).toBe(2);
+      expect(mockEnqueuePhotoUpload).toHaveBeenCalledTimes(1);
+
+      // (b) flag NOT set — skipped photos must be retried
+      expect(localStorage.getItem("photo_migration_v1_complete")).toBe(null);
+
+      // (c) a second run does NOT early-return: it re-enters the loop and
+      // re-attempts the skipped photo, which now resolves and gets queued.
+      mockEnqueuePhotoUpload.mockClear();
+      // Photo 1 is now handled (it was queued last run); only photo 2 remains.
+      mockPhotos.toArray.mockResolvedValue([
+        { id: 1, itemId: 10, sortOrder: 0 },
+        { id: 2, itemId: 20, sortOrder: 0 },
+      ]);
+      mockPhotoUploadQueue.toArray.mockResolvedValue([
+        { dexiePhotoId: 1, status: "pending" },
+      ]);
+      // Item 20 has now been migrated to Supabase.
+      setupSupabaseItemLookup({
+        "uuid-item-10": "uuid-session-1",
+        "uuid-item-20": "uuid-session-2",
+      });
+
+      const result2 = await migrateExistingPhotos();
+
+      expect(mockPhotos.toArray).toHaveBeenCalled(); // did NOT early-return
+      expect(result2.total).toBe(1);
+      expect(result2.queued).toBe(1);
+      expect(result2.skipped).toBe(0);
+      expect(mockEnqueuePhotoUpload).toHaveBeenCalledTimes(1);
+      expect(mockEnqueuePhotoUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dexiePhotoId: 2,
+          itemId: "uuid-item-20",
+          sessionId: "uuid-session-2",
+        }),
+      );
+      // Now that nothing was skipped, the flag IS set.
+      expect(localStorage.getItem("photo_migration_v1_complete")).toBe("true");
+    });
   });
 });
