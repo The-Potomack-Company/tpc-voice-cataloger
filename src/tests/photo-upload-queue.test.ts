@@ -5,22 +5,22 @@ const {
   mockStorageFrom,
   mockStorageUpload,
   mockSupabaseFrom,
-  mockSupabaseInsert,
+  mockSupabaseUpsert,
 } = vi.hoisted(() => {
   const mockStorageUpload = vi.fn();
   const mockStorageFrom = vi.fn(() => ({
     upload: mockStorageUpload,
   }));
-  const mockSupabaseInsert = vi.fn();
+  const mockSupabaseUpsert = vi.fn();
   const mockSupabaseFrom = vi.fn(() => ({
-    insert: mockSupabaseInsert,
+    upsert: mockSupabaseUpsert,
   }));
 
   return {
     mockStorageFrom,
     mockStorageUpload,
     mockSupabaseFrom,
-    mockSupabaseInsert,
+    mockSupabaseUpsert,
   };
 });
 
@@ -156,7 +156,7 @@ describe("photoUploadQueue", () => {
         thumbnail: new Blob(["thumb"]),
       });
       mockStorageUpload.mockResolvedValue({ error: null });
-      mockSupabaseInsert.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
       mockPhotoUploadQueue.update.mockResolvedValue(1);
 
       await drainPhotoQueue();
@@ -183,13 +183,13 @@ describe("photoUploadQueue", () => {
         thumbnail: new Blob(["thumb"]),
       });
       mockStorageUpload.mockResolvedValue({ error: null });
-      mockSupabaseInsert.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
       mockPhotoUploadQueue.update.mockResolvedValue(1);
 
       await drainPhotoQueue();
 
       // All 5 entries should be processed (via 3 batches: 2+2+1)
-      // Each entry triggers: update(uploading) + 2 uploads + 1 insert + update(uploaded) = at least 2 updates per entry
+      // Each entry triggers: update(uploading) + 2 uploads + 1 upsert + update(uploaded) = at least 2 updates per entry
       // With 5 entries, we should see at least 10 update calls
       expect(mockPhotoUploadQueue.update.mock.calls.length).toBeGreaterThanOrEqual(
         10
@@ -223,7 +223,7 @@ describe("photoUploadQueue", () => {
         thumbnail: new Blob(["thumb"]),
       });
       mockStorageUpload.mockResolvedValue({ error: null });
-      mockSupabaseInsert.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
       mockPhotoUploadQueue.update.mockResolvedValue(1);
 
       // Start first drain (will wait on slow promise)
@@ -273,7 +273,7 @@ describe("photoUploadQueue", () => {
         thumbnail: new Blob(["thumb-data"]),
       });
       mockStorageUpload.mockResolvedValue({ error: null });
-      mockSupabaseInsert.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
 
       await processOneUpload(entry);
 
@@ -297,7 +297,7 @@ describe("photoUploadQueue", () => {
         thumbnail: new Blob(["thumb-data"]),
       });
       mockStorageUpload.mockResolvedValue({ error: null });
-      mockSupabaseInsert.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
 
       await processOneUpload(entry);
 
@@ -307,7 +307,7 @@ describe("photoUploadQueue", () => {
       );
     });
 
-    it("inserts metadata row in Supabase photos table on success", async () => {
+    it("upserts metadata row (ON CONFLICT DO NOTHING) in Supabase photos table on success", async () => {
       const { processOneUpload } = await import(
         "../services/photoUploadQueue"
       );
@@ -320,18 +320,59 @@ describe("photoUploadQueue", () => {
         thumbnail: new Blob(["thumb-data"]),
       });
       mockStorageUpload.mockResolvedValue({ error: null });
-      mockSupabaseInsert.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
 
       await processOneUpload(entry);
 
       expect(mockSupabaseFrom).toHaveBeenCalledWith("photos");
-      expect(mockSupabaseInsert).toHaveBeenCalledWith({
-        item_id: "item-uuid-1",
-        storage_path: "photos/session-uuid-1/item-uuid-1/full-0.jpg",
-        thumbnail_path: "photos/session-uuid-1/item-uuid-1/thumb-0.jpg",
-        sort_order: 0,
-        upload_status: "uploaded",
+      // DAT-5: upsert keyed on storage_path with ignoreDuplicates so a retry
+      // can't create a duplicate photos row.
+      expect(mockSupabaseUpsert).toHaveBeenCalledWith(
+        {
+          item_id: "item-uuid-1",
+          storage_path: "photos/session-uuid-1/item-uuid-1/full-0.jpg",
+          thumbnail_path: "photos/session-uuid-1/item-uuid-1/thumb-0.jpg",
+          sort_order: 0,
+          upload_status: "uploaded",
+        },
+        { onConflict: "storage_path", ignoreDuplicates: true }
+      );
+    });
+
+    it("DAT-5: re-processing the same entry stays idempotent (upsert keyed on storage_path, no duplicate row)", async () => {
+      const { processOneUpload } = await import(
+        "../services/photoUploadQueue"
+      );
+
+      const entry = makeEntry();
+      mockPhotoUploadQueue.update.mockResolvedValue(1);
+      mockPhotos.get.mockResolvedValue({
+        id: 10,
+        blob: new Blob(["full-data"]),
+        thumbnail: new Blob(["thumb-data"]),
       });
+      mockStorageUpload.mockResolvedValue({ error: null });
+      // Simulate the DB-side ON CONFLICT DO NOTHING: a duplicate insert is a
+      // no-op that still resolves without error.
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
+
+      // Process the same queue entry twice (e.g. retry after a partial success).
+      await processOneUpload(entry);
+      await processOneUpload(entry);
+
+      // Every metadata write is an upsert (never a plain insert), keyed on
+      // storage_path with ignoreDuplicates — so the second run cannot create a
+      // duplicate public.photos row.
+      expect(mockSupabaseUpsert).toHaveBeenCalledTimes(2);
+      for (const call of mockSupabaseUpsert.mock.calls) {
+        expect(call[0]).toMatchObject({
+          storage_path: "photos/session-uuid-1/item-uuid-1/full-0.jpg",
+        });
+        expect(call[1]).toEqual({
+          onConflict: "storage_path",
+          ignoreDuplicates: true,
+        });
+      }
     });
 
     it("marks queue entry as uploaded on success", async () => {
@@ -347,7 +388,7 @@ describe("photoUploadQueue", () => {
         thumbnail: new Blob(["thumb-data"]),
       });
       mockStorageUpload.mockResolvedValue({ error: null });
-      mockSupabaseInsert.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
 
       await processOneUpload(entry);
 
