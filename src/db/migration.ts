@@ -12,7 +12,7 @@ export async function needsMigration(): Promise<boolean> {
 export async function migrateToSupabase(
   userId: string,
   onProgress: (current: number, total: number) => void,
-): Promise<{ migrated: number; skipped: number }> {
+): Promise<{ migrated: number; skipped: number; partial: boolean }> {
   // 1. Read all non-deleted Dexie sessions
   const dexieSessions = await db.sessions
     .filter((s) => !s.deletedAt)
@@ -35,7 +35,14 @@ export async function migrateToSupabase(
   let migrated = 0;
   let skipped = 0;
 
+  // DAT-1: track which Dexie rows actually reached Supabase so the cleanup
+  // below deletes ONLY those. Failed rows stay in Dexie as the recovery set.
+  const migratedHouseItemIds: number[] = [];
+  const migratedSaleItemIds: number[] = [];
+  const fullyMigratedSessionIds: number[] = [];
+
   for (const dexieSession of dexieSessions) {
+    let sessionHadFailure = false;
     // Insert session to Supabase
     const { data: newSession, error: sessError } = await supabase
       .from("sessions")
@@ -102,9 +109,11 @@ export async function migrateToSupabase(
           newId: newItem.id,
           type: "item",
         });
+        migratedHouseItemIds.push(item.id!);
         migrated++;
       } else {
         skipped++;
+        sessionHadFailure = true;
       }
       onProgress(migrated + skipped, totalItems);
     }
@@ -140,19 +149,30 @@ export async function migrateToSupabase(
           newId: newItem.id,
           type: "item",
         });
+        migratedSaleItemIds.push(item.id!);
         migrated++;
       } else {
         skipped++;
+        sessionHadFailure = true;
       }
       onProgress(migrated + skipped, totalItems);
     }
+
+    // Only drop the session row once every item under it migrated; otherwise keep
+    // it so the surviving failed items retain their parent context for recovery.
+    if (!sessionHadFailure) {
+      fullyMigratedSessionIds.push(dexieSession.id!);
+    }
   }
 
-  // Clear migrated metadata from Dexie (keep photos, audio, idMapping)
-  await db.sessions.clear();
-  await db.houseVisitItems.clear();
-  await db.saleItems.clear();
-  await db.exportHistory.clear();
+  // DAT-1: delete only successfully-migrated rows; preserve any failure in Dexie.
+  await db.houseVisitItems.bulkDelete(migratedHouseItemIds);
+  await db.saleItems.bulkDelete(migratedSaleItemIds);
+  await db.sessions.bulkDelete(fullyMigratedSessionIds);
+  // exportHistory references old session ids; only safe to clear on a clean full run.
+  if (skipped === 0) {
+    await db.exportHistory.clear();
+  }
 
-  return { migrated, skipped };
+  return { migrated, skipped, partial: skipped > 0 };
 }
