@@ -28,6 +28,11 @@ import { WarnBanner } from "../ui/WarnBanner";
 import { sessionShortId } from "../utils/groupByDate";
 import { isNeedsReview } from "../utils/itemStatus";
 
+// Continuous mode disabled pending correctness rework (look-back audio corruption,
+// wrong-item merge race, duplicate-item replay). Code kept dormant for future revival.
+// See _workspace/Decisions/D-050 + docs/audit-consolidated-backlog-2026-05-27.md.
+const CONTINUOUS_MODE_ENABLED = false;
+
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = Date.now();
@@ -725,7 +730,7 @@ export function SessionDetailPage() {
         </div>
       )}
 
-      {!isReadOnly && !continuousActive && (
+      {!isReadOnly && !continuousActive && CONTINUOUS_MODE_ENABLED && (
         <ContinuousModeFAB
           onStart={handleStartContinuous}
           disabled={continuousRecorder.status === "requesting"}
