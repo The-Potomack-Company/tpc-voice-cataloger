@@ -1,19 +1,40 @@
 interface Env {
   GEMINI_API_KEY: string;
   ALLOWED_ORIGINS: string;
+  SUPABASE_URL: string;
+  SUPABASE_ANON_KEY: string;
 }
 
 export function isAllowedOrigin(origin: string, allowedOrigins: string): boolean {
   if (!origin) return false;
   const allowed = allowedOrigins.split(',').map(s => s.trim());
   if (allowed.includes(origin)) return true;
-  // Suffix match for Vercel preview deploys: must be https://<subdomain>.vercel.app
+  // Suffix match for Vercel preview deploys: must be https://tpc-<subdomain>.vercel.app
   if (origin.startsWith('https://') && origin.endsWith('.vercel.app')) {
     const hostPart = origin.slice('https://'.length);
-    // Reject bare "vercel.app" -- must have a subdomain
-    if (hostPart !== 'vercel.app') return true;
+    // Reject bare "vercel.app" and attacker-controlled *.vercel.app subdomains:
+    // only our tpc-prefixed preview hosts pass.
+    if (hostPart !== 'vercel.app' && hostPart.startsWith('tpc-')) return true;
   }
   return false;
+}
+
+export async function verifyAuth(request: Request, env: Env): Promise<boolean> {
+  const authHeader = request.headers.get('Authorization') || '';
+  const match = authHeader.match(/^Bearer (.+)$/);
+  if (!match) return false;
+  const token = match[1];
+  try {
+    const response = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: env.SUPABASE_ANON_KEY,
+      },
+    });
+    return response.status === 200;
+  } catch {
+    return false;
+  }
 }
 
 export function getCorsHeaders(request: Request, env: Env): Record<string, string> {
@@ -40,6 +61,13 @@ export default {
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!(await verifyAuth(request, env))) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
