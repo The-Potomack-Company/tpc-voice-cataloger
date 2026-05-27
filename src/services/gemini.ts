@@ -100,6 +100,13 @@ export async function blobToBase64(blob: Blob): Promise<string> {
   }
   return btoa(binary);
 }
+function isTransientNetworkError(error: unknown): boolean {
+  if (!navigator.onLine) return true;
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+  if (error instanceof Error && /abort|Load failed|Failed to fetch|NetworkError/i.test(error.message)) return true;
+  return false;
+}
+
 
 /**
  * Full AI processing pipeline: fetch audio from Dexie, send to Gemini via proxy,
@@ -209,9 +216,9 @@ export async function processAudioWithAi(
       },
     };
 
-    // Send to proxy (30s timeout so a down server doesn't hang forever)
+    // Send to proxy (60s timeout so a down server doesn't hang forever)
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 60_000);
     let response: Response;
     try {
       response = await fetch(proxyUrl, {
@@ -308,7 +315,7 @@ export async function processAudioWithAi(
     // Refresh Zustand store so UI re-renders with AI results
     useSessionStore.getState().fetchItems(sessionId).catch(() => {});
   } catch (error) {
-    // On ANY error: set ai_status to "failed", set fallback description
+    // Retry transient network failures; terminal failures keep the manual review fallback.
     console.error("AI processing error:", error);
     trackEvent({
       event_type: "ai.processing_failed",
@@ -319,16 +326,20 @@ export async function processAudioWithAi(
       items_content: { item_id: itemId },
     });
     try {
+      const update = isTransientNetworkError(error)
+        ? { ai_status: "queued" }
+        : {
+            ai_status: "failed",
+            description:
+              "AI processing failed - audio recorded, awaiting manual review",
+          };
+
       await supabase
         .from("items")
-        .update({
-          ai_status: "failed",
-          description:
-            "AI processing failed - audio recorded, awaiting manual review",
-        })
+        .update(update)
         .eq("id", itemId);
 
-      // Refresh store so UI shows "failed" status immediately
+      // Refresh store so UI shows the retryable or failed status immediately
       useSessionStore.getState().fetchItems(sessionId).catch(() => {});
     } catch (dbError) {
       console.error("Failed to update ai_status to failed:", dbError);
