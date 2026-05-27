@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
 import { enqueueWrite } from "../hooks/useWriteAheadQueue";
 import { trackEvent } from "../services/analytics";
+import { useNotificationStore } from "./notificationStore";
 import type { Tables } from "../db/database.types";
 
 function isNetworkError(err: unknown): boolean {
@@ -450,6 +451,25 @@ export const useSessionStore = create<SessionState>()(
               ),
             },
           }));
+          // DAT-4: surface the failed save instead of silently dropping it. Skip internal
+          // status writes (ai_status) — those aren't user edits and shouldn't toast.
+          if (field !== "ai_status") {
+            useNotificationStore.getState().notifyError(
+              `Couldn't save ${field}. Tap Retry to try again.`,
+              () => {
+                // DAT-4: guard against clobbering a newer edit — only retry if the field is
+                // still at the reverted value left by the failed save. If the user changed it
+                // since, drop the stale retry instead of overwriting.
+                const latest = get().itemsBySession[sessionId]?.find((i) => i.id === itemId);
+                const revertedValue = (originalItem as Record<string, unknown>)[field];
+                if (latest && (latest as Record<string, unknown>)[field] === revertedValue) {
+                  void get().updateItemField(itemId, sessionId, field, value);
+                } else {
+                  useNotificationStore.getState().dismiss();
+                }
+              },
+            );
+          }
         }
       },
 

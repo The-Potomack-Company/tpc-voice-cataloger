@@ -7,6 +7,7 @@ import { drainQueue } from "../services/offlineQueue";
 import { drainPhotoQueue } from "../services/photoUploadQueue";
 import { migrateExistingPhotos } from "../services/photoMigration";
 import { PhotoMigrationBanner } from "../components/PhotoMigrationBanner";
+import { ErrorToast } from "../components/ErrorToast";
 import {
   useWriteAheadQueue,
   processWriteAheadQueue,
@@ -117,6 +118,7 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
+      <ErrorToast />
     </div>
   );
 }
