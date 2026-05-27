@@ -8,6 +8,7 @@ import { useSessionStore } from "../stores/sessionStore";
 import { applySpokenQuotes, applySpokenBullets } from "../utils/spokenPunctuation";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
+import { ensureFreshSession } from "../lib/authGuard";
 
 export const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -123,6 +124,8 @@ export async function processAudioWithAi(
     items_content: { item_id: itemId },
   });
   try {
+    await ensureFreshSession();
+
     // Set ai_status to "processing" via Supabase
     await supabase
       .from("items")

@@ -10,6 +10,7 @@ import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 import { blobToBase64, SYSTEM_PROMPT } from "./gemini";
 import { catalogFieldsJsonSchema, catalogFieldsSchema } from "./geminiSchema";
+import { ensureFreshSession } from "../lib/authGuard";
 
 const CONTINUOUS_CHUNK_TIMEOUT_MS = 30_000;
 const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75] as const;
@@ -261,6 +262,9 @@ export async function processContinuousChunk(
   chunkIndex: number,
   options: ProcessContinuousChunkOptions = {},
 ): Promise<void> {
+  throwIfAborted(options.signal);
+  await ensureFreshSession();
+
   const startedAt = performance.now();
   const continuousStore = useContinuousModeStore.getState();
   continuousStore.markChunkPending(chunkIndex);
