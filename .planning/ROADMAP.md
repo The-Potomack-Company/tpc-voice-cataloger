@@ -61,6 +61,26 @@ Known issues + follow-ups: `.planning/v1.2-known-issues.md`, `.planning/v1.2-fol
 
 </details>
 
+## Pipeline — Data-Integrity Hardening (D-051 sweep follow-ups)
+
+Two issues from the 2026-05-27 security/data-integrity sweep were deferred as too large for the hotfix chain. These use the `999.x` backlog namespace (deferred; promote to a sequential phase number when planned). Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
+
+- [ ] **Phase 999.2: Migration retryability & idempotency** *(DAT-1 follow-up — builds on PR #24)*
+  - `needsMigration()` returns true while any non-deleted Dexie session/item lacks an `idMapping` entry (today it returns false as soon as ANY mapping exists, so a partial migration is treated as complete and the preserved recovery set is never re-offered).
+  - Make `migrateToSupabase` idempotent: before inserting a session/item, look up `idMapping` by `oldId` and reuse the existing `newId` / skip the insert — so a retry over preserved rows can't create duplicate Supabase sessions/items.
+  - Surface partial state in the UI using the `partial` flag DAT-1 already returns (migration banner: "N items not yet synced — Retry"; retry re-runs the migration).
+  - Tests: retry-after-partial migrates only the remaining rows, creates no duplicates, banner reflects partial state.
+  - Risk: medium (migration logic + migration banner UI).
+
+- [ ] **Phase 999.3: Optimistic locking for item edits** *(DAT-3 — builds on the DAT-4 toast PR #26 + DAT-1)*
+  - Add an `items.updated_at` auto-bump-on-UPDATE Postgres trigger (before-update / moddatetime). New migration + update `../_workspace/Schema/schema.md`.
+  - `updateItemField` (and the AI merge path) read `updated_at`, write with an `.eq("updated_at", <prev>)` precondition, and on a 0-row conflict re-read + reconcile instead of last-writer-wins.
+  - Per-writer conflict policy: a user single-field edit re-applies on conflict (intent-preserving); the AI merge re-reads & re-merges and must NOT overwrite a field the user changed since the merge's read.
+  - Optional: cross-tab/device version check (broadcast or version compare).
+  - Conflicts surface to the user via the DAT-4 ErrorToast.
+  - Tests: a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit; cross-writer conflicts are handled, not dropped.
+  - Risk: HIGH (concurrency + DB trigger + reconciliation) — a careless partial implementation can silently drop writes, so this needs careful planning + UAT.
+
 ## Progress
 
 | Phase | Milestone | Plans | Status | Completed |
