@@ -2,20 +2,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { db } from "../db";
 
 // --- Mocks for Supabase (vi.hoisted ensures availability in vi.mock factory) ---
-const { mockFrom, mockUpdate, mockEq, mockSelect, mockSingle } = vi.hoisted(
+const { mockFrom, mockUpdate, mockEq, mockSelect, mockSingle, mockGetSession, mockRefreshSession } = vi.hoisted(
   () => {
     const mockSingle = vi.fn();
     const mockEq = vi.fn();
     const mockSelect = vi.fn();
     const mockUpdate = vi.fn();
     const mockFrom = vi.fn();
+    const mockGetSession = vi.fn();
+    const mockRefreshSession = vi.fn();
 
-    return { mockFrom, mockUpdate, mockEq, mockSelect, mockSingle };
+    return { mockFrom, mockUpdate, mockEq, mockSelect, mockSingle, mockGetSession, mockRefreshSession };
   },
 );
 
 vi.mock("../lib/supabase", () => ({
   supabase: {
+    auth: {
+      getSession: mockGetSession,
+      refreshSession: mockRefreshSession,
+    },
     from: mockFrom,
   },
 }));
@@ -83,6 +89,12 @@ describe("gemini pipeline", () => {
     mockEq.mockReset();
     mockSelect.mockReset();
     mockSingle.mockReset();
+    mockGetSession.mockReset();
+    mockRefreshSession.mockReset();
+    mockGetSession.mockResolvedValue({
+      data: { session: { expires_at: Math.floor(Date.now() / 1000) + 3600 } },
+    });
+    mockRefreshSession.mockResolvedValue({ data: { session: {} }, error: null });
   });
 
   afterEach(() => {

@@ -34,10 +34,15 @@ const sessionStore = vi.hoisted(() => ({
 }));
 
 const maybeSingle = vi.hoisted(() => vi.fn());
+const authMock = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  refreshSession: vi.fn(),
+}));
 
 vi.mock("../db", () => ({ db: dbMock }));
 vi.mock("../lib/supabase", () => ({
   supabase: {
+    auth: authMock,
     from: () => ({
       select: () => ({
         eq: () => ({
@@ -135,6 +140,12 @@ describe("processContinuousChunk", () => {
         receipt_number: null,
       },
     });
+    authMock.getSession.mockReset();
+    authMock.refreshSession.mockReset();
+    authMock.getSession.mockResolvedValue({
+      data: { session: { expires_at: Math.floor(Date.now() / 1000) + 3600 } },
+    });
+    authMock.refreshSession.mockResolvedValue({ data: { session: {} }, error: null });
   });
 
   it("advances when Gemini returns new_item_detected", async () => {

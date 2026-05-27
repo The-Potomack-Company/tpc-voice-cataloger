@@ -33,7 +33,17 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         loading: false,
       });
     });
-    return () => subscription.unsubscribe();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.getSession().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   },
 
   signIn: async (email, password) => {
