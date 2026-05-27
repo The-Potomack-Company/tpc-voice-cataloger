@@ -8,7 +8,7 @@ base: urgent/sec-proxy-hardening
 commits: ["6a7c58a", "0a489a6"]
 codex_review: CLEAN (1 finding dismissed — false positive, verified)
 smoke: "tsc -b green; 507 tests passed"
-pr: "not yet opened — classifier blocked outward publish; branch pushed"
+pr: "#21 (base urgent/sec-proxy-hardening) — open, no merge until end-UAT"
 ---
 
 # SEC-4 — Storage-bucket RLS ownership scoping — COMPLETE
