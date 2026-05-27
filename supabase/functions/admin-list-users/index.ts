@@ -1,4 +1,4 @@
-import { corsHeaders } from '../_shared/cors.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 import { createAdminClient } from '../_shared/admin-client.ts'
 import { verifyAdmin } from '../_shared/verify-admin.ts'
 
@@ -31,6 +31,7 @@ const runtime =
   }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
