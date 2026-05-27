@@ -12,7 +12,7 @@ import { blobToBase64, SYSTEM_PROMPT } from "./gemini";
 import { catalogFieldsJsonSchema, catalogFieldsSchema } from "./geminiSchema";
 import { ensureFreshSession } from "../lib/authGuard";
 
-const CONTINUOUS_CHUNK_TIMEOUT_MS = 30_000;
+const CONTINUOUS_CHUNK_TIMEOUT_MS = 60_000;
 const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75] as const;
 
 export type ContinuousChunkSnapshot = {
@@ -32,6 +32,13 @@ class ContinuousChunkAbortError extends Error {
     super("Continuous chunk processing aborted");
     this.name = "AbortError";
   }
+}
+
+function isTransientNetworkError(error: unknown): boolean {
+  if (!navigator.onLine) return true;
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  if (error instanceof Error && /abort|Load failed|Failed to fetch|NetworkError/i.test(error.message)) return true;
+  return false;
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -391,7 +398,12 @@ export async function processContinuousChunk(
         return;
       }
       console.error("Continuous AI processing error:", error);
-      useContinuousModeStore.getState().markChunkFailed(chunkIndex);
+      const transientNetworkError = isTransientNetworkError(error);
+      if (transientNetworkError) {
+        useContinuousModeStore.getState().markChunkDone(chunkIndex);
+      } else {
+        useContinuousModeStore.getState().markChunkFailed(chunkIndex);
+      }
       trackEvent({
         event_type: "ai.processing_failed",
         session_id: sessionId,
@@ -401,7 +413,7 @@ export async function processContinuousChunk(
         items_content: { item_id: itemId, continuous: true, chunk_index: chunkIndex },
       });
       try {
-        if (liveItemId && canProcessSession(sessionId) && targetItemExists(liveItemId, sessionId)) {
+        if (!transientNetworkError && liveItemId && canProcessSession(sessionId) && targetItemExists(liveItemId, sessionId)) {
           await useSessionStore.getState().updateItemField(liveItemId, sessionId, "ai_status", "failed");
         }
       } catch (dbError) {
