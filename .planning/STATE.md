@@ -4,10 +4,10 @@ milestone: v1.2
 milestone_name: UI Overhaul
 status: shipped
 shipped_at: "2026-05-13"
-superseded_by: "v3.0-hub-merge (tpc-hub repo)"
-stopped_at: "v1.2 SHIPPED 2026-05-13 (PR #11 mega-PR covering phases 22-30, all 4/4 Phase 22 plans complete + downstream phases). v1.3 cancelled — work subsumed by cross-app v3.0 hub merge (see ../tpc-hub). This repo is in strangler-grace: hotfix lane only via /tpc-urgent until v3.0 cutover, then 301 → hub URL + 30-day archive."
-last_updated: "2026-05-20T09:34:28-04:00"
-last_activity: 2026-05-13 -- v1.2 closed out (PR #11); v1.3 cancelled in favor of v3.0 hub merge
+superseded_by: null
+stopped_at: "v1.2 SHIPPED 2026-05-13 (PR #11). v3.0 hub cutover DEFERRED 2026-05-27 (D-052) — repo is live again and matured independently; per-app feature + hardening work allowed. Data-integrity follow-ups queued (phases 999.2, 999.3 from the D-051 sweep)."
+last_updated: "2026-05-27T00:00:00-04:00"
+last_activity: 2026-05-27 -- v3.0 cutover deferred (D-052); repo live again, maturing independently
 progress:
   total_phases: 9
   completed_phases: 9
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-28)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.2 SHIPPED (closed 2026-05-13). Repo is in strangler-grace under v3.0 hub merge. **No new milestones here.**
+**Current focus:** v1.2 shipped; v3.0 hub cutover deferred (D-052). Repo is LIVE and maturing independently — per-app feature + hardening work allowed. Next up: data-integrity follow-ups (phases 999.2, 999.3).
 
 ## Current Position
 
 Milestone: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
-Status: All v1.2 phases delivered; repo frozen pending v3.0 hub cutover
-Successor: ../tpc-hub (v3.0-hub-merge milestone)
-Hotfix policy: /tpc-urgent lane open for prod regressions; no new feature work
+Status: v1.2 delivered; repo live and maturing independently (v3.0 cutover deferred — D-052)
+Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
+Work policy: feature + hardening work allowed in-repo again (D-052); /tpc-urgent still used for prod regressions
 
 Progress: [▓▓▓▓▓▓▓▓▓▓] 100% (v1.2 complete)
 

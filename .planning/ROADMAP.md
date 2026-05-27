@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** -- Phases 1-9 + 5.1 (shipped 2026-03-17) -- See [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - ✅ **v1.1 Accounts & Deploy** -- Phases 11-21 (shipped 2026-03-31) -- See [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 - ✅ **v1.2 UI Overhaul** -- Phases 22-30 (shipped 2026-05-13 via PR #11) -- See [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
-- [ ] **v1.3 TBD** -- scope pending (likely subsumed by cross-app Unified 3.0 / tpc-hub effort)
+- [ ] **v1.3 Maturation** -- LIVE track. v3.0 hub cutover deferred 2026-05-27 (D-052) — apps matured independently before reconciling. Data-integrity follow-ups queued (phases 999.2, 999.3).
 
 ## Phases
 
