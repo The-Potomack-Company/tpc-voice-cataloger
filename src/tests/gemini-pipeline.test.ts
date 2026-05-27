@@ -92,7 +92,12 @@ describe("gemini pipeline", () => {
     mockGetSession.mockReset();
     mockRefreshSession.mockReset();
     mockGetSession.mockResolvedValue({
-      data: { session: { expires_at: Math.floor(Date.now() / 1000) + 3600 } },
+      data: {
+        session: {
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          access_token: "test-token",
+        },
+      },
     });
     mockRefreshSession.mockResolvedValue({ data: { session: {} }, error: null });
   });

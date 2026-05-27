@@ -131,7 +131,7 @@ export async function processAudioWithAi(
     items_content: { item_id: itemId },
   });
   try {
-    await ensureFreshSession();
+    const accessToken = await ensureFreshSession();
 
     // Set ai_status to "processing" via Supabase
     await supabase
@@ -223,7 +223,10 @@ export async function processAudioWithAi(
     try {
       response = await fetch(proxyUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           model: "gemini-2.5-flash",
           payload: geminiPayload,
