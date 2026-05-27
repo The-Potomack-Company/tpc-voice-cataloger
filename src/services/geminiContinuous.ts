@@ -36,7 +36,7 @@ class ContinuousChunkAbortError extends Error {
 
 function isTransientNetworkError(error: unknown): boolean {
   if (!navigator.onLine) return true;
-  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  if (error instanceof DOMException && error.name === "AbortError") return true;
   if (error instanceof Error && /abort|Load failed|Failed to fetch|NetworkError/i.test(error.message)) return true;
   return false;
 }

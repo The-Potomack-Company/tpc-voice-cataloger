@@ -102,7 +102,7 @@ export async function blobToBase64(blob: Blob): Promise<string> {
 }
 function isTransientNetworkError(error: unknown): boolean {
   if (!navigator.onLine) return true;
-  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  if (error instanceof DOMException && error.name === "AbortError") return true;
   if (error instanceof Error && /abort|Load failed|Failed to fetch|NetworkError/i.test(error.message)) return true;
   return false;
 }
@@ -315,7 +315,7 @@ export async function processAudioWithAi(
     // Refresh Zustand store so UI re-renders with AI results
     useSessionStore.getState().fetchItems(sessionId).catch(() => {});
   } catch (error) {
-    // On ANY error: set ai_status to "failed", set fallback description
+    // Retry transient network failures; terminal failures keep the manual review fallback.
     console.error("AI processing error:", error);
     trackEvent({
       event_type: "ai.processing_failed",
