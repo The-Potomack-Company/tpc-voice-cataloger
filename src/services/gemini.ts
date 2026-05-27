@@ -374,11 +374,8 @@ export async function processAudioWithAi(
     try {
       const update = isTransientNetworkError(error)
         ? { ai_status: "queued" }
-        : {
-            ai_status: "failed",
-            description:
-              "AI processing failed - audio recorded, awaiting manual review",
-          };
+        // DAT-2: do not write status into `description` — it clobbers AI content / manual edits.
+        : { ai_status: "failed" };
 
       await supabase
         .from("items")

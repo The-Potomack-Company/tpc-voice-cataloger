@@ -211,9 +211,8 @@ describe("gemini pipeline", () => {
       // Last update should set ai_status to 'failed'
       const lastUpdate = updateCalls[updateCalls.length - 1];
       expect(lastUpdate.ai_status).toBe("failed");
-      expect(lastUpdate.description).toBe(
-        "AI processing failed - audio recorded, awaiting manual review",
-      );
+      // DAT-2: failure must not clobber description
+      expect(lastUpdate.description).toBeUndefined();
     });
 
     it("audio blob is still read from Dexie db.audio.get(audioId)", async () => {
@@ -456,9 +455,8 @@ describe("gemini pipeline", () => {
 
       const lastUpdate = updateCalls[updateCalls.length - 1];
       expect(lastUpdate.ai_status).toBe("failed");
-      expect(lastUpdate.description).toBe(
-        "AI processing failed - audio recorded, awaiting manual review",
-      );
+      // DAT-2: failure must not clobber description
+      expect(lastUpdate.description).toBeUndefined();
     });
 
     it("includes existing field values in Gemini payload text part for re-recordings", async () => {
