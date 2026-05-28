@@ -1,0 +1,5 @@
+-- Source of truth: TPC_App repo (~/Projects/TPC_App/TPC_App/supabase/migrations/).
+-- This file exists only so the Supabase CLI's local migration directory matches the
+-- remote project's migration tracking table. DO NOT EDIT. DO NOT TREAT AS AUTHORITATIVE.
+-- Applied status is recorded in supabase_migrations.schema_migrations via
+-- `supabase migration repair --status applied`.
