@@ -50,4 +50,3 @@ enable_signup = false
 
 [edge_runtime]
 enabled = true
-ip_version = "ipv4"
