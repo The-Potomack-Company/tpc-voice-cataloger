@@ -2,8 +2,14 @@
 -- Adds private.dev_users, helper predicates, and RESTRICTIVE policies so dev
 -- rows cannot leak through existing permissive admin policies.
 --
--- Ported verbatim from tpc-hub/supabase/migrations/20260519000000_dev_users_filter.sql
+-- SQL ported from tpc-hub/supabase/migrations/20260519000000_dev_users_filter.sql
 -- under a fresh timestamp to preserve voice-cataloger's local migration ordering.
+-- Hardened from the hub source per Codex adversarial review (D-046):
+--   1. classify_dev_user() now removes auto-classified rows when an email
+--      changes from dev → non-dev (HIGH: previously stranded users hidden
+--      from admin UI forever).
+--   2. analytics_events policy preserves null-email rows (MEDIUM: dashboard
+--      RPCs bucket null as "Unknown" and would have lost all of them).
 -- The hub milestone is paused so this is the first push of D-038 to prod
 -- (project wgrknodfxdjtddsirldw, shared across all TPC apps).
 --
@@ -53,6 +59,13 @@ begin
       end
     )
     on conflict (user_id) do nothing;
+  else
+    -- Email changed to a non-dev value: clear auto-classifications so the
+    -- user is no longer hidden from admin views. Manual seeds (reason
+    -- 'manual seed: ...') are preserved — only the 'auto: %' rows go.
+    delete from private.dev_users
+    where user_id = new.id
+      and reason like 'auto:%';
   end if;
 
   return new;
@@ -224,8 +237,11 @@ begin
       for select
       to authenticated
       using (
-        user_email is not null
-        and not private.is_dev_email(user_email)
+        -- Null user_email rows represent anonymous extension telemetry that
+        -- dashboards bucket as "Unknown". Preserve them; only block rows
+        -- whose user_email resolves to a known dev account.
+        user_email is null
+        or not private.is_dev_email(user_email)
       );
   end if;
 
