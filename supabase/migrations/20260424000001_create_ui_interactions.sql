@@ -22,11 +22,13 @@ CREATE INDEX IF NOT EXISTS ui_interactions_page_path_idx ON public.ui_interactio
 
 ALTER TABLE public.ui_interactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "users insert own interactions" ON public.ui_interactions;
 CREATE POLICY "users insert own interactions"
   ON public.ui_interactions FOR INSERT
   TO authenticated
   WITH CHECK (user_id = auth.uid() OR user_id IS NULL);
 
+DROP POLICY IF EXISTS "users read own interactions; admins read all" ON public.ui_interactions;
 CREATE POLICY "users read own interactions; admins read all"
   ON public.ui_interactions FOR SELECT
   TO authenticated
