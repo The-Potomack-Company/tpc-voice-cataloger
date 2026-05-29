@@ -24,12 +24,12 @@ import { formatDuration } from "../utils/audio";
 import type { ItemPhoto } from "../db/types";
 import { audioRecordsForItem } from "../db/audioLookup";
 import { processAudioWithAi } from "../services/gemini";
-import { useAudioRecorder } from "../hooks/useAudioRecorder";
 
 /** Failed-AI banner. Shown when ai_status === "failed" so a user editing a
- *  single item knows AI didn't complete and can retry the latest recording.
- *  Without this, the only failure surface is the small status dot + badge
- *  on the list view, which is invisible from the detail page. */
+ *  single item sees the failure and can re-run AI on the latest audio.
+ *  Real terminal failures always have audio (that's what failed to
+ *  process); if a synthetic state has no audio, the banner stays hidden
+ *  so we don't surface an undismissable dead-end. */
 function AiFailureBanner({
   itemId,
   sessionId,
@@ -38,7 +38,6 @@ function AiFailureBanner({
   sessionId: string;
 }) {
   const [retrying, setRetrying] = useState(false);
-  const { status, startRecording } = useAudioRecorder();
   const latestAudioId = useLiveQuery(
     async () => {
       const audios = await audioRecordsForItem(itemId);
@@ -50,51 +49,39 @@ function AiFailureBanner({
     null as number | null,
   );
 
-  const hasAudio = latestAudioId != null;
-  const isRequestingMic = status === "requesting";
+  if (latestAudioId == null) return null;
 
-  // Single-tap retry. If audio exists, re-run AI on the latest recording. If
-  // not, start a fresh recording — RecordButton.handleClick will auto-process
-  // when the user stops, so the user only taps once to recover either way.
-  const handleAction = () => {
-    if (hasAudio) {
-      if (retrying) return;
-      setRetrying(true);
-      processAudioWithAi(latestAudioId, itemId, sessionId)
-        .catch((err) => {
-          console.error("AI retry failed:", err);
-        })
-        .finally(() => setRetrying(false));
-    } else if (!isRequestingMic) {
-      startRecording(itemId, sessionId);
-    }
+  const handleRetry = () => {
+    if (retrying) return;
+    setRetrying(true);
+    processAudioWithAi(latestAudioId, itemId, sessionId)
+      .catch((err) => {
+        console.error("AI retry failed:", err);
+      })
+      .finally(() => setRetrying(false));
   };
-
-  const buttonLabel = hasAudio
-    ? retrying ? "Retrying…" : "Retry"
-    : isRequestingMic ? "Starting…" : "Record";
 
   return (
     <div
       role="alert"
-      className="flex items-start gap-3 rounded-lg border border-err bg-err-wash text-err px-3 py-2"
+      className="flex items-center justify-between gap-3 rounded-lg border border-err bg-err-wash px-3 py-2 text-sm"
+      style={{ color: "var(--err)" }}
     >
-      <Icon name="err" size={16} aria-hidden />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium">AI processing failed</div>
-        <div className="text-xs opacity-80 mt-0.5">
-          {hasAudio
-            ? "Re-run AI on the latest recording."
-            : "Start a recording to retry — AI runs automatically when you stop."}
-        </div>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="tpc-status-dot tpc-status-dot-err" aria-hidden />
+        <span className="font-medium truncate">AI processing failed</span>
       </div>
       <button
         type="button"
-        onClick={handleAction}
-        disabled={(hasAudio && retrying) || (!hasAudio && isRequestingMic)}
-        className="text-sm font-semibold underline underline-offset-2 disabled:opacity-50"
+        onClick={handleRetry}
+        disabled={retrying}
+        className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-err px-2.5 py-1 text-xs font-semibold hover:opacity-80 disabled:opacity-50 transition-opacity"
+        style={{ color: "var(--err)" }}
       >
-        {buttonLabel}
+        <svg className={`w-3.5 h-3.5 ${retrying ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+        </svg>
+        {retrying ? "Retrying" : "Retry"}
       </button>
     </div>
   );
