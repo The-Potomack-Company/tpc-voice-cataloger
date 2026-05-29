@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation
-status: phases 31-39 queued from the 2026-05-27 audit + 2026-05-28 UAT findings + audio-blob ask; none planned yet
-stopped_at: Phase 31 context gathered
+status: in_progress
+shipped_at: null
+superseded_by: null
+stopped_at: "Phase 31 context gathered — v1.3 phases 31-40 queued, none planned. Next: plan Phase 31 (P0 LIVE on prod)."
 last_updated: "2026-05-29T18:24:13.368Z"
+last_activity: 2026-05-29 -- Phase 31 (sec-profiles-self-update) context gathered; escalation vector verified LIVE on prod. v1.3 phases 31-40 queued, none planned.
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 27
-  completed_plans: 27
-  percent: 91
+  total_phases: 10
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,12 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.3 Maturation (LIVE track) — harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). Phases 31-39 queued; none planned yet. Next up: Phase 31 (sec-profiles-self-update-hardening, P0 🔴 LIVE on prod).
+**Current focus:** v1.3 Maturation (LIVE track) — harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). Phases 31-40 queued; none planned yet. Next up: Phase 31 (sec-profiles-self-update-hardening, P0 🔴 LIVE on prod).
 
 ## Current Position
 
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: phases 31-39 queued from the 2026-05-27 audit + 2026-05-28 UAT findings + audio-blob ask; none planned yet
+Status: phases 31-40 queued from the 2026-05-27 audit + 2026-05-28 UAT findings + audio-blob ask + AI-proxy migration; none planned yet
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions

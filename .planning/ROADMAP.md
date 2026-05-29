@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** -- Phases 1-9 + 5.1 (shipped 2026-03-17) -- See [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - ✅ **v1.1 Accounts & Deploy** -- Phases 11-21 (shipped 2026-03-31) -- See [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 - ✅ **v1.2 UI Overhaul** -- Phases 22-30 (shipped 2026-05-13 via PR #11) -- See [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
-- [ ] **v1.3 Maturation** -- LIVE track. v3.0 hub cutover deferred 2026-05-27 (D-052) — apps matured independently before reconciling. Phases 31-39 queued from the 2026-05-27 audit + 2026-05-28 UAT findings + the audio-blob-persistence ask. See pipeline section below.
+- [ ] **v1.3 Maturation** -- LIVE track. v3.0 hub cutover deferred 2026-05-27 (D-052) — apps matured independently before reconciling. Phases 31-40 queued from the 2026-05-27 audit + 2026-05-28 UAT findings + the audio-blob-persistence ask + the AI-proxy Cloudflare→Cloud Run migration (D-049). See pipeline section below.
 
 ## Phases
 
@@ -143,6 +143,18 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit; cross-writer conflicts are handled, not dropped.
   - Risk: HIGH (concurrency + DB trigger + reconciliation) — a careless partial implementation can silently drop writes, so this needs careful planning + UAT.
 
+- [ ] **Phase 40: ai-proxy-cloud-run-migration** *(🟠 cross-app infra — cut AI traffic off the Cloudflare Worker onto the shared GCloud proxy)*
+  - **What:** repoint this app's AI calls from the local Cloudflare Worker (`proxy/` → `tpc-gemini-proxy`) to the shared **`tpc-ai-proxy`** Cloud Run service (the-potomack-company / GCP project `gen-lang-client-0662587427`, us-east1) that now fronts AI for all TPC projects. Then retire the in-repo Worker.
+  - **Decision basis:** D-056 (this migration — timing + auth), D-013 (one centralized proxy), D-049 (host = Cloud Run, overrides D-013's CF host), D-053 (deployment bindings, Phase 39a stood the service up for the extension), D-043 (GCP consolidation target). The extension already migrated in Phase 39a; this is the cataloger's turn.
+  - **Timing note (D-056):** D-049 framed the cataloger's move as *post-v3.0*. D-052 (2026-05-27) deferred the hub cutover and freed apps to mature independently, so doing it now in v1.3 is consistent with D-052 — it lands ahead of D-049's stated sequence (D-056 amends that timing; flagged, not a blocker).
+  - **Mechanics (app side):** `VITE_GEMINI_PROXY_URL` (consumed by `src/services/gemini.ts` + `src/services/geminiContinuous.ts`) repoints to the Cloud Run prod URL `https://tpc-ai-proxy-prod-588770300226.us-east1.run.app/` (dev → `…-dev-…`). The request/response contract stays identical (same JSON shape, `gemini-2.5-flash`, 25 MB body cap) so it's a config-level cutover, not a payload reshape.
+  - **Proxy side:** add the cataloger's production + Vercel-preview **web origins** to the Cloud Run service `ALLOWED_ORIGINS` (today it allowlists extension IDs only). Coordinate via `tpc-ai-proxy` repo — this is the cross-app touch.
+  - **Auth contract — LOCKED (D-056): preserve JWT.** The cataloger's CF Worker enforces a **Supabase JWT** (`verifyAuth` → `/auth/v1/user`); that guarantee is kept. D-014's bearer-verify is **implemented on the Cloud Run proxy as part of this phase** (pulled forward from its 39b/post-v3.0 slot) so the cataloger never falls back to the proxy's interim origin+quota-only posture. Auth plumbing is Claude-owned, Codex barred (D-046).
+  - Retire `proxy/` (CF Worker) only after the Cloud Run path is verified in prod; keep one rollback commit. Update `.env.example`, the proxy-URL tests (`src/tests/gemini-pipeline.test.ts`, `src/tests/geminiContinuous.test.ts`), and remove the `wrangler`/`tpc-gemini-proxy` workspace bits.
+  - **Cross-app:** touches both this repo and `tpc-ai-proxy`. Consider driving via `/tpc-coordinate` rather than single-repo GSD if the proxy-side `ALLOWED_ORIGINS` + (optional) JWT-verify work is non-trivial.
+  - Tests: AI processing succeeds against the Cloud Run URL in dev + prod; unauthorized/cross-origin caller is rejected per the chosen auth model; `VITE_GEMINI_PROXY_URL`-unset still fails closed.
+  - Risk: medium (config cutover is low-risk; the auth-model choice + cross-app `ALLOWED_ORIGINS` coordination is where the care goes).
+
 ## Progress
 
 | Phase | Milestone | Plans | Status | Completed |
@@ -150,6 +162,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 | 1-9 + 5.1 | v1.0 | 27/27 | Complete | 2026-03-17 |
 | 11-21 | v1.1 | 36/36 | Complete | 2026-03-31 |
 | 22-30 | v1.2 | All | Complete (shipped in PR #11) | 2026-05-13 |
+| 31-40 | v1.3 | 0/10 | Queued — none planned | — |
 
 ## v1.2 Phase Detail
 

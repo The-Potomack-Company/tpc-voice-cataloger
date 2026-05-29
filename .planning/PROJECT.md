@@ -62,21 +62,25 @@ Decisions that apply to **app**. Bodies live in the vault — IDs only here.
 - **[D-049](../../_workspace/Decisions/D-049-ai-proxy-cloud-run-host.md)** — The centralized AI proxy is hosted on Google Cloud Run (in the canonical GCP project gen-lang-client-0662587427), not a Cloudflare Worker. Overrides D-013's host attribute only; D-013's "one centralized AI proxy" principle is retained. Driven by D-043 (GCP consolidation) + the fact that the proxy is greenfield (no TPC proxy exists yet), so there is zero migration cost to starting on Cloud Run.
 
 <!-- VAULT:decisions-end -->
-## Current Milestone: v1.2 UI Overhaul
+## Current Milestone: v1.3 Maturation (LIVE track)
 
-**Goal:** Adopt the unified TPC design system end-to-end -- replace existing Tailwind 4 `@theme` styling with new tokens (cool near-white surfaces, teal-blue primary accent, EB Garamond italic display, Inter UI, IBM Plex Mono metadata, 6 px radii), ship a reusable component library, restyle every screen, and add motion + WCAG AA polish -- without changing the app's information architecture or feature set.
+**Goal:** Harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). Close the security, durability, performance, quality, and concurrency gaps surfaced by the 2026-05-27 consolidated audit + 2026-05-28 UAT, ship the durable-audio ask, and migrate off the Cloudflare Worker AI proxy onto the shared GCloud AI proxy — each phase shipping independently with its own UAT + tests.
 
-**Target features:**
-- Unified design tokens (light + dark + system-follow) replace existing Tailwind 4 `@theme` blocks as the single source of truth
-- Self-hosted typography (EB Garamond / Inter / IBM Plex Mono via `@fontsource`) -- no Google Fonts CDN dependency
-- Reusable component library in `src/ui/` (Button, Badge, Card, Input, Eyebrow, Display, Bar, Placeholder, Mono numerics) consumed by every screen
-- Mockup-faithful restyle of Sessions list, Recording, and Review screens
-- Extrapolated restyle of unmocked screens (item detail/edit, admin accounts, admin assignments, admin review queue, login, walkthrough) -- derived from tokens & primitives, reviewed per phase
-- Live recording pulse + real waveform render + screen transitions (respecting `prefers-reduced-motion`)
-- WCAG AA contrast verification across light + dark token sets
-- Theme toggle in Settings + auto-follow OS preference
+**Predecessor:** v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11, phases 22-30).
 
-**Out of milestone scope:** Information architecture changes (no nav restructure), admin/specialist UX divergence, feature additions, and the v1.0 48 px+ tap-target baseline (mockup density adopted verbatim).
+**Target phases (31-39 + proxy migration — full detail in `.planning/ROADMAP.md`):**
+- Phase 31 — sec-profiles-self-update-hardening *(P0 🔴 LIVE on prod)*: lock down specialist self-promotion to admin (REVOKE broad UPDATE, column-scoped GRANT, role-guard trigger).
+- Phase 32 — audio-blob-supabase-persistence *(🟠 NEW)*: durable audio in Supabase Storage, cross-device retry, audit trail.
+- Phase 33 — offline-reliability *(🟠 REL-1..4)*: backoff + attempt cap, cross-tab claim/coordination, blocked-write surfacing, recorder always settles.
+- Phase 34 — ios-memory-optimization *(🟠 PERF-1..3)*: chunked/out-of-band audio encode, bounded continuous-mode blob, hoisted Dexie subscriptions.
+- Phase 35 — ai-correctness-track-2 *(🟡)*: `temperature=0`, confabulation guard, no-clobber on retry, list-view failure visibility.
+- Phase 36 — ux-visibility-polish *(🟡)*: surface export/import/fetch/admin/login failures via the shared ErrorToast path.
+- Phase 37 — a11y-foundation *(🟡)*: modal focus-trap, 44px touch targets, icon-button labels, non-swipe delete affordance.
+- Phase 38 — migration-retryability *(🟡, was 999.2)*: idempotent + retryable Dexie→Supabase migration with partial-state banner.
+- Phase 39 — optimistic-locking *(🔴 HIGH RISK, was 999.3)*: `updated_at` trigger + precondition writes + conflict reconciliation.
+- Phase 40 — ai-proxy-cloud-run-migration *(NEW, cross-app)*: cut this app's AI traffic off the in-repo Cloudflare Worker (`proxy/` → `tpc-gemini-proxy`) onto the shared **`tpc-ai-proxy`** Cloud Run service (the-potomack-company / GCP `gen-lang-client-0662587427`) that now fronts AI for all TPC projects. Config-level URL cutover (`VITE_GEMINI_PROXY_URL`) + proxy `ALLOWED_ORIGINS` add + auth-model decision (preserve Supabase JWT vs interim origin+quota), then retire the Worker. Per D-056 (amends D-049), D-013/D-053/D-043; lands ahead of D-049's "post-v3.0" timing but consistent with D-052; Supabase JWT preserved.
+
+**Out of milestone scope:** Information architecture changes (no nav restructure), feature additions beyond durable audio, and the v3.0 hub cutover (deferred — D-052).
 
 ## Requirements
 
@@ -110,17 +114,22 @@ Decisions that apply to **app**. Bodies live in the vault — IDs only here.
 - ✓ Smart field merging for re-recordings (non-destructive) -- v1.1
 - ✓ Measurements as rich format string (dimensions, mm, weight, karats) -- v1.1
 - ✓ Spoken punctuation conversion by AI across all fields -- v1.1
-- ✓ Unified TPC design tokens replace Tailwind 4 `@theme` (single source of truth in `src/ui/tokens/`, light + dark cascade via `.tpc` / `.tpc-dark`, system-pref dark-mode auto-flip with no FOUC, build-time guard rejects raw hex/oklch/font-family literals outside `src/ui/tokens/`) -- v1.2 Phase 22 (TOKENS-01, TOKENS-02, TOKENS-04 -- visual smoke pending)
+- ✓ Unified TPC design tokens replace Tailwind 4 `@theme` (single source of truth in `src/ui/tokens/`, light + dark cascade via `.tpc` / `.tpc-dark`, system-pref dark-mode auto-flip with no FOUC, build-time guard rejects raw hex/oklch/font-family literals outside `src/ui/tokens/`) -- v1.2 (shipped 2026-05-13, PR #11: full design system — tokens, typography, LIB primitives, theme toggle, mockup-faithful screens, motion, WCAG AA)
 
 ### Active
 
-v1.2 UI Overhaul -- see `.planning/REQUIREMENTS.md` for the full REQ-ID list. Categories:
-- TOKENS -- token system replacement, dark mode, theme toggle
-- TYPE -- self-hosted font pipeline (EB Garamond / Inter / IBM Plex Mono)
-- LIB -- shared component library in `src/ui/`
-- SCREEN -- per-screen restyle (mockup-faithful + extrapolated)
-- MOTION -- live waveform, recording pulse, screen transitions, reduced-motion compliance
-- A11Y -- WCAG AA contrast pass, focus rings, reduced-motion fallbacks
+v1.3 Maturation -- phases 31-39 + the AI-proxy migration, queued from the 2026-05-27 consolidated audit + 2026-05-28 UAT. Full phase detail in `.planning/ROADMAP.md`. Tracks:
+- SEC -- profiles self-update hardening (Phase 31, P0 LIVE on prod)
+- AUDIO -- durable audio in Supabase Storage + cross-device retry (Phase 32)
+- REL -- offline-queue backoff, cross-tab coordination, blocked-write surfacing (Phase 33)
+- PERF -- iOS memory / render-storm reduction (Phase 34)
+- AI -- determinism, confabulation guard, no-clobber retry (Phase 35)
+- UX -- surface previously-silent failures (Phase 36)
+- A11Y -- focus-trap, touch targets, labels, non-swipe affordances (Phase 37)
+- DATA -- migration retryability (Phase 38) + optimistic locking (Phase 39)
+- PROXY -- migrate AI traffic from the Cloudflare Worker to the shared GCloud AI proxy
+
+(v1.2 UI Overhaul -- TOKENS / TYPE / LIB / SCREEN / MOTION / A11Y -- SHIPPED 2026-05-13, PR #11.)
 
 ### Out of Scope
 
@@ -183,12 +192,13 @@ v1.2 UI Overhaul -- see `.planning/REQUIREMENTS.md` for the full REQ-ID list. Ca
 | Photo upload queue with offline support | Fire-and-forget with bounded concurrency and backoff | ✓ Good -- non-blocking UX |
 | Smart field merging via AI | Existing values passed as context; AI returns merged result | ✓ Good -- non-destructive re-recordings |
 | Measurements as rich format string | Supports dimensions, mm, weight, karats in one field | ✓ Good -- flexible without schema changes |
-| Unified TPC design system (v1.2) | Single token source, EB Garamond/Inter/Plex Mono, 6 px radii, light + dark + system-follow | TBD -- v1.2 in flight |
-| Self-hosted fonts via `@fontsource` (v1.2) | Avoid Google CDN dependency, deterministic offline behavior, satisfies stricter CSP | TBD -- v1.2 in flight |
+| Unified TPC design system (v1.2) | Single token source, EB Garamond/Inter/Plex Mono, 6 px radii, light + dark + system-follow | ✓ Good -- v1.2 shipped 2026-05-13 (PR #11) |
+| Self-hosted fonts via `@fontsource` (v1.2) | Avoid Google CDN dependency, deterministic offline behavior, satisfies stricter CSP | ✓ Good -- v1.2 shipped 2026-05-13 (PR #11) |
 | Replace Tailwind 4 `@theme` with unified tokens (v1.2) | Single source of truth; future dashboard repo consumes the same `src/ui/` primitives | ✓ Good -- Phase 22 shipped: 21 color vars + 3 radii + 3 fonts bridged via `@theme inline` over `.tpc` / `.tpc-dark` cascade; TOKENS-04 build-time guard live in CI |
 | `@theme inline` (not `@theme`) for the bridge (v1.2) | Bridge resolves at use site, so `.tpc-dark` scoped overrides reach every Tailwind utility — required for class-based dark variant to work | ✓ Good -- Phase 22; cascade flips utilities without component changes |
 | `.tpc-dark` class on `<html>` as the single dark-mode signal (v1.2) | Pre-paint inline script + runtime `initTheme` listener both manipulate one class idempotently; Phase 25 user-toggle UI can supersede without touching `index.html` | ✓ Good -- Phase 22; Phase 25 contract preserved via extensible `initTheme(opts?)` signature |
-| Adopt mockup density verbatim (v1.2) | Drop the v1.0 48 px+ tap-target baseline in favour of designer-specified density | TBD -- monitor field-use feedback |
+| Adopt mockup density verbatim (v1.2) | Drop the v1.0 48 px+ tap-target baseline in favour of designer-specified density | ✓ Shipped v1.2 -- note: Phase 37 (v1.3) restores 44px minimum touch targets for a11y |
+| Migrate AI proxy Cloudflare Worker → Cloud Run (v1.3 Phase 40) | Cut the cataloger onto the shared `tpc-ai-proxy` Cloud Run service (the-potomack-company / GCP), retiring the in-repo CF Worker. Done in v1.3 ahead of D-049's "post-v3.0" timing (consistent with D-052); Supabase JWT auth preserved (D-014 pulled forward) — per **D-056** (amends D-049), D-013, D-053, D-043 | TBD -- v1.3 Phase 40 to be planned |
 | Extrapolate unmocked screens (v1.2) | Item detail/edit, admin views, login, walkthrough derived from tokens & primitives in discuss-phase reviews | TBD -- per-phase approval gate |
 
 ## Evolution
@@ -209,4 +219,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-30 -- Phase 22 (Foundation Tokens) shipped; visual smoke pending*
+*Last updated: 2026-05-29 -- v1.2 UI Overhaul shipped (PR #11); v1.3 Maturation opened (phases 31-39 + AI-proxy GCloud migration queued).*

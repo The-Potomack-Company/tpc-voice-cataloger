@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.2 UI Overhaul (Shipped: 2026-05-13)
+
+**Phases completed:** 9 phases (22-30) -- shipped as a single mega-PR (#11)
+**Ship:** PR #11 (`1985ac2`), milestone closed `9b9b896`
+
+**Key accomplishments:**
+1. Unified TPC design tokens replace Tailwind 4 `@theme` — single source in `src/ui/tokens/`, light + dark + system-follow cascade via `.tpc` / `.tpc-dark`, no-FOUC pre-paint, CI guard rejecting raw hex/oklch/font-family literals
+2. Self-hosted typography (EB Garamond / Inter / IBM Plex Mono via `@fontsource`) — zero Google Fonts CDN requests
+3. Reusable component library in `src/ui/` (Button, Badge, Card, Input, Eyebrow, Bar, Placeholder, mono numerics) consumed by every screen
+4. Mockup-faithful restyle of Sessions / Recording / Review screens + extrapolated restyle of admin/specialist/login/walkthrough screens
+5. Live recording pulse + real waveform render + screen transitions (respecting `prefers-reduced-motion`)
+6. Theme toggle in Settings (Light / Dark / System), persisted per-user (Supabase) + localStorage fallback
+7. WCAG AA contrast verification + focus rings across all primitives
+
+**Known Gaps (rolled into v1.3 Maturation):**
+- 18 pre-existing test failures (`localStorage.clear is not a function`) in `persist-scoping.test.ts` / `photo-migration.test.ts` — pre-existing at HEAD~3, tracked in Phase 22 deferred-items
+- A11y touch-target / focus-trap follow-ups → v1.3 Phase 37
+
+**Successor:** v3.0 hub cutover DEFERRED (D-052); repo matures independently via v1.3 Maturation (phases 31-39 + AI-proxy GCloud migration).
+
+---
+
 ## v1.1 Accounts & Deploy (Shipped: 2026-03-31)
 
 **Phases completed:** 11 phases (11-21), 36 plans, 66 tasks
