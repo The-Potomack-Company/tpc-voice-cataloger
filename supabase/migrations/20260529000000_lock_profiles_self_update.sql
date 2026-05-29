@@ -23,9 +23,24 @@
 create schema if not exists private;
 
 -- 1) Revoke drifted broad UPDATE (table-form also clears all column grants),
---    then re-grant only the two client-written columns to authenticated.
+--    then re-grant only the client-written columns to authenticated.
 revoke update on public.profiles from authenticated, anon;
-grant update (walkthrough_completed, theme) on public.profiles to authenticated;
+grant update (walkthrough_completed) on public.profiles to authenticated;
+-- `theme` (Phase 25) is also a legitimate client self-write, but it is a
+-- drift-prone column: the 20260512000000 migration uses ADD COLUMN IF NOT
+-- EXISTS and themeStore tolerates its absence (localStorage fallback), so it
+-- is NOT present on every environment (e.g. prod as of 2026-05-29). Grant it
+-- only where it exists, so this migration applies cleanly regardless of drift
+-- and auto-covers `theme` once the column lands.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'profiles' and column_name = 'theme'
+  ) then
+    execute 'grant update (theme) on public.profiles to authenticated';
+  end if;
+end $$;
 -- No other column is granted: the user-facing name is server-set at
 -- admin-create-user time, not a client self-write (D-02). anon gets nothing back.
 
