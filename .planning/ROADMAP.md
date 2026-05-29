@@ -75,7 +75,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: as specialist, PATCH `{role:'admin'}` returns 403/no-op; PATCH `{walkthrough_completed:true}` still works; admin elevation only via the admin-only Edge Function path.
   - Risk: medium (RLS + trigger + grants), bounded blast radius.
   - **Plans:** 2 plans (1 wave, sequential)
-    - [ ] 31-01-PLAN.md — author migration (table-form REVOKE + narrow GRANT walkthrough_completed/theme + private guard trigger) + V-1 grant-assertion query
+    - [x] 31-01-PLAN.md — author migration (table-form REVOKE + narrow GRANT walkthrough_completed/theme + private guard trigger) + V-1 grant-assertion query
     - [ ] 31-02-PLAN.md — Codex review (D-046) → [BLOCKING] db push --dry-run isolation + prod apply (D-07) → V-1/V-6 prod reads → db:types zero-diff (V-7) → Tier-2 smoke (walkthrough/theme/admin toggle)
 
 - [ ] **Phase 32: audio-blob-supabase-persistence** *(NEW 🟠 — durable audio, cross-device retry, audit trail)*
