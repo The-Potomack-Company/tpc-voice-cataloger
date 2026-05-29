@@ -143,7 +143,12 @@ describe("processContinuousChunk", () => {
     authMock.getSession.mockReset();
     authMock.refreshSession.mockReset();
     authMock.getSession.mockResolvedValue({
-      data: { session: { expires_at: Math.floor(Date.now() / 1000) + 3600 } },
+      data: {
+        session: {
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          access_token: "test-token",
+        },
+      },
     });
     authMock.refreshSession.mockResolvedValue({ data: { session: {} }, error: null });
   });

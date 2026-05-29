@@ -1,6 +1,5 @@
-import { db } from "../db";
 import { supabase } from "../lib/supabase";
-import { getDexieItemId } from "../db/idMapping";
+import { audioRecordsForItem } from "../db/audioLookup";
 import { processAudioWithAi } from "./gemini";
 
 const CONCURRENCY = 4;
@@ -38,23 +37,12 @@ export async function getQueuedItems(): Promise<QueuedItem[]> {
 
 /**
  * Find the most recent audio record for a given item.
- * Uses getDexieItemId to bridge Supabase UUID to Dexie integer ID.
- * Returns the audio ID or null if no audio exists.
+ * Delegates to the DAT-7 shared helper (audioRecordsForItem) which unions both
+ * itemId forms (UUID + mapped legacy int), so no audio is missed regardless of
+ * which form a given row used. Returns the audio ID or null if no audio exists.
  */
 async function findAudioForItem(itemId: string): Promise<number | null> {
-  // Try via ID mapping first (migrated items: UUID -> legacy integer)
-  const dexieId = await getDexieItemId(itemId);
-  let audios;
-
-  if (dexieId !== null) {
-    audios = await db.audio.where("itemId").equals(dexieId).toArray();
-  }
-
-  // If no results from mapping, try direct UUID lookup (post-migration items)
-  if (!audios || audios.length === 0) {
-    audios = await db.audio.where("itemId").equals(itemId as unknown as number).toArray();
-  }
-
+  const audios = await audioRecordsForItem(itemId);
   if (audios.length === 0) return null;
   // Return the highest id (most recent)
   return audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!);

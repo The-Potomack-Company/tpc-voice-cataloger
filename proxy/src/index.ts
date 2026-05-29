@@ -1,19 +1,43 @@
 interface Env {
   GEMINI_API_KEY: string;
   ALLOWED_ORIGINS: string;
+  SUPABASE_URL: string;
+  SUPABASE_ANON_KEY: string;
 }
+
+export const ALLOWED_MODELS = new Set(["gemini-2.5-flash"]);
+export const MAX_BODY_BYTES = 25 * 1024 * 1024;
 
 export function isAllowedOrigin(origin: string, allowedOrigins: string): boolean {
   if (!origin) return false;
   const allowed = allowedOrigins.split(',').map(s => s.trim());
   if (allowed.includes(origin)) return true;
-  // Suffix match for Vercel preview deploys: must be https://<subdomain>.vercel.app
+  // Suffix match for Vercel preview deploys: must be https://tpc-<subdomain>.vercel.app
   if (origin.startsWith('https://') && origin.endsWith('.vercel.app')) {
     const hostPart = origin.slice('https://'.length);
-    // Reject bare "vercel.app" -- must have a subdomain
-    if (hostPart !== 'vercel.app') return true;
+    // Reject bare "vercel.app" and attacker-controlled *.vercel.app subdomains:
+    // only our tpc-prefixed preview hosts pass.
+    if (hostPart !== 'vercel.app' && hostPart.startsWith('tpc-')) return true;
   }
   return false;
+}
+
+export async function verifyAuth(request: Request, env: Env): Promise<boolean> {
+  const authHeader = request.headers.get('Authorization') || '';
+  const match = authHeader.match(/^Bearer (.+)$/);
+  if (!match) return false;
+  const token = match[1];
+  try {
+    const response = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: env.SUPABASE_ANON_KEY,
+      },
+    });
+    return response.status === 200;
+  } catch {
+    return false;
+  }
 }
 
 export function getCorsHeaders(request: Request, env: Env): Record<string, string> {
@@ -22,7 +46,7 @@ export function getCorsHeaders(request: Request, env: Env): Record<string, strin
     return {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
       'Vary': 'Origin',
     };
   }
@@ -44,11 +68,44 @@ export default {
       });
     }
 
+    if (!(await verifyAuth(request, env))) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Cheap pre-check on the declared length...
+    const contentLength = request.headers.get('Content-Length');
+    if (contentLength && Number(contentLength) > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: 'Payload too large' }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     try {
-      const { model, payload } = (await request.json()) as {
+      // ...then enforce the cap on the actual body, since Content-Length can be
+      // absent or spoofed (chunked transfer). CF platform limits bound the read.
+      const bodyText = await request.text();
+      if (new TextEncoder().encode(bodyText).byteLength > MAX_BODY_BYTES) {
+        return new Response(JSON.stringify({ error: 'Payload too large' }), {
+          status: 413,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { model, payload } = JSON.parse(bodyText) as {
         model: string;
         payload: object;
       };
+
+      if (typeof model !== 'string' || !ALLOWED_MODELS.has(model)) {
+        return new Response(JSON.stringify({ error: 'Unsupported model' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
 

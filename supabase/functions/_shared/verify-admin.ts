@@ -1,7 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { corsHeaders } from './cors.ts'
+import { getCorsHeaders } from './cors.ts'
 
 export async function verifyAdmin(req: Request): Promise<{ userId: string } | Response> {
+  const corsHeaders = getCorsHeaders(req)
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Missing authorization' }), {

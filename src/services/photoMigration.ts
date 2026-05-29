@@ -7,6 +7,7 @@ const MIGRATION_FLAG = "photo_migration_v1_complete";
 export interface MigrationResult {
   total: number;
   queued: number;
+  skipped: number;
 }
 
 /**
@@ -28,7 +29,7 @@ export async function detectUnuploadedPhotos(): Promise<number> {
  */
 export async function migrateExistingPhotos(): Promise<MigrationResult> {
   if (localStorage.getItem(MIGRATION_FLAG) === "true") {
-    return { total: 0, queued: 0 };
+    return { total: 0, queued: 0, skipped: 0 };
   }
 
   const allPhotos = await db.photos.toArray();
@@ -39,10 +40,11 @@ export async function migrateExistingPhotos(): Promise<MigrationResult> {
 
   if (unhandled.length === 0) {
     localStorage.setItem(MIGRATION_FLAG, "true");
-    return { total: 0, queued: 0 };
+    return { total: 0, queued: 0, skipped: 0 };
   }
 
   let queued = 0;
+  let skipped = 0;
   for (const photo of unhandled) {
     // Resolve Dexie itemId (oldId) to Supabase UUID (newId) via idMapping
     const mapping = await db.idMapping
@@ -61,7 +63,7 @@ export async function migrateExistingPhotos(): Promise<MigrationResult> {
       .eq("id", supabaseItemId)
       .maybeSingle();
 
-    if (!item) continue; // Skip if item no longer exists
+    if (!item) { skipped++; continue; } // item not in Supabase yet — retry on a later run
 
     await enqueuePhotoUpload({
       dexiePhotoId: photo.id!,
@@ -72,7 +74,12 @@ export async function migrateExistingPhotos(): Promise<MigrationResult> {
     queued++;
   }
 
-  localStorage.setItem(MIGRATION_FLAG, "true");
+  // DAT-6: only mark the migration complete when every photo was queued. If any
+  // were skipped (their item isn't in Supabase yet), leave the flag unset so the
+  // next run retries them instead of stranding them permanently.
+  if (skipped === 0) {
+    localStorage.setItem(MIGRATION_FLAG, "true");
+  }
   drainPhotoQueue(); // Fire-and-forget
-  return { total: unhandled.length, queued };
+  return { total: unhandled.length, queued, skipped };
 }

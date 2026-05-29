@@ -85,13 +85,17 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
     if (thumbError) throw thumbError;
 
     // Insert metadata row in Supabase photos table
-    const { error: insertError } = await supabase.from("photos").insert({
-      item_id: entry.itemId,
-      storage_path: entry.storagePath,
-      thumbnail_path: entry.thumbnailPath,
-      sort_order: entry.sortOrder,
-      upload_status: "uploaded",
-    });
+    // DAT-5: upsert (ON CONFLICT DO NOTHING) so a retry can't create a duplicate photos row.
+    const { error: insertError } = await supabase.from("photos").upsert(
+      {
+        item_id: entry.itemId,
+        storage_path: entry.storagePath,
+        thumbnail_path: entry.thumbnailPath,
+        sort_order: entry.sortOrder,
+        upload_status: "uploaded",
+      },
+      { onConflict: "storage_path", ignoreDuplicates: true }
+    );
     if (insertError) throw insertError;
 
     // Mark queue entry as uploaded

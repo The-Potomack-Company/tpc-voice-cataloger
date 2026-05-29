@@ -2,7 +2,7 @@ import { supabase } from "../lib/supabase";
 
 const REFRESH_WINDOW_SECONDS = 60;
 
-export async function ensureFreshSession(): Promise<void> {
+export async function ensureFreshSession(): Promise<string> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -19,4 +19,17 @@ export async function ensureFreshSession(): Promise<void> {
       throw error;
     }
   }
+
+  // Re-read getSession after a possible refresh: it is the reliable source for the
+  // current access token (refreshSession's returned session is not relied upon).
+  const {
+    data: { session: freshSession },
+  } = await supabase.auth.getSession();
+
+  const accessToken = freshSession?.access_token;
+  if (!accessToken) {
+    throw new Error("Session has no access token");
+  }
+
+  return accessToken;
 }

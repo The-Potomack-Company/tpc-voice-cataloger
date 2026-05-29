@@ -8,7 +8,7 @@ import { toAllCaps } from "../utils/toAllCaps";
 import { applySpokenBullets, applySpokenQuotes } from "../utils/spokenPunctuation";
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
-import { blobToBase64, SYSTEM_PROMPT } from "./gemini";
+import { blobToBase64, formatExistingValuesBlock, SYSTEM_PROMPT } from "./gemini";
 import { catalogFieldsJsonSchema, catalogFieldsSchema } from "./geminiSchema";
 import { ensureFreshSession } from "../lib/authGuard";
 
@@ -118,13 +118,14 @@ function mergeContextText(currentItem: NonNullable<Awaited<ReturnType<typeof fet
     return "Extract catalog fields from this continuous session audio chunk.";
   }
 
-  return `Extract and MERGE catalog fields from this continuous session audio chunk with the existing values below. If a wake phrase starts the next item, set new_item_detected and do not include that phrase or next-item speech in the current item fields.\n\nEXISTING VALUES:\nTitle: ${currentItem.title ?? "(empty)"}\nDescription: ${currentItem.description ?? "(empty)"}\nCondition: ${currentItem.condition ?? "(empty)"}\nEstimate: ${currentItem.estimate ?? "(empty)"}\nCategory: ${currentItem.category ?? "(empty)"}\nMeasurements: ${currentItem.measurements ?? "(empty)"}\nTranscript: ${currentItem.transcript ?? "(empty)"}\nReceipt Number: ${currentItem.receipt_number ?? "(empty)"}`;
+  return `Extract and MERGE catalog fields from this continuous session audio chunk with the existing values below. If a wake phrase starts the next item, set new_item_detected and do not include that phrase or next-item speech in the current item fields.\n\n${formatExistingValuesBlock(currentItem)}`;
 }
 
 async function sendChunkToGemini(
   audioBlob: Blob,
   mimeType: string,
   currentItem: NonNullable<Awaited<ReturnType<typeof fetchCurrentItem>>>,
+  accessToken: string,
   lookBackBytes?: Uint8Array,
   signal?: AbortSignal,
 ) {
@@ -170,7 +171,10 @@ async function sendChunkToGemini(
   try {
     response = await fetch(proxyUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         model: "gemini-2.5-flash",
         payload,
@@ -270,7 +274,7 @@ export async function processContinuousChunk(
   options: ProcessContinuousChunkOptions = {},
 ): Promise<void> {
   throwIfAborted(options.signal);
-  await ensureFreshSession();
+  const accessToken = await ensureFreshSession();
 
   const startedAt = performance.now();
   const continuousStore = useContinuousModeStore.getState();
@@ -319,6 +323,7 @@ export async function processContinuousChunk(
         audioRecord.blob,
         audioRecord.mimeType,
         currentItem,
+        accessToken,
         options.lookBackBytes,
         options.signal,
       );

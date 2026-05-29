@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** -- Phases 1-9 + 5.1 (shipped 2026-03-17) -- See [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - ✅ **v1.1 Accounts & Deploy** -- Phases 11-21 (shipped 2026-03-31) -- See [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 - ✅ **v1.2 UI Overhaul** -- Phases 22-30 (shipped 2026-05-13 via PR #11) -- See [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md)
-- [ ] **v1.3 TBD** -- scope pending (likely subsumed by cross-app Unified 3.0 / tpc-hub effort)
+- [ ] **v1.3 Maturation** -- LIVE track. v3.0 hub cutover deferred 2026-05-27 (D-052) — apps matured independently before reconciling. Data-integrity follow-ups queued (phases 999.2, 999.3).
 
 ## Phases
 
@@ -60,6 +60,26 @@ Mockup-faithful design system migration: unified tokens, LIB primitives, theme p
 Known issues + follow-ups: `.planning/v1.2-known-issues.md`, `.planning/v1.2-followup.md`.
 
 </details>
+
+## Pipeline — Data-Integrity Hardening (D-051 sweep follow-ups)
+
+Two issues from the 2026-05-27 security/data-integrity sweep were deferred as too large for the hotfix chain. These use the `999.x` backlog namespace (deferred; promote to a sequential phase number when planned). Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
+
+- [ ] **Phase 999.2: Migration retryability & idempotency** *(DAT-1 follow-up — builds on PR #24)*
+  - `needsMigration()` returns true while any non-deleted Dexie session/item lacks an `idMapping` entry (today it returns false as soon as ANY mapping exists, so a partial migration is treated as complete and the preserved recovery set is never re-offered).
+  - Make `migrateToSupabase` idempotent: before inserting a session/item, look up `idMapping` by `oldId` and reuse the existing `newId` / skip the insert — so a retry over preserved rows can't create duplicate Supabase sessions/items.
+  - Surface partial state in the UI using the `partial` flag DAT-1 already returns (migration banner: "N items not yet synced — Retry"; retry re-runs the migration).
+  - Tests: retry-after-partial migrates only the remaining rows, creates no duplicates, banner reflects partial state.
+  - Risk: medium (migration logic + migration banner UI).
+
+- [ ] **Phase 999.3: Optimistic locking for item edits** *(DAT-3 — builds on the DAT-4 toast PR #26 + DAT-1)*
+  - Add an `items.updated_at` auto-bump-on-UPDATE Postgres trigger (before-update / moddatetime). New migration + update `../_workspace/Schema/schema.md`.
+  - `updateItemField` (and the AI merge path) read `updated_at`, write with an `.eq("updated_at", <prev>)` precondition, and on a 0-row conflict re-read + reconcile instead of last-writer-wins.
+  - Per-writer conflict policy: a user single-field edit re-applies on conflict (intent-preserving); the AI merge re-reads & re-merges and must NOT overwrite a field the user changed since the merge's read.
+  - Optional: cross-tab/device version check (broadcast or version compare).
+  - Conflicts surface to the user via the DAT-4 ErrorToast.
+  - Tests: a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit; cross-writer conflicts are handled, not dropped.
+  - Risk: HIGH (concurrency + DB trigger + reconciliation) — a careless partial implementation can silently drop writes, so this needs careful planning + UAT.
 
 ## Progress
 

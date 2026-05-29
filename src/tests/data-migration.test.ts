@@ -332,7 +332,7 @@ describe("data migration", () => {
       const onProgress = vi.fn();
       const result = await migrateToSupabase("user-123", onProgress);
 
-      expect(result).toEqual({ migrated: 1, skipped: 0 });
+      expect(result).toEqual({ migrated: 1, skipped: 0, partial: false });
     });
 
     it("after successful migration, Dexie sessions/houseVisitItems/saleItems/exportHistory tables are cleared", async () => {
@@ -446,6 +446,116 @@ describe("data migration", () => {
 
       expect(result.migrated).toBe(1);
       expect(result.skipped).toBe(1);
+    });
+
+    it("preserves failed records on partial migration (DAT-1)", async () => {
+      // Session A: insert OK, has one good item + one failing item.
+      const sessAId = await db.sessions.add(
+        makeDexieSession({ name: "SessA" }),
+      );
+      const goodHouseItemId = await db.houseVisitItems.add(
+        makeDexieHouseItem(sessAId!, { title: "GoodItem", sortOrder: 0 }),
+      );
+      const failedHouseItemId = await db.houseVisitItems.add(
+        makeDexieHouseItem(sessAId!, { title: "FailItem", sortOrder: 1 }),
+      );
+
+      // Session B: session insert itself fails (early continue path).
+      const sessBId = await db.sessions.add(
+        makeDexieSession({ name: "FailSession" }),
+      );
+      const orphanItemId = await db.houseVisitItems.add(
+        makeDexieHouseItem(sessBId!, { title: "OrphanItem", sortOrder: 0 }),
+      );
+
+      // Session C: fully clean — session + one sale item both succeed.
+      const sessCId = await db.sessions.add(
+        makeDexieSession({ name: "SessC" }),
+      );
+      const goodSaleItemId = await db.saleItems.add(
+        makeDexieSaleItem(sessCId!, { title: "GoodSale", sortOrder: 0 }),
+      );
+
+      // exportHistory entry — must survive because the run is partial.
+      await db.exportHistory.add({
+        sessionId: sessAId!,
+        sessionName: "SessA",
+        sessionMode: "house",
+        itemCount: 2,
+        exportedAt: new Date(),
+      });
+
+      let itemSeq = 0;
+      mockFrom.mockImplementation((table: string) => ({
+        insert: vi.fn().mockImplementation((payload: Record<string, unknown>) => ({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockImplementation(() => {
+              if (table === "sessions") {
+                // FailSession's insert fails; others succeed.
+                if (payload.name === "FailSession") {
+                  return Promise.resolve({
+                    data: null,
+                    error: { message: "session insert failed" },
+                  });
+                }
+                return Promise.resolve({
+                  data: { id: `sess-${payload.name}` },
+                  error: null,
+                });
+              }
+              // items table: the item titled "FailItem" fails.
+              if (payload.title === "FailItem") {
+                return Promise.resolve({
+                  data: null,
+                  error: { message: "item insert failed" },
+                });
+              }
+              return Promise.resolve({
+                data: { id: `item-${++itemSeq}` },
+                error: null,
+              });
+            }),
+          }),
+        })),
+      }));
+
+      const onProgress = vi.fn();
+      const result = await migrateToSupabase("user-123", onProgress);
+
+      // (a) partial run reported.
+      // FailItem (1) + OrphanItem under FailSession (1) skipped = 2.
+      expect(result.skipped).toBe(2);
+      expect(result.migrated).toBe(2); // GoodItem + GoodSale
+      expect(result.partial).toBe(true);
+
+      // (b) failed records remain in Dexie.
+      const failedItem = await db.houseVisitItems.get(failedHouseItemId!);
+      expect(failedItem).toBeDefined();
+      expect(failedItem?.title).toBe("FailItem");
+
+      const orphanItem = await db.houseVisitItems.get(orphanItemId!);
+      expect(orphanItem).toBeDefined();
+      expect(orphanItem?.title).toBe("OrphanItem");
+
+      // Failed session B (insert failed) is preserved.
+      const failedSession = await db.sessions.get(sessBId!);
+      expect(failedSession).toBeDefined();
+      expect(failedSession?.name).toBe("FailSession");
+
+      // (c) successfully migrated items were removed.
+      expect(await db.houseVisitItems.get(goodHouseItemId!)).toBeUndefined();
+      expect(await db.saleItems.get(goodSaleItemId!)).toBeUndefined();
+
+      // (d) session A had a failing child item → its row must remain.
+      const sessionAStillThere = await db.sessions.get(sessAId!);
+      expect(sessionAStillThere).toBeDefined();
+      expect(sessionAStillThere?.name).toBe("SessA");
+
+      // Session C was fully clean → removed.
+      expect(await db.sessions.get(sessCId!)).toBeUndefined();
+
+      // (e) exportHistory NOT cleared on a partial run.
+      expect(await db.exportHistory.count()).toBe(1);
     });
   });
 });
