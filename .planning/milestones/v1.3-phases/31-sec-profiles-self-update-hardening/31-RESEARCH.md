@@ -345,16 +345,16 @@ npm run db:types                                      # expect zero diff; confir
 
 **All four assumptions are verifiable at plan/execution time** — A1 by schema/sibling grep, A2 by Tier-2 smoke, A3/A4 by `--dry-run` and `git diff`.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does any sibling app perform a profiles self-write beyond walkthrough/theme?** (A1)
+   - **RESOLVED 2026-05-29:** sibling grep — `tpc-dashboard` references `profiles` in 7 files but ALL are reads (zero `.update`/`.upsert`/`.set`); `tpc-extension` and `tpc-hub` have ZERO `profiles` references. Only this app writes profiles, and only `walkthrough_completed` + `theme`. The table-form REVOKE is DB-wide-safe; no GRANT widening needed.
    - What we know: this app writes only `walkthrough_completed` and `theme`; `display_name` is server-set.
-   - What's unclear: cataloger/dashboard behavior against the shared `authenticated` role.
-   - Recommendation: planner adds a task to check `../_workspace/Schema/schema.md` and (if accessible) grep `../tpc-extension` and `../tpc-dashboard` for `.from('profiles').update`. If found, widen the GRANT allowlist in this same migration. Likely none.
+   - Belt-and-suspenders: Plan 31-02 Task 2 re-greps the siblings + re-reads `../_workspace/Schema/schema.md` immediately BEFORE the push and STOPs if any sibling now self-writes a column outside {walkthrough_completed, theme}.
 
 2. **Is the CLI currently linked + authed to prod for `db push`?**
+   - **RESOLVED:** Plan 31-02 Task 2 PRECONDITION-checks CLI link/auth (`supabase db push --dry-run`) and hands the user a `supabase login` + `supabase link --project-ref wgrknodfxdjtddsirldw` one-liner if absent (user-only auth action).
    - What we know: `db push` needs `--linked` (default) + `SUPABASE_DB_PASSWORD` or interactive password.
-   - Recommendation: execution-time check; if not linked, user runs `supabase login` + `supabase link --project-ref wgrknodfxdjtddsirldw` (user-only auth action).
 
 ## Environment Availability
 
