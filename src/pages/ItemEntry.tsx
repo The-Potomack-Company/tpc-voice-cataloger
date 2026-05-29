@@ -24,6 +24,7 @@ import { formatDuration } from "../utils/audio";
 import type { ItemPhoto } from "../db/types";
 import { audioRecordsForItem } from "../db/audioLookup";
 import { processAudioWithAi } from "../services/gemini";
+import { useAudioRecorder } from "../hooks/useAudioRecorder";
 
 /** Failed-AI banner. Shown when ai_status === "failed" so a user editing a
  *  single item knows AI didn't complete and can retry the latest recording.
@@ -37,6 +38,7 @@ function AiFailureBanner({
   sessionId: string;
 }) {
   const [retrying, setRetrying] = useState(false);
+  const { status, startRecording } = useAudioRecorder();
   const latestAudioId = useLiveQuery(
     async () => {
       const audios = await audioRecordsForItem(itemId);
@@ -48,15 +50,29 @@ function AiFailureBanner({
     null as number | null,
   );
 
-  const handleRetry = () => {
-    if (latestAudioId == null || retrying) return;
-    setRetrying(true);
-    processAudioWithAi(latestAudioId, itemId, sessionId)
-      .catch((err) => {
-        console.error("AI retry failed:", err);
-      })
-      .finally(() => setRetrying(false));
+  const hasAudio = latestAudioId != null;
+  const isRequestingMic = status === "requesting";
+
+  // Single-tap retry. If audio exists, re-run AI on the latest recording. If
+  // not, start a fresh recording — RecordButton.handleClick will auto-process
+  // when the user stops, so the user only taps once to recover either way.
+  const handleAction = () => {
+    if (hasAudio) {
+      if (retrying) return;
+      setRetrying(true);
+      processAudioWithAi(latestAudioId, itemId, sessionId)
+        .catch((err) => {
+          console.error("AI retry failed:", err);
+        })
+        .finally(() => setRetrying(false));
+    } else if (!isRequestingMic) {
+      startRecording(itemId, sessionId);
+    }
   };
+
+  const buttonLabel = hasAudio
+    ? retrying ? "Retrying…" : "Retry"
+    : isRequestingMic ? "Starting…" : "Record";
 
   return (
     <div
@@ -67,21 +83,19 @@ function AiFailureBanner({
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium">AI processing failed</div>
         <div className="text-xs opacity-80 mt-0.5">
-          {latestAudioId != null
-            ? "Retry to re-run on the latest recording, or record again."
-            : "Record audio and AI will re-run automatically."}
+          {hasAudio
+            ? "Re-run AI on the latest recording."
+            : "Start a recording to retry — AI runs automatically when you stop."}
         </div>
       </div>
-      {latestAudioId != null && (
-        <button
-          type="button"
-          onClick={handleRetry}
-          disabled={retrying}
-          className="text-sm font-semibold underline underline-offset-2 disabled:opacity-50"
-        >
-          {retrying ? "Retrying…" : "Retry"}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={handleAction}
+        disabled={(hasAudio && retrying) || (!hasAudio && isRequestingMic)}
+        className="text-sm font-semibold underline underline-offset-2 disabled:opacity-50"
+      >
+        {buttonLabel}
+      </button>
     </div>
   );
 }
