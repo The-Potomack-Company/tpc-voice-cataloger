@@ -22,6 +22,69 @@ import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
 import { formatDuration } from "../utils/audio";
 import type { ItemPhoto } from "../db/types";
+import { audioRecordsForItem } from "../db/audioLookup";
+import { processAudioWithAi } from "../services/gemini";
+
+/** Failed-AI banner. Shown when ai_status === "failed" so a user editing a
+ *  single item knows AI didn't complete and can retry the latest recording.
+ *  Without this, the only failure surface is the small status dot + badge
+ *  on the list view, which is invisible from the detail page. */
+function AiFailureBanner({
+  itemId,
+  sessionId,
+}: {
+  itemId: string;
+  sessionId: string;
+}) {
+  const [retrying, setRetrying] = useState(false);
+  const latestAudioId = useLiveQuery(
+    async () => {
+      const audios = await audioRecordsForItem(itemId);
+      return audios.length > 0
+        ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
+        : null;
+    },
+    [itemId],
+    null as number | null,
+  );
+
+  const handleRetry = () => {
+    if (latestAudioId == null || retrying) return;
+    setRetrying(true);
+    processAudioWithAi(latestAudioId, itemId, sessionId)
+      .catch((err) => {
+        console.error("AI retry failed:", err);
+      })
+      .finally(() => setRetrying(false));
+  };
+
+  return (
+    <div
+      role="alert"
+      className="flex items-start gap-3 rounded-lg border border-err bg-err-wash text-err px-3 py-2"
+    >
+      <Icon name="err" size={16} aria-hidden />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium">AI processing failed</div>
+        <div className="text-xs opacity-80 mt-0.5">
+          {latestAudioId != null
+            ? "Retry to re-run on the latest recording, or record again."
+            : "Record audio and AI will re-run automatically."}
+        </div>
+      </div>
+      {latestAudioId != null && (
+        <button
+          type="button"
+          onClick={handleRetry}
+          disabled={retrying}
+          className="text-sm font-semibold underline underline-offset-2 disabled:opacity-50"
+        >
+          {retrying ? "Retrying…" : "Retry"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 /** Always-visible waveform wrapper. Renders the bars dimmed when idle and
  *  swaps the timer copy for a "Tap to record" prompt so the surface always
@@ -273,6 +336,13 @@ export function ItemEntryPage() {
             sessionId={sessionId!}
             onOpenLightbox={(index) => setLightboxIndex(index)}
           />
+        )}
+
+        {/* AI failure banner — only renders when the last AI run terminally
+            failed. Without this, the detail page has no failure surface and
+            users have no path back to a successful run. */}
+        {item?.ai_status === "failed" && itemId && (
+          <AiFailureBanner itemId={itemId} sessionId={sessionId!} />
         )}
 
         {/* Receipt number input for sale mode (top field) */}
