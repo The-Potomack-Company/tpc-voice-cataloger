@@ -5,13 +5,13 @@ milestone_name: Maturation
 status: in_progress
 shipped_at: null
 superseded_by: null
-stopped_at: "Phase 31 context gathered — v1.3 phases 31-40 queued, none planned. Next: plan Phase 31 (P0 LIVE on prod)."
-last_updated: "2026-05-29T18:24:13.368Z"
-last_activity: 2026-05-29 -- Phase 31 (sec-profiles-self-update) context gathered; escalation vector verified LIVE on prod. v1.3 phases 31-40 queued, none planned.
+stopped_at: "Phase 31 PLANNED (2 plans, plan-checker PASSED) — ready to execute. v1.3 phases 32-40 still queued/unplanned."
+last_updated: "2026-05-29T19:25:16.381Z"
+last_activity: 2026-05-29 -- Phase 31 planned: research + Nyquist validation + 2 verified plans (migration authoring → Codex review → blocking prod db push → V-1..V-7). Ready for /gsd-execute-phase 31.
 progress:
   total_phases: 10
   completed_phases: 0
-  total_plans: 0
+  total_plans: 2
   completed_plans: 0
   percent: 0
 ---
@@ -23,19 +23,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.3 Maturation (LIVE track) — harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). Phases 31-40 queued; none planned yet. Next up: Phase 31 (sec-profiles-self-update-hardening, P0 🔴 LIVE on prod).
+**Current focus:** v1.3 Maturation (LIVE track) — harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). **Phase 31 (P0 🔴 sec-profiles-self-update) is PLANNED (2 plans, verified) and ready to execute.** Phases 32-40 still queued/unplanned.
 
 ## Current Position
 
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: phases 31-40 queued from the 2026-05-27 audit + 2026-05-28 UAT findings + audio-blob ask + AI-proxy migration; none planned yet
+Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
-Progress: [░░░░░░░░░░] 0% (0/10 v1.3 phases planned)
+Progress: [▓░░░░░░░░░] 1/10 v1.3 phases planned (0 executed)
 
-Next action: `/gsd-discuss-phase 31` → `/gsd-plan-phase 31` (or `/tpc-urgent` if the P0 must patch prod before working the queue in order).
+Next action: `/gsd-execute-phase 31` — execute the 2 verified plans (wave 1 authors the migration; wave 2 is human-gated: Codex review → prod db push → verifications).
 
 ## v1.3 Phase Queue
 
@@ -43,7 +43,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 
 | Phase | Slug | Priority | Planned |
 |-------|------|----------|---------|
-| 31 | sec-profiles-self-update-hardening | P0 🔴 LIVE on prod | no |
+| 31 | sec-profiles-self-update-hardening | P0 🔴 LIVE on prod | **yes (2 plans, verified)** |
 | 32 | audio-blob-supabase-persistence | 🟠 NEW | no |
 | 33 | offline-reliability | 🟠 REL-1..4 | no |
 | 34 | ios-memory-optimization | 🟠 PERF-1..3 | no |
@@ -114,6 +114,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-05-29T18:24:13.360Z
-Stopped at: Phase 31 context gathered
-Resume file: .planning/milestones/v1.3-phases/31-sec-profiles-self-update-hardening/31-CONTEXT.md
+Last session: 2026-05-29 -- Phase 31 planned (research + Nyquist VALIDATION + 2 plans; plan-checker PASSED iteration 2). Decision-coverage gate false-negative overridden (plan-checker independently confirmed D-01..D-09 coverage).
+Stopped at: Phase 31 PLANNED — ready to execute.
+Resume file: .planning/milestones/v1.3-phases/31-sec-profiles-self-update-hardening/31-01-PLAN.md (then 31-02). Run `/gsd-execute-phase 31`.
