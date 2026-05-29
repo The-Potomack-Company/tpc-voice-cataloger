@@ -454,21 +454,37 @@ export const useSessionStore = create<SessionState>()(
           // DAT-4: surface the failed save instead of silently dropping it. Skip internal
           // status writes (ai_status) — those aren't user edits and shouldn't toast.
           if (field !== "ai_status") {
-            useNotificationStore.getState().notifyError(
-              `Couldn't save ${field}. Tap Retry to try again.`,
-              () => {
-                // DAT-4: guard against clobbering a newer edit — only retry if the field is
-                // still at the reverted value left by the failed save. If the user changed it
-                // since, drop the stale retry instead of overwriting.
-                const latest = get().itemsBySession[sessionId]?.find((i) => i.id === itemId);
-                const revertedValue = (originalItem as Record<string, unknown>)[field];
-                if (latest && (latest as Record<string, unknown>)[field] === revertedValue) {
-                  void get().updateItemField(itemId, sessionId, field, value);
-                } else {
-                  useNotificationStore.getState().dismiss();
-                }
-              },
-            );
+            // DAT-8 follow-up: receipt-number uniqueness violations are deterministic —
+            // retrying with the same value will hit the same constraint. Show a specific
+            // message and omit the Retry callback so the user knows to enter a different
+            // number instead of looping. Constraint key matches items_receipt_unique.
+            const pgErr = err as { code?: string; message?: string };
+            const isReceiptDup =
+              field === "receipt_number" &&
+              (pgErr?.code === "23505" ||
+                pgErr?.message?.includes("items_receipt_unique") ||
+                pgErr?.message?.includes("duplicate key value"));
+            if (isReceiptDup) {
+              useNotificationStore.getState().notifyError(
+                `Receipt number "${value as string}" is already used. Each receipt number must be unique across all sessions.`,
+              );
+            } else {
+              useNotificationStore.getState().notifyError(
+                `Couldn't save ${field}. Tap Retry to try again.`,
+                () => {
+                  // DAT-4: guard against clobbering a newer edit — only retry if the field is
+                  // still at the reverted value left by the failed save. If the user changed it
+                  // since, drop the stale retry instead of overwriting.
+                  const latest = get().itemsBySession[sessionId]?.find((i) => i.id === itemId);
+                  const revertedValue = (originalItem as Record<string, unknown>)[field];
+                  if (latest && (latest as Record<string, unknown>)[field] === revertedValue) {
+                    void get().updateItemField(itemId, sessionId, field, value);
+                  } else {
+                    useNotificationStore.getState().dismiss();
+                  }
+                },
+              );
+            }
           }
         }
       },
