@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation
-status: executing
-stopped_at: Phase 31 PLANNED — ready to execute.
+status: in_progress
+shipped_at: null
+superseded_by: null
+stopped_at: "Phase 31 COMPLETE — P0 profiles self-update lockdown APPLIED to prod (wgrknodfxdjtddsirldw) + verified (grants, guard trigger, admin audit). v1.3 phases 32-40 remain queued/unplanned."
 last_updated: "2026-05-29T19:36:20.361Z"
+last_activity: 2026-05-29 -- Phase 31 executed: migration applied to prod, vector closed (authenticated UPDATE=walkthrough_completed only, role/is_active ungranted + guard trigger; anon revoked). Codex review passed. Theme-drift handled (conditional grant).
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 27
-  completed_plans: 27
-  percent: 91
+  total_phases: 10
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
+  percent: 10
 ---
 
 # Project State
@@ -20,21 +23,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 31 — sec-profiles-self-update-hardening
+**Current focus:** v1.3 Maturation — Phase 31 COMPLETE (P0 closed on prod); phases 32-40 queued/unplanned.
 
 ## Current Position
 
-Phase: 31 (sec-profiles-self-update-hardening) — EXECUTING
-Plan: 2 of 2
-Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: Ready to execute
+Phase: 31 (sec-profiles-self-update-hardening) — COMPLETE ✅ (applied to prod 2026-05-29, verified)
+Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
+Status: Phase 31 done; pick next phase
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
-Progress: [██████████] 100%
+Progress: [█░░░░░░░░░] 1/10 v1.3 phases complete
 
-Next action: `/gsd-execute-phase 31` — execute the 2 verified plans (wave 1 authors the migration; wave 2 is human-gated: Codex review → prod db push → verifications).
+Next action: confirmatory app smoke for Phase 31 (specialist self-escalate attempt + admin toggle), then `/gsd-discuss-phase 32` (audio-blob-supabase-persistence) or another v1.3 phase. Phase 31 branch is on `main`, unpushed — push when ready (commits af68e37/002b346/41636a7).
 
 ## v1.3 Phase Queue
 
@@ -42,7 +44,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 
 | Phase | Slug | Priority | Planned |
 |-------|------|----------|---------|
-| 31 | sec-profiles-self-update-hardening | P0 🔴 LIVE on prod | **yes (2 plans, verified)** |
+| 31 | sec-profiles-self-update-hardening | ✅ DONE (applied to prod 2026-05-29) | yes (2/2 executed) |
 | 32 | audio-blob-supabase-persistence | 🟠 NEW | no |
 | 33 | offline-reliability | 🟠 REL-1..4 | no |
 | 34 | ios-memory-optimization | 🟠 PERF-1..3 | no |
@@ -88,7 +90,8 @@ None.
 
 ### Blockers/Concerns
 
-- **Phase 31 (P0 🔴 LIVE on prod):** any authenticated specialist can self-promote to admin via `PATCH /rest/v1/profiles?id=eq.<uid> {role:'admin'}` — broad UPDATE grant + non-column-scoped RLS + no role-guard trigger. Highest-priority v1.3 work.
+- ✅ **Phase 31 P0 CLOSED 2026-05-29:** profiles self-update escalation fixed on prod — `authenticated` UPDATE scoped to `walkthrough_completed` (theme conditional/absent on prod), `role`/`is_active` ungranted + `private.guard_profiles_privileged_columns` trigger; `anon` fully revoked. Admin audit clean (2 admins from v1.1 setup). Confirmatory app smoke (V-2/V-5) still recommended.
+- **Discovered drift (follow-up, non-blocking):** (a) prod `profiles.theme` missing despite the theme migration being in history (app tolerates via localStorage fallback); (b) `database.types.ts` stale vs prod (missing `crm_*` tables).
 - DEPLOY-04: Branch protection deferred (GitHub Free plan limitation on private repos) -- carried from v1.1
 - Backlog item 999.1: Stream photos from Storage during extension import (large house visits balloon export JSON to 200-450MB) -- carried from v1.1
 - Offline session display strategy still needs decision for future work -- carried from v1.1
@@ -115,6 +118,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-05-29T19:36:20.352Z
-Stopped at: Phase 31 PLANNED — ready to execute.
-Resume file: None
+Last session: 2026-05-29 -- Phase 31 EXECUTED: migration applied to prod (wgrknodfxdjtddsirldw), P0 vector closed + verified (V-1 grants, guard trigger, V-6 admin audit, V-7 type-neutral). Codex review passed (MED disproven). Theme-drift handled via conditional grant.
+Stopped at: Phase 31 COMPLETE. Commits af68e37/002b346/41636a7 on main (unpushed).
+Resume file: Confirmatory app smoke (V-2 specialist escalate attempt, V-5 admin toggle) recommended; then /gsd-discuss-phase 32 or next v1.3 phase. See 31-02-SUMMARY.md.

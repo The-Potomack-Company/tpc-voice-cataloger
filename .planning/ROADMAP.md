@@ -67,7 +67,7 @@ Sourced from the 2026-05-27 audit (`docs/audit-consolidated-backlog-2026-05-27.m
 
 Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 
-- [ ] **Phase 31: sec-profiles-self-update-hardening** *(P0 🔴 LIVE on prod)*
+- [x] **Phase 31: sec-profiles-self-update-hardening** *(P0 🔴 LIVE on prod)* (completed 2026-05-29)
   - From `_workspace/Urgent/sec-profiles-self-update-escalation.md`. Independent vector from SEC-1: any authenticated specialist can `PATCH /rest/v1/profiles?id=eq.<their-uid> {role:'admin'}` because UPDATE is granted on every profiles column to `authenticated`, the RLS UPDATE policy is not column-scoped, and no trigger guards `role`/`is_active`.
   - REVOKE broad UPDATE on `public.profiles` from authenticated + anon; GRANT UPDATE only on user-self-editable columns (`walkthrough_completed`, possibly `display_name`).
   - Add a BEFORE UPDATE trigger raising if a non-admin attempts to mutate `role` or `is_active` (defense in depth against future broad re-grants).
@@ -76,7 +76,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Risk: medium (RLS + trigger + grants), bounded blast radius.
   - **Plans:** 2 plans (1 wave, sequential)
     - [x] 31-01-PLAN.md — author migration (table-form REVOKE + narrow GRANT walkthrough_completed/theme + private guard trigger) + V-1 grant-assertion query
-    - [ ] 31-02-PLAN.md — Codex review (D-046) → [BLOCKING] db push --dry-run isolation + prod apply (D-07) → V-1/V-6 prod reads → db:types zero-diff (V-7) → Tier-2 smoke (walkthrough/theme/admin toggle)
+    - [x] 31-02-PLAN.md — Codex review (D-046) → [BLOCKING] db push --dry-run isolation + prod apply (D-07) → V-1/V-6 prod reads → db:types zero-diff (V-7) → Tier-2 smoke (walkthrough/theme/admin toggle)
 
 - [ ] **Phase 32: audio-blob-supabase-persistence** *(NEW 🟠 — durable audio, cross-device retry, audit trail)*
   - Today audio blobs live only in Dexie. Lost on device wipe / browser cache clear; can't retry from a different device; AI-failure recovery is local-only.
