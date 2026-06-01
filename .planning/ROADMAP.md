@@ -95,7 +95,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
     - [x] 32-04-PLAN.md — recorder sessionId thread + fire-and-forget enqueue (D-05) + processAudioWithAi Storage fallback (keyed by item_id) + items.completed_at on done (D-07) + audioRecordsForItem Supabase union
     - [x] 32-05-PLAN.md — deleteItem audio storage.remove (D-04 orphan-leak close) + ItemCard upload-status pill + failed-retry (D-06)
 
-- [ ] **Phase 33: offline-reliability** *(🟠 REL-1, REL-2, REL-3, REL-4)*
+- [x] **Phase 33: offline-reliability** *(🟠 REL-1, REL-2, REL-3, REL-4)* (completed 2026-06-01)
   - REL-1: offline-queue drains on every `online` event with no backoff or attempt cap → retry storm. Add exponential backoff + persisted attempt counter (folds in the #17 net-abort-requeue follow-up).
   - REL-2: cross-tab/process concurrent drains burn duplicate Gemini spend + cause lost updates (CONCURRENCY=4 plus no cross-tab coordination). Add atomic `queued→processing` DB claim on items (D-01/D-03: DB-atomic claim, NO BroadcastChannel) + stale-claim reclaim.
   - REL-3: write-ahead queue blocks all later writes after the first permanent failure (console-only). Classify permanent vs transient errors; surface a blocked-count badge with detail.
@@ -105,7 +105,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - **Plans:** 5 plans (4 waves)
     - [x] 33-00-PLAN.md — [BLOCKING] one two-column items migration (claimed_at + ai_attempts) via the 4-step schema protocol + Phase-31 dry-run push gate + db:types regen; pure backoff.ts + aiErrorClass.ts helpers; Wave-0 test stubs (backoff, error-classify, blocked-badge RED)
     - [x] 33-01-PLAN.md — REL-1: replace MAX_RETRIES loop with persisted-attempt backoff-window skip + cap 5→failed in offlineQueue.ts (owns the file for REL-1)
-    - [ ] 33-02-PLAN.md — REL-2: DB-atomic claim (.eq queued .select) + stale-claim reclaim in offlineQueue.ts (depends_on 33-01, sequential same-wave to avoid file conflict)
+    - [x] 33-02-PLAN.md — REL-2: DB-atomic claim (.eq queued .select) + stale-claim reclaim in offlineQueue.ts (depends_on 33-01, sequential same-wave to avoid file conflict)
     - [x] 33-03-PLAN.md — REL-3: classify-driven drop/continue vs halt in useWriteAheadQueue + BlockedQueueBadge (tone=err) next to OfflineIndicator
     - [x] 33-04-PLAN.md — REL-4: recorder onstop retry 2× then always-settle(undefined) + blob stash in recordingStore retry buffer
 

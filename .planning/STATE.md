@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: Phase 39 context gathered
-last_updated: "2026-06-01T15:41:06.147Z"
+last_updated: "2026-06-01T16:06:56.284Z"
 progress:
   percent: 0
 ---
@@ -21,9 +21,9 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 ## Current Position
 
 Phase: 33 (offline-reliability) — EXECUTING
-Plan: 2 of 5 (33-00 foundation COMPLETE — migration on prod, types regenerated, backoff/classifier helpers + Wave-0 stubs landed)
+Plan: 3 of 5 (33-00 foundation COMPLETE — migration on prod, types regenerated, backoff/classifier helpers + Wave-0 stubs landed)
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
-Status: Executing Phase 33
+Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
@@ -69,6 +69,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 32 P01 | 18min | 3 tasks | 8 files |
 | Phase 32 P04 | 6min | 3 tasks | 5 files |
 | Phase 32 P05 | 4min | 2 tasks | 3 files |
+| Phase 33 P02 | 5 min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase ?]: Phase 32 P04: completed_at stamped on single-item AI-done write-path only (D-07); continuous-mode write-paths out of scope (D-050)
 - [Phase 32]: P05: deleteItem removes audio Storage blobs (storage.from('audio').remove) on hard-delete (D-04); remove failure logged+swallowed, pg_cron purge-audio reaper is the orphan backstop; first storage.remove() in the codebase
 - [Phase 32]: P05: ItemCard audio pill labels Pending/Uploaded/Failed-retry satisfy the locked item-card-audio-status.test.tsx regexes (overrides plan Uploading/Saved); failed pill re-enqueues via retryFailedUploads (D-06)
+- [Phase ?]: [Phase 33]: P02: REL-2 cross-tab dedup is a DB-atomic conditional claim (.update().eq(id).eq(ai_status,'queued').select('id')); .select('id') mandatory (PostgREST returns null data without it). No message bus (D-03); per-tab draining boolean is local short-circuit only.
+- [Phase ?]: [Phase 33]: P02: STALE_MS=300_000; stale 'processing' rows reclaimed to 'queued' at drain start via .eq('ai_status','processing').lt('claimed_at',cutoff) so a dead tab self-heals.
 
 ### Pending Todos
 
@@ -123,6 +126,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-01T15:32:46.553Z
+Last session: 2026-06-01T16:06:35.525Z
 Stopped at: Phase 39 context gathered
-Resume file: .planning/milestones/v1.3-phases/39-optimistic-locking/39-CONTEXT.md
+Resume file: None
