@@ -133,15 +133,25 @@ export function formatExistingValuesBlock(item: ExistingValuesContext): string {
  * Uses Response API to read the blob (works across environments including jsdom).
  */
 export async function blobToBase64(blob: Blob): Promise<string> {
-  // Re-wrap to ensure we have a proper Blob (handles structured clone edge cases)
+  // Re-wrap retained (D-02 contingency): a blob read back out of Dexie
+  // (structured-clone deserialized) can lack a live arrayBuffer() method, so calling
+  // blob.arrayBuffer() directly throws "blob.arrayBuffer is not a function" — exactly
+  // the gemini-pipeline processAudioWithAi path. Re-wrapping yields a fresh native Blob
+  // whose arrayBuffer() works. This is a single bounded copy; the OOM win comes from
+  // the chunked encode below (no whole-buffer binary string), not from dropping this.
   const freshBlob = new Blob([blob], { type: blob.type });
   const buffer = await freshBlob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  // Window MUST be a multiple of 3 so per-chunk btoa concatenation is byte-identical
+  // to whole-buffer btoa (each 3 input bytes map to exactly 4 base64 chars; a
+  // non-3-aligned split would emit interior padding). 0x8000 - 2 = 32766.
+  const CHUNK_SIZE = 32766;
+  let result = "";
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, i + CHUNK_SIZE);
+    result += btoa(String.fromCharCode(...chunk));
   }
-  return btoa(binary);
+  return result;
 }
 function isTransientNetworkError(error: unknown): boolean {
   if (!navigator.onLine) return true;
