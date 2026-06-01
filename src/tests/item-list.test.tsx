@@ -43,8 +43,8 @@ vi.mock("../hooks/useSessions", () => ({
 // Mock Dexie for photo queries
 vi.mock("../db", () => ({
   db: {
-    photos: { where: vi.fn().mockReturnValue({ equals: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }) }) },
-    audio: { where: vi.fn().mockReturnValue({ equals: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }) }) },
+    photos: { where: vi.fn().mockReturnValue({ equals: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(0) }) }) },
+    audio: { where: vi.fn().mockReturnValue({ equals: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(0) }) }) },
   },
 }));
 

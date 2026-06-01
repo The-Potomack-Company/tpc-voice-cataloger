@@ -1,7 +1,5 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db";
 import type { Tables } from "../db/database.types";
 import { EditableField } from "./EditableField";
 import { SwipeableRow } from "./SwipeableRow";
@@ -9,9 +7,6 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { updateItemField, deleteItem } from "../db/items";
 import { processAudioWithAi } from "../services/gemini";
 import { reformatMeasurements } from "../utils/formatMeasurements";
-import { getDexieItemId } from "../db/idMapping";
-import { audioRecordsForItem } from "../db/audioLookup";
-import { hasPendingForItem } from "../hooks/useWriteAheadQueue";
 import { useAudioUploadStatus } from "../hooks/useAudioUploadStatus";
 import { retryFailedUploads } from "../services/audioUploadQueue";
 import { Badge } from "../ui/Badge";
@@ -24,43 +19,39 @@ interface ItemCardProps {
   isExpanded: boolean;
   onToggle: () => void;
   readOnly?: boolean;
+  audioCount: number;
+  latestAudioId: number | null;
+  photoCount: number;
+  dexieItemId: number | string | null;
+  isPending: boolean;
 }
 
-export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: ItemCardProps) {
+// D-08: dev-only render counter. PERF-3 render-count test imports this from this
+// module (contract), so the non-component export lives here intentionally — proves a
+// one-item state change re-renders only that card. No-op in production builds.
+// eslint-disable-next-line react-refresh/only-export-components
+export const __itemCardRenderCounts = new Map<string, number>();
+
+function ItemCardImpl({
+  item,
+  sessionId,
+  isExpanded,
+  onToggle,
+  readOnly,
+  audioCount,
+  latestAudioId,
+  photoCount,
+  isPending,
+}: ItemCardProps) {
+  if (import.meta.env.MODE !== "production") {
+    __itemCardRenderCounts.set(item.id, (__itemCardRenderCounts.get(item.id) ?? 0) + 1);
+  }
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const isQueued = item.ai_status === "queued";
   const isFailed = item.ai_status === "failed";
   const isProcessing = item.ai_status === "processing";
-
-  // ID mapping for Dexie blob lookups
-  const [dexieItemId, setDexieItemId] = useState<number | string | null>(null);
-  useEffect(() => {
-    getDexieItemId(item.id).then(id => setDexieItemId(id ?? item.id));
-  }, [item.id]);
-
-  // Pending sync badge
-  const [isPending, setIsPending] = useState(false);
-  useEffect(() => {
-    hasPendingForItem(item.id).then(setIsPending);
-  }, [item.id]);
-
-  const audioData = useLiveQuery(
-    async () => {
-      const audios = await audioRecordsForItem(item.id);
-      const count = audios.length;
-      const latestAudioId = count > 0
-        ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
-        : null;
-      return { count, latestAudioId };
-    },
-    [item.id],
-    { count: 0, latestAudioId: null as number | null },
-  );
-
-  const audioCount = audioData.count;
-  const latestAudioId = audioData.latestAudioId;
 
   // D-06: surface audio upload durability for the item's latest recording.
   const uploadStatus = useAudioUploadStatus(latestAudioId ?? undefined);
@@ -75,17 +66,6 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
         setRetrying(false);
       });
   };
-
-  const photoCount = useLiveQuery(
-    () => {
-      if (dexieItemId == null) return Promise.resolve(0);
-      return item.mode === "house"
-        ? db.photos.where("itemId").equals(dexieItemId).count()
-        : Promise.resolve(0);
-    },
-    [dexieItemId, item.mode],
-    0,
-  );
 
   const handleFieldSave = (field: string) => (value: string) => {
     updateItemField(item.id, sessionId, field, value);
@@ -417,3 +397,33 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
     </SwipeableRow>
   );
 }
+
+// PERF-3 (Pitfall 2): memo delivers the fan-out cut. The 5 meta values arrive as
+// primitives, but `item` is an object whose reference changes whenever the parent's
+// items array is rebuilt (every Dexie emit). A default shallow compare would then
+// re-render every card on any single-item write. The comparator shallow-compares the
+// item's own fields so a structurally-unchanged item skips re-render; only the card
+// whose item data actually changed re-renders.
+function arePropsEqual(prev: ItemCardProps, next: ItemCardProps): boolean {
+  if (
+    prev.sessionId !== next.sessionId ||
+    prev.isExpanded !== next.isExpanded ||
+    prev.onToggle !== next.onToggle ||
+    prev.readOnly !== next.readOnly ||
+    prev.audioCount !== next.audioCount ||
+    prev.latestAudioId !== next.latestAudioId ||
+    prev.photoCount !== next.photoCount ||
+    prev.dexieItemId !== next.dexieItemId ||
+    prev.isPending !== next.isPending
+  ) {
+    return false;
+  }
+  if (prev.item === next.item) return true;
+  const a = prev.item as Record<string, unknown>;
+  const b = next.item as Record<string, unknown>;
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) return false;
+  return aKeys.every((k) => a[k] === b[k]);
+}
+
+export const ItemCard = React.memo(ItemCardImpl, arePropsEqual);
