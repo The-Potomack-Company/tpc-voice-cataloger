@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { db } from "../db";
 import { getPreferredMimeType } from "../utils/audio";
+import {
+  enqueueAudioUpload,
+  drainAudioQueue,
+} from "../services/audioUploadQueue";
 import { useRecordingStore } from "../stores/recordingStore";
 
 type RecordingStatus = "idle" | "requesting" | "recording" | "error";
@@ -187,6 +191,7 @@ export function useAudioRecorder(): AudioRecorderReturn {
               const id = await db.audio.add({
                 itemId: itemIdRef.current as unknown as number, // Dexie stores value as-is
                 itemType: "house", // Legacy field, kept for backward compat
+                sessionId: sessionIdRef.current, // D-02: thread the session UUID for the Storage path token
                 blob,
                 mimeType: detectedMimeTypeRef.current || "audio/webm",
                 durationMs: elapsedMs,
@@ -194,6 +199,20 @@ export function useAudioRecorder(): AudioRecorderReturn {
               });
 
               store.getState().setLastSaved(id as number, elapsedMs);
+
+              // D-05: fire-and-forget background upload — never blocks the
+              // resolve below or the AI trigger (RecordButton). A rejected
+              // enqueue/drain is swallowed. Mirrors PhotoCapture.tsx:130-136.
+              // itemId here is the Supabase UUID STRING (itemIdRef.current),
+              // NOT the `as unknown as number` coercion the Dexie row uses.
+              enqueueAudioUpload({
+                dexieAudioId: id as number,
+                itemId: itemIdRef.current,
+                sessionId: sessionIdRef.current,
+                mimeType: detectedMimeTypeRef.current || "audio/webm",
+              })
+                .then(() => drainAudioQueue())
+                .catch(() => {});
 
               if (stopResolveRef.current) {
                 stopResolveRef.current(id as number);
