@@ -82,6 +82,15 @@ export interface SessionAudio {
   updatedAt: Date;
 }
 
+export interface UserEditedField {
+  // Supabase UUID — the SAME value updateItemField/processAudioWithAi pass around,
+  // NOT the integer Dexie item id (the houseVisitItems/saleItems tables are legacy
+  // pre-Supabase-migration stores keyed by ++id). Keying on the integer id would make
+  // the no-clobber retry guard silently miss migrated items. (RESEARCH Pitfall 1.)
+  itemId: string;
+  field: string;
+}
+
 export interface IdMapping {
   id?: number;
   oldId: number;

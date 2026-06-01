@@ -11,6 +11,7 @@ import type {
   WriteAheadEntry,
   PhotoUploadEntry,
   AudioUploadEntry,
+  UserEditedField,
 } from "./types";
 
 const db = new Dexie("TPCCatalog") as Dexie & {
@@ -25,6 +26,7 @@ const db = new Dexie("TPCCatalog") as Dexie & {
   writeAheadQueue: EntityTable<WriteAheadEntry, "id">;
   photoUploadQueue: EntityTable<PhotoUploadEntry, "id">;
   audioUploadQueue: EntityTable<AudioUploadEntry, "id">;
+  userEditedFields: EntityTable<UserEditedField, "itemId">;
 };
 
 db.version(1).stores({
@@ -144,6 +146,25 @@ db.version(10).stores({
   writeAheadQueue: "++id, createdAt",
   photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
   audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
+});
+
+// v11: Add userEditedFields table for per-field user-edited provenance (D-05).
+// Compound primary key [itemId+field] + itemId secondary index for O(1) per-item
+// reads and a trivial where("itemId").delete() clear-on-fresh-success. New empty
+// table — no .upgrade() needed; absence of a row === field not user-edited.
+db.version(11).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  sessionAudio: "sessionId, updatedAt",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
+  audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
+  userEditedFields: "[itemId+field], itemId",
 });
 
 export { db };
