@@ -82,6 +82,8 @@ describe("offlineQueue service (Supabase-backed)", () => {
       mode: string;
       session_id: string;
       created_at: string;
+      claimed_at?: string | null;
+      ai_attempts?: number;
     }>,
   ) {
     mockFrom.mockImplementation((table: string) => {
@@ -244,6 +246,180 @@ describe("offlineQueue service (Supabase-backed)", () => {
       expect(mockSupabaseUpdate).toHaveBeenCalledWith({
         ai_status: "failed",
       });
+    });
+  });
+
+  describe("REL-1: backoff window + persisted attempt cap", () => {
+    it("skips an item still inside its backoff window (no processAudioWithAi call)", async () => {
+      mockGetDexieItemId.mockResolvedValue(42);
+      await createAudio(42, "house");
+
+      // Just-claimed item with attempts>0 → isInBackoff true → must be skipped
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-backoff",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+          claimed_at: new Date().toISOString(),
+          ai_attempts: 1,
+        },
+      ]);
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      expect(processAudioWithAi).not.toHaveBeenCalled();
+    });
+
+    it("processes an eligible item whose backoff window has elapsed", async () => {
+      mockGetDexieItemId.mockResolvedValue(42);
+      const audioId = await createAudio(42, "house");
+
+      // claimed long ago → past the (capped 5min) backoff window → eligible
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-eligible",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+          claimed_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+          ai_attempts: 2,
+        },
+      ]);
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      expect(processAudioWithAi).toHaveBeenCalledWith(
+        audioId,
+        "uuid-eligible",
+        "sess-uuid-1",
+      );
+    });
+
+    it("on failure below the cap re-queues and increments ai_attempts", async () => {
+      mockGetDexieItemId.mockResolvedValue(42);
+      await createAudio(42, "house");
+
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-retry",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+          claimed_at: null,
+          ai_attempts: 1,
+        },
+      ]);
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      vi.mocked(processAudioWithAi).mockRejectedValue(
+        new Error("Proxy returned HTTP 503: server fault"),
+      );
+
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      // attempt 1 -> 2, still below ATTEMPT_CAP (5): re-queue + increment
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        ai_status: "queued",
+        ai_attempts: 2,
+      });
+      expect(mockSupabaseUpdate).not.toHaveBeenCalledWith({
+        ai_status: "failed",
+      });
+    });
+
+    it("marks the item failed when the next attempt reaches the cap", async () => {
+      mockGetDexieItemId.mockResolvedValue(42);
+      await createAudio(42, "house");
+
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-cap",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+          claimed_at: null,
+          ai_attempts: 4,
+        },
+      ]);
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      vi.mocked(processAudioWithAi).mockRejectedValue(
+        new Error("Proxy returned HTTP 503: server fault"),
+      );
+
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      // attempt 4 -> 5 >= ATTEMPT_CAP: terminal failure, not re-queued
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        ai_status: "failed",
+      });
+      expect(mockSupabaseUpdate).not.toHaveBeenCalledWith({
+        ai_status: "queued",
+        ai_attempts: 5,
+      });
+    });
+
+    it("fails immediately on a permanent error without consuming further attempts", async () => {
+      mockGetDexieItemId.mockResolvedValue(42);
+      await createAudio(42, "house");
+
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-perm",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+          claimed_at: null,
+          ai_attempts: 0,
+        },
+      ]);
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      vi.mocked(processAudioWithAi).mockRejectedValue(
+        new Error("Proxy returned HTTP 422: Zod validation failed"),
+      );
+
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      // permanent (4xx) → terminal failure, NOT re-queued
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        ai_status: "failed",
+      });
+      expect(mockSupabaseUpdate).not.toHaveBeenCalledWith({
+        ai_status: "queued",
+        ai_attempts: 1,
+      });
+    });
+
+    it("getQueuedItems maps claimed_at and ai_attempts onto the item", async () => {
+      const claimed = "2026-01-01T10:05:00Z";
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-map",
+          mode: "sale",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+          claimed_at: claimed,
+          ai_attempts: 3,
+        },
+      ]);
+
+      const { getQueuedItems } = await import("../services/offlineQueue");
+      const items = await getQueuedItems();
+
+      expect(items[0].aiAttempts).toBe(3);
+      expect(items[0].claimedAt).toBeInstanceOf(Date);
+      expect(items[0].claimedAt?.toISOString()).toBe(
+        new Date(claimed).toISOString(),
+      );
     });
   });
 });
