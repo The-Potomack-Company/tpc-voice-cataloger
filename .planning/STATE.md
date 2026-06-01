@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: Phase 39 context gathered
-last_updated: "2026-06-01T19:01:21.552Z"
+last_updated: "2026-06-01T19:36:52.101Z"
 progress:
   percent: 40
 ---
@@ -16,14 +16,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 35 — ai-correctness-track-2 (next)
+**Current focus:** Phase 35 — ai-correctness-track-2
 
 ## Current Position
 
-Phase: 34 (ios-memory-optimization) — COMPLETE (verification passed 7/7 must-haves; iOS on-device memory smoke pending)
-Plan: 3 of 3 complete
+Phase: 35 (ai-correctness-track-2) — EXECUTING
+Plan: 1 of 4
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
-Status: Ready to execute
+Status: Executing Phase 35
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions

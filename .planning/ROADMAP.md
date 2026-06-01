@@ -278,7 +278,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 **UI hint**: yes
 
 Plans:
-- [ ] 35-01-PLAN.md — Wave 0: Dexie v11 userEditedFields store + 4 RED test files (SC-1..SC-4)
+- [x] 35-01-PLAN.md — Wave 0: Dexie v11 userEditedFields store + 4 RED test files (SC-1..SC-4)
 - [ ] 35-02-PLAN.md — D-01/D-02: temperature:0 on both AI paths (determinism, SC-1)
 - [ ] 35-03-PLAN.md — D-07/D-08: lift AiFailureBanner to shared component, render on ItemCard (SC-4)
 - [ ] 35-04-PLAN.md — D-03..D-06: confab guard (single-shot) + Dexie no-clobber retry filter (SC-2, SC-3)
