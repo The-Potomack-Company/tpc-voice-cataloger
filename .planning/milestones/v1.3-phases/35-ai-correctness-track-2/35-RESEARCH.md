@@ -302,14 +302,16 @@ export async function updateItemField(id, sessionId, field, value): Promise<void
 | A3 | `hasExistingData` (gemini.ts:240) is an acceptable proxy for "fresh extraction vs retry" for the clear-on-success rule | Pitfall 4 / O-1 | Medium — affects whether flags clear at the right time; see O-1 |
 | A4 | Continuous path should NOT get the confab guard (only `temperature:0`) | Pitfall 5 | Low — continuous is gated off (D-050); decision documented for re-enable |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **O-1: Fresh-vs-retry signal for clearing provenance flags.**
+> **RESOLVED in planning (Phase 35 plans 35-03/35-04):** O-1 — adopt an explicit `isRetry` boolean param on `processAudioWithAi` (default `false`; retry call sites `handleRetryAi`/`AiFailureBanner` pass `true`); clear provenance flags on `!isRetry`, not on the `hasExistingData` proxy. O-2 — the catch path branches on `instanceof ConfabRejectedError` ahead of `isTransientNetworkError`, so classification never depends on message wording.
+
+1. **O-1: Fresh-vs-retry signal for clearing provenance flags.** *(RESOLVED: explicit `isRetry` param — see note above.)*
    - What we know: CONTEXT requires flags clear "on a fresh AI success, not just on retry." `hasExistingData` (gemini.ts:240) distinguishes first extraction from merge.
    - What's unclear: whether `hasExistingData === false` is a precise enough oracle. Edge case: a user records, edits a field, then re-records the SAME item (fresh audio but `hasExistingData` is now `true`). Does the new recording's AI output get to overwrite the user's earlier edit, or is that edit still protected?
    - Recommendation: Treat "re-record same item" as a fresh user-initiated action that SHOULD clear flags (the user chose to re-record). If so, clearing only on `!hasExistingData` is too narrow. Planner should decide: clear on any **non-retry** invocation (i.e., any call originating from a new recording, distinguishable from `handleRetryAi`). Simplest robust signal: pass an explicit `isRetry` boolean into `processAudioWithAi` from `handleRetryAi`/`AiFailureBanner` (retry sites) vs the record-stop site (fresh). This is a small signature change but makes the clear-semantics exact. **Flag for discuss-phase if UX ambiguity matters.**
 
-2. **O-2: `isTransientNetworkError` regex false-positive on the confab error message.**
+2. **O-2: `isTransientNetworkError` regex false-positive on the confab error message.** *(RESOLVED: branch on `instanceof ConfabRejectedError` ahead of the transient check — see note above.)*
    - What we know: the catch path maps non-transient errors to `failed` (desired). The regex at gemini.ts:167 matches `/abort|Load failed|Failed to fetch|NetworkError/i`.
    - What's unclear: ensure the `ConfabRejectedError` message contains none of those tokens (it won't if worded "Empty transcript — refusing to persist invented fields").
    - Recommendation: make the guard branch explicit on error type rather than relying on message wording — add `if (error instanceof ConfabRejectedError) return { ai_status: "failed" }` ahead of the transient check.
