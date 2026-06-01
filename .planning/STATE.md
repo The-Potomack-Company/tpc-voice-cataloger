@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation
-status: completed
+status: executing
 stopped_at: Phase 33 context gathered
-last_updated: "2026-06-01T13:51:30.987Z"
+last_updated: "2026-06-01T14:16:36.726Z"
 progress:
   total_phases: 11
   completed_phases: 10
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 Phase: 31 (sec-profiles-self-update-hardening) — COMPLETE ✅ (applied to prod 2026-05-29, verified)
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
-Status: Phase 31 done; pick next phase
+Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
