@@ -113,6 +113,32 @@ describe("gemini pipeline", () => {
       // "hello world" in base64 is "aGVsbG8gd29ybGQ="
       expect(result).toBe("aGVsbG8gd29ybGQ=");
     });
+
+    // PERF-1 / Pitfall 1 guard: the 11-byte test above passes regardless of
+    // chunk alignment. This > chunk-window blob is the ONLY thing that catches a
+    // non-3-byte-aligned chunk window once Plan 01 chunks the encoder. Passes
+    // against the current per-byte encoder; fails if Plan 01 picks a non-3-aligned size.
+    it("multi-chunk blob encodes identically to reference whole-buffer btoa", async () => {
+      const SIZE = 100_000; // exceeds any reasonable chunk window (> 32 KB)
+      const bytes = new Uint8Array(SIZE);
+      for (let i = 0; i < SIZE; i++) {
+        bytes[i] = i % 256; // deterministic
+      }
+
+      // Reference oracle: encode the WHOLE buffer in one pass (independent of
+      // blobToBase64 — no tautology). Build the binary string in slices to avoid
+      // call-stack limits on String.fromCharCode(...spread), then btoa once.
+      let binary = "";
+      const STEP = 8192;
+      for (let i = 0; i < bytes.length; i += STEP) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + STEP));
+      }
+      const reference = btoa(binary);
+
+      const blob = new Blob([bytes]);
+      const result = await blobToBase64(blob);
+      expect(result).toBe(reference);
+    });
   });
 
   describe("processAudioWithAi", () => {
