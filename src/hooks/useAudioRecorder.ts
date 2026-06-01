@@ -39,8 +39,13 @@ export function useAudioRecorder(): AudioRecorderReturn {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  // Store a resolve function for the stopRecording promise
-  const stopResolveRef = useRef<((id: number) => void) | null>(null);
+  // Store a resolve function for the stopRecording promise.
+  // REL-4 (D-12): widened to accept undefined so the always-settle path can
+  // resolve undefined on final db.audio.add failure without breaking D-11's
+  // Promise<number | undefined> contract.
+  const stopResolveRef = useRef<((id: number | undefined) => void) | null>(
+    null,
+  );
 
   // Track itemId/sessionId for onstop handler
   const itemIdRef = useRef<string>("");
@@ -187,40 +192,66 @@ export function useAudioRecorder(): AudioRecorderReturn {
             });
             const elapsedMs = Date.now() - startTimeRef.current;
 
-            try {
-              const id = await db.audio.add({
-                itemId: itemIdRef.current as unknown as number, // Dexie stores value as-is
-                itemType: "house", // Legacy field, kept for backward compat
-                sessionId: sessionIdRef.current, // D-02: thread the session UUID for the Storage path token
-                blob,
-                mimeType: detectedMimeTypeRef.current || "audio/webm",
-                durationMs: elapsedMs,
-                createdAt: new Date(),
-              });
+            // REL-4 (D-12): retry the IndexedDB add up to 2× (3 attempts
+            // total). Quota/transient failures are common; a single reject
+            // used to leave stopResolveRef unfired forever, hanging the
+            // recorder. We retry, then ALWAYS settle below.
+            const MAX_ATTEMPTS = 3;
+            let lastErr: unknown = null;
+            for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+              try {
+                const id = await db.audio.add({
+                  itemId: itemIdRef.current as unknown as number, // Dexie stores value as-is
+                  itemType: "house", // Legacy field, kept for backward compat
+                  sessionId: sessionIdRef.current, // D-02: thread the session UUID for the Storage path token
+                  blob,
+                  mimeType: detectedMimeTypeRef.current || "audio/webm",
+                  durationMs: elapsedMs,
+                  createdAt: new Date(),
+                });
 
-              store.getState().setLastSaved(id as number, elapsedMs);
+                store.getState().setLastSaved(id as number, elapsedMs);
 
-              // D-05: fire-and-forget background upload — never blocks the
-              // resolve below or the AI trigger (RecordButton). A rejected
-              // enqueue/drain is swallowed. Mirrors PhotoCapture.tsx:130-136.
-              // itemId here is the Supabase UUID STRING (itemIdRef.current),
-              // NOT the `as unknown as number` coercion the Dexie row uses.
-              enqueueAudioUpload({
-                dexieAudioId: id as number,
-                itemId: itemIdRef.current,
-                sessionId: sessionIdRef.current,
-                mimeType: detectedMimeTypeRef.current || "audio/webm",
-              })
-                .then(() => drainAudioQueue())
-                .catch(() => {});
+                // D-05: fire-and-forget background upload — never blocks the
+                // resolve below or the AI trigger (RecordButton). A rejected
+                // enqueue/drain is swallowed. Mirrors PhotoCapture.tsx:130-136.
+                // itemId here is the Supabase UUID STRING (itemIdRef.current),
+                // NOT the `as unknown as number` coercion the Dexie row uses.
+                enqueueAudioUpload({
+                  dexieAudioId: id as number,
+                  itemId: itemIdRef.current,
+                  sessionId: sessionIdRef.current,
+                  mimeType: detectedMimeTypeRef.current || "audio/webm",
+                })
+                  .then(() => drainAudioQueue())
+                  .catch(() => {});
 
-              if (stopResolveRef.current) {
-                stopResolveRef.current(id as number);
+                stopResolveRef.current?.(id as number);
                 stopResolveRef.current = null;
+                return;
+              } catch (err) {
+                lastErr = err;
               }
-            } catch (err) {
-              console.error("Failed to save audio:", err);
             }
+
+            // Final failure after all retries. Preserve the recording and
+            // surface an error for manual re-save (T-33-10).
+            console.error("Failed to save audio after retries:", lastErr);
+            store
+              .getState()
+              .setRecorderError(
+                "Couldn't save the recording locally. It's been kept so you can retry saving it.",
+              );
+            store.getState().stashForRetry({
+              blob,
+              itemId: itemIdRef.current,
+              durationMs: elapsedMs,
+            });
+            // REL-4 (D-11/D-12): ALWAYS settle — a rejected db.audio.add must
+            // never leave stopRecording()'s Promise<number|undefined> hanging
+            // (the original bug at useAudioRecorder.ts:202-204).
+            stopResolveRef.current?.(undefined);
+            stopResolveRef.current = null;
           };
 
           // Start recording (no timeslice - Safari compatibility)
