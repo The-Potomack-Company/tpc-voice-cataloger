@@ -43,7 +43,12 @@ export async function getQueuedItems(): Promise<QueuedItem[]> {
     .eq("ai_status", "queued")
     .order("created_at", { ascending: true });
 
-  if (error || !data) return [];
+  if (error || !data) {
+    // IN-01: a transient read failure is not an empty queue — log it so a
+    // persistently stuck queue is diagnosable instead of silently draining nothing.
+    if (error) console.warn("getQueuedItems: Supabase read failed", error);
+    return [];
+  }
 
   return data.map((item) => ({
     id: item.id,
