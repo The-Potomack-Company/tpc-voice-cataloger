@@ -300,7 +300,7 @@ function classifyAiError(error: unknown): "permanent" | "transient" {
 
 **All four are LOW risk and confirmed against the actual files** — none block planning; they are implementation-detail flags for the planner.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Thread proxy HTTP status as a typed error vs regex-parse the message?**
    - What we know: `processAudioWithAi` throws plain `Error` with status embedded in text (`gemini.ts:286`).
