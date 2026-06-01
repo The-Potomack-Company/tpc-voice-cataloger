@@ -66,4 +66,24 @@ describe("classifyAiError (D-08 taxonomy)", () => {
     expect(classifyAiError("plain string error")).toBe("transient");
     expect(classifyAiError(undefined)).toBe("transient");
   });
+
+  it("WR-06: an arbitrary message body mentioning 'HTTP 404' is NOT classified permanent", () => {
+    setOnline(true);
+    // A Postgrest message that merely embeds 'HTTP 404' in its prose (not a real
+    // status from a controlled producer) must fall through to the safe default.
+    expect(
+      classifyAiError(new Error("constraint mentions a legacy HTTP 404 redirect rule")),
+    ).toBe("transient");
+  });
+
+  it("WR-06: only the controlled (HTTP <status>) trailer is parsed as a status", () => {
+    setOnline(true);
+    // toError emits "<base> (HTTP <status>)"; that anchored trailer is parsed.
+    expect(classifyAiError(new Error("duplicate key value (HTTP 409)"))).toBe("permanent");
+    expect(classifyAiError(new Error("rate limited (HTTP 429)"))).toBe("transient");
+    // A bare "HTTP 500" mid-body (not the trailer, not the proxy prefix) is ignored.
+    expect(classifyAiError(new Error("note: upstream once returned HTTP 500 here"))).toBe(
+      "transient",
+    );
+  });
 });

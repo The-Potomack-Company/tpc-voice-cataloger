@@ -11,19 +11,19 @@ let processing = false;
 // not Error instances. classifyAiError only reads `.message` off real Error instances
 // (instanceof check), so normalize to an Error carrying the message + status before
 // classifying — otherwise every supabase failure stringifies to "[object Object]" and
-// silently classifies as transient. Mirrors aiErrorClass's "Proxy returned HTTP <status>"
-// idiom so 4xx/5xx codes flow through the same regex.
+// silently classifies as transient.
+//
+// WR-06: emit the status as a controlled "(HTTP <status>)" trailer that
+// classifyAiError anchors on, and ONLY from a real numeric HTTP `status`.
+// PostgrestError.code is a SQLSTATE (e.g. "23505"), NOT an HTTP status — the old
+// `/^\d{3}$/.test(r.code)` path fabricated bogus HTTP statuses from SQLSTATEs
+// shaped like "404"/"500", mis-classifying recoverable writes as permanent drops.
 function toError(raw: unknown): Error {
   if (raw instanceof Error) return raw;
   if (raw && typeof raw === "object") {
     const r = raw as Record<string, unknown>;
     const base = typeof r.message === "string" ? r.message : String(raw);
-    const status =
-      typeof r.status === "number"
-        ? r.status
-        : typeof r.code === "string" && /^\d{3}$/.test(r.code)
-          ? Number(r.code)
-          : undefined;
+    const status = typeof r.status === "number" ? r.status : undefined;
     return new Error(status ? `${base} (HTTP ${status})` : base);
   }
   return new Error(String(raw));

@@ -17,9 +17,14 @@ export function classifyAiError(error: unknown): "permanent" | "transient" {
   if (error instanceof DOMException && error.name === "AbortError") return "transient"; // request timeout
   const msg = error instanceof Error ? error.message : String(error);
   if (/abort|Load failed|Failed to fetch|NetworkError/i.test(msg)) return "transient";
-  const httpMatch = msg.match(/HTTP (\d{3})/); // "Proxy returned HTTP 4xx/5xx"
+  // WR-06: only parse an HTTP status out of a CONTROLLED producer — gemini's
+  // "Proxy returned HTTP <status>: ..." or toError's "<base> (HTTP <status>)"
+  // trailer. An unanchored /HTTP (\d{3})/ matched any "HTTP 404" embedded in an
+  // arbitrary message body (or a SQLSTATE), so a benign Postgrest message could
+  // be mis-classified permanent and silently dropped along with its dependents.
+  const httpMatch = msg.match(/(?:Proxy returned HTTP (\d{3})|\(HTTP (\d{3})\)$)/);
   if (httpMatch) {
-    const status = Number(httpMatch[1]);
+    const status = Number(httpMatch[1] ?? httpMatch[2]);
     if (status === 429 || status >= 500) return "transient"; // rate-limit / server fault
     if (status >= 400) return "permanent"; // validation / auth — retrying won't help
   }
