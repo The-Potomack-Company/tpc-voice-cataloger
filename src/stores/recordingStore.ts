@@ -11,10 +11,24 @@ interface RecordingState {
    * array when recording is idle.
    */
   levels: number[];
+  /**
+   * REL-4 (D-12): user-facing error set when db.audio.add ultimately fails
+   * after retries. Null when the recorder is healthy.
+   */
+  recorderError: string | null;
+  /**
+   * REL-4 (D-12): blob retained for manual re-save when db.audio.add fails
+   * on the final attempt, so the recording is never silently lost.
+   */
+  retryBuffer: { blob: Blob; itemId: string; durationMs: number } | null;
   setRecording: (isRecording: boolean) => void;
   setDuration: (ms: number) => void;
   setLastSaved: (id: number, durationMs: number) => void;
   pushLevel: (level: number) => void;
+  setRecorderError: (msg: string | null) => void;
+  stashForRetry: (
+    buf: { blob: Blob; itemId: string; durationMs: number } | null,
+  ) => void;
   reset: () => void;
 }
 
@@ -26,10 +40,14 @@ export const useRecordingStore = create<RecordingState>()((set) => ({
   lastSavedAudioId: null,
   lastSavedDurationMs: 0,
   levels: [],
+  recorderError: null,
+  retryBuffer: null,
   setRecording: (isRecording) => set({ isRecording }),
   setDuration: (ms) => set({ currentDurationMs: ms }),
   setLastSaved: (id, durationMs) =>
     set({ lastSavedAudioId: id, lastSavedDurationMs: durationMs }),
+  setRecorderError: (msg) => set({ recorderError: msg }),
+  stashForRetry: (buf) => set({ retryBuffer: buf }),
   pushLevel: (level) =>
     set((s) => {
       const next = s.levels.concat(Math.max(0, Math.min(1, level)));
@@ -43,5 +61,7 @@ export const useRecordingStore = create<RecordingState>()((set) => ({
       lastSavedAudioId: null,
       lastSavedDurationMs: 0,
       levels: [],
+      recorderError: null,
+      retryBuffer: null,
     }),
 }));
