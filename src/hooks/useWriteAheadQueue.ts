@@ -3,6 +3,7 @@ import { db } from "../db";
 import { supabase } from "../lib/supabase";
 import { useUIStore } from "../stores/uiStore";
 import { classifyAiError } from "../utils/aiErrorClass";
+import { notifyDrainComplete } from "../stores/drainSignalStore";
 import type { WriteAheadEntry } from "../db/types";
 
 let processing = false;
@@ -113,6 +114,9 @@ export async function processWriteAheadQueue(): Promise<void> {
     }
   } finally {
     processing = false;
+    // WR-04: a permanent write-ahead drop transitions blocked work while online;
+    // signal completion so the BlockedQueueBadge re-fetches.
+    notifyDrainComplete();
   }
 }
 

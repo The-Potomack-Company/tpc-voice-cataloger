@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Badge } from "../ui/Badge";
+import { useDrainSignalStore } from "../stores/drainSignalStore";
 
 interface BlockedItem {
   id: string;
@@ -39,13 +40,18 @@ export function BlockedQueueBadge() {
       .catch(() => setItems([]));
   }, []);
 
+  // WR-04: re-fetch whenever a drain finishes — items flip to 'failed' mid-session
+  // while already online (no DOM 'online' event), so refreshing only on mount +
+  // 'online' left the badge stale until a reconnect/reload.
+  const drainTick = useDrainSignalStore((s) => s.drainTick);
+
   useEffect(() => {
     refresh();
     // Re-read on reconnect — a drain may flip items to/from 'failed'.
     const onOnline = () => refresh();
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
-  }, [refresh]);
+  }, [refresh, drainTick]);
 
   const count = items.length;
 

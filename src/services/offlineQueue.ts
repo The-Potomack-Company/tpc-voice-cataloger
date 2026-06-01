@@ -3,6 +3,7 @@ import { audioRecordsForItem } from "../db/audioLookup";
 import { processAudioWithAi } from "./gemini";
 import { isInBackoff, ATTEMPT_CAP } from "../utils/backoff";
 import { classifyAiError } from "../utils/aiErrorClass";
+import { notifyDrainComplete } from "../stores/drainSignalStore";
 
 const CONCURRENCY = 4;
 
@@ -207,5 +208,8 @@ export async function drainQueue(): Promise<void> {
     }
   } finally {
     draining = false;
+    // WR-04: a drain can flip items to 'failed' while already online (no DOM
+    // 'online' event). Signal completion so the BlockedQueueBadge re-fetches.
+    notifyDrainComplete();
   }
 }

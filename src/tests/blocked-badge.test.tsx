@@ -78,6 +78,27 @@ describe("BlockedQueueBadge (REL-3 / D-10)", () => {
     expect(container.querySelector(".tpc-badge")).toBeNull();
   });
 
+  it("WR-04: refreshes when a drain completes (item flips to failed while online)", async () => {
+    const { notifyDrainComplete } = await import("../stores/drainSignalStore");
+    const { act } = await import("@testing-library/react");
+
+    // Start with nothing blocked → badge renders nothing.
+    setBlocked([]);
+    render(<BlockedQueueBadge />);
+    await waitFor(() => expect(mockFrom).toHaveBeenCalled());
+    expect(screen.queryByTestId("blocked-queue-badge")).toBeNull();
+
+    // A drain (while online, no DOM 'online' event) marks an item failed and
+    // signals completion. The badge must re-fetch and appear.
+    setBlocked([{ id: "i-late", mode: "house", session_id: "s1" }]);
+    act(() => {
+      notifyDrainComplete();
+    });
+
+    const badge = await screen.findByTestId("blocked-queue-badge");
+    expect(badge).toHaveTextContent("1");
+  });
+
   it("opens a blocked-items detail list on click/tap", async () => {
     setBlocked([
       { id: "item-aaa", mode: "house", session_id: "s1" },
