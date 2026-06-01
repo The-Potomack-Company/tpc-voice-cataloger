@@ -60,7 +60,7 @@ function ItemCardImpl({
   const handleRetryAi = () => {
     if (!latestAudioId || retrying) return;
     setRetrying(true);
-    processAudioWithAi(latestAudioId, item.id, sessionId)
+    processAudioWithAi(latestAudioId, item.id, sessionId, true)
       .then(() => setRetrying(false))
       .catch((err) => {
         console.error("AI retry failed:", err);
