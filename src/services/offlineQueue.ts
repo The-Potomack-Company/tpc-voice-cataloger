@@ -63,9 +63,13 @@ export async function getQueuedItems(): Promise<QueuedItem[]> {
  */
 async function findAudioForItem(itemId: string): Promise<number | null> {
   const audios = await audioRecordsForItem(itemId);
-  if (audios.length === 0) return null;
-  // Return the highest id (most recent)
-  return audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!);
+  // WR-01: cross-device Supabase-union rows intentionally carry `id: undefined`
+  // (audioLookup leaves the integer key unset). Filter those out before picking
+  // the max so we never return `undefined` typed as number — which slipped the
+  // `=== null` caller guard and fed a bogus audioId into Gemini.
+  const ids = audios.map((a) => a.id).filter((x): x is number => typeof x === "number");
+  if (ids.length === 0) return null;
+  return Math.max(...ids);
 }
 
 /**
@@ -87,7 +91,9 @@ async function processItem(item: QueuedItem): Promise<void> {
   if (!navigator.onLine) return; // offline is itself transient — leave queued
 
   const audioId = await findAudioForItem(item.id);
-  if (audioId === null) {
+  // WR-01: `== null` short-circuits both null AND undefined so a cross-device
+  // row (id undefined) can never proceed to claim + processAudioWithAi.
+  if (audioId == null) {
     // No audio found -- mark as failed via Supabase
     await supabase
       .from("items")

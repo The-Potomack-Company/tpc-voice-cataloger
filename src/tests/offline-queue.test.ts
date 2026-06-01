@@ -270,6 +270,80 @@ describe("offlineQueue service (Supabase-backed)", () => {
         ai_status: "failed",
       });
     });
+
+    it("WR-01: a cross-device-only audio row (id undefined) is treated as no-audio, not claimed", async () => {
+      // No Dexie audio + no idMapping → the only audio is a cross-device Supabase
+      // row, which audioLookup returns with `id: undefined`. findAudioForItem
+      // must normalize that to null so the item is marked failed and we never
+      // claim it / call processAudioWithAi with a bogus audio id.
+      mockGetDexieItemId.mockResolvedValue(null);
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "items") {
+          return {
+            select: mockSupabaseSelect.mockReturnValue({
+              eq: mockSupabaseEq.mockReturnValue({
+                order: mockSupabaseOrder.mockResolvedValue({
+                  data: [
+                    {
+                      id: "uuid-crossdev",
+                      mode: "house",
+                      session_id: "sess-uuid-1",
+                      created_at: "2026-01-01T10:00:00Z",
+                      claimed_at: null,
+                      ai_attempts: 0,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+            update: mockSupabaseUpdate.mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  select: vi.fn().mockResolvedValue({
+                    data: [{ id: "claimed" }],
+                    error: null,
+                  }),
+                }),
+                lt: vi.fn().mockResolvedValue({ error: null }),
+                then: (resolve: (v: { error: null }) => unknown) =>
+                  resolve({ error: null }),
+              }),
+            }),
+          };
+        }
+        if (table === "audio") {
+          // Cross-device row: audioLookup maps this to ItemAudio with id undefined.
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: "remote-uuid-1",
+                    item_id: "uuid-crossdev",
+                    mime_type: "audio/webm",
+                    storage_path: "audio/sess/uuid-crossdev/1.webm",
+                    upload_status: "uploaded",
+                    created_at: "2026-01-01T10:00:00Z",
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          };
+        }
+        return {};
+      });
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      // No real audio id → marked failed, and never claimed/processed.
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({ ai_status: "failed" });
+      expect(processAudioWithAi).not.toHaveBeenCalled();
+    });
   });
 
   describe("REL-1: backoff window + persisted attempt cap", () => {
