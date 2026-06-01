@@ -274,9 +274,14 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   2. The Recording screen waveform reflects real microphone amplitude via Web Audio API -- recent bars in accent, older bars decay to ink-4 -- and updates in real time.
   3. Top-level route transitions complete in under 250 ms with a consistent cross-fade or slide.
   4. With `prefers-reduced-motion: reduce` set, the pulse stops, the waveform falls back to a static recording-active glyph, and route transitions become instant -- verified by an end-to-end test or manual checklist captured in the phase transition.
-**Plans**: TBD
-**Estimated plan count**: 3
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 35-01-PLAN.md — Wave 0: Dexie v11 userEditedFields store + 4 RED test files (SC-1..SC-4)
+- [ ] 35-02-PLAN.md — D-01/D-02: temperature:0 on both AI paths (determinism, SC-1)
+- [ ] 35-03-PLAN.md — D-07/D-08: lift AiFailureBanner to shared component, render on ItemCard (SC-4)
+- [ ] 35-04-PLAN.md — D-03..D-06: confab guard (single-shot) + Dexie no-clobber retry filter (SC-2, SC-3)
 
 ### Phase 28: Specialist Screen Restyle
 **Goal**: Extrapolate the design system onto the unmocked specialist-facing surfaces (item detail/edit, login, walkthrough overlay) with a discuss-step approval before implementation.
@@ -314,6 +319,19 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   3. No screen ships with a contrast or focus-ring failure outstanding; any waiver is documented in the milestone close-out.
 **Plans**: TBD
 **Estimated plan count**: 2
+**UI hint**: yes
+
+### Phase 35: ai-correctness-track-2
+**Goal**: Make the Gemini cataloging pipeline deterministic, non-confabulating, retry-safe, and visibly-failed via four narrow correctness fixes to the existing AI extraction path — without crossing into Phase 39's optimistic-locking lane.
+**Depends on**: Phase 31 (AI-failure banner shipped on item detail; this phase mirrors it onto the list card)
+**Requirements**: none mapped (Track-2 quality track)
+**Success Criteria** (what must be TRUE):
+  1. Both AI paths (`src/services/gemini.ts`, `src/services/geminiContinuous.ts`) set `temperature: 0`; a deterministic-output snapshot test proves identical input yields identical output across retries.
+  2. A post-Zod confabulation guard rejects the whole response (writes no catalog fields, sets `ai_status="failed"`) when the model returns a null/whitespace/unintelligible `transcript`; a confab-rejection test on intentionally-empty input passes.
+  3. An AI retry never overwrites a field the user edited between the initial call and the retry, enforced by client-side per-field provenance in Dexie (no Supabase schema change, no `updated_at` machinery); a user-edited-field-survives-retry test passes.
+  4. The list-view `ItemCard` shows a full-width inline AI-failure warning row (icon + copy + Retry CTA) mirroring the detail-view banner, rendered only when `ai_status === "failed"`.
+**Plans**: TBD
+**Estimated plan count**: 3
 **UI hint**: yes
 
 ## Backlog
