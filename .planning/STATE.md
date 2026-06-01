@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 39 context gathered
+stopped_at: Phase 33 complete (offline-reliability) — verification passed, human UAT pending
 last_updated: "2026-06-01T16:06:56.284Z"
 progress:
   percent: 0
@@ -16,21 +16,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 33 — offline-reliability
+**Current focus:** Phase 34 — ios-memory-optimization (next)
 
 ## Current Position
 
-Phase: 33 (offline-reliability) — EXECUTING
-Plan: 3 of 5 (33-00 foundation COMPLETE — migration on prod, types regenerated, backoff/classifier helpers + Wave-0 stubs landed)
-Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
-Status: Ready to execute
+Phase: 33 (offline-reliability) — COMPLETE (verification passed 4/4 must-haves; human UAT pending)
+Plan: 5 of 5 complete
+Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 3/10 phases done (31, 32, 33)
+Status: Phase 33 complete — ready for Phase 34
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
 Progress: [░░░░░░░░░░] 0%
 
-Next action: confirmatory app smoke for Phase 31 (specialist self-escalate attempt + admin toggle), then `/gsd-discuss-phase 32` (audio-blob-supabase-persistence) or another v1.3 phase. All v1.3 work lives on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` is clean. Unpushed — push the branch when ready (phase 31 code: af68e37/002b346/41636a7).
+Next action: smoke-test Phase 33 from a Vercel preview (3 items in `33-HUMAN-UAT.md`: 4-tab dedup, blocked-badge live update, recorder always-settle), then `/gsd-discuss-phase 34` (ios-memory-optimization). Phase 33 migration `20260601000100_add_items_claim_columns` is LIVE on prod. All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED — push to get a preview URL for the UAT.
 
 ## v1.3 Phase Queue
 
