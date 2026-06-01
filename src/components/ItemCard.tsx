@@ -12,6 +12,8 @@ import { reformatMeasurements } from "../utils/formatMeasurements";
 import { getDexieItemId } from "../db/idMapping";
 import { audioRecordsForItem } from "../db/audioLookup";
 import { hasPendingForItem } from "../hooks/useWriteAheadQueue";
+import { useAudioUploadStatus } from "../hooks/useAudioUploadStatus";
+import { retryFailedUploads } from "../services/audioUploadQueue";
 import { Badge } from "../ui/Badge";
 
 type SupabaseItem = Tables<"items">;
@@ -59,6 +61,9 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
 
   const audioCount = audioData.count;
   const latestAudioId = audioData.latestAudioId;
+
+  // D-06: surface audio upload durability for the item's latest recording.
+  const uploadStatus = useAudioUploadStatus(latestAudioId ?? undefined);
 
   const handleRetryAi = () => {
     if (!latestAudioId || retrying) return;
@@ -178,6 +183,35 @@ export function ItemCard({ item, sessionId, isExpanded, onToggle, readOnly }: It
                 </svg>
                 <span className="text-xs font-medium">{photoCount}</span>
               </span>
+            )}
+
+            {/* D-06: audio upload durability pill (pending/uploaded/failed).
+                'none' renders nothing. 'failed' is a retry control that
+                re-enqueues via retryFailedUploads(). LIB Badge tones only. */}
+            {(uploadStatus === "pending" || uploadStatus === "uploading") && (
+              <Badge tone="info" data-testid="audio-upload-pill">
+                Pending
+              </Badge>
+            )}
+            {uploadStatus === "uploaded" && (
+              <Badge tone="ok" data-testid="audio-upload-pill">
+                Uploaded
+              </Badge>
+            )}
+            {uploadStatus === "failed" && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void retryFailedUploads();
+                }}
+                aria-label="Audio upload failed — tap to retry"
+                title="Upload failed — tap to retry"
+              >
+                <Badge tone="err" data-testid="audio-upload-pill">
+                  Failed — retry
+                </Badge>
+              </button>
             )}
 
             {isQueued && <Badge tone="warn">Queued</Badge>}
