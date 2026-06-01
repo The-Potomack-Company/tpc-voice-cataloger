@@ -78,3 +78,10 @@ None.
 ## Commits
 
 - `d5a44bc` feat(35-02): set temperature:0 on both Gemini paths (SC-1)
+- `c5c9fc0` docs(35-02): complete temperature:0 determinism plan
+
+## Self-Check: PASSED
+
+- gemini.ts, geminiContinuous.ts present
+- 35-02-SUMMARY.md present
+- commit d5a44bc verified in git log
