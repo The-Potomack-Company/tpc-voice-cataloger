@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation
 status: executing
 stopped_at: Phase 33 context gathered
-last_updated: "2026-06-01T14:16:36.726Z"
+last_updated: "2026-06-01T14:29:10.688Z"
 progress:
   total_phases: 11
   completed_phases: 10
@@ -20,18 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** v1.3 Maturation — Phase 31 COMPLETE (P0 closed on prod); phases 32-40 queued/unplanned.
+**Current focus:** Phase 32 — audio-blob-supabase-persistence
 
 ## Current Position
 
-Phase: 31 (sec-profiles-self-update-hardening) — COMPLETE ✅ (applied to prod 2026-05-29, verified)
+Phase: 32 (audio-blob-supabase-persistence) — EXECUTING
+Plan: 2 of 5
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
-Progress: [█░░░░░░░░░] 1/10 v1.3 phases complete
+Progress: [██████████] 100%
 
 Next action: confirmatory app smoke for Phase 31 (specialist self-escalate attempt + admin toggle), then `/gsd-discuss-phase 32` (audio-blob-supabase-persistence) or another v1.3 phase. All v1.3 work lives on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` is clean. Unpushed — push the branch when ready (phase 31 code: af68e37/002b346/41636a7).
 
@@ -69,6 +70,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 - LOC delta: 33,636 (TS/TSX/JS) at v1.1 close
 
 | Phase 31 P01 | 8 min | 2 tasks | 2 files |
+| Phase 32 P01 | 18min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -80,6 +82,9 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 
 - Narrow per-file allowlist for the TOKENS-04 guard test itself (D-16 escape hatch — the file IS the fixture: its regex source code contains the literal patterns it scans for). Single-entry `ALLOW_FILES = [src/ui/__tests__/no-hardcoded-literals.test.ts]`; does NOT widen to all of `__tests__`.
 - `/// <reference types="node" />` triple-slash directive at the top of `src/ui/__tests__/no-hardcoded-literals.test.ts` to opt only this file into Node typings under `tsconfig.app.json` (which doesn't load `@types/node` by default and includes `src/ui/__tests__/`, unlike `src/tests/` which is excluded).
+- [Phase ?]: Phase 32 P01: audio retention cron runs daily 03:00 UTC; cron body POSTs purge-audio edge fn via pg_net (never raw DELETE FROM storage.objects)
+- [Phase ?]: Phase 32 P01: purge-audio cron secret + edge fn URL passed via current_setting('app.settings.*') placeholders, substituted at plan-02 prod push — no secret in repo
+- [Phase ?]: Phase 32 P01: audio storage RLS uses column-qualified storage.foldername(storage.objects.name)[2]=sessionId from line one (Phase 31 fix baked in)
 
 ### Pending Todos
 
@@ -115,6 +120,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-01T13:51:30.983Z
+Last session: 2026-06-01T14:28:53.235Z
 Stopped at: Phase 33 context gathered
-Resume file: .planning/milestones/v1.3-phases/33-offline-reliability/33-CONTEXT.md
+Resume file: None
