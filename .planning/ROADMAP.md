@@ -97,11 +97,17 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 
 - [ ] **Phase 33: offline-reliability** *(🟠 REL-1, REL-2, REL-3, REL-4)*
   - REL-1: offline-queue drains on every `online` event with no backoff or attempt cap → retry storm. Add exponential backoff + persisted attempt counter (folds in the #17 net-abort-requeue follow-up).
-  - REL-2: cross-tab/process concurrent drains burn duplicate Gemini spend + cause lost updates (CONCURRENCY=4 plus no cross-tab coordination). Add atomic `queued→processing` claim on items + a per-instance leader-election or BroadcastChannel coordination.
+  - REL-2: cross-tab/process concurrent drains burn duplicate Gemini spend + cause lost updates (CONCURRENCY=4 plus no cross-tab coordination). Add atomic `queued→processing` DB claim on items (D-01/D-03: DB-atomic claim, NO BroadcastChannel) + stale-claim reclaim.
   - REL-3: write-ahead queue blocks all later writes after the first permanent failure (console-only). Classify permanent vs transient errors; surface a blocked-count badge with detail.
   - REL-4: `useAudioRecorder.stopRecording()` never settles on `db.audio.add` reject → hang. Settle with error + keep the recorded blob for retry.
   - Tests: simulated 4-tab concurrent drain produces zero duplicate Gemini calls; permanent failure surfaces in UI; transient failure backs off; recorder always settles.
   - Risk: medium (offline queue is core; regressions here look like AI processing failures).
+  - **Plans:** 5 plans (4 waves)
+    - [ ] 33-00-PLAN.md — [BLOCKING] one two-column items migration (claimed_at + ai_attempts) via the 4-step schema protocol + Phase-31 dry-run push gate + db:types regen; pure backoff.ts + aiErrorClass.ts helpers; Wave-0 test stubs (backoff, error-classify, blocked-badge RED)
+    - [ ] 33-01-PLAN.md — REL-1: replace MAX_RETRIES loop with persisted-attempt backoff-window skip + cap 5→failed in offlineQueue.ts (owns the file for REL-1)
+    - [ ] 33-02-PLAN.md — REL-2: DB-atomic claim (.eq queued .select) + stale-claim reclaim in offlineQueue.ts (depends_on 33-01, sequential same-wave to avoid file conflict)
+    - [ ] 33-03-PLAN.md — REL-3: classify-driven drop/continue vs halt in useWriteAheadQueue + BlockedQueueBadge (tone=err) next to OfflineIndicator
+    - [ ] 33-04-PLAN.md — REL-4: recorder onstop retry 2× then always-settle(undefined) + blob stash in recordingStore retry buffer
 
 - [ ] **Phase 34: ios-memory-optimization** *(🟠 PERF-1, PERF-2, PERF-3)*
   - PERF-1: `blobToBase64` holds 2-3 full copies of multi-MB audio in memory → iOS PWA tab OOM. Chunked encode OR push the audio out-of-band (e.g. signed-URL upload to Gemini-compatible endpoint) so the worker doesn't need a giant base64 in memory.
