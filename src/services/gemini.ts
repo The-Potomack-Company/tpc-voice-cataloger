@@ -1,4 +1,3 @@
-import { db } from "../db";
 import { supabase } from "../lib/supabase";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
 import { formatEstimate } from "../utils/formatEstimate";
@@ -9,6 +8,7 @@ import { applySpokenQuotes, applySpokenBullets } from "../utils/spokenPunctuatio
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 import { ensureFreshSession } from "../lib/authGuard";
+import { processAudioWithAi as resolveAudioForAi } from "./processAudioWithAi";
 
 export const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -186,11 +186,11 @@ export async function processAudioWithAi(
     // the new processing state. fire-and-forget; failure is non-fatal.
     useSessionStore.getState().fetchItems(sessionId).catch(() => {});
 
-    // Fetch audio record from Dexie (blobs stay in IndexedDB)
-    const audioRecord = await db.audio.get(audioId);
-    if (!audioRecord) {
-      throw new Error(`Audio record ${audioId} not found`);
-    }
+    // Resolve the audio blob: Dexie-first with a cross-device Storage
+    // fallback keyed by item_id (UUID), NOT the local integer audioId
+    // (Pitfall 4 / T-32-12). Throws clearly when both sources miss.
+    const { blob: audioBlob, mimeType: resolvedMimeType } =
+      await resolveAudioForAi({ itemId, dexieAudioId: audioId });
 
     // Guard: ensure proxy URL is configured before doing any work
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
@@ -199,7 +199,7 @@ export async function processAudioWithAi(
     }
 
     // Convert audio blob to base64
-    const base64Audio = await blobToBase64(audioRecord.blob);
+    const base64Audio = await blobToBase64(audioBlob);
 
     // Read existing field values for smart merge context (per D-02)
     const { data: currentItem } = await supabase
@@ -222,7 +222,7 @@ export async function processAudioWithAi(
     const hasExistingData = Object.values(currentItem).some(v => v !== null);
 
     // Strip codec parameters from mimeType (e.g., "audio/webm;codecs=opus" -> "audio/webm")
-    const baseMimeType = audioRecord.mimeType.split(";")[0];
+    const baseMimeType = (resolvedMimeType ?? "audio/webm").split(";")[0];
 
     // Build Gemini request payload
     const geminiPayload = {
@@ -314,6 +314,10 @@ export async function processAudioWithAi(
     // Write fields to Supabase items table
     const supabaseUpdate: Record<string, unknown> = {
       ai_status: "done",
+      // D-07: stamp the retention clock the daily pg_cron purge keys on.
+      // Single-item AI-done write-path only; continuous-mode write-paths are
+      // OUT of scope (D-050 continuous gated off).
+      completed_at: new Date().toISOString(),
     };
 
     if (fields.title !== null) {
