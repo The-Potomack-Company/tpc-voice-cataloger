@@ -5,6 +5,7 @@ import { OfflineIndicator } from "../components/OfflineIndicator";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { drainQueue } from "../services/offlineQueue";
 import { drainPhotoQueue } from "../services/photoUploadQueue";
+import { drainAudioQueue } from "../services/audioUploadQueue";
 import { migrateExistingPhotos } from "../services/photoMigration";
 import { PhotoMigrationBanner } from "../components/PhotoMigrationBanner";
 import { ErrorToast } from "../components/ErrorToast";
@@ -59,7 +60,8 @@ export function AppLayout() {
       await processWriteAheadQueue(); // Write-ahead first (items must exist before AI can update)
       await fetchSessions(); // Re-fetch after queue drains so server data includes synced items
       await drainPhotoQueue(); // Photos after metadata synced
-      drainQueue(); // Audio last
+      void drainAudioQueue(); // Audio uploads — resume any pending blobs stranded by app close / offline record
+      drainQueue(); // AI offline write queue last
     };
     // Drain on mount if online (handles case: app closed with queued items, reopened with connectivity)
     if (navigator.onLine) {

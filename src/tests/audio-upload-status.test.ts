@@ -5,11 +5,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 
-const { mockFirst, mockEquals, mockWhere } = vi.hoisted(() => {
+const { mockFirst, mockWhere } = vi.hoisted(() => {
   const mockFirst = vi.fn();
   const mockEquals = vi.fn(() => ({ first: mockFirst }));
   const mockWhere = vi.fn(() => ({ equals: mockEquals }));
-  return { mockFirst, mockEquals, mockWhere };
+  return { mockFirst, mockWhere };
 });
 
 vi.mock("../db", () => ({
@@ -18,15 +18,11 @@ vi.mock("../db", () => ({
   },
 }));
 
-// useLiveQuery runs its querier synchronously and returns the resolved value; mock
-// it to surface whatever the querier resolves to so we can assert status mapping.
+// useLiveQuery invokes its querier and surfaces the resolved value. Invoke the
+// querier (not mockFirst's prior result) so the test exercises the real reactive
+// path — the query MUST run inside the callback for Dexie to track it.
 vi.mock("dexie-react-hooks", () => ({
-  useLiveQuery: (querier: () => unknown) => {
-    // The real hook is async; for the scaffold we capture the entry the querier
-    // would resolve to via the mocked chain's synchronous return.
-    void querier;
-    return mockFirst.mock.results[0]?.value;
-  },
+  useLiveQuery: (querier: () => unknown) => querier(),
 }));
 
 describe("useAudioUploadStatus", () => {
