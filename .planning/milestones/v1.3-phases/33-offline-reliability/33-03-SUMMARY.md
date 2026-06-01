@@ -87,3 +87,9 @@ No new trust boundaries beyond the plan's `<threat_model>`. T-33-06 (head-of-lin
 ## Known Stubs
 
 None. The badge is wired to a live Supabase `items.ai_status='failed'` query; no placeholder data.
+
+## Self-Check: PASSED
+
+- Created files exist: `src/components/BlockedQueueBadge.tsx`, `33-03-SUMMARY.md`.
+- All commits present: `479a2a0` (RED), `b4977ff` (GREEN Task 1), `a6ff051` (Task 2), `d1f1cbc` (SUMMARY).
+- STATE.md / ROADMAP.md untouched (worktree mode — orchestrator owns shared files).
