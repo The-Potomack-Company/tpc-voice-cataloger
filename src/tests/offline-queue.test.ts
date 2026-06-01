@@ -97,8 +97,21 @@ describe("offlineQueue service (Supabase-backed)", () => {
               }),
             }),
           }),
+          // Chainable update covering all three write shapes that the drain now
+          // issues: plain status writes (.eq → resolve), the REL-2 claim
+          // (.eq.eq.select → row by default so the item proceeds), and the
+          // stale-reclaim pass (.eq.lt → resolve).
           update: mockSupabaseUpdate.mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi
+                  .fn()
+                  .mockResolvedValue({ data: [{ id: "claimed" }], error: null }),
+              }),
+              lt: vi.fn().mockResolvedValue({ error: null }),
+              then: (resolve: (v: { error: null }) => unknown) =>
+                resolve({ error: null }),
+            }),
           }),
         };
       }
@@ -232,7 +245,17 @@ describe("offlineQueue service (Supabase-backed)", () => {
               }),
             }),
             update: mockSupabaseUpdate.mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  select: vi.fn().mockResolvedValue({
+                    data: [{ id: "claimed" }],
+                    error: null,
+                  }),
+                }),
+                lt: vi.fn().mockResolvedValue({ error: null }),
+                then: (resolve: (v: { error: null }) => unknown) =>
+                  resolve({ error: null }),
+              }),
             }),
           };
         }

@@ -6,6 +6,12 @@ import { classifyAiError } from "../utils/aiErrorClass";
 
 const CONCURRENCY = 4;
 
+// D-02: an item left in 'processing' longer than this is presumed stranded by a
+// dead/closed tab and is reclaimed to 'queued'. ~2× the 5min backoff cap so a
+// legitimately slow-but-live processing attempt is never yanked out from under
+// itself, while a truly dead tab self-heals within one drain.
+const STALE_MS = 300_000;
+
 let draining = false;
 
 export interface QueuedItem {
@@ -81,6 +87,21 @@ async function processItem(item: QueuedItem): Promise<void> {
     return;
   }
 
+  // REL-2 / D-01: DB-atomic claim. The conditional update only mutates the row
+  // if it is still 'queued', so across tabs/processes/devices exactly one drain
+  // can flip a given item to 'processing' and proceed — making duplicate Gemini
+  // spend structurally impossible without any cross-tab message bus (D-03).
+  // WHY .select("id"): PostgREST .update().eq() returns data:null WITHOUT an
+  // explicit .select(), so winner-detection would silently no-op (RESEARCH
+  // Pitfall 1). The .select("id") is what makes the row-returned check real.
+  const { data: claimed } = await supabase
+    .from("items")
+    .update({ ai_status: "processing", claimed_at: new Date().toISOString() })
+    .eq("id", item.id)
+    .eq("ai_status", "queued")
+    .select("id");
+  if (!claimed || claimed.length === 0) return; // another tab won the claim
+
   try {
     await processAudioWithAi(audioId, item.id, item.sessionId);
   } catch (err) {
@@ -123,6 +144,16 @@ export async function drainQueue(): Promise<void> {
   draining = true;
 
   try {
+    // D-02: stale-claim reclaim. Re-queue any item stranded in 'processing'
+    // past STALE_MS (dead/closed tab) so it becomes drainable again. Runs once
+    // per drain, before we read the queue, so reclaimed rows join this pass.
+    const staleCutoff = new Date(Date.now() - STALE_MS).toISOString();
+    await supabase
+      .from("items")
+      .update({ ai_status: "queued" })
+      .eq("ai_status", "processing")
+      .lt("claimed_at", staleCutoff);
+
     const items = await getQueuedItems();
     // Process in batches of CONCURRENCY
     for (let i = 0; i < items.length; i += CONCURRENCY) {
