@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Outlet, NavLink, useLocation } from "react-router";
 import { InstallBanner } from "../components/InstallBanner";
 import { OfflineIndicator } from "../components/OfflineIndicator";
+import { BlockedQueueBadge } from "../components/BlockedQueueBadge";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { drainQueue } from "../services/offlineQueue";
 import { drainPhotoQueue } from "../services/photoUploadQueue";
@@ -81,6 +82,7 @@ export function AppLayout() {
     >
       <InstallBanner />
       <OfflineIndicator />
+      <BlockedQueueBadge />
       <PhotoMigrationBanner />
       <main className="flex-1 overflow-y-auto isolate">
         {/* Phase 27 (MOTION-03): keyed wrapper triggers the route cross-fade
