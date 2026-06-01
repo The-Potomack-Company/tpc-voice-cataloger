@@ -1,16 +1,12 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.3
-milestone_name: Maturation
-status: executing
+milestone_name: Maturation — Phases
+status: completed
 stopped_at: Phase 36 context gathered
-last_updated: "2026-06-01T14:59:23.489Z"
+last_updated: "2026-06-01T15:12:41.597Z"
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 27
-  completed_plans: 27
-  percent: 91
+  percent: 0
 ---
 
 # Project State
@@ -24,10 +20,10 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 ## Current Position
 
-Phase: 32 (audio-blob-supabase-persistence) — EXECUTING
+Phase: 32 — COMPLETE
 Plan: 5 of 5
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
-Status: Ready to execute
+Status: Phase 32 complete
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
