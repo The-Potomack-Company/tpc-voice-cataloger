@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation
 status: executing
 stopped_at: Phase 35 context gathered
-last_updated: "2026-06-01T14:54:19.518Z"
+last_updated: "2026-06-01T14:59:04.813Z"
 progress:
   total_phases: 11
   completed_phases: 10
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 ## Current Position
 
 Phase: 32 (audio-blob-supabase-persistence) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
@@ -72,6 +72,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 31 P01 | 8 min | 2 tasks | 2 files |
 | Phase 32 P01 | 18min | 3 tasks | 8 files |
 | Phase 32 P04 | 6min | 3 tasks | 5 files |
+| Phase 32 P05 | 4min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase ?]: Phase 32 P04: created standalone src/services/processAudioWithAi.ts blob-resolver (object signature) to match the locked test scaffold; gemini delegates blob resolution to it
 - [Phase ?]: Phase 32 P04: audioRecordsForItem unions Supabase audio only when no Dexie row exists (Dexie-authoritative, id undefined) — cross-device-only audio shows count but silent status pill (accepted limitation, W-3 rule a)
 - [Phase ?]: Phase 32 P04: completed_at stamped on single-item AI-done write-path only (D-07); continuous-mode write-paths out of scope (D-050)
+- [Phase 32]: P05: deleteItem removes audio Storage blobs (storage.from('audio').remove) on hard-delete (D-04); remove failure logged+swallowed, pg_cron purge-audio reaper is the orphan backstop; first storage.remove() in the codebase
+- [Phase 32]: P05: ItemCard audio pill labels Pending/Uploaded/Failed-retry satisfy the locked item-card-audio-status.test.tsx regexes (overrides plan Uploading/Saved); failed pill re-enqueues via retryFailedUploads (D-06)
 
 ### Pending Todos
 
@@ -124,6 +127,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-01T14:53:47.507Z
+Last session: 2026-06-01T14:59:04.805Z
 Stopped at: Phase 35 context gathered
 Resume file: None

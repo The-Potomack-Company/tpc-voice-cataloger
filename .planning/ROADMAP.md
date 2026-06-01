@@ -78,7 +78,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
     - [x] 31-01-PLAN.md — author migration (table-form REVOKE + narrow GRANT walkthrough_completed/theme + private guard trigger) + V-1 grant-assertion query
     - [x] 31-02-PLAN.md — Codex review (D-046) → [BLOCKING] db push --dry-run isolation + prod apply (D-07) → V-1/V-6 prod reads → db:types zero-diff (V-7) → Tier-2 smoke (walkthrough/theme/admin toggle)
 
-- [ ] **Phase 32: audio-blob-supabase-persistence** *(NEW 🟠 — durable audio, cross-device retry, audit trail)*
+- [x] **Phase 32: audio-blob-supabase-persistence** *(NEW 🟠 — durable audio, cross-device retry, audit trail)* (completed 2026-06-01)
   - Today audio blobs live only in Dexie. Lost on device wipe / browser cache clear; can't retry from a different device; AI-failure recovery is local-only.
   - Create a Supabase Storage `audio` bucket with RLS scoped to session owner (mirror the SEC-4 photos pattern, with the column-scope fix from Phase 31's Codex pass baked in).
   - On `db.audio.add`, push the blob to `audio/{sessionId}/{itemId}/{audioId}.opus` (or similar) in the background; record `storage_path` + upload status on the audio row.
@@ -93,7 +93,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
     - [x] 32-02-PLAN.md — [BLOCKING] Codex adversarial review (D-046) → db push --dry-run isolation + prod apply (D-08) → cross-user RLS deny proof (T-32-01) → db:types regen with the audio table
     - [x] 32-03-PLAN.md — client data layer: Dexie v10 audioUploadQueue + AudioUploadEntry/ItemAudio.sessionId + audioUploadQueue.ts (photo clone) + useAudioUploadStatus + extFromMime
     - [x] 32-04-PLAN.md — recorder sessionId thread + fire-and-forget enqueue (D-05) + processAudioWithAi Storage fallback (keyed by item_id) + items.completed_at on done (D-07) + audioRecordsForItem Supabase union
-    - [ ] 32-05-PLAN.md — deleteItem audio storage.remove (D-04 orphan-leak close) + ItemCard upload-status pill + failed-retry (D-06)
+    - [x] 32-05-PLAN.md — deleteItem audio storage.remove (D-04 orphan-leak close) + ItemCard upload-status pill + failed-retry (D-06)
 
 - [ ] **Phase 33: offline-reliability** *(🟠 REL-1, REL-2, REL-3, REL-4)*
   - REL-1: offline-queue drains on every `online` event with no backoff or attempt cap → retry storm. Add exponential backoff + persisted attempt counter (folds in the #17 net-abort-requeue follow-up).
