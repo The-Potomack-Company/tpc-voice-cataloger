@@ -146,6 +146,158 @@ export type Database = {
         }
         Relationships: []
       }
+      audio: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          mime_type: string
+          storage_path: string
+          upload_status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          mime_type: string
+          storage_path: string
+          upload_status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          mime_type?: string
+          storage_path?: string
+          upload_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_classifications: {
+        Row: {
+          classified_at: string
+          department: string[]
+          id: string
+          is_current: boolean
+          metadata: Json
+          model: string
+          priority: string
+          prompt_version: string
+          rationale: string
+          thread_id: string
+        }
+        Insert: {
+          classified_at?: string
+          department: string[]
+          id?: string
+          is_current?: boolean
+          metadata?: Json
+          model: string
+          priority: string
+          prompt_version?: string
+          rationale: string
+          thread_id: string
+        }
+        Update: {
+          classified_at?: string
+          department?: string[]
+          id?: string
+          is_current?: boolean
+          metadata?: Json
+          model?: string
+          priority?: string
+          prompt_version?: string
+          rationale?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_classifications_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "crm_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_classifications_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "crm_triage_queue"
+            referencedColumns: ["thread_id"]
+          },
+        ]
+      }
+      crm_threads: {
+        Row: {
+          body_source: string
+          body_text: string | null
+          created_at: string
+          from_email: string | null
+          from_name: string | null
+          gmail_thread_id: string | null
+          id: string
+          last_polled_at: string
+          messages: Json
+          received_at: string | null
+          snippet: string | null
+          streak_box_key: string
+          streak_pipeline_key: string
+          streak_stage_color: string | null
+          streak_stage_key: string | null
+          streak_stage_name: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_source?: string
+          body_text?: string | null
+          created_at?: string
+          from_email?: string | null
+          from_name?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          last_polled_at?: string
+          messages?: Json
+          received_at?: string | null
+          snippet?: string | null
+          streak_box_key: string
+          streak_pipeline_key: string
+          streak_stage_color?: string | null
+          streak_stage_key?: string | null
+          streak_stage_name?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_source?: string
+          body_text?: string | null
+          created_at?: string
+          from_email?: string | null
+          from_name?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          last_polled_at?: string
+          messages?: Json
+          received_at?: string | null
+          snippet?: string | null
+          streak_box_key?: string
+          streak_pipeline_key?: string
+          streak_stage_color?: string | null
+          streak_stage_key?: string | null
+          streak_stage_name?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       export_history: {
         Row: {
           exported_at: string
@@ -192,6 +344,7 @@ export type Database = {
           artist_last_name: string | null
           artist_origin: string | null
           category: string | null
+          completed_at: string | null
           condition: string | null
           created_at: string
           description: string | null
@@ -213,6 +366,7 @@ export type Database = {
           artist_last_name?: string | null
           artist_origin?: string | null
           category?: string | null
+          completed_at?: string | null
           condition?: string | null
           created_at?: string
           description?: string | null
@@ -234,6 +388,7 @@ export type Database = {
           artist_last_name?: string | null
           artist_origin?: string | null
           category?: string | null
+          completed_at?: string | null
           condition?: string | null
           created_at?: string
           description?: string | null
@@ -417,7 +572,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      crm_triage_queue: {
+        Row: {
+          body_source: string | null
+          body_text: string | null
+          classification_id: string | null
+          classified_at: string | null
+          department: string[] | null
+          from_email: string | null
+          from_name: string | null
+          gmail_thread_id: string | null
+          last_polled_at: string | null
+          messages: Json | null
+          model: string | null
+          needs_review: boolean | null
+          priority: string | null
+          rationale: string | null
+          received_at: string | null
+          snippet: string | null
+          streak_box_key: string | null
+          streak_pipeline_key: string | null
+          streak_stage_color: string | null
+          streak_stage_key: string | null
+          streak_stage_name: string | null
+          subject: string | null
+          thread_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_active_sessions: {
