@@ -7,10 +7,19 @@ import { classifyAiError } from "../utils/aiErrorClass";
 const CONCURRENCY = 4;
 
 // D-02: an item left in 'processing' longer than this is presumed stranded by a
-// dead/closed tab and is reclaimed to 'queued'. ~2× the 5min backoff cap so a
-// legitimately slow-but-live processing attempt is never yanked out from under
-// itself, while a truly dead tab self-heals within one drain.
-const STALE_MS = 300_000;
+// dead/closed tab and is reclaimed to 'queued'. Basis is ~2× the observed max
+// processAudioWithAi wall-clock (large audio + slow proxy/model latency), NOT
+// the backoff cap — the backoff cap governs retry spacing, not how long a single
+// live call can legitimately run. A reclaim that fires under a still-live worker
+// re-queues a row another tab then re-claims, double-billing Gemini (CR-01). A
+// per-item heartbeat (see HEARTBEAT_MS) re-stamps claimed_at while a long call is
+// in flight so a live worker is never reclaimed even past STALE_MS.
+const STALE_MS = 600_000;
+
+// While a claim-winner awaits processAudioWithAi, re-stamp claimed_at on this
+// cadence so a call that legitimately outlives STALE_MS is never reclaimed
+// (CR-01). Cleared in finally when the call settles.
+const HEARTBEAT_MS = 60_000;
 
 let draining = false;
 
@@ -102,6 +111,18 @@ async function processItem(item: QueuedItem): Promise<void> {
     .select("id");
   if (!claimed || claimed.length === 0) return; // another tab won the claim
 
+  // CR-01 heartbeat: a single processAudioWithAi call can legitimately run past
+  // STALE_MS (large audio, slow proxy). Re-stamp claimed_at periodically so the
+  // stale-reclaim pass never yanks this row out from under a live worker and
+  // hands it to a second tab (duplicate Gemini spend). Cleared in finally.
+  const heartbeat = setInterval(() => {
+    void supabase
+      .from("items")
+      .update({ claimed_at: new Date().toISOString() })
+      .eq("id", item.id)
+      .eq("ai_status", "processing");
+  }, HEARTBEAT_MS);
+
   try {
     await processAudioWithAi(audioId, item.id, item.sessionId);
   } catch (err) {
@@ -131,6 +152,8 @@ async function processItem(item: QueuedItem): Promise<void> {
         .update({ ai_status: "queued", ai_attempts: next })
         .eq("id", item.id);
     }
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 

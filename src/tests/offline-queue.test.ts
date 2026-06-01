@@ -524,7 +524,7 @@ describe("offlineQueue service (Supabase-backed)", () => {
             }),
           }),
           update: mockSupabaseUpdate.mockImplementation((payload) => ({
-            eq: reclaimEq.mockImplementation((col: string) => ({
+            eq: reclaimEq.mockImplementation(() => ({
               // reclaim: .eq("ai_status","processing").lt("claimed_at", cutoff)
               lt: reclaimLt,
               // claim: .eq("id").eq("ai_status","queued").select("id")
@@ -548,6 +548,115 @@ describe("offlineQueue service (Supabase-backed)", () => {
         "claimed_at",
         expect.any(String),
       );
+    });
+
+    it("CR-01: a live worker re-stamps claimed_at while its call is in flight (never reclaimed past STALE_MS)", async () => {
+      mockGetDexieItemId.mockResolvedValue(42);
+      await createAudio(42, "house");
+
+      // Capture every claimed_at heartbeat write to assert the live worker
+      // re-stamps its claim. The heartbeat is a setInterval(…, 60s); rather than
+      // wait wall-clock (and to avoid running Dexie under fake timers), we spy on
+      // setInterval, capture the callback, and invoke it manually to simulate
+      // ticks while the long call is still pending.
+      const heartbeatStamps: string[] = [];
+      const claimSelect = vi
+        .fn()
+        .mockResolvedValue({ data: [{ id: "uuid-long" }], error: null });
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table !== "items") return {};
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: "uuid-long",
+                    mode: "house",
+                    session_id: "sess-uuid-1",
+                    created_at: "2026-01-01T10:00:00Z",
+                    claimed_at: null,
+                    ai_attempts: 0,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+          update: vi.fn((payload: Record<string, unknown>) => ({
+            eq: vi.fn(() => ({
+              // claim: .eq("id").eq("ai_status","queued").select("id")
+              eq: vi.fn(() => {
+                // heartbeat: .eq("id").eq("ai_status","processing") (no select)
+                if (
+                  payload.claimed_at !== undefined &&
+                  payload.ai_status === undefined
+                ) {
+                  heartbeatStamps.push(payload.claimed_at as string);
+                }
+                return {
+                  select: claimSelect,
+                  then: (resolve: (v: { error: null }) => unknown) =>
+                    resolve({ error: null }),
+                };
+              }),
+              lt: vi.fn().mockResolvedValue({ error: null }),
+              then: (resolve: (v: { error: null }) => unknown) =>
+                resolve({ error: null }),
+            })),
+          })),
+        };
+      });
+
+      let heartbeatCb: (() => void) | null = null;
+      const setIntervalSpy = vi
+        .spyOn(globalThis, "setInterval")
+        .mockImplementation(((cb: () => void) => {
+          heartbeatCb = cb;
+          return 1 as unknown as ReturnType<typeof setInterval>;
+        }) as typeof setInterval);
+      const clearIntervalSpy = vi
+        .spyOn(globalThis, "clearInterval")
+        .mockImplementation(() => {});
+
+      try {
+        const { processAudioWithAi } = await import("../services/gemini");
+        let resolveCall!: () => void;
+        vi.mocked(processAudioWithAi).mockReturnValue(
+          new Promise<void>((resolve) => {
+            resolveCall = resolve;
+          }),
+        );
+
+        const { drainQueue } = await import("../services/offlineQueue");
+        const drain = drainQueue();
+
+        // Let the claim + async lookups settle so the heartbeat interval is
+        // registered and the call is in flight.
+        await new Promise((r) => setTimeout(r, 0));
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(processAudioWithAi).toHaveBeenCalledTimes(1);
+        expect(setIntervalSpy).toHaveBeenCalled();
+        expect(heartbeatCb).toBeTypeOf("function");
+
+        // Simulate two heartbeat ticks while the call is still pending: each
+        // must re-stamp claimed_at so the reclaim cutoff never overtakes a live
+        // worker (the CR-01 denial-of-wallet hole).
+        heartbeatCb!();
+        heartbeatCb!();
+        await new Promise((r) => setTimeout(r, 0));
+        expect(heartbeatStamps.length).toBeGreaterThanOrEqual(2);
+
+        // Settle the call so the drain completes and clears the interval.
+        resolveCall();
+        await drain;
+        expect(clearIntervalSpy).toHaveBeenCalled();
+      } finally {
+        setIntervalSpy.mockRestore();
+        clearIntervalSpy.mockRestore();
+      }
     });
 
     it("getQueuedItems maps claimed_at and ai_attempts onto the item", async () => {
