@@ -198,6 +198,82 @@ describe("write-ahead queue", () => {
       // Both entries should still be in the queue (first failed, second not attempted)
       expect(await db.writeAheadQueue.count()).toBe(2);
     });
+
+    it("permanent failure drops the failing entry + same-item dependents and CONTINUES the drain", async () => {
+      // Entry 1: insert items/uuid-perm -> permanent failure (HTTP 400)
+      await db.writeAheadQueue.add({
+        table: "items",
+        operation: "insert",
+        payload: { id: "uuid-perm", title: "bad" },
+        createdAt: new Date("2026-01-01"),
+      });
+      // Entry 2: dependent update on the SAME item -> must be dropped with the failing insert
+      await db.writeAheadQueue.add({
+        table: "items",
+        operation: "update",
+        payload: { id: "uuid-perm", title: "still bad" },
+        createdAt: new Date("2026-01-02"),
+      });
+      // Entry 3: unrelated insert that MUST still process after the drop
+      await db.writeAheadQueue.add({
+        table: "sessions",
+        operation: "insert",
+        payload: { name: "Unrelated" },
+        createdAt: new Date("2026-01-03"),
+      });
+
+      const processed: string[] = [];
+      mockFrom.mockImplementation((table: string) => ({
+        insert: vi.fn().mockImplementation((payload: unknown) => {
+          const p = payload as Record<string, unknown>;
+          if (table === "items" && p.id === "uuid-perm") {
+            // Permanent: "Proxy returned HTTP 400: validation"
+            return { error: { message: "Proxy returned HTTP 400: validation" } };
+          }
+          processed.push((p.name as string) ?? (p.id as string));
+          return { error: null };
+        }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }));
+
+      await processWriteAheadQueue();
+
+      // Failing insert + same-item dependent update dropped; unrelated entry processed + removed.
+      expect(processed).toEqual(["Unrelated"]);
+      expect(await db.writeAheadQueue.count()).toBe(0);
+    });
+
+    it("transient failure halts the drain and leaves all remaining entries in FIFO order", async () => {
+      await db.writeAheadQueue.add({
+        table: "items",
+        operation: "insert",
+        payload: { id: "uuid-trans", title: "first" },
+        createdAt: new Date("2026-01-01"),
+      });
+      await db.writeAheadQueue.add({
+        table: "sessions",
+        operation: "insert",
+        payload: { name: "Later" },
+        createdAt: new Date("2026-01-02"),
+      });
+
+      mockFrom.mockReturnValue({
+        // "Proxy returned HTTP 503" classifies as transient -> halt-and-backoff
+        insert: vi
+          .fn()
+          .mockReturnValue({ error: { message: "Proxy returned HTTP 503: upstream" } }),
+      });
+
+      await processWriteAheadQueue();
+
+      // Failing entry + later entry remain; FIFO order preserved.
+      const remaining = await db.writeAheadQueue.orderBy("createdAt").toArray();
+      expect(remaining).toHaveLength(2);
+      expect((remaining[0].payload as Record<string, unknown>).id).toBe("uuid-trans");
+      expect((remaining[1].payload as Record<string, unknown>).name).toBe("Later");
+    });
   });
 
   describe("getPendingCount", () => {
