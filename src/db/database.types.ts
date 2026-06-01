@@ -338,12 +338,14 @@ export type Database = {
       }
       items: {
         Row: {
+          ai_attempts: number
           ai_status: string
           artist_dates: string | null
           artist_first_name: string | null
           artist_last_name: string | null
           artist_origin: string | null
           category: string | null
+          claimed_at: string | null
           completed_at: string | null
           condition: string | null
           created_at: string
@@ -360,12 +362,14 @@ export type Database = {
           transcript: string | null
         }
         Insert: {
+          ai_attempts?: number
           ai_status?: string
           artist_dates?: string | null
           artist_first_name?: string | null
           artist_last_name?: string | null
           artist_origin?: string | null
           category?: string | null
+          claimed_at?: string | null
           completed_at?: string | null
           condition?: string | null
           created_at?: string
@@ -382,12 +386,14 @@ export type Database = {
           transcript?: string | null
         }
         Update: {
+          ai_attempts?: number
           ai_status?: string
           artist_dates?: string | null
           artist_first_name?: string | null
           artist_last_name?: string | null
           artist_origin?: string | null
           category?: string | null
+          claimed_at?: string | null
           completed_at?: string | null
           condition?: string | null
           created_at?: string
