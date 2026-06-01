@@ -10,6 +10,7 @@ import { reformatMeasurements } from "../utils/formatMeasurements";
 import { useAudioUploadStatus } from "../hooks/useAudioUploadStatus";
 import { retryFailedUploads } from "../services/audioUploadQueue";
 import { Badge } from "../ui/Badge";
+import { AiFailureBanner } from "./AiFailureBanner";
 
 type SupabaseItem = Tables<"items">;
 
@@ -196,8 +197,6 @@ function ItemCardImpl({
 
             {isQueued && <Badge tone="warn">Queued</Badge>}
 
-            {isFailed && <Badge tone="err">Failed</Badge>}
-
             {isProcessing && (
               <Badge tone="info" className="animate-pulse">
                 Processing...
@@ -233,6 +232,21 @@ function ItemCardImpl({
             )}
           </div>
         </div>
+
+        {/* D-07: full-width inline AI-failure row, gated on ai_status==="failed".
+            Shares ONE component with the detail-view banner (AiFailureBanner) so
+            list/detail stay in visual parity. Reuses the existing
+            processAudioWithAi retry path (D-08); the card passes its own
+            latestAudioId prop. */}
+        {isFailed && (
+          <div className="border-t border-rule px-3 py-3">
+            <AiFailureBanner
+              itemId={item.id}
+              sessionId={sessionId}
+              latestAudioId={latestAudioId}
+            />
+          </div>
+        )}
 
         {/* Expanded section -- queued waiting message */}
         {isExpanded && isQueued && (
