@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 39 context gathered
+stopped_at: Phase 34 complete (ios-memory-optimization) — verification passed 7/7 must-haves; iOS on-device memory smoke pending (batched to milestone end)
 last_updated: "2026-06-01T17:22:44.147Z"
 progress:
   percent: 0
@@ -16,21 +16,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 34 — ios-memory-optimization
+**Current focus:** Phase 35 — ai-correctness-track-2 (next)
 
 ## Current Position
 
-Phase: 34 (ios-memory-optimization) — EXECUTING
-Plan: 2 of 3
-Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 3/10 phases done (31, 32, 33)
-Status: Ready to execute
+Phase: 34 (ios-memory-optimization) — COMPLETE (verification passed 7/7 must-haves; iOS on-device memory smoke pending)
+Plan: 3 of 3 complete
+Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
+Status: Phase 34 complete — ready for Phase 35
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████░░░░░░] 40%
 
-Next action: Phase 34 (ios-memory-optimization) is PLANNED — 3 plans / 2 waves (`/gsd-plan-phase 34`, verification passed 0 blockers). Run `/gsd-execute-phase 34` (Wave 0 RED tests → Wave 1 parallel: 34-01 chunked base64 encoder + 34-02 ItemList aggregate hoist + React.memo). Still owed: smoke-test Phase 33 from a Vercel preview (3 items in `33-HUMAN-UAT.md`). Phase 33 migration `20260601000100_add_items_claim_columns` is LIVE on prod. All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED — push to get a preview URL for the UAT.
+Next action: Phase 34 (ios-memory-optimization) COMPLETE — PERF-1 chunked base64 encoder (CR-01 iOS-JSC arg-spread crash found in code review + fixed, commit f655226), PERF-3 ItemList aggregate hoist + React.memo ItemCard (~4N subscriptions → 1; render-count test green), PERF-2 deferred (D-04/D-050). Phase 35 (ai-correctness-track-2) is next — `/gsd-discuss-phase 35` then plan/execute. Deferred to v1.3 milestone end: branch push + on-device UAT batch — now owes **two** HUMAN-UAT files (`33-HUMAN-UAT.md` 3 items + `34-HUMAN-UAT.md` 1 item: iOS memory smoke). All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED.
 
 ## v1.3 Phase Queue
 
@@ -41,7 +41,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | 31 | sec-profiles-self-update-hardening | ✅ DONE (applied to prod 2026-05-29) | yes (2/2 executed) |
 | 32 | audio-blob-supabase-persistence | 🟠 NEW | no |
 | 33 | offline-reliability | 🟠 REL-1..4 | no |
-| 34 | ios-memory-optimization | 🟠 PERF-1..3 | no |
+| 34 | ios-memory-optimization | ✅ DONE (PERF-1/3 shipped; PERF-2 deferred D-04) | yes (3/3 executed) |
 | 35 | ai-correctness-track-2 | 🟡 | no |
 | 36 | ux-visibility-polish | 🟡 | no |
 | 37 | a11y-foundation | 🟡 | no |
