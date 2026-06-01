@@ -1,17 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
-const { mockFrom } = vi.hoisted(() => {
+const { mockFrom, mockStorageRemove, mockStorageFrom } = vi.hoisted(() => {
   const mockFrom = vi.fn();
+  const mockStorageRemove = vi.fn().mockResolvedValue({ data: [], error: null });
+  const mockStorageFrom = vi.fn(() => ({ remove: mockStorageRemove }));
 
   return {
     mockFrom,
+    mockStorageRemove,
+    mockStorageFrom,
   };
 });
 
 vi.mock("../lib/supabase", () => ({
   supabase: {
     from: mockFrom,
+    storage: { from: mockStorageFrom },
   },
 }));
 
@@ -84,16 +89,30 @@ function setupUpdateChain(error: unknown = null) {
 }
 
 function setupDeleteChain(error: unknown = null, data: unknown[] | null = null) {
-  const chain = {
+  // items: delete().eq().select() -> { data, error }
+  const itemsChain = {
     delete: vi.fn(),
     eq: vi.fn(),
     select: vi.fn(),
   };
-  chain.delete.mockReturnValue(chain);
-  chain.eq.mockReturnValue(chain);
-  chain.select.mockResolvedValue({ data, error });
-  mockFrom.mockReturnValue(chain);
-  return chain;
+  itemsChain.delete.mockReturnValue(itemsChain);
+  itemsChain.eq.mockReturnValue(itemsChain);
+  itemsChain.select.mockResolvedValue({ data, error });
+
+  // audio (D-04 cleanup): select('storage_path').eq('item_id', id) -> { data }
+  // Default: no audio rows so the storage.remove() guard is skipped and these
+  // item-state assertions stay isolated from the cleanup path.
+  const audioChain = {
+    select: vi.fn(),
+    eq: vi.fn(),
+  };
+  audioChain.select.mockReturnValue(audioChain);
+  audioChain.eq.mockResolvedValue({ data: [], error: null });
+
+  mockFrom.mockImplementation((table: string) =>
+    table === "audio" ? audioChain : itemsChain,
+  );
+  return itemsChain;
 }
 
 describe("sessionStore", () => {
