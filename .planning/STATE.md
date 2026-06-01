@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: Phase 39 context gathered
-last_updated: "2026-06-01T19:36:52.101Z"
+last_updated: "2026-06-01T20:01:28.611Z"
 progress:
   percent: 40
 ---
@@ -20,8 +20,8 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 ## Current Position
 
-Phase: 35 (ai-correctness-track-2) — EXECUTING
-Plan: 1 of 4
+Phase: 35
+Plan: Not started
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
 Status: Executing Phase 35
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
@@ -60,7 +60,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 
 **Historical (v1.0 + v1.1 combined):**
 
-- Total plans completed: 63
+- Total plans completed: 67
 - Total commits: 475
 - Timeline: 25 days (2026-03-06 -> 2026-03-31)
 - LOC delta: 33,636 (TS/TSX/JS) at v1.1 close
