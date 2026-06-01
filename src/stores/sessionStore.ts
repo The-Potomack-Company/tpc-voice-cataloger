@@ -503,6 +503,36 @@ export const useSessionStore = create<SessionState>()(
           },
         }));
 
+        // D-04: the FK ON DELETE CASCADE only drops the public.audio metadata row;
+        // the Storage binary must be explicitly removed or it orphans (the exact
+        // photo leak this phase closes for audio). First storage.remove() in the
+        // codebase. A remove() failure is non-fatal — the pg_cron purge-audio
+        // reaper is the orphan backstop, so we log + continue rather than abort
+        // the item delete.
+        const { data: audioRows } = await supabase
+          .from("audio")
+          .select("storage_path")
+          .eq("item_id", itemId);
+        if (audioRows?.length) {
+          const paths = audioRows.map((r) => r.storage_path);
+          try {
+            const { error: removeError } = await supabase.storage
+              .from("audio")
+              .remove(paths);
+            if (removeError) {
+              console.error(
+                "Audio Storage cleanup failed (pg_cron reaper will backstop):",
+                removeError.message,
+              );
+            }
+          } catch (removeErr) {
+            console.error(
+              "Audio Storage cleanup threw (pg_cron reaper will backstop):",
+              removeErr,
+            );
+          }
+        }
+
         const { data: deleted, error } = await supabase
           .from("items")
           .delete()
