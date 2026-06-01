@@ -80,3 +80,20 @@ None. The retry buffer is wired end-to-end from the failure path; consuming UI f
 - src/hooks/useAudioRecorder.ts — FOUND (modified, committed `2d78dc1`)
 - src/tests/audio-recorder.test.ts — FOUND (modified, committed `ad8d2c6`/`58c2f12`)
 - Commits ad8d2c6, 86d597d, 58c2f12, 2d78dc1 — all present in git log.
+
+## Deferred (D-12 manual re-save UI)
+
+Code review WR-02 flagged that D-12's recovery surface was only half-shipped:
+the hang fix landed (`stopRecording()` always settles; the blob is stashed in
+`recordingStore.retryBuffer` and `recorderError` is set), but **the manual
+re-save UI that consumes `retryBuffer` + `recorderError` does not exist** — no
+component reads either field, so a user whose final `db.audio.add` fails still
+has no error surface and no way to re-save the stashed blob (which is lost on
+`reset()`/reload).
+
+This is **deferred to a follow-up phase**, not fixed here, to keep Phase 33
+scoped to the reliability/correctness defects. The write-side of D-12 (settle +
+stash) is shipped and tested; the read-side (a banner/toast for `recorderError`
+plus a "retry save" action that replays `db.audio.add` from `retryBuffer` then
+clears it via `stashForRetry(null)` / `setRecorderError(null)`) is the deferred
+work. Until then, the user-facing "manual re-save" claim in D-12 is not yet met.
