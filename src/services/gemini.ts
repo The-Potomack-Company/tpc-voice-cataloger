@@ -148,8 +148,16 @@ export async function blobToBase64(blob: Blob): Promise<string> {
   const CHUNK_SIZE = 32766;
   let result = "";
   for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-    const chunk = bytes.subarray(i, i + CHUNK_SIZE);
-    result += btoa(String.fromCharCode(...chunk));
+    const end = Math.min(i + CHUNK_SIZE, bytes.length);
+    // Per-byte append, not String.fromCharCode(...chunk): a 32766-element argument
+    // spread overflows JavaScriptCore's call-stack limit on iOS Safari (the target
+    // platform) and throws RangeError. The binary string stays chunk-bounded (~32KB),
+    // so the PERF-1 memory win is preserved.
+    let binary = "";
+    for (let j = i; j < end; j++) {
+      binary += String.fromCharCode(bytes[j]);
+    }
+    result += btoa(binary);
   }
   return result;
 }
