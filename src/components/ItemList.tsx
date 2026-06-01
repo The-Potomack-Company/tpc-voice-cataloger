@@ -135,7 +135,9 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
           const audios = await audioRecordsForItem(item.id);
           if (audios.length === 0) return;
           const latestAudioId = audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!);
-          return processAudioWithAi(latestAudioId, item.id, sessionId);
+          // Retry-all targets stuck (processing/failed) items — a retry path,
+          // so isRetry=true to honor the no-clobber guard (D-05).
+          return processAudioWithAi(latestAudioId, item.id, sessionId, true);
         }),
       );
     } catch (err) {

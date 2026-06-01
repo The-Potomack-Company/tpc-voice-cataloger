@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { db } from "../db";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
 import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
@@ -168,6 +169,18 @@ function isTransientNetworkError(error: unknown): boolean {
   return false;
 }
 
+// D-03/D-04: confabulation guard. Zod stays the structural validator; this is a
+// post-validation output-trust check. Single-shot ONLY — NOT applied to the
+// continuous path, where empty/silent chunks are legitimate (RESEARCH Pitfall 5).
+export class ConfabRejectedError extends Error {}
+
+// D-03: crisp transcript-emptiness gate — no content-quality heuristics.
+// A well-behaved model returns null on unintelligible audio; whitespace-only
+// is treated the same. An empty transcript means we refuse the whole response.
+function isTranscriptEmpty(t: string | null | undefined): boolean {
+  return t == null || t.trim().length === 0;
+}
+
 
 /**
  * Full AI processing pipeline: fetch audio from Dexie, send to Gemini via proxy,
@@ -179,11 +192,16 @@ function isTransientNetworkError(error: unknown): boolean {
  * @param audioId - Dexie integer ID for the audio blob
  * @param itemId - Supabase UUID string for the item
  * @param sessionId - Supabase UUID string for the session (for potential store refresh)
+ * @param isRetry - O-1: explicit fresh-vs-retry oracle. Retry call sites
+ *   (AiFailureBanner, ItemCard handleRetryAi) pass true; fresh record-stop sites
+ *   keep the default false. On a fresh success the item's user-edited flags are
+ *   cleared; on a retry they are kept so the no-clobber holds.
  */
 export async function processAudioWithAi(
   audioId: number,
   itemId: string,
   sessionId: string,
+  isRetry = false,
 ): Promise<void> {
   const startedAt = performance.now();
   trackEvent({
@@ -320,6 +338,16 @@ export async function processAudioWithAi(
 
     const fields = result.data;
 
+    // D-03 confab guard: reject the WHOLE response on an empty transcript before
+    // anything touches the DB (Pitfall 2). Throwing a tagged terminal error reuses
+    // the existing catch → { ai_status: "failed" } write and fires
+    // ai.processing_failed for free; NO catalog fields are persisted.
+    if (isTranscriptEmpty(fields.transcript)) {
+      throw new ConfabRejectedError(
+        "Empty transcript — refusing to persist invented fields",
+      );
+    }
+
     // Safety net: ensure spoken quote markers are converted even if AI missed them
     const textFields = ['title', 'description', 'condition', 'transcript'] as const;
     for (const field of textFields) {
@@ -331,6 +359,16 @@ export async function processAudioWithAi(
       fields.description = applySpokenBullets(fields.description);
     }
 
+    // D-05/D-06: read the per-field user-edited provenance set. Any flagged
+    // field is skipped in the write-back below so a retry never clobbers a
+    // deliberate user edit (the hard skip-on-flag IS the no-clobber mechanism,
+    // not prompt-merge).
+    const flagged = new Set(
+      (await db.userEditedFields.where("itemId").equals(itemId).toArray()).map(
+        (r) => r.field,
+      ),
+    );
+
     // Write fields to Supabase items table
     const supabaseUpdate: Record<string, unknown> = {
       ai_status: "done",
@@ -340,30 +378,30 @@ export async function processAudioWithAi(
       completed_at: new Date().toISOString(),
     };
 
-    if (fields.title !== null) {
+    if (fields.title !== null && !flagged.has("title")) {
       supabaseUpdate.title = toAllCaps(fields.title);
     }
-    if (fields.description !== null) {
+    if (fields.description !== null && !flagged.has("description")) {
       supabaseUpdate.description = fields.description;
     }
-    if (fields.condition !== null) {
+    if (fields.condition !== null && !flagged.has("condition")) {
       supabaseUpdate.condition = fields.condition;
     }
     const formattedEstimate = formatEstimate(fields.estimate);
-    if (formattedEstimate !== null) {
+    if (formattedEstimate !== null && !flagged.has("estimate")) {
       supabaseUpdate.estimate = formattedEstimate;
     }
     const mappedCategory = mapCategoryToCode(fields.category);
-    if (mappedCategory !== null) {
+    if (mappedCategory !== null && !flagged.has("category")) {
       supabaseUpdate.category = mappedCategory;
     }
-    if (fields.measurements !== null) {
+    if (fields.measurements !== null && !flagged.has("measurements")) {
       supabaseUpdate.measurements = reformatMeasurements(fields.measurements);
     }
-    if (fields.transcript !== null) {
+    if (fields.transcript !== null && !flagged.has("transcript")) {
       supabaseUpdate.transcript = fields.transcript;
     }
-    if (fields.receipt_number != null) {
+    if (fields.receipt_number != null && !flagged.has("receipt_number")) {
       supabaseUpdate.receipt_number = fields.receipt_number;
     }
 
@@ -371,6 +409,12 @@ export async function processAudioWithAi(
       .from("items")
       .update(supabaseUpdate)
       .eq("id", itemId);
+
+    // O-1: clear flags only on a FRESH (non-retry) success so a deliberate new
+    // recording is honored; on a retry the flags are kept so the no-clobber holds.
+    if (!isRetry) {
+      await db.userEditedFields.where("itemId").equals(itemId).delete();
+    }
 
     trackEvent({
       event_type: "ai.processing_succeeded",
@@ -396,7 +440,13 @@ export async function processAudioWithAi(
       items_content: { item_id: itemId },
     });
     try {
-      const update = isTransientNetworkError(error)
+      // O-2: a confab rejection is a terminal data-integrity failure, never a
+      // transient network error. Branch on type AHEAD of isTransientNetworkError
+      // so classification never depends on the error message wording — this
+      // guarantees ai_status:"failed" (not "queued", which would re-loop).
+      const update = error instanceof ConfabRejectedError
+        ? { ai_status: "failed" }
+        : isTransientNetworkError(error)
         ? { ai_status: "queued" }
         // DAT-2: do not write status into `description` — it clobbers AI content / manual edits.
         : { ai_status: "failed" };
