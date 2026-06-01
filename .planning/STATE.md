@@ -30,7 +30,7 @@ Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still
 
 Progress: [░░░░░░░░░░] 0%
 
-Next action: smoke-test Phase 33 from a Vercel preview (3 items in `33-HUMAN-UAT.md`: 4-tab dedup, blocked-badge live update, recorder always-settle), then `/gsd-discuss-phase 34` (ios-memory-optimization). Phase 33 migration `20260601000100_add_items_claim_columns` is LIVE on prod. All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED — push to get a preview URL for the UAT.
+Next action: Phase 34 (ios-memory-optimization) is PLANNED — 3 plans / 2 waves (`/gsd-plan-phase 34`, verification passed 0 blockers). Run `/gsd-execute-phase 34` (Wave 0 RED tests → Wave 1 parallel: 34-01 chunked base64 encoder + 34-02 ItemList aggregate hoist + React.memo). Still owed: smoke-test Phase 33 from a Vercel preview (3 items in `33-HUMAN-UAT.md`). Phase 33 migration `20260601000100_add_items_claim_columns` is LIVE on prod. All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED — push to get a preview URL for the UAT.
 
 ## v1.3 Phase Queue
 

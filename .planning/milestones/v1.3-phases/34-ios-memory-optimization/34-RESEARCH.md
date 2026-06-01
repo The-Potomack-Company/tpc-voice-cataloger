@@ -351,7 +351,7 @@ describe("blobToBase64", () => {
 | A4 | Keeping `useAudioUploadStatus` per-card (not hoisted) is the right call | Pitfall 5 / Open Q | LOW — it's a single keyed read; hoisting is optional polish. |
 | A5 | 32 KB starting chunk size, aligned to a multiple of 3, gives good peak/throughput | Pattern 1 | LOW — discretion D; tunable, output-correctness depends only on 3-alignment not size. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Fully hoist `useAudioUploadStatus` into the aggregate, or keep per-card?**
    - What we know: It's keyed off `latestAudioId`, reads `db.audioUploadQueue.first()`, cheap.
