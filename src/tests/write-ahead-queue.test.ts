@@ -274,6 +274,57 @@ describe("write-ahead queue", () => {
       expect((remaining[0].payload as Record<string, unknown>).id).toBe("uuid-trans");
       expect((remaining[1].payload as Record<string, unknown>).name).toBe("Later");
     });
+
+    it("WR-05: a transient failure self-reschedules a single delayed re-drain", async () => {
+      await db.writeAheadQueue.add({
+        table: "items",
+        operation: "insert",
+        payload: { id: "uuid-trans", title: "first" },
+        createdAt: new Date("2026-01-01"),
+      });
+
+      mockFrom.mockReturnValue({
+        insert: vi
+          .fn()
+          .mockReturnValue({ error: { message: "Proxy returned HTTP 503: upstream" } }),
+      });
+
+      // Track live timers so we can assert at most one re-drain is ever pending
+      // (no pile-up), and no real timer leaks into a later test.
+      let nextId = 0;
+      const live = new Set<number>();
+      const setTimeoutSpy = vi
+        .spyOn(globalThis, "setTimeout")
+        .mockImplementation(((_cb: unknown, delay?: number) => {
+          if (typeof delay === "number" && delay > 0) {
+            nextId += 1;
+            live.add(nextId);
+            return nextId as unknown as ReturnType<typeof setTimeout>;
+          }
+          return 0 as unknown as ReturnType<typeof setTimeout>;
+        }) as typeof setTimeout);
+      const clearTimeoutSpy = vi
+        .spyOn(globalThis, "clearTimeout")
+        .mockImplementation(((id?: unknown) => {
+          if (typeof id === "number") live.delete(id);
+        }) as typeof clearTimeout);
+      try {
+        await processWriteAheadQueue();
+
+        // Transient halt scheduled a delayed re-drain so the queue is not
+        // stranded until an unrelated online/enqueue/mount event.
+        expect(nextId).toBeGreaterThanOrEqual(1);
+        expect(live.size).toBe(1);
+
+        // A second drain that fails again supersedes the pending timer and
+        // reschedules — there is never more than one pending re-drain.
+        await processWriteAheadQueue();
+        expect(live.size).toBe(1);
+      } finally {
+        setTimeoutSpy.mockRestore();
+        clearTimeoutSpy.mockRestore();
+      }
+    });
   });
 
   describe("getPendingCount", () => {

@@ -8,6 +8,24 @@ import type { WriteAheadEntry } from "../db/types";
 
 let processing = false;
 
+// WR-05: the write-ahead queue has NO persisted attempt counter — by design,
+// since FIFO inserts/updates must replay in order and a per-entry counter would
+// complicate that invariant. Instead, a transient failure self-reschedules a
+// single delayed re-drain (mirroring the photo-queue setTimeout(drain, backoff)
+// pattern), so a transient write-ahead failure recovers without waiting for an
+// unrelated `online`/`enqueue`/mount event. We hold at most one pending timer so
+// repeated transient failures can't pile up timers.
+const TRANSIENT_REDRAIN_MS = 5_000;
+let redrainTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleTransientRedrain(): void {
+  if (redrainTimer !== null) return; // already one pending — don't pile up
+  redrainTimer = setTimeout(() => {
+    redrainTimer = null;
+    if (navigator.onLine) processWriteAheadQueue().catch(() => {});
+  }, TRANSIENT_REDRAIN_MS);
+}
+
 // Supabase returns errors as plain PostgrestError-shaped objects ({ message, code, ... }),
 // not Error instances. classifyAiError only reads `.message` off real Error instances
 // (instanceof check), so normalize to an Error carrying the message + status before
@@ -48,6 +66,13 @@ export async function enqueueWrite(
 export async function processWriteAheadQueue(): Promise<void> {
   if (processing) return;
   processing = true;
+  // A drain is now underway; any pending self-rescheduled re-drain (WR-05) is
+  // superseded — cancel it so this pass owns the outcome and re-schedules only
+  // if it too hits a transient failure.
+  if (redrainTimer !== null) {
+    clearTimeout(redrainTimer);
+    redrainTimer = null;
+  }
 
   try {
     const entries = await db.writeAheadQueue.orderBy("createdAt").toArray();
@@ -109,6 +134,9 @@ export async function processWriteAheadQueue(): Promise<void> {
         }
         // Transient (offline / timeout / 429 / 5xx): halt-and-backoff. Preserve FIFO —
         // later updates depend on earlier inserts that have not yet landed.
+        // WR-05: self-reschedule a single delayed re-drain so the queue is not
+        // stranded until an unrelated online/enqueue/mount event fires.
+        scheduleTransientRedrain();
         break;
       }
     }
