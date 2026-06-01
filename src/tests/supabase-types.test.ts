@@ -70,9 +70,44 @@ describe('Supabase Database Types', () => {
       ai_status: 'done',
       sort_order: 1,
       created_at: '2026-01-01T00:00:00Z',
+      claimed_at: null,
+      ai_attempts: 0,
     };
     expect(item.receipt_number).toBe('39135-2');
     expect(item.ai_status).toBe('done');
+  });
+
+  it('items Row includes claimed_at (string | null) and ai_attempts (number)', () => {
+    type Item = Tables<'items'>;
+    const claimed: Item['claimed_at'] = '2026-06-01T00:00:00Z';
+    const unclaimed: Item['claimed_at'] = null;
+    const attempts: Item['ai_attempts'] = 3;
+    expect(claimed).toBe('2026-06-01T00:00:00Z');
+    expect(unclaimed).toBeNull();
+    expect(attempts).toBe(3);
+  });
+
+  it('items Insertable allows claimed_at and ai_attempts', () => {
+    type InsertItem = Insertable<'items'>;
+    const withClaim: InsertItem = {
+      session_id: 'session-uuid',
+      mode: 'sale',
+      receipt_number: '39135-3',
+      claimed_at: null,
+      ai_attempts: 0,
+    };
+    expect(withClaim.claimed_at).toBeNull();
+    expect(withClaim.ai_attempts).toBe(0);
+  });
+
+  it('items Updatable allows claimed_at and ai_attempts', () => {
+    type UpdateItem = Updatable<'items'>;
+    const partial: UpdateItem = {
+      claimed_at: '2026-06-01T12:00:00Z',
+      ai_attempts: 2,
+    };
+    expect(partial.claimed_at).toBe('2026-06-01T12:00:00Z');
+    expect(partial.ai_attempts).toBe(2);
   });
 
   it('Insertable helper makes optional fields optional', () => {
