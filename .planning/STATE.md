@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
-status: completed
+status: executing
 stopped_at: Phase 39 context gathered
-last_updated: "2026-06-01T15:32:46.560Z"
+last_updated: "2026-06-01T15:41:06.147Z"
 progress:
   percent: 0
 ---
@@ -16,14 +16,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 32 — audio-blob-supabase-persistence
+**Current focus:** Phase 33 — offline-reliability
 
 ## Current Position
 
-Phase: 32 — COMPLETE
-Plan: 5 of 5
+Phase: 33 (offline-reliability) — EXECUTING
+Plan: 2 of 5 (33-00 foundation COMPLETE — migration on prod, types regenerated, backoff/classifier helpers + Wave-0 stubs landed)
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 1/10 phases done
-Status: Phase 32 complete
+Status: Executing Phase 33
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions

@@ -103,7 +103,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: simulated 4-tab concurrent drain produces zero duplicate Gemini calls; permanent failure surfaces in UI; transient failure backs off; recorder always settles.
   - Risk: medium (offline queue is core; regressions here look like AI processing failures).
   - **Plans:** 5 plans (4 waves)
-    - [ ] 33-00-PLAN.md — [BLOCKING] one two-column items migration (claimed_at + ai_attempts) via the 4-step schema protocol + Phase-31 dry-run push gate + db:types regen; pure backoff.ts + aiErrorClass.ts helpers; Wave-0 test stubs (backoff, error-classify, blocked-badge RED)
+    - [x] 33-00-PLAN.md — [BLOCKING] one two-column items migration (claimed_at + ai_attempts) via the 4-step schema protocol + Phase-31 dry-run push gate + db:types regen; pure backoff.ts + aiErrorClass.ts helpers; Wave-0 test stubs (backoff, error-classify, blocked-badge RED)
     - [ ] 33-01-PLAN.md — REL-1: replace MAX_RETRIES loop with persisted-attempt backoff-window skip + cap 5→failed in offlineQueue.ts (owns the file for REL-1)
     - [ ] 33-02-PLAN.md — REL-2: DB-atomic claim (.eq queued .select) + stale-claim reclaim in offlineQueue.ts (depends_on 33-01, sequential same-wave to avoid file conflict)
     - [ ] 33-03-PLAN.md — REL-3: classify-driven drop/continue vs halt in useWriteAheadQueue + BlockedQueueBadge (tone=err) next to OfflineIndicator
