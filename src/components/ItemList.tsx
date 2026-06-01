@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useSessionItems } from "../hooks/useSessions";
 import { audioRecordsForItem } from "../db/audioLookup";
+import { getDexieItemId } from "../db/idMapping";
+import { hasPendingForItem } from "../hooks/useWriteAheadQueue";
+import { db } from "../db";
 import { ItemCard } from "./ItemCard";
 import { createBlankItem } from "../db/items";
 import { processAudioWithAi } from "../services/gemini";
@@ -16,6 +20,18 @@ interface ItemListProps {
   compact?: boolean;
 }
 
+// PERF-3: per-item meta hoisted out of ItemCard into ONE aggregate subscription.
+interface ItemMeta {
+  audioCount: number;
+  latestAudioId: number | null;
+  photoCount: number;
+  dexieItemId: number | string | null;
+  isPending: boolean;
+}
+
+// Module scope — stable identity so the empty default never churns memo props.
+const EMPTY_META = new Map<string, ItemMeta>();
+
 export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = false }: ItemListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [newItemId, setNewItemId] = useState<string | null>(null);
@@ -29,6 +45,31 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
 
   const items = useSessionItems(sessionId);
   const peekItem = items.find((item) => item.id === peekItemId) ?? null;
+
+  // PERF-3: ONE aggregate subscription replaces the ~4N per-card subscriptions/effects.
+  // Each slice is threaded to ItemCard as a primitive prop (clean React.memo compare).
+  const itemMeta = useLiveQuery(
+    async () => {
+      const map = new Map<string, ItemMeta>();
+      for (const item of items) {
+        const audios = await audioRecordsForItem(item.id);
+        const audioCount = audios.length;
+        const latestAudioId = audioCount > 0
+          ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
+          : null;
+        const dexieItemId = (await getDexieItemId(item.id)) ?? item.id;
+        const photoCount = item.mode === "house" && dexieItemId != null
+          ? await db.photos.where("itemId").equals(dexieItemId).count()
+          : 0;
+        const isPending = await hasPendingForItem(item.id);
+        map.set(item.id, { audioCount, latestAudioId, photoCount, dexieItemId, isPending });
+      }
+      return map;
+    },
+    [items],
+    EMPTY_META,
+  );
+  const metaMap = itemMeta instanceof Map ? itemMeta : EMPTY_META;
 
   useEffect(() => {
     if (peekItemId !== null && !peekItem) {
@@ -140,6 +181,23 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
       }
       return next;
     });
+  }, []);
+
+  // PERF-3: stable per-item onToggle so React.memo'd ItemCards aren't re-rendered by
+  // a fresh closure on every ItemList render. The dispatcher's identity stays constant
+  // per item id; the select-mode-aware behavior is read live from a ref.
+  const toggleHandlerRef = useRef<(itemId: string) => void>(() => {});
+  toggleHandlerRef.current = (itemId: string) =>
+    (selectMode ? toggleSelection : toggleExpand)(itemId);
+  const onToggleCacheRef = useRef(new Map<string, () => void>());
+  const getOnToggle = useCallback((itemId: string) => {
+    const cache = onToggleCacheRef.current;
+    let fn = cache.get(itemId);
+    if (!fn) {
+      fn = () => toggleHandlerRef.current(itemId);
+      cache.set(itemId, fn);
+    }
+    return fn;
   }, []);
 
   // Cancel select mode
@@ -261,7 +319,9 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
         </button>
       )}
 
-      {items.map((item) => (
+      {items.map((item) => {
+        const meta = metaMap.get(item.id);
+        return (
         <div
           key={item.id}
           data-item-id={item.id}
@@ -302,12 +362,18 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
               item={item}
               sessionId={sessionId}
               isExpanded={!selectMode && expandedIds.has(item.id)}
-              onToggle={selectMode ? () => toggleSelection(item.id) : () => toggleExpand(item.id)}
+              onToggle={getOnToggle(item.id)}
               readOnly={readOnly || selectMode}
+              audioCount={meta?.audioCount ?? 0}
+              latestAudioId={meta?.latestAudioId ?? null}
+              photoCount={meta?.photoCount ?? 0}
+              dexieItemId={meta?.dexieItemId ?? null}
+              isPending={meta?.isPending ?? false}
             />
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* Floating merge toolbar */}
       {selectMode && (

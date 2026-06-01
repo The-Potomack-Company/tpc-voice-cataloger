@@ -72,6 +72,11 @@ function renderCard(item = makeItem()) {
         sessionId="session-uuid-1"
         isExpanded={false}
         onToggle={() => {}}
+        audioCount={1}
+        latestAudioId={10}
+        photoCount={0}
+        dexieItemId={10}
+        isPending={false}
       />
     </MemoryRouter>
   );
