@@ -168,6 +168,18 @@ function isTransientNetworkError(error: unknown): boolean {
   return false;
 }
 
+// D-03/D-04: confabulation guard. Zod stays the structural validator; this is a
+// post-validation output-trust check. Single-shot ONLY — NOT applied to the
+// continuous path, where empty/silent chunks are legitimate (RESEARCH Pitfall 5).
+export class ConfabRejectedError extends Error {}
+
+// D-03: crisp transcript-emptiness gate — no content-quality heuristics.
+// A well-behaved model returns null on unintelligible audio; whitespace-only
+// is treated the same. An empty transcript means we refuse the whole response.
+function isTranscriptEmpty(t: string | null | undefined): boolean {
+  return t == null || t.trim().length === 0;
+}
+
 
 /**
  * Full AI processing pipeline: fetch audio from Dexie, send to Gemini via proxy,
@@ -320,6 +332,16 @@ export async function processAudioWithAi(
 
     const fields = result.data;
 
+    // D-03 confab guard: reject the WHOLE response on an empty transcript before
+    // anything touches the DB (Pitfall 2). Throwing a tagged terminal error reuses
+    // the existing catch → { ai_status: "failed" } write and fires
+    // ai.processing_failed for free; NO catalog fields are persisted.
+    if (isTranscriptEmpty(fields.transcript)) {
+      throw new ConfabRejectedError(
+        "Empty transcript — refusing to persist invented fields",
+      );
+    }
+
     // Safety net: ensure spoken quote markers are converted even if AI missed them
     const textFields = ['title', 'description', 'condition', 'transcript'] as const;
     for (const field of textFields) {
@@ -396,7 +418,13 @@ export async function processAudioWithAi(
       items_content: { item_id: itemId },
     });
     try {
-      const update = isTransientNetworkError(error)
+      // O-2: a confab rejection is a terminal data-integrity failure, never a
+      // transient network error. Branch on type AHEAD of isTransientNetworkError
+      // so classification never depends on the error message wording — this
+      // guarantees ai_status:"failed" (not "queued", which would re-loop).
+      const update = error instanceof ConfabRejectedError
+        ? { ai_status: "failed" }
+        : isTransientNetworkError(error)
         ? { ai_status: "queued" }
         // DAT-2: do not write status into `description` — it clobbers AI content / manual edits.
         : { ai_status: "failed" };
