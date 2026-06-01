@@ -120,7 +120,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
     - [x] 34-01-PLAN.md — PERF-1: chunked 3-aligned `blobToBase64` (drop freshBlob re-wrap, D-02), shared by both gemini paths; PERF-2 deferred note (gemini.ts/geminiContinuous.ts)
     - [x] 34-02-PLAN.md — PERF-3: ItemList single aggregate useLiveQuery → primitive props; React.memo prop-driven ItemCard + dev render counter (D-08); D-09 memory-smoke runbook
 
-- [ ] **Phase 35: ai-correctness-track-2** *(🟡 Track-2 quality)*
+- [x] **Phase 35: ai-correctness-track-2** *(🟡 Track-2 quality)* (completed 2026-06-01)
   - `temperature=0` on the Gemini call so the same input deterministically yields the same output. (Currently default sampling allows drift between identical retries.)
   - Confabulation guard: instruct the model to return `null` for fields it cannot extract from the audio; never invent a title/estimate when only a description was given. Validate via Zod + reject responses that fill clearly-empty fields.
   - No-clobber on AI retry: if the user edited a field between the initial AI call and the retry, the retry must NOT overwrite their value (matches the DAT-2 / DAT-4 spirit but for retries specifically).
@@ -281,7 +281,7 @@ Plans:
 - [x] 35-01-PLAN.md — Wave 0: Dexie v11 userEditedFields store + 4 RED test files (SC-1..SC-4)
 - [x] 35-02-PLAN.md — D-01/D-02: temperature:0 on both AI paths (determinism, SC-1)
 - [x] 35-03-PLAN.md — D-07/D-08: lift AiFailureBanner to shared component, render on ItemCard (SC-4)
-- [ ] 35-04-PLAN.md — D-03..D-06: confab guard (single-shot) + Dexie no-clobber retry filter (SC-2, SC-3)
+- [x] 35-04-PLAN.md — D-03..D-06: confab guard (single-shot) + Dexie no-clobber retry filter (SC-2, SC-3)
 
 ### Phase 28: Specialist Screen Restyle
 **Goal**: Extrapolate the design system onto the unmocked specialist-facing surfaces (item detail/edit, login, walkthrough overlay) with a discuss-step approval before implementation.
