@@ -69,6 +69,7 @@ export interface ItemAudio {
   blob: Blob;
   mimeType: string;
   durationMs?: number;
+  sessionId?: string;
   createdAt: Date;
 }
 
@@ -105,6 +106,19 @@ export interface PhotoUploadEntry {
   sortOrder: number;
   storagePath: string;
   thumbnailPath: string;
+  status: 'pending' | 'uploading' | 'uploaded' | 'failed';
+  retryCount: number;
+  createdAt: Date;
+  lastAttemptAt?: Date;
+}
+
+export interface AudioUploadEntry {
+  id?: number;
+  dexieAudioId: number;
+  itemId: string;
+  sessionId: string;
+  mimeType: string;
+  storagePath: string;
   status: 'pending' | 'uploading' | 'uploaded' | 'failed';
   retryCount: number;
   createdAt: Date;
