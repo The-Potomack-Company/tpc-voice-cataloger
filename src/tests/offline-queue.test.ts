@@ -366,6 +366,39 @@ describe("offlineQueue service (Supabase-backed)", () => {
       });
     });
 
+    it("fails immediately on a permanent error without consuming further attempts", async () => {
+      mockGetDexieItemId.mockResolvedValue(42);
+      await createAudio(42, "house");
+
+      setupQueuedItemsResponse([
+        {
+          id: "uuid-perm",
+          mode: "house",
+          session_id: "sess-uuid-1",
+          created_at: "2026-01-01T10:00:00Z",
+          claimed_at: null,
+          ai_attempts: 0,
+        },
+      ]);
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      vi.mocked(processAudioWithAi).mockRejectedValue(
+        new Error("Proxy returned HTTP 422: Zod validation failed"),
+      );
+
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      // permanent (4xx) → terminal failure, NOT re-queued
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({
+        ai_status: "failed",
+      });
+      expect(mockSupabaseUpdate).not.toHaveBeenCalledWith({
+        ai_status: "queued",
+        ai_attempts: 1,
+      });
+    });
+
     it("getQueuedItems maps claimed_at and ai_attempts onto the item", async () => {
       const claimed = "2026-01-01T10:05:00Z";
       setupQueuedItemsResponse([
