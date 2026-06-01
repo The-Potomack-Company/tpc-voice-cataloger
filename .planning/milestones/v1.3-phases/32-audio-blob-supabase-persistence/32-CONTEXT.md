@@ -34,6 +34,10 @@ Make per-item audio durable. Today `db.audio` blobs live only in Dexie/IndexedDB
 ### UI surface + failed affordance
 - **D-06:** Surface `pending / uploaded / failed` on **ItemCard**, reusing the photo `usePhotoUploadStatus` pattern (an `useAudioUploadStatus` analog). On `failed`, show a **manual retry button** that re-enqueues the upload.
 
+### Resolved forks (post-research, 2026-06-01)
+- **D-07 (retention baseline):** Add a new nullable `items.completed_at timestamptz` column, set when an item reaches its terminal/done state. The 30-day purge clock (D-03) keys off `completed_at`, NOT `created_at` or `ai_status` record-time. Resolves research gap A1 (`items` had no done column / completion timestamp). The write-path that marks an item done must set `completed_at`.
+- **D-08 (purge + orphan engine):** Enable the `pg_cron` extension. A scheduled pg_cron sweep selects expired/orphaned audio and invokes a Supabase **Edge function** (service-role) that performs `supabase.storage.from('audio').remove([...])` — because Postgres cannot delete S3 binaries (`DELETE FROM storage.objects` only drops the metadata row and orphans the binary). This satisfies both D-03 (scheduled 30-day purge) and D-04 (hard-delete orphan cleanup); the hard-delete path additionally calls `storage.remove()` client-side in `deleteItem` for immediate cleanup, with the pg_cron sweep as the orphan backstop. Resolves research gap A2 (pg_cron/pg_net not yet enabled).
+
 ### Claude's Discretion
 - Exact Supabase `audio` table column set + migration filename/timestamp (follow `supabase/migrations/<ts>_<name>.sql`).
 - Whether orphan blob deletion on hard-delete is a DB trigger, an Edge function, or folded into the pg_cron sweep.
