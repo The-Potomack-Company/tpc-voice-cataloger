@@ -109,7 +109,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
     - [x] 33-03-PLAN.md — REL-3: classify-driven drop/continue vs halt in useWriteAheadQueue + BlockedQueueBadge (tone=err) next to OfflineIndicator
     - [x] 33-04-PLAN.md — REL-4: recorder onstop retry 2× then always-settle(undefined) + blob stash in recordingStore retry buffer
 
-- [ ] **Phase 34: ios-memory-optimization** *(🟠 PERF-1, PERF-2, PERF-3)*
+- [x] **Phase 34: ios-memory-optimization** *(🟠 PERF-1, PERF-2, PERF-3)* (completed 2026-06-01)
   - PERF-1: `blobToBase64` holds 2-3 full copies of multi-MB audio in memory → iOS PWA tab OOM. Chunked encode OR push the audio out-of-band (e.g. signed-URL upload to Gemini-compatible endpoint) so the worker doesn't need a giant base64 in memory.
   - PERF-2: continuous-mode master blob grows unbounded; re-materialized on every 15s append. (Lower priority — continuous gated off via D-050.) Switch to stream-append or segment-and-discard.
   - PERF-3: `ItemCard` has 2 live Dexie subscriptions × N items → re-render storm during recording. Hoist the queries up to a session-level provider; pass the per-item slice as props.
@@ -117,8 +117,8 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Risk: medium (touches hot paths).
   - **Plans:** 3 plans (2 waves) — PERF-1 chunked encoder + PERF-3 provider-hoist are disjoint files, parallel in Wave 1 after Wave-0 RED tests. PERF-2 deferred (D-04, continuous gated off via D-050). TDD mode ON.
     - [x] 34-00-PLAN.md — Wave 0 RED tests: multi-chunk base64 encoder test (guards 3-byte alignment) + render-count test scaffold (PERF-1, PERF-3)
-    - [ ] 34-01-PLAN.md — PERF-1: chunked 3-aligned `blobToBase64` (drop freshBlob re-wrap, D-02), shared by both gemini paths; PERF-2 deferred note (gemini.ts/geminiContinuous.ts)
-    - [ ] 34-02-PLAN.md — PERF-3: ItemList single aggregate useLiveQuery → primitive props; React.memo prop-driven ItemCard + dev render counter (D-08); D-09 memory-smoke runbook
+    - [x] 34-01-PLAN.md — PERF-1: chunked 3-aligned `blobToBase64` (drop freshBlob re-wrap, D-02), shared by both gemini paths; PERF-2 deferred note (gemini.ts/geminiContinuous.ts)
+    - [x] 34-02-PLAN.md — PERF-3: ItemList single aggregate useLiveQuery → primitive props; React.memo prop-driven ItemCard + dev render counter (D-08); D-09 memory-smoke runbook
 
 - [ ] **Phase 35: ai-correctness-track-2** *(🟡 Track-2 quality)*
   - `temperature=0` on the Gemini call so the same input deterministically yields the same output. (Currently default sampling allows drift between identical retries.)
