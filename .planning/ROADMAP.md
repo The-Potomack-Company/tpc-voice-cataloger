@@ -369,6 +369,84 @@ Plans:
 **Estimated plan count**: 3
 **UI hint**: yes
 
+### Phase 36: ux-visibility-polish
+
+**Goal**: Make currently-silent failure and partial-state paths visible to the user — export failures, non-transactional session/import, false migration-success copy, silent fetch/admin/login errors — by surfacing toasts/states through the DAT-4 ErrorToast path.
+**Depends on**: none hard (the migration-copy item coordinates with Phase 38's DAT-1 partial banner)
+**Requirements**: none mapped (Track-2 quality track)
+**Success Criteria** (what must be TRUE):
+
+  1. Export failures (Codex #9, #10) surface a toast with a retry affordance instead of failing silently.
+  2. New-session / import is transactional — a single Supabase RPC or explicit rollback of partial state on failure (Codex #7, #8).
+  3. Migration success copy aligns with the DAT-1 `partial` flag (Codex #2) — no false "success" when state is partial.
+  4. Silent fetch errors (Codex #27, #28), admin role/account load failures (Codex #16-20), and raw login errors (Codex #21) all route to a visible ErrorToast with friendly copy; no console-only failures.
+
+**Plans**: TBD
+**Estimated plan count**: 3
+**UI hint**: yes
+
+### Phase 37: a11y-foundation
+
+**Goal**: Add baseline accessibility primitives across the app — modal focus-trap, minimum touch targets, icon-button labels, and a non-swipe delete affordance — so keyboard-only and assistive-tech users can complete core flows.
+**Depends on**: none (additive primitives)
+**Requirements**: none mapped (Track-2 quality track)
+**Success Criteria** (what must be TRUE):
+
+  1. A reusable focus-trap + `aria-modal` primitive is applied to every modal site (Codex #33, #34, #48).
+  2. Action buttons meet a 44px minimum touch target (Codex #46); icon-only buttons have tooltips/aria-labels (Codex #49).
+  3. A non-swipe delete affordance (long-press or explicit delete button) exists for delete (Codex #32).
+  4. axe-core scan on representative pages is clean and keyboard-only navigation completes the record/edit/save flow.
+
+**Plans**: TBD
+**Estimated plan count**: 2
+**UI hint**: yes
+
+### Phase 38: migration-retryability
+
+**Goal**: Make the Dexie→Supabase migration correctly retryable after a partial run — accurate `needsMigration()`, idempotent `migrateToSupabase`, and partial-state surfaced in the UI — building on the shipped DAT-1 work (PR #24).
+**Depends on**: none (builds on shipped DAT-1 / PR #24)
+**Requirements**: none mapped (Track-2 quality track)
+**Success Criteria** (what must be TRUE):
+
+  1. `needsMigration()` returns true while any non-deleted Dexie session/item lacks an `idMapping` entry (no longer treats a partial migration as complete).
+  2. `migrateToSupabase` is idempotent — it looks up `idMapping` by `oldId` and reuses the existing `newId` / skips the insert, so a retry over preserved rows creates no duplicate Supabase sessions/items.
+  3. Partial state surfaces in the UI via the DAT-1 `partial` flag (banner: "N items not yet synced — Retry"); retry re-runs the migration.
+  4. A retry-after-partial test migrates only the remaining rows, creates no duplicates, and the banner reflects partial state.
+
+**Plans**: TBD
+**Estimated plan count**: 2
+**UI hint**: yes
+
+### Phase 39: optimistic-locking
+
+**Goal**: Prevent silent lost writes across concurrent writers (user edit vs. AI merge, cross-tab/device) by adding an `items.updated_at` precondition + conflict reconciliation — the cross-writer concurrency lane Phase 35 deliberately stayed out of. HIGH RISK: a careless partial implementation can silently drop writes.
+**Depends on**: Phase 35 (retry-scoped no-clobber must already exist; this generalizes it), DAT-1 (shipped, PR #26)
+**Requirements**: none mapped (Track-2 quality track / DAT-3)
+**Success Criteria** (what must be TRUE):
+
+  1. An `items.updated_at` auto-bump-on-UPDATE Postgres trigger (moddatetime) exists via a new migration; `../_workspace/Schema/schema.md` is updated and `src/db/database.types.ts` regenerated.
+  2. `updateItemField` and the AI merge path read `updated_at`, write with an `.eq("updated_at", <prev>)` precondition, and on a 0-row conflict re-read + reconcile (never last-writer-wins).
+  3. Per-writer conflict policy holds: a user single-field edit re-applies on conflict (intent-preserving); the AI merge re-reads & re-merges and must NOT overwrite a field the user changed since the merge's read.
+  4. Conflicts surface to the user via the DAT-4 ErrorToast; a test proves a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit.
+
+**Plans**: TBD
+**Estimated plan count**: 3
+
+### Phase 40: ai-proxy-cloud-run-migration
+
+**Goal**: Repoint the cataloger's AI calls from the in-repo Cloudflare Worker (`proxy/`) to the shared `tpc-ai-proxy` Cloud Run service (D-049, D-056), preserving the Supabase-JWT auth guarantee, then retire the Worker. Cross-app: touches this repo and `tpc-ai-proxy`.
+**Depends on**: Phase 39a (extension proxy migration — shipped, external); coordinates with the `tpc-ai-proxy` repo for `ALLOWED_ORIGINS` + JWT-verify
+**Requirements**: none mapped (cross-app infra; D-013, D-014, D-049, D-053, D-056)
+**Success Criteria** (what must be TRUE):
+
+  1. `VITE_GEMINI_PROXY_URL` repoints to the Cloud Run prod/dev URLs; the request/response contract is unchanged (same JSON shape, `gemini-2.5-flash`, 25 MB cap) — config-level cutover, not a payload reshape.
+  2. The Cloud Run proxy enforces the Supabase JWT bearer-verify (D-014 pulled forward, D-056 LOCKED) so the cataloger never falls back to origin+quota-only auth; the cataloger's prod + Vercel-preview web origins are added to `ALLOWED_ORIGINS`.
+  3. AI processing succeeds against the Cloud Run URL in dev + prod; an unauthorized/cross-origin caller is rejected; `VITE_GEMINI_PROXY_URL`-unset fails closed.
+  4. The CF Worker (`proxy/`, `wrangler`/`tpc-gemini-proxy` workspace bits) is retired only after the Cloud Run path is verified in prod, with one rollback commit; `.env.example` and the proxy-URL tests are updated.
+
+**Plans**: TBD
+**Estimated plan count**: 3
+
 ## Backlog
 
 ### Phase 999.1: Stream photos from Supabase Storage during extension import (BACKLOG)
