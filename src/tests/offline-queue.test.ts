@@ -420,10 +420,13 @@ describe("offlineQueue service (Supabase-backed)", () => {
       const { drainQueue } = await import("../services/offlineQueue");
       await drainQueue();
 
-      // attempt 1 -> 2, still below ATTEMPT_CAP (5): re-queue + increment
+      // attempt 1 -> 2, still below ATTEMPT_CAP (5): re-queue + increment.
+      // WR-03: claimed_at is re-stamped to the failure time so the backoff
+      // window measures from failure, not from claim.
       expect(mockSupabaseUpdate).toHaveBeenCalledWith({
         ai_status: "queued",
         ai_attempts: 2,
+        claimed_at: expect.any(String),
       });
       expect(mockSupabaseUpdate).not.toHaveBeenCalledWith({
         ai_status: "failed",

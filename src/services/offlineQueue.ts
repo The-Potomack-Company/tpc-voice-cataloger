@@ -153,9 +153,19 @@ async function processItem(item: QueuedItem): Promise<void> {
     } else {
       // Read-then-write is safe pre-claim: only the claim-winner mutates the
       // row (REL-2 / 33-02 adds the atomic claim). Re-queue + persist attempt.
+      // WR-03: re-stamp claimed_at to the failure time so the D-06 backoff
+      // window measures from when the call actually failed — the claim-time
+      // stamp predates the (possibly long) processAudioWithAi call, which let a
+      // slow failure consume its whole backoff window and re-fire immediately.
+      // A 'queued' row is never reclaimed (reclaim filters ai_status='processing'),
+      // so re-stamping claimed_at here can't trigger a spurious stale-reclaim.
       await supabase
         .from("items")
-        .update({ ai_status: "queued", ai_attempts: next })
+        .update({
+          ai_status: "queued",
+          ai_attempts: next,
+          claimed_at: new Date().toISOString(),
+        })
         .eq("id", item.id);
     }
   } finally {
