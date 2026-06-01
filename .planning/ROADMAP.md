@@ -90,7 +90,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Risk: medium-high (new bucket + RLS + cross-device sync + Dexie hydration).
   - **Plans:** 5 plans (4 waves)
     - [x] 32-01-PLAN.md — author consolidated create_audio migration (table + bucket + column-scoped storage RLS + items.completed_at + pg_cron/pg_net + purge-old-audio job) + service-role purge-audio edge fn + schema.md update + RED Wave-0 test scaffolds
-    - [ ] 32-02-PLAN.md — [BLOCKING] Codex adversarial review (D-046) → db push --dry-run isolation + prod apply (D-08) → cross-user RLS deny proof (T-32-01) → db:types regen with the audio table
+    - [x] 32-02-PLAN.md — [BLOCKING] Codex adversarial review (D-046) → db push --dry-run isolation + prod apply (D-08) → cross-user RLS deny proof (T-32-01) → db:types regen with the audio table
     - [ ] 32-03-PLAN.md — client data layer: Dexie v10 audioUploadQueue + AudioUploadEntry/ItemAudio.sessionId + audioUploadQueue.ts (photo clone) + useAudioUploadStatus + extFromMime
     - [ ] 32-04-PLAN.md — recorder sessionId thread + fire-and-forget enqueue (D-05) + processAudioWithAi Storage fallback (keyed by item_id) + items.completed_at on done (D-07) + audioRecordsForItem Supabase union
     - [ ] 32-05-PLAN.md — deleteItem audio storage.remove (D-04 orphan-leak close) + ItemCard upload-status pill + failed-retry (D-06)
