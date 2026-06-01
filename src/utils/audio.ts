@@ -24,6 +24,25 @@ export function getPreferredMimeType(): string {
 }
 
 /**
+ * Map an audio MIME type to a storage-path file extension.
+ * Strips any ;codecs=... suffix first. NEVER hardcode '.opus' — the
+ * container (webm/mp4/ogg) is what matters for playback, not the codec.
+ */
+export function extFromMime(mime: string): string {
+  const base = mime.split(";")[0].trim();
+  switch (base) {
+    case "audio/webm":
+      return "webm";
+    case "audio/mp4":
+      return "mp4";
+    case "audio/ogg":
+      return "ogg";
+    default:
+      return "webm";
+  }
+}
+
+/**
  * Format milliseconds to "M:SS" display string.
  * Minutes are not zero-padded; seconds are always two digits.
  */
