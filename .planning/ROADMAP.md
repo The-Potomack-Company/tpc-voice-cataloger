@@ -104,10 +104,10 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Risk: medium (offline queue is core; regressions here look like AI processing failures).
   - **Plans:** 5 plans (4 waves)
     - [x] 33-00-PLAN.md — [BLOCKING] one two-column items migration (claimed_at + ai_attempts) via the 4-step schema protocol + Phase-31 dry-run push gate + db:types regen; pure backoff.ts + aiErrorClass.ts helpers; Wave-0 test stubs (backoff, error-classify, blocked-badge RED)
-    - [ ] 33-01-PLAN.md — REL-1: replace MAX_RETRIES loop with persisted-attempt backoff-window skip + cap 5→failed in offlineQueue.ts (owns the file for REL-1)
+    - [x] 33-01-PLAN.md — REL-1: replace MAX_RETRIES loop with persisted-attempt backoff-window skip + cap 5→failed in offlineQueue.ts (owns the file for REL-1)
     - [ ] 33-02-PLAN.md — REL-2: DB-atomic claim (.eq queued .select) + stale-claim reclaim in offlineQueue.ts (depends_on 33-01, sequential same-wave to avoid file conflict)
-    - [ ] 33-03-PLAN.md — REL-3: classify-driven drop/continue vs halt in useWriteAheadQueue + BlockedQueueBadge (tone=err) next to OfflineIndicator
-    - [ ] 33-04-PLAN.md — REL-4: recorder onstop retry 2× then always-settle(undefined) + blob stash in recordingStore retry buffer
+    - [x] 33-03-PLAN.md — REL-3: classify-driven drop/continue vs halt in useWriteAheadQueue + BlockedQueueBadge (tone=err) next to OfflineIndicator
+    - [x] 33-04-PLAN.md — REL-4: recorder onstop retry 2× then always-settle(undefined) + blob stash in recordingStore retry buffer
 
 - [ ] **Phase 34: ios-memory-optimization** *(🟠 PERF-1, PERF-2, PERF-3)*
   - PERF-1: `blobToBase64` holds 2-3 full copies of multi-MB audio in memory → iOS PWA tab OOM. Chunked encode OR push the audio out-of-band (e.g. signed-URL upload to Gemini-compatible endpoint) so the worker doesn't need a giant base64 in memory.
