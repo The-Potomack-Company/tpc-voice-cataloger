@@ -135,6 +135,11 @@ async function sendChunkToGemini(
   }
 
   throwIfAborted(signal);
+  // PERF-2 (DEFERRED — D-04): the continuous master-blob is currently materialized
+  // whole here (withLookBackAudio concatenates look-back + current into one Uint8Array).
+  // The bounded-blob rework (stream-append or segment-and-discard so peak memory does
+  // not grow with session length) is deferred until continuous mode is re-enabled
+  // (D-050). The chunked blobToBase64 below (PERF-1) already bounds the encode step.
   const geminiAudioBlob = await withLookBackAudio(audioBlob, lookBackBytes);
   throwIfAborted(signal);
   const base64Audio = await blobToBase64(geminiAudioBlob);
