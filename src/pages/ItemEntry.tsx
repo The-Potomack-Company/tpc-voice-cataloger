@@ -23,69 +23,7 @@ import { getDexieItemId } from "../db/idMapping";
 import { formatDuration } from "../utils/audio";
 import type { ItemPhoto } from "../db/types";
 import { audioRecordsForItem } from "../db/audioLookup";
-import { processAudioWithAi } from "../services/gemini";
-
-/** Failed-AI banner. Shown when ai_status === "failed" so a user editing a
- *  single item sees the failure and can re-run AI on the latest audio.
- *  Real terminal failures always have audio (that's what failed to
- *  process); if a synthetic state has no audio, the banner stays hidden
- *  so we don't surface an undismissable dead-end. */
-function AiFailureBanner({
-  itemId,
-  sessionId,
-}: {
-  itemId: string;
-  sessionId: string;
-}) {
-  const [retrying, setRetrying] = useState(false);
-  const latestAudioId = useLiveQuery(
-    async () => {
-      const audios = await audioRecordsForItem(itemId);
-      return audios.length > 0
-        ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
-        : null;
-    },
-    [itemId],
-    null as number | null,
-  );
-
-  if (latestAudioId == null) return null;
-
-  const handleRetry = () => {
-    if (retrying) return;
-    setRetrying(true);
-    processAudioWithAi(latestAudioId, itemId, sessionId)
-      .catch((err) => {
-        console.error("AI retry failed:", err);
-      })
-      .finally(() => setRetrying(false));
-  };
-
-  return (
-    <div
-      role="alert"
-      className="flex items-center justify-between gap-3 rounded-lg border border-err bg-err-wash px-3 py-2 text-sm"
-      style={{ color: "var(--err)" }}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="tpc-status-dot tpc-status-dot-err" aria-hidden />
-        <span className="font-medium truncate">AI processing failed</span>
-      </div>
-      <button
-        type="button"
-        onClick={handleRetry}
-        disabled={retrying}
-        className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-err px-2.5 py-1 text-xs font-semibold hover:opacity-80 disabled:opacity-50 transition-opacity"
-        style={{ color: "var(--err)" }}
-      >
-        <svg className={`w-3.5 h-3.5 ${retrying ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-        </svg>
-        {retrying ? "Retrying" : "Retry"}
-      </button>
-    </div>
-  );
-}
+import { AiFailureBanner } from "../components/AiFailureBanner";
 
 /** Always-visible waveform wrapper. Renders the bars dimmed when idle and
  *  swaps the timer copy for a "Tap to record" prompt so the surface always
@@ -217,6 +155,19 @@ export function ItemEntryPage() {
     getDexieItemId(itemId).then(id => setDexieItemId(id ?? itemId));
   }, [itemId, isNewItem]);
 
+  // Latest audio id for this item — feeds the shared AiFailureBanner's Retry.
+  const bannerLatestAudioId = useLiveQuery(
+    async () => {
+      if (!itemId || isNewItem) return null;
+      const audios = await audioRecordsForItem(itemId);
+      return audios.length > 0
+        ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
+        : null;
+    },
+    [itemId, isNewItem],
+    null as number | null,
+  );
+
   const photos = useLiveQuery(
     () => {
       if (mode !== "house") return [] as ItemPhoto[];
@@ -343,7 +294,11 @@ export function ItemEntryPage() {
             failed. Without this, the detail page has no failure surface and
             users have no path back to a successful run. */}
         {item?.ai_status === "failed" && itemId && (
-          <AiFailureBanner itemId={itemId} sessionId={sessionId!} />
+          <AiFailureBanner
+            itemId={itemId}
+            sessionId={sessionId!}
+            latestAudioId={bannerLatestAudioId}
+          />
         )}
 
         {/* Receipt number input for sale mode (top field) */}
