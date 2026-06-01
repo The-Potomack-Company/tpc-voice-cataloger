@@ -163,6 +163,8 @@ async function sendChunkToGemini(
       },
     ],
     generationConfig: {
+      // D-01: greedy decoding for deterministic extraction (SC-1). No seed/topP/topK (D-02).
+      temperature: 0,
       responseMimeType: "application/json",
       responseSchema: responseSchemaForGemini(),
     },
