@@ -8,10 +8,11 @@ afterEach(async () => {
 });
 
 describe("Dexie database", () => {
-  it("opens successfully and has 10 tables", () => {
+  it("opens successfully and has 11 tables", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toEqual([
       "audio",
+      "audioUploadQueue",
       "exportHistory",
       "houseVisitItems",
       "idMapping",
@@ -135,14 +136,15 @@ describe("Dexie database", () => {
 });
 
 describe("Dexie v6 migration", () => {
-  it("has 10 tables including sessionAudio after v9 migration", () => {
+  it("has 11 tables including audioUploadQueue after v10 migration", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toContain("exportHistory");
     expect(tableNames).toContain("idMapping");
     expect(tableNames).toContain("writeAheadQueue");
     expect(tableNames).toContain("photoUploadQueue");
     expect(tableNames).toContain("sessionAudio");
-    expect(tableNames).toHaveLength(10);
+    expect(tableNames).toContain("audioUploadQueue");
+    expect(tableNames).toHaveLength(11);
   });
 
   it("exportHistory table has sessionId and exportedAt indexes", () => {
