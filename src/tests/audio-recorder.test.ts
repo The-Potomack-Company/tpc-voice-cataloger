@@ -206,4 +206,25 @@ describe("useAudioRecorder", () => {
     expect(state).toHaveProperty("lastSavedAudioId");
     expect(state).toHaveProperty("lastSavedDurationMs");
   });
+
+  it("recording store exposes recorderError + retryBuffer (default null) with setters", () => {
+    const state = useRecordingStore.getState();
+    expect(state.recorderError).toBeNull();
+    expect(state.retryBuffer).toBeNull();
+    expect(typeof state.setRecorderError).toBe("function");
+    expect(typeof state.stashForRetry).toBe("function");
+  });
+
+  it("reset() clears recorderError and retryBuffer", () => {
+    const blob = new Blob(["x"], { type: "audio/webm" });
+    useRecordingStore.getState().setRecorderError("boom");
+    useRecordingStore.getState().stashForRetry({ blob, itemId: "abc", durationMs: 5 });
+    expect(useRecordingStore.getState().recorderError).toBe("boom");
+    expect(useRecordingStore.getState().retryBuffer).not.toBeNull();
+
+    useRecordingStore.getState().reset();
+
+    expect(useRecordingStore.getState().recorderError).toBeNull();
+    expect(useRecordingStore.getState().retryBuffer).toBeNull();
+  });
 });
