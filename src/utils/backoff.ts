@@ -17,6 +17,10 @@ export function nextEligibleAt(claimedAt: Date | null, attempts: number): number
   const exp = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** attempts);
   // Full jitter (D-06): random point in [0, exp) spreads concurrent retries so
   // every queued item does not stampede the proxy on the same `online` flip.
+  // IN-03: jitter is intentionally re-rolled on every call — eligibility is
+  // probabilistic admission, NOT a stable per-row instant. Two checks ms apart
+  // can disagree; that is by design. Persist a computed next_eligible_at only if
+  // deterministic scheduling is ever needed.
   const jittered = Math.random() * exp;
   return claimedAt.getTime() + jittered;
 }
