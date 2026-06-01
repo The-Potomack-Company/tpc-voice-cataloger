@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 33 complete (offline-reliability) — verification passed, human UAT pending
-last_updated: "2026-06-01T16:06:56.284Z"
+stopped_at: Phase 39 context gathered
+last_updated: "2026-06-01T17:22:44.147Z"
 progress:
   percent: 0
 ---
@@ -16,14 +16,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 34 — ios-memory-optimization (next)
+**Current focus:** Phase 34 — ios-memory-optimization
 
 ## Current Position
 
-Phase: 33 (offline-reliability) — COMPLETE (verification passed 4/4 must-haves; human UAT pending)
-Plan: 5 of 5 complete
+Phase: 34 (ios-memory-optimization) — EXECUTING
+Plan: 2 of 3
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 3/10 phases done (31, 32, 33)
-Status: Phase 33 complete — ready for Phase 34
+Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
@@ -70,6 +70,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 32 P04 | 6min | 3 tasks | 5 files |
 | Phase 32 P05 | 4min | 2 tasks | 3 files |
 | Phase 33 P02 | 5 min | 1 tasks | 2 files |
+| Phase 34 P00 | 1 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase 32]: P05: ItemCard audio pill labels Pending/Uploaded/Failed-retry satisfy the locked item-card-audio-status.test.tsx regexes (overrides plan Uploading/Saved); failed pill re-enqueues via retryFailedUploads (D-06)
 - [Phase ?]: [Phase 33]: P02: REL-2 cross-tab dedup is a DB-atomic conditional claim (.update().eq(id).eq(ai_status,'queued').select('id')); .select('id') mandatory (PostgREST returns null data without it). No message bus (D-03); per-tab draining boolean is local short-circuit only.
 - [Phase ?]: [Phase 33]: P02: STALE_MS=300_000; stale 'processing' rows reclaimed to 'queued' at drain start via .eq('ai_status','processing').lt('claimed_at',cutoff) so a dead tab self-heals.
+- [Phase 34]: P00: multi-chunk base64 reference oracle builds binary in 8192-byte slices then btoa once (chunk-free) so it cannot share the alignment bug it guards
+- [Phase 34]: P00: render-fan-out test mocks useSessionItems to drive ItemList's 3 items; forward-references __itemCardRenderCounts (RED until Plan 02)
 
 ### Pending Todos
 
@@ -126,6 +129,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-01T16:06:35.525Z
+Last session: 2026-06-01T17:22:33.052Z
 Stopped at: Phase 39 context gathered
 Resume file: None

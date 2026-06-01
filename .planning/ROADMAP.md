@@ -116,7 +116,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: memory snapshot before/after a 5-minute single-mode session shows bounded growth; ItemCard render count during recording drops by ~Nx.
   - Risk: medium (touches hot paths).
   - **Plans:** 3 plans (2 waves) — PERF-1 chunked encoder + PERF-3 provider-hoist are disjoint files, parallel in Wave 1 after Wave-0 RED tests. PERF-2 deferred (D-04, continuous gated off via D-050). TDD mode ON.
-    - [ ] 34-00-PLAN.md — Wave 0 RED tests: multi-chunk base64 encoder test (guards 3-byte alignment) + render-count test scaffold (PERF-1, PERF-3)
+    - [x] 34-00-PLAN.md — Wave 0 RED tests: multi-chunk base64 encoder test (guards 3-byte alignment) + render-count test scaffold (PERF-1, PERF-3)
     - [ ] 34-01-PLAN.md — PERF-1: chunked 3-aligned `blobToBase64` (drop freshBlob re-wrap, D-02), shared by both gemini paths; PERF-2 deferred note (gemini.ts/geminiContinuous.ts)
     - [ ] 34-02-PLAN.md — PERF-3: ItemList single aggregate useLiveQuery → primitive props; React.memo prop-driven ItemCard + dev render counter (D-08); D-09 memory-smoke runbook
 
