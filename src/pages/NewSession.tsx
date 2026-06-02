@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { createSession, deleteSession } from "../db/sessions";
-import { createBlankItem, updateItemField, deleteItem } from "../db/items";
+import { createBlankItem, deleteItem } from "../db/items";
 import { toUserMessage } from "../lib/toUserMessage";
 import { useNotificationStore } from "../stores/notificationStore";
 import { useActiveSessions } from "../hooks/useSessions";
@@ -122,9 +122,13 @@ export function NewSessionPage() {
       );
 
       for (const receipt of receipts) {
-        const itemId = await createBlankItem(createdSessionId, "sale");
+        // CR-02: persist receipt_number at creation time. updateItemField
+        // swallows a duplicate-receipt (23505) violation internally and returns
+        // normally, which would leave a blank-receipt orphan AND let the loop
+        // navigate to success. createItem reverts + throws on that non-network
+        // error, so a duplicate now reaches the catch and triggers rollback.
+        const itemId = await createBlankItem(createdSessionId, "sale", receipt);
         createdItemIds.push(itemId);
-        await updateItemField(itemId, createdSessionId, "receipt_number", receipt);
       }
 
       const msg = `${receipts.length} item${receipts.length === 1 ? "" : "s"} created${skipped > 0 ? `, ${skipped} ${skipped === 1 ? "entry" : "entries"} skipped` : ""}`;
