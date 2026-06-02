@@ -381,8 +381,13 @@ Plans:
   3. Migration success copy aligns with the DAT-1 `partial` flag (Codex #2) — no false "success" when state is partial.
   4. Silent fetch errors (Codex #27, #28), admin role/account load failures (Codex #16-20), and raw login errors (Codex #21) all route to a visible ErrorToast with friendly copy; no console-only failures.
 
-**Plans**: TBD
-**Estimated plan count**: 3
+**Plans**: 3 plans (2 waves)
+
+Plans:
+
+- [ ] 36-01-PLAN.md — Wave 1: toUserMessage helper (D-09) + notificationStore dedupe (D-05) + ErrorToast retry-sticky (D-06)
+- [ ] 36-02-PLAN.md — Wave 2: import compensating rollback (D-01, SC2) + export failure toast (SC1) + login friendly copy (SC4a)
+- [ ] 36-03-PLAN.md — Wave 2: migration partial honesty (SC3, D-07) + useUserRole fail-closed visibility + offlineQueue fetch surfacing (SC4)
 **UI hint**: yes
 
 ### Phase 37: a11y-foundation
