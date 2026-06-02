@@ -461,6 +461,7 @@ Plans:
   4. Conflicts surface to the user via the DAT-4 ErrorToast; a test proves a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit.
 
 **Plans**: 3 plans, 3 waves
+
   - 39-01 (wave 0): migration + backfill + trigger + type regen + schema docs + Wave-0 RED tests
   - 39-02 (wave 1): preconditionUpdate helper + updateItemField wiring + offline enqueue snapshot
   - 39-03 (wave 2): AI-merge compare-and-skip (HEADLINE) + offline flush precondition + legacy fallback
@@ -486,7 +487,7 @@ Plans:
 
 **Goal:** Replace base64-embedded photos in export JSON with Supabase Storage URLs fetched on demand during extension import. Current approach embeds all photos as base64, which balloons to 200-450MB for typical house visits (100-300 items x multiple photos). With Storage URLs, export JSON drops to ~500KB and photos stream one at a time during import. Requires: export emits storage paths/signed URLs instead of base64 blobs, importController fetches URL->blob->File before injection. Supabase Storage infra already exists from Phase 19.
 **Requirements:** TBD
-**Plans:** 2/2 plans complete
+**Plans:** 3/3 plans complete
 
 Plans:
 

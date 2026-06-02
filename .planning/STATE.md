@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 39 Plan 03 complete (optimistic-locking — all 3 plans done); phase ready for /gsd:verify-work
-last_updated: "2026-06-02T18:01:52.235Z"
+stopped_at: "Phase 39 Plan 03 complete — phase 39 (optimistic-locking) fully executed (3/3 plans); ready for /gsd:verify-work 39"
+last_updated: "2026-06-02T18:18:55.150Z"
 progress:
   percent: 40
 ---
@@ -21,7 +21,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 ## Current Position
 
 Phase: 39
-Plan: 03 complete — PHASE 39 DONE (all 3 plans). Optimistic-locking shipped: items.updated_at trigger (prod, 39-01) + preconditionUpdate helper (39-02) + the two remaining write paths closed (39-03). 39-03: mergeFieldsIntoItem (now exported) composes preconditionUpdate with D-06 per-field compare-and-skip — the AI continuous-merge yields to any field the user changed since the merge read (HEADLINE race); offline write-ahead flush applies the .eq(updated_at) precondition, retains the queue entry on 0-row exhaustion (Pitfall 5, no silent lost write), and re-reads-then-preconditions for legacy snapshot-less entries (Pitfall 6). continuous-merge-no-clobber 1/1 + write-ahead-queue Phase-39 3/3 + pre-existing WAQ 14/14 + optimistic-update 4/4 all GREEN; geminiContinuous re-pointed to the new write path 9/9. Full suite 708 pass, tsc+build clean. No schema/deps changes. Continuous path stays dormant (CONTINUOUS_MODE_ENABLED=false, D-050). Next: /gsd:verify-work 39.
+Plan: Not started
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
@@ -62,7 +62,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 
 **Historical (v1.0 + v1.1 combined):**
 
-- Total plans completed: 71
+- Total plans completed: 74
 - Total commits: 475
 - Timeline: 25 days (2026-03-06 -> 2026-03-31)
 - LOC delta: 33,636 (TS/TSX/JS) at v1.1 close
