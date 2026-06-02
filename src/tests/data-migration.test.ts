@@ -20,9 +20,17 @@ vi.mock("../lib/supabase", () => ({
   },
 }));
 
-vi.mock("../db/idMapping", () => ({
-  addIdMapping: mockAddIdMapping,
-}));
+// addIdMapping is spied (assertions at :212/:276) but must ALSO write real Dexie
+// so getNewIdByOldId and the ground-truth needsMigration() cleanup gate (D-09)
+// observe the mappings within a run. getNewIdByOldId stays real (indexed lookup).
+vi.mock("../db/idMapping", async (importActual) => {
+  const actual = await importActual<typeof import("../db/idMapping")>();
+  mockAddIdMapping.mockImplementation(actual.addIdMapping);
+  return {
+    addIdMapping: mockAddIdMapping,
+    getNewIdByOldId: actual.getNewIdByOldId,
+  };
+});
 
 import { needsMigration, migrateToSupabase } from "../db/migration";
 
@@ -100,9 +108,12 @@ function makeDexieSaleItem(
 }
 
 describe("data migration", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mockAddIdMapping.mockResolvedValue(undefined);
+    // Re-bind the real-writing impl after clearAllMocks wiped it.
+    const actual =
+      await vi.importActual<typeof import("../db/idMapping")>("../db/idMapping");
+    mockAddIdMapping.mockImplementation(actual.addIdMapping);
   });
 
   afterEach(async () => {
@@ -117,12 +128,31 @@ describe("data migration", () => {
       expect(result).toBe(true);
     });
 
-    it("returns false when idMapping table has entries (already migrated)", async () => {
-      await db.sessions.add(makeDexieSession());
+    it("returns true when a session is mapped but an item remains unmapped (per-row, D-01)", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+      await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+      // Session got a mapping from a prior partial run; its item did not.
       await db.idMapping.add({
-        oldId: 1,
-        newId: "uuid-abc",
+        oldId: sessId!,
+        newId: "uuid-sess",
         type: "session",
+      });
+      const result = await needsMigration();
+      expect(result).toBe(true);
+    });
+
+    it("returns false when every non-deleted session AND item is mapped", async () => {
+      const sessId = await db.sessions.add(makeDexieSession());
+      const itemId = await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
+      await db.idMapping.add({
+        oldId: sessId!,
+        newId: "uuid-sess",
+        type: "session",
+      });
+      await db.idMapping.add({
+        oldId: itemId!,
+        newId: "uuid-item",
+        type: "item",
       });
       const result = await needsMigration();
       expect(result).toBe(false);

@@ -27,6 +27,20 @@ export async function getDexieSessionId(
 }
 
 /**
+ * Reverse lookup: the Supabase UUID for a legacy Dexie integer ID. Used by the
+ * idempotent migration guard (D-04) to skip re-inserting a row that already
+ * reached Supabase on a prior (partial) run. The [oldId+type] index (v12)
+ * makes this an indexed lookup, mirroring getDexieItemId/getDexieSessionId.
+ */
+export async function getNewIdByOldId(
+  oldId: number,
+  type: "session" | "item",
+): Promise<string | null> {
+  const mapping = await db.idMapping.where({ oldId, type }).first();
+  return mapping?.newId ?? null;
+}
+
+/**
  * Add a mapping between a legacy Dexie integer ID and a new Supabase UUID.
  */
 export async function addIdMapping(mapping: {
