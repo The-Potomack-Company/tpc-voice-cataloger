@@ -25,6 +25,12 @@ export function MigrationSplash({
 }: MigrationSplashProps) {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
+  // CR-01: latch the Retry button the instant it is clicked so a fast double
+  // click cannot fire onRetry twice before the re-render to "in-progress"
+  // unmounts the button. The hook's runningRef is the real guard; this is the
+  // UI-side belt-and-suspenders that keeps a single tick from dispatching two
+  // onRetry calls. Behavior is otherwise identical (D-08).
+  const [retryDispatching, setRetryDispatching] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const reduceMotion = usePrefersReducedMotion();
 
@@ -128,7 +134,13 @@ export function MigrationSplash({
           <div className="mt-6 flex flex-col items-center gap-3">
             <button
               type="button"
-              onClick={onRetry}
+              onClick={() => {
+                if (retryDispatching) return;
+                setRetryDispatching(true);
+                onRetry();
+              }}
+              disabled={retryDispatching}
+              aria-busy={retryDispatching}
               className="min-h-12 rounded-lg px-6 py-3 font-medium text-white bg-accent"
             >
               Retry Migration

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { needsMigration, migrateToSupabase } from "../db/migration";
 
 type MigrationState =
@@ -31,8 +31,18 @@ export function useDataMigration(userId: string | undefined) {
     failed: 0,
   });
 
+  // CR-01: re-entrancy guard. setStatus("in-progress") is async, so a second
+  // synchronous runMigration() (e.g. a double-clicked splash Retry) would fall
+  // straight through to a SECOND concurrent migrateToSupabase before the first
+  // wrote any idMapping — both read a null mapping and both insert, defeating
+  // the check-then-insert idempotency and duplicating the Supabase session/items.
+  // A ref flips synchronously so the second call is rejected in the same tick.
+  // (A ref suffices: both stores are single-tab IndexedDB; cross-tab is out of v1.)
+  const runningRef = useRef(false);
+
   const runMigration = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || runningRef.current) return;
+    runningRef.current = true;
     setStatus((s) => ({ ...s, state: "in-progress" }));
     try {
       const result = await migrateToSupabase(userId, (current, total) => {
@@ -49,6 +59,8 @@ export function useDataMigration(userId: string | undefined) {
       }));
     } catch {
       setStatus((s) => ({ ...s, state: "error" }));
+    } finally {
+      runningRef.current = false;
     }
   }, [userId]);
 
