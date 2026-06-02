@@ -20,7 +20,24 @@ interface ModalProps {
   ariaLabel?: string;
   children: ReactNode;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /**
+   * Override the scrim wrapper class. Modals that are not centered cards
+   * (e.g. a bottom-sheet peek, or a full-screen splash) supply their own
+   * layout while still inheriting the trap + ARIA + portal.
+   */
+  overlayClassName?: string;
+  /** Override the panel class (defaults to the centered max-w-sm card). */
+  panelClassName?: string;
+  /**
+   * When true, Modal does not paint its own scrim background — the caller's
+   * overlayClassName owns the backdrop (splash/bottom-sheet looks).
+   */
+  bareOverlay?: boolean;
 }
+
+const DEFAULT_OVERLAY =
+  "fixed inset-0 z-50 flex items-center justify-center p-4";
+const DEFAULT_PANEL = "w-full max-w-sm rounded-xl bg-white p-6 dark:bg-gray-800";
 
 function usePrefersReducedMotion(): boolean {
   const [pref, setPref] = useState<boolean>(() => {
@@ -44,6 +61,9 @@ export function Modal({
   ariaLabel,
   children,
   initialFocusRef,
+  overlayClassName = DEFAULT_OVERLAY,
+  panelClassName = DEFAULT_PANEL,
+  bareOverlay = false,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const reduceMotion = usePrefersReducedMotion();
@@ -54,8 +74,12 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "color-mix(in oklch, var(--bg-3) 60%, transparent)" }}
+      className={overlayClassName}
+      style={
+        bareOverlay
+          ? undefined
+          : { background: "color-mix(in oklch, var(--bg-3) 60%, transparent)" }
+      }
       onClick={onClose}
     >
       <div
@@ -65,7 +89,7 @@ export function Modal({
         aria-labelledby={ariaLabelledBy}
         aria-label={ariaLabelledBy ? undefined : ariaLabel}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-xl bg-white p-6 dark:bg-gray-800"
+        className={panelClassName}
         style={reduceMotion ? undefined : { transition: "opacity 150ms" }}
       >
         {children}
