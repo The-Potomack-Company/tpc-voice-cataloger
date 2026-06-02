@@ -133,7 +133,14 @@ export function SessionDetailPage() {
         );
       })
       .catch(() => {
-        /* silent fail */
+        // IN-03: don't fail silently — the assignee dropdown would render empty
+        // with no explanation. Surface it like NewSession's accountsError so the
+        // admin knows the team list didn't load (phase goal, Codex #16-20).
+        useNotificationStore
+          .getState()
+          .notifyError(
+            "Could not load team members. Check your connection and try again.",
+          );
       });
   }, [isAdmin]);
 
