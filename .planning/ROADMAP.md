@@ -478,7 +478,10 @@ Plans:
   3. AI processing succeeds against the Cloud Run URL in dev + prod; an unauthorized/cross-origin caller is rejected; `VITE_GEMINI_PROXY_URL`-unset fails closed.
   4. The CF Worker (`proxy/`, `wrangler`/`tpc-gemini-proxy` workspace bits) is retired only after the Cloud Run path is verified in prod, with one rollback commit; `.env.example` and the proxy-URL tests are updated.
 
-**Plans**: TBD
+**Plans**: 3 plans (3 waves — ship order is load-bearing)
+- [ ] 40-01-PLAN.md — proxy-side Supabase-JWT verify + web-origin CORS + tpc-*.vercel.app allowlist on Cloud Run (deploy+verify dev/prod) [wave 1]
+- [ ] 40-02-PLAN.md — cataloger VITE_GEMINI_PROXY_URL cutover to Cloud Run + end-to-end dev/prod verify (config-only) [wave 2]
+- [ ] 40-03-PLAN.md — retire in-repo CF Worker (proxy/), repoint tests + .env.example, isolated rollback commit [wave 3, gated on prod verify]
 **Estimated plan count**: 3
 
 ## Backlog
