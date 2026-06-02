@@ -144,7 +144,7 @@ describe("processContinuousChunk", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mergeWrites.length = 0;
-    vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://proxy.test");
+    vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://tpc-ai-proxy-prod-588770300226.us-east1.run.app/");
     continuousStore.active = true;
     continuousStore.finalizing = false;
     continuousStore.epoch = 0;

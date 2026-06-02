@@ -39,7 +39,7 @@ let processAudioWithAi: typeof import("../services/gemini").processAudioWithAi;
 let blobToBase64: typeof import("../services/gemini").blobToBase64;
 
 // Set env before importing
-vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://test-proxy.example.com/api");
+vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://tpc-ai-proxy-prod-588770300226.us-east1.run.app/");
 
 // Helper to build a mock Gemini proxy response
 function mockGeminiResponse(fields: Record<string, unknown>) {
@@ -326,7 +326,7 @@ describe("gemini pipeline", () => {
       // Restore env
       vi.stubEnv(
         "VITE_GEMINI_PROXY_URL",
-        "https://test-proxy.example.com/api",
+        "https://tpc-ai-proxy-prod-588770300226.us-east1.run.app/",
       );
     });
 
