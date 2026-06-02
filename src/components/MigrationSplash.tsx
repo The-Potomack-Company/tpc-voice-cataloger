@@ -44,8 +44,12 @@ export function MigrationSplash({
 
   // Fold the real focus trap in (D-02) — the splash already declared
   // role=dialog/aria-modal but had no trap. It is a blocking splash with no
-  // user-driven close, so Escape is swallowed (no-op onClose).
-  useFocusTrap(panelRef, { onClose: () => {} });
+  // user-driven close, so Escape is normally swallowed (no-op onClose).
+  // WR-05: the error state does NOT auto-dismiss, so map Escape to onSkip
+  // ("continue anyway") there to avoid a keyboard dead-end.
+  useFocusTrap(panelRef, {
+    onClose: state === "error" ? onSkip : () => {},
+  });
 
   useEffect(() => {
     // SC3/D-07: partial auto-dismisses like complete — P36 adds no retry button
