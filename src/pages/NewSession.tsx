@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { createSession } from "../db/sessions";
-import { createBlankItem, updateItemField } from "../db/items";
+import { createSession, deleteSession } from "../db/sessions";
+import { createBlankItem, updateItemField, deleteItem } from "../db/items";
+import { toUserMessage } from "../lib/toUserMessage";
+import { useNotificationStore } from "../stores/notificationStore";
 import { useActiveSessions } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
 import { listAccounts, type Account } from "../services/adminApi";
@@ -85,6 +87,15 @@ export function NewSessionPage() {
         isAdmin ? assignedTo : undefined,
       );
       navigate(`/session/${newId}`);
+    } catch {
+      // Surface the failure instead of dying silently; navigation only on success.
+      // UI-SPEC copy overrides toUserMessage's generic for this known operation.
+      useNotificationStore
+        .getState()
+        .notifyError(
+          "Couldn't create the session — nothing was saved. Try again.",
+          () => doCreate(),
+        );
     } finally {
       setSubmitting(false);
     }
@@ -97,8 +108,13 @@ export function NewSessionPage() {
     }
 
     setImporting(true);
+    // D-01: client-side atomicity. Track every row this import lands so a
+    // mid-loop failure can compensate (reverse-order best-effort deletes) —
+    // no orphan session/items remain, without needing a transactional RPC.
+    let createdSessionId: string | undefined;
+    const createdItemIds: string[] = [];
     try {
-      const sessionId = await createSession(
+      createdSessionId = await createSession(
         name.trim(),
         "sale",
         notes.trim() || undefined,
@@ -106,16 +122,32 @@ export function NewSessionPage() {
       );
 
       for (const receipt of receipts) {
-        const itemId = await createBlankItem(sessionId, "sale");
-        await updateItemField(itemId, sessionId, "receipt_number", receipt);
+        const itemId = await createBlankItem(createdSessionId, "sale");
+        createdItemIds.push(itemId);
+        await updateItemField(itemId, createdSessionId, "receipt_number", receipt);
       }
 
       const msg = `${receipts.length} item${receipts.length === 1 ? "" : "s"} created${skipped > 0 ? `, ${skipped} ${skipped === 1 ? "entry" : "entries"} skipped` : ""}`;
       sessionStorage.setItem("importToast", msg);
-      navigate(`/session/${sessionId}`);
-    } catch (err) {
-      console.error("Import failed:", err);
-      setToastMessage("Import failed. Please try again.");
+      navigate(`/session/${createdSessionId}`);
+    } catch {
+      // Compensate in reverse creation order; each delete is best-effort so a
+      // failed cleanup never masks the original error. deleteSession/deleteItem
+      // are Supabase-backed (FK cascade), leaving no Dexie idMapping to purge.
+      for (const itemId of [...createdItemIds].reverse()) {
+        if (createdSessionId) {
+          await deleteItem(itemId, createdSessionId).catch(() => {});
+        }
+      }
+      if (createdSessionId) {
+        await deleteSession(createdSessionId).catch(() => {});
+      }
+      useNotificationStore
+        .getState()
+        .notifyError(
+          "Import didn't finish — changes were undone. Try again.",
+          () => handleImport(receipts, skipped),
+        );
     } finally {
       setImporting(false);
     }
