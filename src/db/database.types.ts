@@ -360,6 +360,7 @@ export type Database = {
           sort_order: number
           title: string | null
           transcript: string | null
+          updated_at: string
         }
         Insert: {
           ai_attempts?: number
@@ -384,6 +385,7 @@ export type Database = {
           sort_order?: number
           title?: string | null
           transcript?: string | null
+          updated_at?: string
         }
         Update: {
           ai_attempts?: number
@@ -408,6 +410,7 @@ export type Database = {
           sort_order?: number
           title?: string | null
           transcript?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
