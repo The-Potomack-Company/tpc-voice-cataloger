@@ -72,9 +72,16 @@ describe('Supabase Database Types', () => {
       created_at: '2026-01-01T00:00:00Z',
       claimed_at: null,
       ai_attempts: 0,
+      updated_at: '2026-01-01T00:00:00Z',
     };
     expect(item.receipt_number).toBe('39135-2');
     expect(item.ai_status).toBe('done');
+  });
+
+  it('items Row includes updated_at (string) — Phase 39 optimistic-locking version token', () => {
+    type Item = Tables<'items'>;
+    const ts: Item['updated_at'] = '2026-06-03T00:00:00Z';
+    expect(ts).toBe('2026-06-03T00:00:00Z');
   });
 
   it('items Row includes claimed_at (string | null) and ai_attempts (number)', () => {

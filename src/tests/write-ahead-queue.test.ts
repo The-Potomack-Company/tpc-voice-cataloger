@@ -23,6 +23,11 @@ vi.mock("../stores/uiStore", () => ({
   ),
 }));
 
+// Phase 39: the precondition flush surfaces exhausted conflicts via notifyError.
+vi.mock("../stores/notificationStore", () => ({
+  useNotificationStore: { getState: () => ({ notifyError: vi.fn() }) },
+}));
+
 import {
   enqueueWrite,
   processWriteAheadQueue,
@@ -370,5 +375,133 @@ describe("write-ahead queue", () => {
 
       expect(await hasPendingForItem("non-existent")).toBe(false);
     });
+  });
+});
+
+// Wave-0 RED (Phase 39 plan 01) — offline write-ahead flush must honor the optimistic-locking
+// precondition (D-04). Plan 39-03 turns these GREEN:
+//   - enqueue captures the item's `updated_at` snapshot into the payload (done by the caller);
+//   - on flush the items-update branch applies `.eq("updated_at", snapshot).select()` (precondition,
+//     NOT a SET field — the trigger owns the bump);
+//   - a 0-row flush routes through reconcile and does NOT delete the queue entry (Pitfall 5 — a
+//     silent delete on a precondition miss is a lost write);
+//   - a legacy entry with NO `updated_at` snapshot re-reads the row first, then preconditions
+//     (fallback — not an unconditional write, not a crash) (Pitfall 6).
+describe("write-ahead queue — Phase 39 optimistic-locking precondition on flush", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await db.writeAheadQueue.clear();
+  });
+
+  afterEach(async () => {
+    await db.delete();
+    await db.open();
+  });
+
+  it("applies the payload's updated_at snapshot as a precondition (WHERE) + select, not as a SET field", async () => {
+    await db.writeAheadQueue.add({
+      table: "items",
+      operation: "update",
+      payload: { id: "i1", title: "new", updated_at: "T0" },
+      createdAt: new Date(),
+    });
+
+    const setPatches: Array<Record<string, unknown>> = [];
+    const eqCalls: Array<[string, unknown]> = [];
+    const selectSpy = vi.fn().mockResolvedValue({ data: [{ id: "i1" }], error: null });
+    mockFrom.mockImplementation(() => ({
+      update: (patch: Record<string, unknown>) => {
+        setPatches.push(patch);
+        return {
+          eq: (c1: string, v1: unknown) => {
+            eqCalls.push([c1, v1]);
+            const afterFirstEq = {
+              eq: (c2: string, v2: unknown) => {
+                eqCalls.push([c2, v2]);
+                return { select: selectSpy };
+              },
+              select: selectSpy,
+            };
+            // Thenable so the legacy single-eq path can `await` it without crashing.
+            return Object.assign(Promise.resolve({ error: null }), afterFirstEq);
+          },
+        };
+      },
+      select: () => ({
+        eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: "i1", updated_at: "T0" }, error: null }) }),
+      }),
+    }));
+
+    await processWriteAheadQueue();
+
+    expect(eqCalls).toContainEqual(["updated_at", "T0"]);
+    expect(selectSpy).toHaveBeenCalled();
+    expect(setPatches[0]).not.toHaveProperty("updated_at");
+    expect(setPatches[0]).toHaveProperty("title");
+  });
+
+  it("does NOT delete the queue entry when the precondition keeps missing (Pitfall 5 — no silent lost write)", async () => {
+    await db.writeAheadQueue.add({
+      table: "items",
+      operation: "update",
+      payload: { id: "i1", title: "new", updated_at: "T0" },
+      createdAt: new Date(),
+    });
+
+    // Every precondition write misses (0-row); re-read always returns a row so the helper
+    // loops to exhaustion rather than treating the row as gone — the entry must survive.
+    mockFrom.mockImplementation(() => ({
+      update: () => ({
+        eq: () => {
+          const afterFirstEq = {
+            eq: () => ({ select: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+            select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+          return Object.assign(Promise.resolve({ error: null }), afterFirstEq);
+        },
+      }),
+      select: () => ({
+        eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: "i1", updated_at: "T9" }, error: null }) }),
+      }),
+    }));
+
+    expect(await db.writeAheadQueue.count()).toBe(1);
+    await processWriteAheadQueue();
+    expect(await db.writeAheadQueue.count()).toBe(1); // retained for a later retry, not silently dropped
+  });
+
+  it("a legacy entry without an updated_at snapshot re-reads the row first, then preconditions (fallback)", async () => {
+    await db.writeAheadQueue.add({
+      table: "items",
+      operation: "update",
+      payload: { id: "i1", title: "new" }, // NO updated_at snapshot (pre-Phase-39 entry)
+      createdAt: new Date(),
+    });
+
+    const maybeSingle = vi.fn().mockResolvedValue({ data: { id: "i1", updated_at: "Tnow" }, error: null });
+    const eqCalls: Array<[string, unknown]> = [];
+    const selectSpy = vi.fn().mockResolvedValue({ data: [{ id: "i1" }], error: null });
+    mockFrom.mockImplementation(() => ({
+      update: () => ({
+        eq: (c1: string, v1: unknown) => {
+          eqCalls.push([c1, v1]);
+          const afterFirstEq = {
+            eq: (c2: string, v2: unknown) => {
+              eqCalls.push([c2, v2]);
+              return { select: selectSpy };
+            },
+            select: selectSpy,
+          };
+          return Object.assign(Promise.resolve({ error: null }), afterFirstEq);
+        },
+      }),
+      select: () => ({ eq: () => ({ maybeSingle }) }),
+    }));
+
+    await processWriteAheadQueue();
+
+    expect(maybeSingle).toHaveBeenCalled(); // re-read happened (fallback, not unconditional)
+    expect(eqCalls).toContainEqual(["updated_at", "Tnow"]); // precondition applied with the re-read token
+    expect(await db.writeAheadQueue.count()).toBe(0); // resolved + removed
   });
 });
