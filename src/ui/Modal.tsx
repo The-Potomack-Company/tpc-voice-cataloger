@@ -54,8 +54,18 @@ function usePrefersReducedMotion(): boolean {
   return pref;
 }
 
-export function Modal({
-  open,
+export function Modal({ open, ...rest }: ModalProps) {
+  // WR-02: the focus trap (and its initial-focus + Escape wiring) lives in
+  // ModalPanel, which Modal mounts ONLY when open is true. That ties the
+  // useFocusTrap lifecycle to `open` — a kept-mounted Modal toggled
+  // false→true remounts the panel and re-arms the trap, instead of calling
+  // the hook unconditionally above an early `return null` (which never
+  // re-armed because panelRef is always stable).
+  if (!open) return null;
+  return <ModalPanel {...rest} />;
+}
+
+function ModalPanel({
   onClose,
   ariaLabelledBy,
   ariaLabel,
@@ -64,13 +74,11 @@ export function Modal({
   overlayClassName = DEFAULT_OVERLAY,
   panelClassName = DEFAULT_PANEL,
   bareOverlay = false,
-}: ModalProps) {
+}: Omit<ModalProps, "open">) {
   const panelRef = useRef<HTMLDivElement>(null);
   const reduceMotion = usePrefersReducedMotion();
 
   useFocusTrap(panelRef, { onClose, initialFocusRef });
-
-  if (!open) return null;
 
   return createPortal(
     <div

@@ -4,6 +4,24 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { Modal } from "../../ui/Modal";
 
+function ToggleModal({
+  open,
+  onClose = vi.fn(),
+}: {
+  open: boolean;
+  onClose?: () => void;
+}) {
+  // Same Modal instance kept mounted across open toggles — exercises the
+  // WR-02 mount/unmount-with-open contract.
+  return (
+    <Modal open={open} onClose={onClose} ariaLabelledBy="modal-title">
+      <h2 id="modal-title">Delete item</h2>
+      <button type="button">Cancel</button>
+      <button type="button">Delete</button>
+    </Modal>
+  );
+}
+
 beforeEach(() => cleanup());
 
 function OpenModal({ onClose = vi.fn() }: { onClose?: () => void }) {
@@ -48,6 +66,23 @@ describe("Modal", () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(<OpenModal onClose={onClose} />);
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  // WR-02: a kept-mounted Modal toggled open=false→true must re-arm the trap
+  // (initial focus + Escape), not silently lose it.
+  it("re-arms the focus trap when the same Modal toggles open false→true", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(<ToggleModal open={false} onClose={onClose} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    rerender(<ToggleModal open onClose={onClose} />);
+    // Initial focus landed inside the panel (first focusable).
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+
+    // Escape still works after the toggle-driven remount.
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
   });
