@@ -37,7 +37,9 @@ export function ItemPeekModal({ item, onClose }: ItemPeekModalProps) {
     >
       <div className="sticky top-0 bg-bg border-b border-rule px-4 py-3 flex items-center justify-between">
         <div className="min-w-0">
-          <p className="text-xs text-ink-3 tpc-mono">Item #{item.sort_order + 1}</p>
+          <p className="text-xs text-ink-3 tpc-mono">
+            Item #{typeof item.sort_order === "number" ? item.sort_order + 1 : "?"}
+          </p>
           <h2 id={titleId} className="text-base font-semibold text-ink truncate">
             {item.receipt_number ?? item.title ?? "Unlabeled item"}
           </h2>
