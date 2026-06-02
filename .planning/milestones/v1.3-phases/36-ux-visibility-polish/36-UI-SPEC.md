@@ -49,13 +49,12 @@ Exceptions: `ErrorToast` is fixed at `bottom-24` (96px) from viewport bottom to 
 
 ## Typography
 
-Inherited from v1.2. Toast and banner copy use UI body/label scale only — no display type in failure surfaces.
+Inherited from v1.2. Toast and banner copy use UI body/label scale only — no display type in failure surfaces. **This phase's error surfaces use exactly two weights** — the banner/heading is differentiated by its `role="status"`/`role="alert"` container, icon, and color, **not** by font weight. (The broader v1.2 system still has 500/medium available globally; the error-feedback contract simply does not use it.)
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body (toast/banner message) | 14px (`text-sm`) | 400 (Inter) | 1.5 |
-| Label (Retry / action affordance) | 14px (`text-sm`) | 600 semibold | 1.2 |
-| Heading (banner title) | 14px (`text-sm`) | 500 medium | 1.4 |
+| Body / banner message / banner title | 14px (`text-sm`) | 400 (Inter) | 1.5 |
+| Action label (Try Again / retry affordance) | 14px (`text-sm`) | 600 semibold | 1.2 |
 | Display | not used in this phase | — | — |
 
 ---
@@ -101,10 +100,10 @@ No new primitives. If a touchpoint needs an inline (non-toast) error state, use 
 |----------|------|--------|
 | Concurrency | Single-slot, latest-message-wins | D-04 |
 | Dedupe | Identical-to-current message does not re-fire (no flicker/spam) | D-05 |
-| Retryable = sticky | When a `retry` callback is attached, drop the 6s auto-dismiss; toast persists until user taps Retry or Dismiss | D-06 |
+| Retryable = sticky | When a `retry` callback is attached, drop the 6s auto-dismiss; toast persists until user taps Try Again or Dismiss | D-06 |
 | Informational = auto-dismiss | No retry callback → keep existing 6s auto-dismiss | D-06 |
-| Retry semantics | Retry re-runs the whole operation (export idempotent; fetch refetches). No partial/targeted retry | D-08 |
-| Affordances | Retry (semibold underline) + Dismiss (`x`); both already in `ErrorToast` | existing |
+| Retry semantics | Try Again re-runs the whole operation (export idempotent; fetch refetches). No partial/targeted retry | D-08 |
+| Affordances | Try Again (semibold underline) + Dismiss (`x`); both already in `ErrorToast` | existing |
 
 ### Central copy mapping — `toUserMessage(err)` (D-09)
 
@@ -124,21 +123,21 @@ Per-touchpoint failure copy. Wording within the spirit of D-09 is Claude's discr
 
 | Touchpoint | State | Copy | Affordance |
 |------------|-------|------|------------|
-| Export (Codex #9, #10) | failure | `Export failed — your data wasn't downloaded.` | Retry (sticky) |
-| New session / import (Codex #7, #8) | failure after client-side rollback (D-01) | `Couldn't create the session — nothing was saved. Try again.` | Retry (sticky) |
-| Import (partial guard) | rollback fired | `Import didn't finish — changes were undone. Try again.` | Retry (sticky) |
-| Silent fetch (Codex #27, #28) | failure | `Connection problem — try again` | Retry (sticky) |
-| Admin role/account load (Codex #16–20) | failure | `Couldn't load accounts — try again.` | Retry (sticky) |
+| Export (Codex #9, #10) | failure | `Export failed — your data wasn't downloaded.` | Try Again (sticky) |
+| New session / import (Codex #7, #8) | failure after client-side rollback (D-01) | `Couldn't create the session — nothing was saved. Try again.` | Try Again (sticky) |
+| Import (partial guard) | rollback fired | `Import didn't finish — changes were undone. Try again.` | Try Again (sticky) |
+| Silent fetch (Codex #27, #28) | failure | `Connection problem — try again` | Try Again (sticky) |
+| Admin role/account load (Codex #16–20) | failure | `Couldn't load accounts — try again.` | Try Again (sticky) |
 | Login (Codex #21) | bad credentials | `Wrong email or password` | none (form re-entry) |
 | Login | network | `Connection problem — try again` | none (form re-entry) |
-| Migration banner (Codex #2, D-07) | `partial` flag set | `Some items couldn't be migrated. Your data is safe.` (warn banner — must NOT claim full success) | none in P36 (Phase 38 adds Retry) |
+| Migration banner (Codex #2, D-07) | `partial` flag set | `Some items couldn't be migrated. Your data is safe.` (warn banner — must NOT claim full success) | none in P36 (Phase 38 adds Try Again) |
 | Migration banner | clean success | `Your data is up to date.` (or existing success copy) | none |
 
 ### Required template fields
 
 | Element | Copy |
 |---------|------|
-| Primary CTA | `Retry` (re-run operation; sticky on retryable toasts) |
+| Primary CTA | `Try Again` (re-run operation; sticky on retryable toasts) |
 | Empty state heading | N/A — no new empty states introduced this phase |
 | Empty state body | N/A |
 | Error state | `{operation} failed — {what happened to your data}. Try again.` — every silent path produces a visible toast or `WarnBanner`; no console-only failures (ROADMAP test gate) |
@@ -155,7 +154,8 @@ Per-touchpoint failure copy. Wording within the spirit of D-09 is Claude's discr
 
 - `ErrorToast` carries `role="alert"` + `aria-live="assertive"` — keep; new errors are announced to screen readers.
 - `WarnBanner` carries `role="status"` (polite) — correct for partial-state banners (not interruptive).
-- Retry/Dismiss buttons keep visible focus rings (v1.2 A11Y-02). Do not remove on the sticky-toast change.
+- Try Again / Dismiss buttons keep visible focus rings (v1.2 A11Y-02). Do not remove on the sticky-toast change.
+- The icon-only `x` Dismiss button on `ErrorToast` must carry an `aria-label="Dismiss"` (or an `sr-only` "Dismiss" label) so screen-reader users can identify it — the glyph alone is not an accessible name (WCAG 4.1.2).
 - Error-vs-warn is conveyed by **icon + copy**, not color alone (`err`/`warn` glyphs present) — WCAG 1.4.1.
 
 ---
