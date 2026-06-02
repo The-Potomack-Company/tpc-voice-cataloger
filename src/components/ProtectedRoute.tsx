@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Outlet, Navigate } from 'react-router';
 import { useAuthStore } from '../stores/authStore';
 import { useSessionStore, scopeSessionStore } from '../stores/sessionStore';
@@ -24,6 +24,12 @@ export function ProtectedRoute() {
 
   // Run migration after scoping
   const migration = useDataMigration(scoped ? user?.id : undefined);
+
+  // WR-03: MigrationSplash's auto-dismiss effect depends on onComplete. A fresh
+  // inline arrow each render would restart its 1500/1800ms timers on any parent
+  // re-render during that window. Stabilize the handlers so the splash dismisses
+  // on schedule regardless of re-render churn.
+  const dismissMigration = useCallback(() => setMigrationDismissed(true), []);
 
   // Drain write-ahead queue first, then fetch sessions from server
   useEffect(() => {
@@ -64,8 +70,8 @@ export function ProtectedRoute() {
             total={migration.total}
             skipped={migration.skipped}
             onRetry={migration.retry}
-            onSkip={() => setMigrationDismissed(true)}
-            onComplete={() => setMigrationDismissed(true)}
+            onSkip={dismissMigration}
+            onComplete={dismissMigration}
           />
         )}
         {migration.state === 'checking' && (
