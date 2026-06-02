@@ -92,6 +92,82 @@ describe("NewSession import compensating rollback (SC2, D-01)", () => {
     mockDeleteSession.mockResolvedValue(undefined);
     mockDeleteItem.mockResolvedValue(undefined);
     mockUpdateItemField.mockResolvedValue(undefined);
+    // CR-01: jsdom defaults navigator.onLine to true; ensure online for the
+    // happy/rollback paths and override per-test for the offline-refusal case.
+    Object.defineProperty(navigator, "onLine", {
+      configurable: true,
+      value: true,
+    });
+  });
+
+  it("CR-01: refuses the import when offline — creates nothing, no navigate", async () => {
+    Object.defineProperty(navigator, "onLine", {
+      configurable: true,
+      value: false,
+    });
+
+    const user = userEvent.setup();
+    renderNewSession();
+    await selectSaleModeAndName(user);
+    await user.click(screen.getByRole("button", { name: "mock-import" }));
+
+    // Transactional import requires connectivity — nothing is created.
+    expect(mockCreateSession).not.toHaveBeenCalled();
+    expect(mockCreateBlankItem).not.toHaveBeenCalled();
+    expect(mockDeleteItem).not.toHaveBeenCalled();
+    expect(mockDeleteSession).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockNotifyError).toHaveBeenCalledWith(
+      "You're offline — reconnect to import.",
+    );
+  });
+
+  it("CR-02: duplicate receipt at creation throws → full rollback, no navigate", async () => {
+    // createBlankItem now persists receipt_number at creation. A unique-receipt
+    // violation surfaces here (createItem reverts + throws) rather than being
+    // swallowed by updateItemField. The blank-receipt orphan must roll back.
+    const dupErr = Object.assign(new Error("duplicate key value"), {
+      code: "23505",
+    });
+    mockCreateBlankItem
+      .mockResolvedValueOnce("item-1")
+      .mockRejectedValueOnce(dupErr);
+
+    const user = userEvent.setup();
+    renderNewSession();
+    await selectSaleModeAndName(user);
+    await user.click(screen.getByRole("button", { name: "mock-import" }));
+
+    // The one created item is rolled back, then the session — reverse order.
+    expect(mockDeleteItem).toHaveBeenCalledTimes(1);
+    expect(mockDeleteItem).toHaveBeenCalledWith("item-1", "session-1");
+    expect(mockDeleteSession).toHaveBeenCalledTimes(1);
+    expect(mockDeleteSession).toHaveBeenCalledWith("session-1");
+    // No false success: the loop never reaches navigate().
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockNotifyError).toHaveBeenCalledWith(
+      "Import didn't finish — changes were undone. Try again.",
+      expect.any(Function),
+    );
+  });
+
+  it("CR-02: clean import passes each receipt to createBlankItem at creation", async () => {
+    mockCreateBlankItem
+      .mockResolvedValueOnce("item-1")
+      .mockResolvedValueOnce("item-2")
+      .mockResolvedValueOnce("item-3");
+
+    const user = userEvent.setup();
+    renderNewSession();
+    await selectSaleModeAndName(user);
+    await user.click(screen.getByRole("button", { name: "mock-import" }));
+
+    expect(mockCreateBlankItem).toHaveBeenNthCalledWith(1, "session-1", "sale", "R1");
+    expect(mockCreateBlankItem).toHaveBeenNthCalledWith(2, "session-1", "sale", "R2");
+    expect(mockCreateBlankItem).toHaveBeenNthCalledWith(3, "session-1", "sale", "R3");
+    // updateItemField is no longer used by the import path.
+    expect(mockUpdateItemField).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/session/session-1");
   });
 
   it("rolls back created item + session (reverse order) and notifies on mid-loop failure", async () => {

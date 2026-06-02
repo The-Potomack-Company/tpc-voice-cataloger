@@ -107,4 +107,28 @@ describe("useUserRole", () => {
     expect(result.current.error).toBe(false);
     expect(mockNotifyError).not.toHaveBeenCalled();
   });
+
+  it("WR-02: same-id token refresh (new user object) does not blank role or refetch", async () => {
+    // A fresh user object with the SAME id (token refresh / onAuthStateChange
+    // re-emit). Keying the effect on user?.id means no refetch and no flicker.
+    let currentUser: { id: string } = { id: "admin-1" };
+    mockUseAuthStore.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ user: currentUser }),
+    );
+    setupProfileResponse({ role: "admin" }, null);
+
+    const { result, rerender } = renderHook(() => useUserRole());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isAdmin).toBe(true);
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+
+    // Replace the user object reference but keep the same id.
+    currentUser = { id: "admin-1" };
+    rerender();
+
+    // Role stays resolved (no blank → no isAdmin flicker), and no refetch fires.
+    expect(result.current.loading).toBe(false);
+    expect(result.current.isAdmin).toBe(true);
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
 });
