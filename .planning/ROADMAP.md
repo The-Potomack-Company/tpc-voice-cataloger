@@ -391,7 +391,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 36-02-PLAN.md — Wave 2: import compensating rollback (D-01, SC2) + export failure toast (SC1) + login friendly copy (SC4a)
+- [x] 36-02-PLAN.md — Wave 2: import compensating rollback (D-01, SC2) + export failure toast (SC1) + login friendly copy (SC4a)
 - [ ] 36-03-PLAN.md — Wave 2: migration partial honesty (SC3, D-07) + useUserRole fail-closed visibility + offlineQueue fetch surfacing (SC4)
 
 **UI hint**: yes

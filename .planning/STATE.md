@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 36 Plan 01 executed (error-visibility contract layer)
-last_updated: "2026-06-02T14:10:00.000Z"
+stopped_at: Phase 36 Plan 02 executed (user-operation error wiring — import rollback, export, login)
+last_updated: "2026-06-02T15:00:00.000Z"
 progress:
   percent: 40
 ---
@@ -72,6 +72,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 33 P02 | 5 min | 1 tasks | 2 files |
 | Phase 34 P00 | 1 min | 2 tasks | 2 files |
 | Phase 36 P01 | ~10 min | 2 tasks | 5 files |
+| Phase 36 P02 | ~12 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,7 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase 34]: P00: render-fan-out test mocks useSessionItems to drive ItemList's 3 items; forward-references __itemCardRenderCounts (RED until Plan 02)
 - [Phase 36]: P01: toUserMessage (D-09) is the single error-copy funnel — returns exactly one of "Wrong email or password" / "Connection problem — try again" / "Something went wrong"; inlines the network-token set (mirrors sessionStore.isNetworkError) rather than importing it; navigator.onLine===false also maps to the connection string. Raw backend text never reaches the user.
 - [Phase 36]: P01: notificationStore.notifyError dedupes identical-current message (D-05, no flicker); ErrorToast gates the 6s auto-dismiss on `message===null || retry!==null` with deps [message, retry] — retryable toasts are sticky (D-06), informational still auto-dismiss. Plans 02/03 import toUserMessage before notifyError.
+- [Phase 36]: P02: import atomicity (D-01) is client-side compensating rollback — handleImport tracks createdSessionId + createdItemIds, on mid-loop throw deletes in reverse order best-effort then sticky notifyError; NO transactional RPC, NO schema change (SC2). A3/Q2 resolved: deleteSession/deleteItem are Supabase+zustand (FK cascade), not Dexie idMapping — no explicit Dexie cleanup needed. Export catch blocks + doCreate use fixed UI-SPEC copy; Login uses toUserMessage (T-36-02 — two old tests asserting raw 'Invalid login credentials' updated to 'Wrong email or password').
 
 ### Pending Todos
 
@@ -132,6 +134,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-02T14:10:00.000Z
-Stopped at: Phase 36 Plan 01 executed (error-visibility contract layer — toUserMessage D-09 + dedupe D-05 + retry-sticky D-06; 10/10 tests green, full suite 611 passed). Wave 1 done; Plans 02 & 03 (Wave 2) now unblocked — both import toUserMessage before notifyError.
-Resume file: .planning/milestones/v1.3-phases/36-ux-visibility-polish/36-02-PLAN.md
+Last session: 2026-06-02T15:00:00.000Z
+Stopped at: Phase 36 Plan 02 executed (user-operation error wiring — atomic import rollback D-01/SC2, export sticky-retry D-08/SC1, friendly login copy T-36-02/SC4a; 19/19 plan tests green, full suite 620 passed). Wave 2 plan 02 done; plan 03 (other Wave 2 plan, no file overlap) still pending.
+Resume file: .planning/milestones/v1.3-phases/36-ux-visibility-polish/36-03-PLAN.md
