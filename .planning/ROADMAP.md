@@ -411,7 +411,7 @@ Plans:
 **Plans**: 3 plans (1 wave-1 foundation, 2 parallel wave-2)
 - [x] 37-01-PLAN.md — Foundation: install jest-axe + @axe-core/playwright, wire matcher, hand-roll useFocusTrap + Modal (TDD)
 - [x] 37-02-PLAN.md — Migrate the 5 modals (ConfirmDialog/ReturnDialog/ItemPeekModal/PhotoLightbox/MigrationSplash) onto Modal + jest-axe scans
-- [ ] 37-03-PLAN.md — Overflow ⋯ delete menu across 3 rows, 44px targets + icon labels, keyboard-only e2e gate
+- [x] 37-03-PLAN.md — Overflow ⋯ delete menu across 3 rows, 44px targets + icon labels, keyboard-only e2e gate
 **Estimated plan count**: 2 (actual: 3 — modal migrations + overflow menu + e2e exceeded a 2-plan budget)
 **UI hint**: yes
 

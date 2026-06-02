@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 37 Plan 02 executed
-last_updated: "2026-06-02T15:30:00.000Z"
+stopped_at: Phase 37 Plan 03 executed
+last_updated: "2026-06-02T16:00:00.000Z"
 progress:
   percent: 40
 ---
@@ -21,7 +21,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 ## Current Position
 
 Phase: 37
-Plan: 02 complete (a11y-foundation: 5 modals migrated onto <Modal> + jest-axe scan suite + nested-trap)
+Plan: 03 complete (a11y-foundation: OverflowMenu ⋯ wired into 3 rows via existing delete path + 44px trigger + keyboard-only axe e2e gate)
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
@@ -76,6 +76,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 36 P03 | ~5 min | 2 tasks | 8 files |
 | Phase 37 P01 | ~9 min | 3 tasks | 6 files |
 | Phase 37 P02 | ~10 min | 3 tasks | 7 files |
+| Phase 37 P03 | ~12 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,7 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase 36]: P01: toUserMessage (D-09) is the single error-copy funnel — returns exactly one of "Wrong email or password" / "Connection problem — try again" / "Something went wrong"; inlines the network-token set (mirrors sessionStore.isNetworkError) rather than importing it; navigator.onLine===false also maps to the connection string. Raw backend text never reaches the user.
 - [Phase 36]: P01: notificationStore.notifyError dedupes identical-current message (D-05, no flicker); ErrorToast gates the 6s auto-dismiss on `message===null || retry!==null` with deps [message, retry] — retryable toasts are sticky (D-06), informational still auto-dismiss. Plans 02/03 import toUserMessage before notifyError.
 - [Phase 36]: P03: useDataMigration threads migration.ts result.partial into a distinct "partial" state (SC3/D-07) — a skipped-≥1 run never reaches "complete"; MigrationSplash renders the UI-SPEC partial copy ("Some items couldn't be migrated. Your data is safe."), auto-dismisses like complete, NO Phase-38 retry flow; ProtectedRoute wired for "partial" (Rule 2) else the copy is dead code. useUserRole uses a ROLE_ERROR sentinel (non-"admin" string) to distinguish load-error from not-admin → isAdmin stays false on error (fail closed, ASVS V4), exposes error:boolean, surfaces via notifyError(toUserMessage, retry); not-admin/loading/no-user never notify. offlineQueue.getQueuedItems surfaces read failure via notifyError (informational, no retry) while still returning [] (empty-return contract preserved, T-36-07).
+- [Phase 37]: P03: OverflowMenu (⋯) primitive (D-03, hand-rolled, no portal — relative dropdown) wired into ItemCard/SessionTile/SessionCard via the EXISTING delete path (D-04, no new delete logic): ItemCard→setShowDeleteConfirm, SessionTile/Card→onDelete prop; swipe gesture kept (additive). 44px trigger (min-h-11 min-w-11, aria-label/title "More actions", aria-haspopup=menu+aria-expanded); items carry tpc-btn for the A11Y-02 ring, destructive Delete uses --err ink; Escape closes+restores focus to trigger, arrow-key roving, outside-click/Tab close; open/close gated on prefers-reduced-motion. Keyboard-only e2e (tests/e2e/keyboard-flow.spec.ts) + @axe-core/playwright scan on /login (deepest unauthenticated-reachable surface, SC4) — green; authed record→edit→save leg gated behind SUPABASE_URL → UAT-37-01. [Rule 2] Login wrapped in <main> to close pre-existing axe landmark-one-main/region. meta-viewport user-scalable=no (WCAG 1.4.4, app-wide PWA setting) excluded from scan → UAT-37-02. Full suite 682 pass, tsc clean. 37-HUMAN-UAT.md created (2 items).
 - [Phase 37]: P02: all 5 modals migrated onto <Modal> (D-02) — ConfirmDialog (8 callers inherit, signature unchanged), ReturnDialog (textarea initialFocusRef), ItemPeekModal (gains role/aria-modal/Escape + 44px close btn — biggest prior gap closed), PhotoLightbox (bareOverlay full-screen, swipe nav kept, nested ConfirmDialog), MigrationSplash (folds trap in directly, opacity fade gated on prefers-reduced-motion, pre-existing TS6133 'skipped' resolved). <Modal> extended with additive overlayClassName/panelClassName/bareOverlay props (defaults preserve centered-card look) so non-centered modals route through it without forking. Nested-trap needs NO explicit stack: sibling portals to document.body, each useFocusTrap keydown bound to its own panel → Escape inside inner confirm fires only inner listener, returns focus to lightbox (T-37-03 mitigated, explicit test). jest-axe scan (color-contrast off) for all 5 + nested-trap + reduced-motion in src/tests/a11y/modals.test.tsx (22 tests). Full suite 671 pass, tsc clean.
 - [Phase 37]: P01: useFocusTrap (D-01, zero deps) filters focusables via getComputedStyle (display/visibility/hidden/aria-hidden), NOT offsetParent — offsetParent is always null under jsdom and silently emptied the focusable set. Recomputes on each Tab keydown (Pitfall 2); isConnected guard on restore so a deleted trigger can't throw (Pitfall 4). <Modal> (D-02) portals to document.body, --bg-3 scrim via color-mix(in oklch,...), scrim-click + Escape both onClose, open transition gated on prefers-reduced-motion. jest-axe + @axe-core/playwright are devDeps ONLY (D-05, never shipped); no @types/jest-axe (jest-axe@10 bundles its own types). Plans 02/03 wire against useFocusTrap(panelRef,{onClose,initialFocusRef?}) + <Modal open onClose ariaLabelledBy?/ariaLabel? initialFocusRef?>.
 - [Phase 36]: P02: import atomicity (D-01) is client-side compensating rollback — handleImport tracks createdSessionId + createdItemIds, on mid-loop throw deletes in reverse order best-effort then sticky notifyError; NO transactional RPC, NO schema change (SC2). A3/Q2 resolved: deleteSession/deleteItem are Supabase+zustand (FK cascade), not Dexie idMapping — no explicit Dexie cleanup needed. Export catch blocks + doCreate use fixed UI-SPEC copy; Login uses toUserMessage (T-36-02 — two old tests asserting raw 'Invalid login credentials' updated to 'Wrong email or password').
@@ -140,6 +142,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-02T15:30:00.000Z
-Stopped at: Phase 37 Plan 02 executed (5 modals migrated onto <Modal>; jest-axe scan suite + nested-trap + reduced-motion)
-Resume file: .planning/milestones/v1.3-phases/37-a11y-foundation/37-03-PLAN.md (overflow ⋯ menu + touch targets + keyboard e2e)
+Last session: 2026-06-02T16:00:00.000Z
+Stopped at: Phase 37 Plan 03 executed (OverflowMenu ⋯ → existing delete path on 3 rows; 44px trigger; keyboard-only axe e2e gate; Login <main> landmark fix)
+Resume file: Phase 37 a11y-foundation complete (Plans 01-03) — run /gsd:verify-work 37, then Phase 38 (migration-retryability). Phase 37 owes 37-HUMAN-UAT.md (2 items: UAT-37-01 authed keyboard flow, UAT-37-02 meta-viewport).
