@@ -46,7 +46,11 @@ export function useDataMigration(userId: string | undefined) {
     setStatus((s) => ({ ...s, state: "in-progress" }));
     try {
       const result = await migrateToSupabase(userId, (current, total) => {
-        setStatus((s) => ({ ...s, current, total }));
+        // WR-01: a whole-session insert failure adds its items to the numerator
+        // while they're still counted in `total`, so `current` can reach `total`
+        // before the run ends → the bar reads 100% mid-run. Clamp so progress
+        // is monotonic and never overshoots the honest denominator (SC3).
+        setStatus((s) => ({ ...s, current: Math.min(current, total), total }));
       });
       setStatus((s) => ({
         ...s,
