@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: "Phase 39 Plan 03 complete — phase 39 (optimistic-locking) fully executed (3/3 plans); ready for /gsd:verify-work 39"
-last_updated: "2026-06-02T18:18:55.150Z"
+last_updated: "2026-06-02T19:11:13.340Z"
 progress:
   percent: 40
 ---
@@ -16,14 +16,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 35 — ai-correctness-track-2
+**Current focus:** Phase 40 — ai-proxy-cloud-run-migration
 
 ## Current Position
 
-Phase: 39 (optimistic-locking) — COMPLETE 2026-06-02 (3/3 plans, 4/4 SC verified)
-Plan: 3/3 complete
+Phase: 40 (ai-proxy-cloud-run-migration) — EXECUTING
+Plan: 1 of 3
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: Phase 39 complete; Phase 40 (ai-proxy-cloud-run-migration, cross-app) next
+Status: Executing Phase 40
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
