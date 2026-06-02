@@ -67,7 +67,10 @@ export function MigrationSplash({
       : state === "partial"
         ? "Some items couldn't be migrated. Your data is safe."
         : state === "error"
-          ? `${skipped} items could not be migrated. Your data is safe -- you can retry now or continue and retry later from Settings.`
+          ? // WR-05: the error state is set in useDataMigration's catch, which
+            // never updates `skipped` (stays 0 on a fresh run that throws), so a
+            // count here read as a clean run. Assert no count instead.
+            "Migration didn't finish. Your data is safe — retry now or continue."
           : "Moving your sessions to the server. This only happens once.";
 
   return createPortal(
