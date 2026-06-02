@@ -146,7 +146,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: axe-core scan on representative pages clean; keyboard-only navigation completes the record/edit/save flow.
   - Risk: low (additive primitives).
 
-- [ ] **Phase 38: migration-retryability** *(🟡 — promoted from 999.2, DAT-1 follow-up, builds on PR #24)*
+- [x] **Phase 38: migration-retryability** *(🟡 — promoted from 999.2, DAT-1 follow-up, builds on PR #24)* (completed 2026-06-02)
   - `needsMigration()` returns true while any non-deleted Dexie session/item lacks an `idMapping` entry (today returns false as soon as ANY mapping exists, so a partial migration is treated as complete and the preserved recovery set is never re-offered).
   - Make `migrateToSupabase` idempotent: before inserting a session/item, look up `idMapping` by `oldId` and reuse the existing `newId` / skip the insert — so a retry over preserved rows can't create duplicate Supabase sessions/items.
   - Surface partial state in the UI using the `partial` flag DAT-1 already returns (migration banner: "N items not yet synced — Retry"; retry re-runs the migration).
@@ -439,7 +439,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 38-02-PLAN.md — UI surfacing: split-counter plumbing through useDataMigration (D-06), additive WarnBanner action slot, MigrationRetryBanner reading Outlet context (D-07), AppLayout mount, MigrationSplash unchanged (D-08) — SC3/SC4
+- [x] 38-02-PLAN.md — UI surfacing: split-counter plumbing through useDataMigration (D-06), additive WarnBanner action slot, MigrationRetryBanner reading Outlet context (D-07), AppLayout mount, MigrationSplash unchanged (D-08) — SC3/SC4
 
 **Estimated plan count**: 2
 **UI hint**: yes

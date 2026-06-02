@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 38 Plan 01 complete
-last_updated: "2026-06-02T16:22:00.000Z"
+stopped_at: Phase 38 Plan 02 complete
+last_updated: "2026-06-02T16:30:00.000Z"
 progress:
   percent: 40
 ---
@@ -20,8 +20,8 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 ## Current Position
 
-Phase: 37
-Plan: 03 complete (a11y-foundation: OverflowMenu ⋯ wired into 3 rows via existing delete path + 44px trigger + keyboard-only axe e2e gate)
+Phase: 38
+Plan: 02 complete (migration-retryability: failed/alreadyMigrated split plumbed through useDataMigration; WarnBanner action slot; persistent MigrationRetryBanner reading shared hook via Outlet context — SC3 + SC4 UI half)
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
@@ -57,6 +57,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 |-------|------|----------|-------|-------|------|
 | 22 | 01 | 7 min | 3 | 5 | 2026-04-30 |
 | 22 | 04 | 5 min | 1 | 1 | 2026-04-30 |
+| 38 | 02 | 7 min | 2 | 7 | 2026-06-02 |
 
 **Historical (v1.0 + v1.1 combined):**
 
