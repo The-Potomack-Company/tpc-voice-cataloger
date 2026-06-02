@@ -123,7 +123,8 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Invalid login credentials');
+      // Phase 36 (T-36-02): raw GoTrue text is funneled through toUserMessage.
+      expect(alert).toHaveTextContent('Wrong email or password');
     });
   });
 
@@ -149,6 +150,42 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders friendly "Wrong email or password" on bad credentials, never the raw error', async () => {
+    mockSignIn.mockResolvedValueOnce({
+      error: new Error('Invalid login credentials'),
+    });
+    const user = userEvent.setup();
+    renderLogin();
+
+    await user.type(screen.getByLabelText('Email'), 'bad@example.com');
+    await user.type(screen.getByLabelText('Password'), 'wrongpass');
+    await user.click(screen.getByRole('button', { name: 'Sign In' }));
+
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Wrong email or password');
+    });
+    expect(screen.queryByText('Invalid login credentials')).not.toBeInTheDocument();
+  });
+
+  it('renders "Connection problem — try again" on a network error', async () => {
+    mockSignIn.mockResolvedValueOnce({
+      error: new Error('Failed to fetch'),
+    });
+    const user = userEvent.setup();
+    renderLogin();
+
+    await user.type(screen.getByLabelText('Email'), 'a@b.com');
+    await user.type(screen.getByLabelText('Password'), 'pw');
+    await user.click(screen.getByRole('button', { name: 'Sign In' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Connection problem — try again',
+      );
     });
   });
 

@@ -6,6 +6,7 @@ import { useUserRole } from "../hooks/useUserRole";
 import { listAccounts, type Account } from "../services/adminApi";
 import { createBlankItem } from "../db/items";
 import { exportSession, exportSessionAsSpreadsheet } from "../utils/export";
+import { useNotificationStore } from "../stores/notificationStore";
 import { trackUiInteraction } from "../services/analytics";
 import { useUIStore } from "../stores/uiStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -241,8 +242,14 @@ export function SessionDetailPage() {
     try {
       await exportSession(sessionId!);
       await storeUpdateSession(session.id, { status: 'exported' });
-    } catch (err) {
-      console.error("Export failed:", err);
+    } catch {
+      // D-08: sticky retry toast (retry attached ⇒ won't auto-dismiss). Fixed
+      // UI-SPEC copy keeps raw backend text out of the UI (T-36-04).
+      useNotificationStore
+        .getState()
+        .notifyError("Export failed — your data wasn't downloaded.", () =>
+          handleExport(),
+        );
     } finally {
       setExporting(false);
     }
@@ -266,8 +273,13 @@ export function SessionDetailPage() {
     setExportingXlsx(true);
     try {
       await exportSessionAsSpreadsheet(sessionId!);
-    } catch (err) {
-      console.error("Spreadsheet export failed:", err);
+    } catch {
+      // D-08: same sticky-retry surfacing as the JSON export path.
+      useNotificationStore
+        .getState()
+        .notifyError("Export failed — your data wasn't downloaded.", () =>
+          handleExportSpreadsheet(),
+        );
     } finally {
       setExportingXlsx(false);
     }
