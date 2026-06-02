@@ -107,6 +107,18 @@ export function NewSessionPage() {
       return;
     }
 
+    // CR-01/D-01: a transactional import requires connectivity. The store's
+    // create/update actions silently offline-queue on network errors and return
+    // normally, which would let the loop "succeed" and navigate while leaving
+    // un-drained queued rows — no rollback ever fires. Refuse up front when
+    // offline so the SC2 atomicity contract stays honest.
+    if (!navigator.onLine) {
+      useNotificationStore
+        .getState()
+        .notifyError("You're offline — reconnect to import.");
+      return;
+    }
+
     setImporting(true);
     // D-01: client-side atomicity. Track every row this import lands so a
     // mid-loop failure can compensate (reverse-order best-effort deletes) —
