@@ -33,7 +33,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-dvh">
+    <main className="flex items-center justify-center h-dvh">
       <div className="w-full max-w-sm mx-4">
         <header className="text-center mb-8">
           {/* Italic serif "P" monogram — the only place the italic display font
@@ -111,6 +111,6 @@ export function LoginPage() {
           )}
         </form>
       </div>
-    </div>
+    </main>
   );
 }
