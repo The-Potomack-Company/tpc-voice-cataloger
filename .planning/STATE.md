@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 37 Plan 03 executed
-last_updated: "2026-06-02T16:00:00.000Z"
+stopped_at: Phase 38 UI-SPEC approved
+last_updated: "2026-06-02T16:11:40.029Z"
 progress:
   percent: 40
 ---
@@ -142,6 +142,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-02T16:00:00.000Z
-Stopped at: Phase 37 Plan 03 executed (OverflowMenu ⋯ → existing delete path on 3 rows; 44px trigger; keyboard-only axe e2e gate; Login <main> landmark fix)
-Resume file: Phase 37 a11y-foundation complete (Plans 01-03) — run /gsd:verify-work 37, then Phase 38 (migration-retryability). Phase 37 owes 37-HUMAN-UAT.md (2 items: UAT-37-01 authed keyboard flow, UAT-37-02 meta-viewport).
+Last session: 2026-06-02T15:50:40.179Z
+Stopped at: Phase 38 UI-SPEC approved
+Resume file: .planning/milestones/v1.3-phases/38-migration-retryability/38-UI-SPEC.md
