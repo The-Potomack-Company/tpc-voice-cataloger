@@ -128,7 +128,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: deterministic-output snapshot tests; user-edited-field-survives-retry; confab-rejection on intentionally-empty input.
   - Risk: medium (prompt + Zod schema changes).
 
-- [ ] **Phase 36: ux-visibility-polish** *(🟡)*
+- [x] **Phase 36: ux-visibility-polish** *(🟡)* (completed 2026-06-02)
   - Export failures invisible (Codex #9, #10) → surface a toast with retry.
   - New session / import not transactional (Codex #7, #8) → wrap in a single Supabase RPC or rollback partial state on failure.
   - Migration success copy false (Codex #2) → align banner copy with the DAT-1 `partial` flag (use Phase 38's banner from the DAT-1 followup).
@@ -392,7 +392,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 36-02-PLAN.md — Wave 2: import compensating rollback (D-01, SC2) + export failure toast (SC1) + login friendly copy (SC4a)
-- [ ] 36-03-PLAN.md — Wave 2: migration partial honesty (SC3, D-07) + useUserRole fail-closed visibility + offlineQueue fetch surfacing (SC4)
+- [x] 36-03-PLAN.md — Wave 2: migration partial honesty (SC3, D-07) + useUserRole fail-closed visibility + offlineQueue fetch surfacing (SC4)
 
 **UI hint**: yes
 
