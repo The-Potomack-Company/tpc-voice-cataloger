@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 39 Plan 02 complete
-last_updated: "2026-06-02T17:55:00.000Z"
+stopped_at: Phase 39 Plan 03 complete (optimistic-locking — all 3 plans done); phase ready for /gsd:verify-work
+last_updated: "2026-06-02T18:01:52.235Z"
 progress:
   percent: 40
 ---
@@ -21,7 +21,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 ## Current Position
 
 Phase: 39
-Plan: 02 complete (optimistic-locking core: preconditionUpdate helper — .eq(updated_at) precondition + bounded 3x reconcile + exhaustion toast; updateItemField routed through it; offline enqueue carries updated_at snapshot D-04. optimistic-update.test.ts GREEN 4/4; update-item-field-notify + session-store no-regression green. 39-03 next: AI-merge D-06 compare-and-skip + offline flush precondition)
+Plan: 03 complete — PHASE 39 DONE (all 3 plans). Optimistic-locking shipped: items.updated_at trigger (prod, 39-01) + preconditionUpdate helper (39-02) + the two remaining write paths closed (39-03). 39-03: mergeFieldsIntoItem (now exported) composes preconditionUpdate with D-06 per-field compare-and-skip — the AI continuous-merge yields to any field the user changed since the merge read (HEADLINE race); offline write-ahead flush applies the .eq(updated_at) precondition, retains the queue entry on 0-row exhaustion (Pitfall 5, no silent lost write), and re-reads-then-preconditions for legacy snapshot-less entries (Pitfall 6). continuous-merge-no-clobber 1/1 + write-ahead-queue Phase-39 3/3 + pre-existing WAQ 14/14 + optimistic-update 4/4 all GREEN; geminiContinuous re-pointed to the new write path 9/9. Full suite 708 pass, tsc+build clean. No schema/deps changes. Continuous path stays dormant (CONTINUOUS_MODE_ENABLED=false, D-050). Next: /gsd:verify-work 39.
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
@@ -58,6 +58,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | 22 | 01 | 7 min | 3 | 5 | 2026-04-30 |
 | 22 | 04 | 5 min | 1 | 1 | 2026-04-30 |
 | 38 | 02 | 7 min | 2 | 7 | 2026-06-02 |
+| 39 | 03 | 9 min | 2 | 5 | 2026-06-02 |
 
 **Historical (v1.0 + v1.1 combined):**
 
@@ -109,6 +110,7 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase 37]: P02: all 5 modals migrated onto <Modal> (D-02) — ConfirmDialog (8 callers inherit, signature unchanged), ReturnDialog (textarea initialFocusRef), ItemPeekModal (gains role/aria-modal/Escape + 44px close btn — biggest prior gap closed), PhotoLightbox (bareOverlay full-screen, swipe nav kept, nested ConfirmDialog), MigrationSplash (folds trap in directly, opacity fade gated on prefers-reduced-motion, pre-existing TS6133 'skipped' resolved). <Modal> extended with additive overlayClassName/panelClassName/bareOverlay props (defaults preserve centered-card look) so non-centered modals route through it without forking. Nested-trap needs NO explicit stack: sibling portals to document.body, each useFocusTrap keydown bound to its own panel → Escape inside inner confirm fires only inner listener, returns focus to lightbox (T-37-03 mitigated, explicit test). jest-axe scan (color-contrast off) for all 5 + nested-trap + reduced-motion in src/tests/a11y/modals.test.tsx (22 tests). Full suite 671 pass, tsc clean.
 - [Phase 37]: P01: useFocusTrap (D-01, zero deps) filters focusables via getComputedStyle (display/visibility/hidden/aria-hidden), NOT offsetParent — offsetParent is always null under jsdom and silently emptied the focusable set. Recomputes on each Tab keydown (Pitfall 2); isConnected guard on restore so a deleted trigger can't throw (Pitfall 4). <Modal> (D-02) portals to document.body, --bg-3 scrim via color-mix(in oklch,...), scrim-click + Escape both onClose, open transition gated on prefers-reduced-motion. jest-axe + @axe-core/playwright are devDeps ONLY (D-05, never shipped); no @types/jest-axe (jest-axe@10 bundles its own types). Plans 02/03 wire against useFocusTrap(panelRef,{onClose,initialFocusRef?}) + <Modal open onClose ariaLabelledBy?/ariaLabel? initialFocusRef?>.
 - [Phase 38]: P01: migration is now idempotent at the data layer. needsMigration() is per-row (D-01/D-02) — true while any non-deleted session OR house/sale item lacks an idMapping row (replaces the count short-circuit). getNewIdByOldId reverse helper + Dexie v12 [oldId+type] index guard the session insert (the dangerous duplicate path) and both item loops (D-05); return shape is now { migrated, alreadyMigrated, failed, partial } with partial=failed>0 (D-10); exportHistory cleared on post-run ground-truth needsMigration() (D-09). **[Rule 1] houseVisitItems and saleItems have independent ++id keyspaces** → a sale item id collides with a migrated house item id and the reverse guard would silently skip it (data loss). Fixed with an additive **unindexed** itemTable?:"house"|"sale" field on item idMapping rows (no schema migration; type stays "session"|"item" per the locked contract; forward getDexieItemId/photoMigration filters unaffected). Hook maps legacy skipped<-failed to keep ProtectedRoute compiling; full failed/alreadyMigrated plumbing + MigrationRetryBanner is Plan 02. Full suite 690 pass, tsc clean.
+- [Phase 39]: P03: mergeFieldsIntoItem (now exported) composes preconditionUpdate with a D-06 AI-yields reconcile — on a 0-row conflict, drop every catalog field whose fresh server value !== value-at-read (the user changed it since the merge read), re-apply untouched catalog fields + ai_status against the fresh token; all-skipped patch → noop. Value-at-read is a pre-write DB snapshot read inside the merge (no extra Gemini call). Replaces the old per-field sessionStore.updateItemField loop (which used the user-edit reconcile — wrong policy for the AI). Complementary to the Phase-35 userEditedFields guard (different write paths — retry vs merge; both kept). Merge path dormant (CONTINUOUS_MODE_ENABLED=false, D-050) but correct for revival. Offline write-ahead flush: items-update branch destructures updated_at out of the patch (snapshot WHERE-token, trigger owns the bump) and composes preconditionUpdate; 0-row exhaustion RETAINS the entry (Pitfall 5 — no silent offline lost write); legacy entry with no updated_at re-reads the current token then preconditions (Pitfall 6 — not unconditional, not a crash). Added a stale-entry guard skipping an in-memory queue entry already dropped by a permanent-failure same-item cascade before re-issuing its write. WriteAheadEntry.payload updated_at convention documented (no Dexie bump). [Rule 1] geminiContinuous.test.ts 6 assertions re-pointed from updateItemField to the recorded preconditionUpdate patch (superseded contract); WAQ legacy-routing test mock plumbing extended (assertions unchanged). Full suite 708 pass, tsc+build clean.
 - [Phase 36]: P02: import atomicity (D-01) is client-side compensating rollback — handleImport tracks createdSessionId + createdItemIds, on mid-loop throw deletes in reverse order best-effort then sticky notifyError; NO transactional RPC, NO schema change (SC2). A3/Q2 resolved: deleteSession/deleteItem are Supabase+zustand (FK cascade), not Dexie idMapping — no explicit Dexie cleanup needed. Export catch blocks + doCreate use fixed UI-SPEC copy; Login uses toUserMessage (T-36-02 — two old tests asserting raw 'Invalid login credentials' updated to 'Wrong email or password').
 
 ### Pending Todos
@@ -145,6 +147,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-02T16:22:00.000Z
-Stopped at: Phase 38 Plan 01 complete (data layer); Plan 02 (banner/hook plumbing) next
-Resume file: .planning/milestones/v1.3-phases/38-migration-retryability/38-02-PLAN.md
+Last session: 2026-06-02T18:01:52.000Z
+Stopped at: Phase 39 Plan 03 complete — phase 39 (optimistic-locking) fully executed (3/3 plans); ready for /gsd:verify-work 39
+Resume file: None
