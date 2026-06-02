@@ -161,6 +161,10 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Conflicts surface to the user via the DAT-4 ErrorToast.
   - Tests: a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit; cross-writer conflicts are handled, not dropped.
   - Risk: HIGH (concurrency + DB trigger + reconciliation) — a careless partial implementation can silently drop writes, so this needs careful planning + UAT.
+  - **Plans:** 3 plans (3 waves)
+    - [ ] 39-01-PLAN.md — schema: add items.updated_at column + backfill + BEFORE UPDATE trigger (reuse set_updated_at()), regen database.types.ts, update cross-app schema.md/migrations.md, + Wave-0 RED test scaffolds (Claude-owned, D-046)
+    - [ ] 39-02-PLAN.md — core: preconditionUpdate() helper (0-row detect + bounded 3x reconcile + exhaustion toast, TDD) + route updateItemField through it + offline enqueue updated_at snapshot
+    - [ ] 39-03-PLAN.md — AI-merge D-06 per-field compare-and-skip (HEADLINE race, TDD) + offline flush precondition/reconcile + legacy-entry fallback
 
 - [ ] **Phase 40: ai-proxy-cloud-run-migration** *(🟠 cross-app infra — cut AI traffic off the Cloudflare Worker onto the shared GCloud proxy)*
   - **What:** repoint this app's AI calls from the local Cloudflare Worker (`proxy/` → `tpc-gemini-proxy`) to the shared **`tpc-ai-proxy`** Cloud Run service (the-potomack-company / GCP project `gen-lang-client-0662587427`, us-east1) that now fronts AI for all TPC projects. Then retire the in-repo Worker.
@@ -456,8 +460,10 @@ Plans:
   3. Per-writer conflict policy holds: a user single-field edit re-applies on conflict (intent-preserving); the AI merge re-reads & re-merges and must NOT overwrite a field the user changed since the merge's read.
   4. Conflicts surface to the user via the DAT-4 ErrorToast; a test proves a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit.
 
-**Plans**: TBD
-**Estimated plan count**: 3
+**Plans**: 3 plans, 3 waves
+  - 39-01 (wave 0): migration + backfill + trigger + type regen + schema docs + Wave-0 RED tests
+  - 39-02 (wave 1): preconditionUpdate helper + updateItemField wiring + offline enqueue snapshot
+  - 39-03 (wave 2): AI-merge compare-and-skip (HEADLINE) + offline flush precondition + legacy fallback
 
 ### Phase 40: ai-proxy-cloud-run-migration
 
