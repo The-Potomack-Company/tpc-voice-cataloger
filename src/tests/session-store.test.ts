@@ -77,13 +77,24 @@ function setupInsertChain(
   return chain;
 }
 
+// Supports BOTH write shapes off one chain:
+//   updateSession:   .update({...}).eq("id", x)                         -> awaited
+//   updateItemField: .update({...}).eq("id").eq("updated_at").select()  -> Phase 39 precondition
+// `.eq()` returns a thenable chain so `await update().eq()` resolves to {error},
+// while further `.eq().select()` chaining still works for the precondition path.
 function setupUpdateChain(error: unknown = null) {
-  const chain = {
+  const result = error
+    ? { data: null, error }
+    : { data: [{ id: "item-1", updated_at: "T1" }], error: null };
+  const chain: Record<string, unknown> = {
     update: vi.fn(),
     eq: vi.fn(),
+    select: vi.fn(),
+    then: (resolve: (v: unknown) => unknown) => resolve(result),
   };
-  chain.update.mockReturnValue(chain);
-  chain.eq.mockResolvedValue({ error });
+  (chain.update as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.eq as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.select as ReturnType<typeof vi.fn>).mockResolvedValue(result);
   mockFrom.mockReturnValue(chain);
   return chain;
 }

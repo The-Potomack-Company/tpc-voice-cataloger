@@ -42,11 +42,13 @@ export async function preconditionUpdate(args: {
     // patch, that would fight the trigger.
     // WHY .select(): PostgREST .update().eq() returns data:null WITHOUT an explicit
     // .select(), so a 0-row precondition miss would be undetectable (Pitfall 1).
+    // The helper is table-generic; the supabase client is strongly typed per table,
+    // so cast at the boundary (same idiom as useWriteAheadQueue.ts `payload as never`).
     const { data, error } = await supabase
-      .from(table)
-      .update(nextPatch)
+      .from(table as never)
+      .update(nextPatch as never)
       .eq("id", id)
-      .eq("updated_at", prev)
+      .eq("updated_at", prev as never)
       .select();
 
     if (error) throw error; // genuine failure (network/permanent) → caller handles
@@ -59,7 +61,7 @@ export async function preconditionUpdate(args: {
     // disambiguate: a row back = real conflict (reconcile + retry); nothing back =
     // gone (deleted / RLS-deny) → stop, do NOT loop.
     const { data: fresh } = await supabase
-      .from(table)
+      .from(table as never)
       .select("*")
       .eq("id", id)
       .maybeSingle();

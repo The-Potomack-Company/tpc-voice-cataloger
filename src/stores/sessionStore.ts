@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
 import { enqueueWrite } from "../hooks/useWriteAheadQueue";
+import { preconditionUpdate } from "../db/optimisticUpdate";
 import { trackEvent } from "../services/analytics";
 import { useNotificationStore } from "./notificationStore";
 import type { Tables } from "../db/database.types";
@@ -424,20 +425,33 @@ export const useSessionStore = create<SessionState>()(
           },
         }));
 
+        // D-07/D-08: route through the bounded optimistic-locking helper. A stale
+        // write 0-rows, re-reads, and re-applies the user's value against the fresh
+        // updated_at token (intent-preserving — last human intent wins). buildPatch
+        // is the default (re-apply verbatim); exhaustion surfaces its own toast.
         try {
-          const { error } = await supabase
-            .from("items")
-            .update({ [field]: value })
-            .eq("id", itemId);
-
-          if (error) throw error;
+          await preconditionUpdate({
+            table: "items",
+            id: itemId,
+            prevUpdatedAt: (originalItem as Record<string, unknown>).updated_at as
+              | string
+              | null
+              | undefined,
+            patch: { [field]: value },
+          });
           scheduleFieldEditEvent(itemId, sessionId, field);
         } catch (err) {
           if (isNetworkError(err)) {
             await enqueueWrite({
               table: "items",
               operation: "update",
-              payload: { id: itemId, [field]: value },
+              // D-04: snapshot updated_at at enqueue time so Plan 03's flush can
+              // re-apply the .eq("updated_at", snapshot) precondition on reconnect.
+              payload: {
+                id: itemId,
+                [field]: value,
+                updated_at: (originalItem as Record<string, unknown>).updated_at,
+              },
             });
             scheduleFieldEditEvent(itemId, sessionId, field);
             return;

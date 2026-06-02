@@ -55,14 +55,23 @@ function makeItem(overrides: Record<string, unknown> = {}) {
   };
 }
 
-// supabase.from('items').update({...}).eq('id', id) → { error }
+// Phase 39: updateItemField now writes via preconditionUpdate, so the supabase
+// chain is .update({...}).eq("id").eq("updated_at").select() → { data, error }.
+// A genuine error throws out of the helper (existing revert/notify/enqueue catch).
+// On success data carries the fresh row.
 function setupUpdateChain(error: unknown = null) {
   const chain = {
     update: vi.fn(),
     eq: vi.fn(),
+    select: vi.fn(),
   };
   chain.update.mockReturnValue(chain);
-  chain.eq.mockResolvedValue({ error });
+  chain.eq.mockReturnValue(chain);
+  chain.select.mockResolvedValue(
+    error
+      ? { data: null, error }
+      : { data: [{ id: "item-1", updated_at: "T1" }], error: null },
+  );
   mockFrom.mockReturnValue(chain);
   return chain;
 }
