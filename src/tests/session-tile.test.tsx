@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { SessionTile } from "../components/SessionTile";
 
@@ -97,6 +98,33 @@ describe("SessionTile", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText(/Needs review · 3/)).toBeInTheDocument();
+  });
+
+  // WR-06/D-04: the ⋯ overflow menu's Delete must route straight to the
+  // onDelete prop with NO confirm rendered inside SessionTile — the confirm is
+  // the parent's responsibility (Sessions.tsx gates onDelete through its shared
+  // ConfirmDialog). This asserts the row delegates rather than self-confirming.
+  it("⋯ menu Delete invokes the onDelete prop without an internal confirm", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(
+      <MemoryRouter>
+        <SessionTile
+          session={baseSession}
+          itemCount={5}
+          onTap={() => {}}
+          onDelete={onDelete}
+          onRename={() => {}}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /more actions/i }));
+    await user.click(screen.getByRole("menuitem", { name: /delete/i }));
+
+    // The handler fired directly — no second confirm dialog inside the row.
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("does not render Needs review badge when reviewCount is 0 or undefined", () => {

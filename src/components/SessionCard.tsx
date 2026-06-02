@@ -12,6 +12,12 @@ interface SessionCardProps {
   session: SupabaseSession;
   itemCount: number;
   onTap: () => void;
+  /**
+   * WR-06/D-04: invoked by both the swipe-delete gesture AND the ⋯ overflow
+   * menu's Delete item. The ⋯ menu does NOT confirm internally — this handler
+   * MUST perform its own confirmation (e.g. Sessions.tsx routes it through the
+   * shared ConfirmDialog). Never wire a raw deleteSession here.
+   */
   onDelete: () => void;
   onRename: (newName: string) => void;
   sessionStatus?: string;
