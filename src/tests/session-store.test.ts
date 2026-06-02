@@ -477,6 +477,7 @@ describe("sessionStore", () => {
           receipt_number: null,
           ai_status: "pending",
           created_at: "2026-01-01",
+          updated_at: "T0",
         },
       ];
 
@@ -635,6 +636,7 @@ describe("sessionStore", () => {
           receipt_number: null,
           ai_status: "pending",
           created_at: "2026-01-01",
+          updated_at: "T0",
         },
       ];
 
@@ -670,6 +672,7 @@ describe("sessionStore", () => {
           receipt_number: null,
           ai_status: "pending",
           created_at: "2026-01-01",
+          updated_at: "T0",
         },
       ];
 

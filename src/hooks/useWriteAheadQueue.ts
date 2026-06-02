@@ -103,24 +103,13 @@ export async function processWriteAheadQueue(): Promise<void> {
           // server-side change that landed while we were offline isn't clobbered.
           // `updated_at` is a snapshot WHERE-token, never a SET column (the trigger
           // owns the bump) — destructure it out of the written patch.
-          let prev = updated_at;
-          if (prev === undefined) {
-            // Pitfall 6: a legacy entry enqueued before this deploy has no snapshot.
-            // Re-read the row's current token first, then precondition — NOT an
-            // unconditional last-writer-wins write (would silently clobber).
-            const { data: fresh } = await supabase
-              .from(entry.table)
-              .select("*")
-              .eq("id", id)
-              .maybeSingle();
-            prev = (fresh as Record<string, unknown> | null)?.updated_at as
-              | string
-              | undefined;
-          }
+          // Pitfall 6 (legacy entry with no snapshot, `updated_at === undefined`) is
+          // handled inside preconditionUpdate: a missing token forces a re-read rather
+          // than a dropped filter / unconditional clobber (CR-01).
           const result = await preconditionUpdate({
             table: entry.table,
             id,
-            prevUpdatedAt: prev,
+            prevUpdatedAt: updated_at,
             patch: rest,
           });
           // Pitfall 5: a persistent precondition miss (exhausted) must NOT delete the

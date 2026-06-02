@@ -51,6 +51,7 @@ function makeItem(overrides: Record<string, unknown> = {}) {
     receipt_number: null,
     ai_status: "pending",
     created_at: "2026-01-01",
+    updated_at: "T0", // Phase 39: fetched items always carry the optimistic-locking token
     ...overrides,
   };
 }
@@ -190,7 +191,9 @@ describe("updateItemField error notification (DAT-4)", () => {
     expect(mockEnqueueWrite).toHaveBeenCalledWith({
       table: "items",
       operation: "update",
-      payload: { id: "item-1", title: "New Title" },
+      // D-04: the offline payload snapshots the item's updated_at token so the flush
+      // can re-apply the precondition on reconnect.
+      payload: { id: "item-1", title: "New Title", updated_at: "T0" },
     });
     expect(mockNotifyError).not.toHaveBeenCalled();
 

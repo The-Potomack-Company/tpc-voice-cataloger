@@ -163,6 +163,40 @@ describe("preconditionUpdate (optimistic locking helper)", () => {
     expect(mockNotifyError).not.toHaveBeenCalled();
   });
 
+  it("CR-01: a missing (undefined) token re-reads for a real token instead of dropping the .eq filter", async () => {
+    // supabase-js drops `.eq("updated_at", undefined)`, which would collapse the
+    // precondition to a bare `.eq("id")` (unconditional clobber). The helper must
+    // re-read to obtain a token first, then write WITH the precondition.
+    const m = installMock({
+      updateResults: [{ data: [{ id: "i1", updated_at: "T9" }], error: null }],
+      reReads: [{ data: { id: "i1", updated_at: "Tnow" }, error: null }],
+    });
+    const res = await preconditionUpdate({
+      table: "items",
+      id: "i1",
+      prevUpdatedAt: undefined,
+      patch: { title: "X" },
+    });
+    expect(res.status).toBe("applied");
+    // The single write carried the re-read token — never an undefined (dropped) filter.
+    expect(m.updateTokens).toEqual(["Tnow"]);
+  });
+
+  it("CR-01: a missing token whose row is gone on re-read is a noop, not an unconditional write", async () => {
+    const m = installMock({
+      updateResults: [],
+      reReads: [{ data: null, error: null }],
+    });
+    const res = await preconditionUpdate({
+      table: "items",
+      id: "i1",
+      prevUpdatedAt: undefined,
+      patch: { title: "X" },
+    });
+    expect(res.status).toBe("noop");
+    expect(m.updateCount).toBe(0); // never wrote without a precondition
+  });
+
   it("surfaces notifyError(message, retry) after 3 failed attempts (exhaustion)", async () => {
     const m = installMock({
       updateResults: [

@@ -37,6 +37,29 @@ export async function preconditionUpdate(args: {
   let prev = prevUpdatedAt;
   let nextPatch = patch;
 
+  // CR-01: a missing version token must never reach `.eq("updated_at", undefined)` —
+  // supabase-js DROPS an undefined filter, collapsing the precondition to a bare
+  // `.eq("id")`, i.e. an unconditional last-writer-wins clobber (the exact silent lost
+  // write this helper exists to prevent). Sources of a missing token: an item created
+  // locally before its first fetch, an AI snapshot read that returned null, a legacy
+  // offline entry with no snapshot. Re-read to obtain a real token first; if the row is
+  // gone (deleted / RLS-deny), do not write.
+  if (prev === undefined || prev === null) {
+    const { data: fresh } = await supabase
+      .from(table as never)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (!fresh) return { status: "noop" };
+    const freshRow = fresh as Record<string, unknown>;
+    prev = freshRow.updated_at as string;
+    const reconciled = reconcile(freshRow, nextPatch);
+    if (!reconciled || Object.keys(reconciled).length === 0) {
+      return { status: "noop" };
+    }
+    nextPatch = reconciled;
+  }
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // The trigger owns the updated_at bump (Pitfall 2) — never put updated_at in the
     // patch, that would fight the trigger.
