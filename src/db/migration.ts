@@ -51,6 +51,18 @@ export async function migrateToSupabase(
     totalItems += houseCount + saleCount;
   }
 
+  // WR-04: cross-store non-atomicity. Each row is `insert`ed to Supabase and
+  // then `addIdMapping` writes the local mapping as two independent awaits. The
+  // mapping is always awaited immediately after the insert (before the next
+  // loop iteration), so the window is as small as it can be WITHOUT a real
+  // transaction. But a residual window remains: if the tab closes (or
+  // addIdMapping itself throws) AFTER the Supabase insert resolves but BEFORE
+  // the mapping is durable, the row exists in Supabase with no local mapping →
+  // the next run's getNewIdByOldId returns null → re-insert → duplicate. Closing
+  // this fully needs a Supabase-side natural key + upsert (or a pre-insert lookup
+  // by natural key), which is a schema change deliberately out of Phase 38 scope.
+  // Tracked as a follow-up; flagged for HUMAN-UAT. Mitigated for now by the
+  // single-threaded run (CR-01 guard) which removes the concurrent-retry vector.
   let migrated = 0;
   // D-10: split the old single `skipped` counter. `failed` is an insert error
   // (sets partial, triggers the banner); `alreadyMigrated` is an idempotent
