@@ -480,7 +480,7 @@ Plans:
 
 **Goal:** Replace base64-embedded photos in export JSON with Supabase Storage URLs fetched on demand during extension import. Current approach embeds all photos as base64, which balloons to 200-450MB for typical house visits (100-300 items x multiple photos). With Storage URLs, export JSON drops to ~500KB and photos stream one at a time during import. Requires: export emits storage paths/signed URLs instead of base64 blobs, importController fetches URL->blob->File before injection. Supabase Storage infra already exists from Phase 19.
 **Requirements:** TBD
-**Plans:** 3/3 plans complete
+**Plans:** 2/2 plans complete
 
 Plans:
 
