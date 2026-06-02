@@ -162,7 +162,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit; cross-writer conflicts are handled, not dropped.
   - Risk: HIGH (concurrency + DB trigger + reconciliation) — a careless partial implementation can silently drop writes, so this needs careful planning + UAT.
   - **Plans:** 3 plans (3 waves)
-    - [ ] 39-01-PLAN.md — schema: add items.updated_at column + backfill + BEFORE UPDATE trigger (reuse set_updated_at()), regen database.types.ts, update cross-app schema.md/migrations.md, + Wave-0 RED test scaffolds (Claude-owned, D-046)
+    - [x] 39-01-PLAN.md — schema: add items.updated_at column + backfill + BEFORE UPDATE trigger (reuse set_updated_at()), regen database.types.ts, update cross-app schema.md/migrations.md, + Wave-0 RED test scaffolds (Claude-owned, D-046)
     - [ ] 39-02-PLAN.md — core: preconditionUpdate() helper (0-row detect + bounded 3x reconcile + exhaustion toast, TDD) + route updateItemField through it + offline enqueue updated_at snapshot
     - [ ] 39-03-PLAN.md — AI-merge D-06 per-field compare-and-skip (HEADLINE race, TDD) + offline flush precondition/reconcile + legacy-entry fallback
 
