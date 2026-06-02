@@ -6,6 +6,7 @@ import {
   type CSSProperties,
 } from "react";
 import { Icon } from "./icons";
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 
 /**
  * Overflow (⋯) menu primitive (Phase 37, D-03).
@@ -32,21 +33,6 @@ interface OverflowMenuProps {
   actions: OverflowAction[];
   /** Accessible name + tooltip for the trigger (UI-SPEC copy contract). */
   label?: string;
-}
-
-function usePrefersReducedMotion(): boolean {
-  const [pref, setPref] = useState<boolean>(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const listener = (e: MediaQueryListEvent) => setPref(e.matches);
-    mq.addEventListener("change", listener);
-    return () => mq.removeEventListener("change", listener);
-  }, []);
-  return pref;
 }
 
 export function OverflowMenu({

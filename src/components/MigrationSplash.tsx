@@ -1,21 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFocusTrap } from "../hooks/useFocusTrap";
-
-function usePrefersReducedMotion(): boolean {
-  const [pref, setPref] = useState<boolean>(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const listener = (e: MediaQueryListEvent) => setPref(e.matches);
-    mq.addEventListener("change", listener);
-    return () => mq.removeEventListener("change", listener);
-  }, []);
-  return pref;
-}
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 
 interface MigrationSplashProps {
   // SC3/D-07: "partial" is a first-class state — a run that skipped items must

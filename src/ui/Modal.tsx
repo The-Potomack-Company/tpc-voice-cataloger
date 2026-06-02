@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 
 /**
  * Shared dialog primitive (Phase 37, D-02).
@@ -38,21 +39,6 @@ interface ModalProps {
 const DEFAULT_OVERLAY =
   "fixed inset-0 z-50 flex items-center justify-center p-4";
 const DEFAULT_PANEL = "w-full max-w-sm rounded-xl bg-white p-6 dark:bg-gray-800";
-
-function usePrefersReducedMotion(): boolean {
-  const [pref, setPref] = useState<boolean>(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const listener = (e: MediaQueryListEvent) => setPref(e.matches);
-    mq.addEventListener("change", listener);
-    return () => mq.removeEventListener("change", listener);
-  }, []);
-  return pref;
-}
 
 export function Modal({ open, ...rest }: ModalProps) {
   // WR-02: the focus trap (and its initial-focus + Escape wiring) lives in
