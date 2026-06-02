@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface MigrationSplashProps {
-  state: "in-progress" | "complete" | "error";
+  // SC3/D-07: "partial" is a first-class state — a run that skipped items must
+  // never reuse the "complete" success copy.
+  state: "in-progress" | "partial" | "complete" | "error";
   current: number;
   total: number;
   skipped: number;
@@ -24,7 +26,9 @@ export function MigrationSplash({
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    if (state !== "complete") return;
+    // SC3/D-07: partial auto-dismisses like complete — P36 adds no retry button
+    // for partial, so leaving the modal pinned would trap the user.
+    if (state !== "complete" && state !== "partial") return;
 
     const fadeTimer = setTimeout(() => {
       setFading(true);
@@ -48,16 +52,23 @@ export function MigrationSplash({
   const heading =
     state === "complete"
       ? "Migration complete"
-      : state === "error"
+      : state === "partial"
         ? "Migration incomplete"
-        : "Migrating your data";
+        : state === "error"
+          ? "Migration incomplete"
+          : "Migrating your data";
 
+  // SC3/D-07: honest partial copy from the DAT-1 `partial` flag. P36 deliberately
+  // adds NO retry/Settings flow here — that is Phase 38's banner. The success
+  // string is reachable ONLY on a true clean run (state === "complete").
   const body =
     state === "complete"
       ? "All sessions are now synced to the server."
-      : state === "error"
-        ? `${skipped} items could not be migrated. Your data is safe -- you can retry now or continue and retry later from Settings.`
-        : "Moving your sessions to the server. This only happens once.";
+      : state === "partial"
+        ? "Some items couldn't be migrated. Your data is safe."
+        : state === "error"
+          ? `${skipped} items could not be migrated. Your data is safe -- you can retry now or continue and retry later from Settings.`
+          : "Moving your sessions to the server. This only happens once.";
 
   return createPortal(
     <div
@@ -82,7 +93,9 @@ export function MigrationSplash({
         >
           <div
             className="h-full rounded-full bg-accent transition-all duration-300"
-            style={{ width: `${state === "complete" ? 100 : percent}%` }}
+            style={{
+              width: `${state === "complete" || state === "partial" ? 100 : percent}%`,
+            }}
           />
         </div>
         {state !== "error" && (

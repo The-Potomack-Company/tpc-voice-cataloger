@@ -42,13 +42,16 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  // Show migration splash if migration is in progress, complete (before auto-dismiss), or errored
+  // Show migration splash if migration is in progress, complete/partial (before
+  // auto-dismiss), or errored. SC3/D-07: "partial" must reach the splash so the
+  // honest partial copy actually renders — otherwise the partial state is dead code.
   if (migration.state === 'in-progress' || migration.state === 'checking' ||
       (migration.state === 'complete' && !migrationDismissed) ||
+      (migration.state === 'partial' && !migrationDismissed) ||
       (migration.state === 'error' && !migrationDismissed)) {
     return (
       <>
-        {(migration.state === 'in-progress' || migration.state === 'complete' || migration.state === 'error') && (
+        {(migration.state === 'in-progress' || migration.state === 'complete' || migration.state === 'partial' || migration.state === 'error') && (
           <MigrationSplash
             state={migration.state}
             current={migration.current}

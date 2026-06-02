@@ -5,6 +5,10 @@ type MigrationState =
   | "checking"
   | "not-needed"
   | "in-progress"
+  // SC3/D-07: a run that skipped ≥1 item is NOT "complete". Distinguishing
+  // "partial" here is what stops the splash from claiming full success — the
+  // catch below still owns thrown failures; "partial" is a success-path outcome.
+  | "partial"
   | "complete"
   | "error";
 
@@ -34,7 +38,7 @@ export function useDataMigration(userId: string | undefined) {
       });
       setStatus((s) => ({
         ...s,
-        state: "complete",
+        state: result.partial ? "partial" : "complete",
         migrated: result.migrated,
         skipped: result.skipped,
       }));
