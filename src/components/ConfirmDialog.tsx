@@ -47,9 +47,11 @@ export function ConfirmDialog({
         <button
           type="button"
           onClick={onConfirm}
-          className={`min-h-12 rounded-lg px-4 py-3 font-medium text-white ${
-            destructive ? "bg-red-500" : "bg-accent"
-          }`}
+          className="min-h-12 rounded-lg px-4 py-3 font-medium text-white"
+          // IN-04: drive the destructive ink from the --err design token (the
+          // rest of the Phase 37 a11y work uses var(--err)) instead of the
+          // hardcoded Tailwind bg-red-500.
+          style={{ background: destructive ? "var(--err)" : "var(--accent)" }}
         >
           {confirmLabel}
         </button>

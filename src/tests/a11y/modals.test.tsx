@@ -66,7 +66,7 @@ describe("ConfirmDialog (migrated to <Modal>)", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the destructive red-button branch", () => {
+  it("drives the destructive button from the --err token (IN-04)", () => {
     render(
       <ConfirmDialog
         open
@@ -78,7 +78,10 @@ describe("ConfirmDialog (migrated to <Modal>)", () => {
         onCancel={vi.fn()}
       />,
     );
-    expect(screen.getByText("Delete").className).toContain("bg-red-500");
+    const btn = screen.getByText("Delete");
+    // No hardcoded Tailwind red; destructive ink comes from the design token.
+    expect(btn.className).not.toContain("bg-red-500");
+    expect(btn.style.background).toBe("var(--err)");
   });
 
   it("has no axe violations", async () => {
