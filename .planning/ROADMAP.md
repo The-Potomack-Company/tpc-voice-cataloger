@@ -163,7 +163,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Risk: HIGH (concurrency + DB trigger + reconciliation) — a careless partial implementation can silently drop writes, so this needs careful planning + UAT.
   - **Plans:** 3 plans (3 waves)
     - [x] 39-01-PLAN.md — schema: add items.updated_at column + backfill + BEFORE UPDATE trigger (reuse set_updated_at()), regen database.types.ts, update cross-app schema.md/migrations.md, + Wave-0 RED test scaffolds (Claude-owned, D-046)
-    - [ ] 39-02-PLAN.md — core: preconditionUpdate() helper (0-row detect + bounded 3x reconcile + exhaustion toast, TDD) + route updateItemField through it + offline enqueue updated_at snapshot
+    - [x] 39-02-PLAN.md — core: preconditionUpdate() helper (0-row detect + bounded 3x reconcile + exhaustion toast, TDD) + route updateItemField through it + offline enqueue updated_at snapshot
     - [ ] 39-03-PLAN.md — AI-merge D-06 per-field compare-and-skip (HEADLINE race, TDD) + offline flush precondition/reconcile + legacy-entry fallback
 
 - [ ] **Phase 40: ai-proxy-cloud-run-migration** *(🟠 cross-app infra — cut AI traffic off the Cloudflare Worker onto the shared GCloud proxy)*

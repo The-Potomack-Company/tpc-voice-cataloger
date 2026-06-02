@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 38 Plan 02 complete
-last_updated: "2026-06-02T16:30:00.000Z"
+stopped_at: Phase 39 Plan 02 complete
+last_updated: "2026-06-02T17:55:00.000Z"
 progress:
   percent: 40
 ---
@@ -20,8 +20,8 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 ## Current Position
 
-Phase: 38
-Plan: 02 complete (migration-retryability: failed/alreadyMigrated split plumbed through useDataMigration; WarnBanner action slot; persistent MigrationRetryBanner reading shared hook via Outlet context — SC3 + SC4 UI half)
+Phase: 39
+Plan: 02 complete (optimistic-locking core: preconditionUpdate helper — .eq(updated_at) precondition + bounded 3x reconcile + exhaustion toast; updateItemField routed through it; offline enqueue carries updated_at snapshot D-04. optimistic-update.test.ts GREEN 4/4; update-item-field-notify + session-store no-regression green. 39-03 next: AI-merge D-06 compare-and-skip + offline flush precondition)
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
