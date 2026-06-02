@@ -97,7 +97,9 @@ export function useFocusTrap(
           event.preventDefault();
           last.focus();
         }
-      } else if (active === last) {
+      } else if (active === last || !panel!.contains(active)) {
+        // IN-02: mirror the Shift+Tab out-of-panel guard so a forward Tab from
+        // outside the panel (e.g. focus moved programmatically) is re-trapped.
         event.preventDefault();
         first.focus();
       }
