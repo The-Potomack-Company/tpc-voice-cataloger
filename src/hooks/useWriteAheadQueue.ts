@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useUIStore } from "../stores/uiStore";
 import { classifyAiError } from "../utils/aiErrorClass";
 import { notifyDrainComplete } from "../stores/drainSignalStore";
+import { preconditionUpdate } from "../db/optimisticUpdate";
 import type { WriteAheadEntry } from "../db/types";
 
 let processing = false;
@@ -78,6 +79,13 @@ export async function processWriteAheadQueue(): Promise<void> {
     const entries = await db.writeAheadQueue.orderBy("createdAt").toArray();
 
     for (const entry of entries) {
+      // A prior iteration's permanent-failure cascade (D-09 same-item drop) may have
+      // already removed this entry from the queue; skip the stale in-memory copy so we
+      // don't re-issue its write (and, for the precondition path, re-read a row we no
+      // longer intend to touch).
+      if (entry.id !== undefined && !(await db.writeAheadQueue.get(entry.id))) {
+        continue;
+      }
       try {
         if (entry.operation === "insert") {
           const { error } = await supabase
@@ -85,15 +93,42 @@ export async function processWriteAheadQueue(): Promise<void> {
             .insert(entry.payload as never);
           if (error) throw error;
         } else if (entry.operation === "update") {
-          const { id, ...rest } = entry.payload as {
+          const { id, updated_at, ...rest } = entry.payload as {
             id: string;
+            updated_at?: string;
             [key: string]: unknown;
           };
-          const { error } = await supabase
-            .from(entry.table)
-            .update(rest)
-            .eq("id", id);
-          if (error) throw error;
+          // Phase 39 (D-04): offline writes carry the user's intent across a
+          // reconnect; honor the same optimistic precondition as online writes so a
+          // server-side change that landed while we were offline isn't clobbered.
+          // `updated_at` is a snapshot WHERE-token, never a SET column (the trigger
+          // owns the bump) — destructure it out of the written patch.
+          let prev = updated_at;
+          if (prev === undefined) {
+            // Pitfall 6: a legacy entry enqueued before this deploy has no snapshot.
+            // Re-read the row's current token first, then precondition — NOT an
+            // unconditional last-writer-wins write (would silently clobber).
+            const { data: fresh } = await supabase
+              .from(entry.table)
+              .select("*")
+              .eq("id", id)
+              .maybeSingle();
+            prev = (fresh as Record<string, unknown> | null)?.updated_at as
+              | string
+              | undefined;
+          }
+          const result = await preconditionUpdate({
+            table: entry.table,
+            id,
+            prevUpdatedAt: prev,
+            patch: rest,
+          });
+          // Pitfall 5: a persistent precondition miss (exhausted) must NOT delete the
+          // entry — that would silently lose the offline edit. Retain it for a later
+          // retry; only resolved (applied/noop) entries are removed below.
+          if (result.status === "exhausted") {
+            continue;
+          }
         } else if (entry.operation === "delete") {
           const { id } = entry.payload as { id: string };
           const { error } = await supabase

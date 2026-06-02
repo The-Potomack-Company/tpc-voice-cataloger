@@ -106,6 +106,13 @@ export interface WriteAheadEntry {
   id?: number;
   table: "sessions" | "items" | "analytics_events" | "ui_interactions";
   operation: "insert" | "update" | "delete";
+  // Phase 39 (D-04): for an `items` update, an optional `updated_at` key in the
+  // payload carries the optimistic-concurrency snapshot taken at enqueue time. On
+  // flush it is pulled OUT of the written patch and applied as a `.eq("updated_at")`
+  // precondition (WHERE-token, never a SET column — the items_updated_at trigger owns
+  // the bump). No structural change / no Dexie version bump: payload is already an
+  // open Record. A legacy entry with no `updated_at` falls back to re-read-then-
+  // precondition on flush (Pitfall 6).
   payload: Record<string, unknown>;
   tempId?: string;
   createdAt: Date;

@@ -133,9 +133,29 @@ describe("write-ahead queue", () => {
         createdAt: new Date(),
       });
 
-      const mockEqFn = vi.fn().mockResolvedValue({ error: null });
+      // Phase 39: this legacy entry (no updated_at snapshot) now re-reads the row
+      // then preconditions. Mock plumbing supports the re-read + .eq().eq().select()
+      // chain; the original routing assertions (update patch + .eq("id")) are unchanged.
+      const mockEqFn = vi.fn().mockImplementation((c1: string, v1: unknown) => {
+        void c1;
+        void v1;
+        return Object.assign(Promise.resolve({ error: null }), {
+          eq: () => ({
+            select: vi.fn().mockResolvedValue({ data: [{ id: "uuid-1" }], error: null }),
+          }),
+        });
+      });
       const mockUpdateFn = vi.fn().mockReturnValue({ eq: mockEqFn });
-      mockFrom.mockReturnValue({ update: mockUpdateFn });
+      mockFrom.mockReturnValue({
+        update: mockUpdateFn,
+        select: () => ({
+          eq: () => ({
+            maybeSingle: vi
+              .fn()
+              .mockResolvedValue({ data: { id: "uuid-1", updated_at: "Tnow" }, error: null }),
+          }),
+        }),
+      });
 
       await processWriteAheadQueue();
 
