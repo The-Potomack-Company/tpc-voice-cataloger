@@ -1,5 +1,10 @@
 import "@testing-library/jest-dom";
 import "fake-indexeddb/auto";
+import { expect } from "vitest";
+// jest-axe@10 bundles its own types — do NOT add @types/jest-axe (stale 3.5.9 would shadow them).
+import { toHaveNoViolations } from "jest-axe";
+
+expect.extend(toHaveNoViolations);
 
 // Mock matchMedia for jsdom (used by InstallBanner standalone detection)
 if (typeof window !== "undefined" && !window.matchMedia) {
