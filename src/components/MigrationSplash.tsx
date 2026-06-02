@@ -28,6 +28,11 @@ export function MigrationSplash({
   const panelRef = useRef<HTMLDivElement>(null);
   const reduceMotion = usePrefersReducedMotion();
 
+  // IN-03: hold onComplete in a ref so an unstable parent closure does not
+  // re-arm the auto-dismiss timers (which would delay/restart the dismiss).
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   // Fold the real focus trap in (D-02) — the splash already declared
   // role=dialog/aria-modal but had no trap. It is a blocking splash with no
   // user-driven close, so Escape is normally swallowed (no-op onClose).
@@ -48,14 +53,14 @@ export function MigrationSplash({
 
     const dismissTimer = setTimeout(() => {
       setVisible(false);
-      onComplete();
+      onCompleteRef.current();
     }, 1800); // 1500ms wait + 300ms fade
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(dismissTimer);
     };
-  }, [state, onComplete]);
+  }, [state]);
 
   if (!visible) return null;
 
