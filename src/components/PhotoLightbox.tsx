@@ -93,7 +93,14 @@ export function PhotoLightbox({
   };
 
   const handleDelete = () => {
-    const photoId = currentPhoto.id!;
+    // WR-04: a not-yet-persisted photo has an undefined Dexie auto-increment
+    // id. Dispatching onDelete(undefined) would target the wrong record (or
+    // no-op silently), so bail before deleting.
+    if (currentPhoto.id == null) {
+      setShowDeleteConfirm(false);
+      return;
+    }
+    const photoId = currentPhoto.id;
     const wasLastPhoto = photos.length === 1;
     const wasLastIndex = safeIndex === photos.length - 1;
 
