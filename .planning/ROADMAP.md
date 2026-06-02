@@ -154,7 +154,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Risk: medium (migration logic + migration banner UI).
 
 - [ ] **Phase 39: optimistic-locking** *(🔴 — promoted from 999.3, DAT-3 — HIGH RISK, builds on PR #26 + DAT-1)*
-  - Add an `items.updated_at` auto-bump-on-UPDATE Postgres trigger (before-update / moddatetime). New migration + update `../_workspace/Schema/schema.md`.
+  - Add an `items.updated_at` auto-bump-on-UPDATE Postgres trigger (BEFORE UPDATE via the existing `set_updated_at()` fn — not moddatetime, see D-01). New migration + update `../_workspace/Schema/schema.md`.
   - `updateItemField` (and the AI merge path) read `updated_at`, write with an `.eq("updated_at", <prev>)` precondition, and on a 0-row conflict re-read + reconcile instead of last-writer-wins.
   - Per-writer conflict policy: a user single-field edit re-applies on conflict (intent-preserving); the AI merge re-reads & re-merges and must NOT overwrite a field the user changed since the merge's read.
   - Optional: cross-tab/device version check (broadcast or version compare).
@@ -455,7 +455,7 @@ Plans:
 **Requirements**: none mapped (Track-2 quality track / DAT-3)
 **Success Criteria** (what must be TRUE):
 
-  1. An `items.updated_at` auto-bump-on-UPDATE Postgres trigger (moddatetime) exists via a new migration; `../_workspace/Schema/schema.md` is updated and `src/db/database.types.ts` regenerated.
+  1. An `items.updated_at` auto-bump-on-UPDATE Postgres trigger (BEFORE UPDATE via the existing `set_updated_at()` fn — not moddatetime, see D-01) exists via a new migration; `../_workspace/Schema/schema.md` is updated and `src/db/database.types.ts` regenerated.
   2. `updateItemField` and the AI merge path read `updated_at`, write with an `.eq("updated_at", <prev>)` precondition, and on a 0-row conflict re-read + reconcile (never last-writer-wins).
   3. Per-writer conflict policy holds: a user single-field edit re-applies on conflict (intent-preserving); the AI merge re-reads & re-merges and must NOT overwrite a field the user changed since the merge's read.
   4. Conflicts surface to the user via the DAT-4 ErrorToast; a test proves a live user edit racing an AI continuous-mode chunk write does not silently lose the user's edit.

@@ -327,14 +327,13 @@ create trigger items_updated_at
 | A1 | D-02's "accept rare µs-collision" is safe for this app's write concurrency | Pitfall 3 | If two writers per item ever burst concurrently within 1µs, a lost edit slips through with no toast → escalate to xmin (already a deferred fallback). Low probability for a small team. |
 | A2 | Recommending re-read-then-precondition for legacy queue entries (vs unconditional write) | Pitfall 6 | If chosen wrong, either legacy offline edits fail (too strict) or clobber (too loose). Planner picks; flag for discuss-phase if uncertain. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Phase 33 sequencing (O-1 — needs reconcile before planning).**
+1. **Phase 33 sequencing (O-1) — ✅ RESOLVED 2026-06-02 (during plan-phase).**
    - What we know: CONTEXT.md D-05 says Phase 33 is "not yet built." But `../_workspace/Schema/schema.md` (lines 77-78) records `claimed_at` and `ai_attempts` as **already added by "cataloger v1.3 Phase 33"** on 2026-06-01, and `database.types.ts` already has both columns. The DB-atomic claim pattern (`update … where ai_status='queued' .select()`) Phase 33 reportedly shipped is the SAME precondition idiom Phase 39 generalizes.
-   - What's unclear: Did Phase 33 partially land (schema only)? Is the offline-queue rework (D-05's concern) done or pending? This determines whether D-05's "coordinate so the precondition isn't bypassed" is a live integration task or a no-op.
-   - Recommendation: Before planning, grep the queue drain for any Phase-33 claim/backoff logic and reconcile the docs. If Phase 33's claim path already does precondition writes on `items`, reuse its helper rather than authoring a parallel one (avoid two divergent precondition implementations).
+   - **RESOLUTION:** Phase 33 (offline-reliability) is **COMPLETE** (ROADMAP `[x]`, 2026-06-01). The 0-row CAS idiom already exists in-repo at `src/services/offlineQueue.ts:123-132` — `.update({...}).eq("id",id).eq("ai_status","queued").select("id")` + `if (!claimed || claimed.length === 0) return;`, with a documented WHY comment that PostgREST returns `data:null` without `.select()`. CONTEXT D-05/D-09's "not yet built" is **stale**. Phase 39's `optimisticUpdate.ts` MIRRORS this idiom (second `.eq` → `.eq("updated_at", prev)`) rather than forking a parallel implementation. D-05's "coordinate so the precondition isn't bypassed" is therefore a no-op — the claim path and the new `updated_at` precondition path are independent (claim uses `ai_status`, precondition uses `updated_at`). D-09 cross-tab is already satisfied for the claim path; Phase 39 adds no new cross-tab work. Captured in 39-PATTERNS.md cross-phase flag + 39-DISCUSSION-LOG.
 
-2. **Where to thread `value-at-read` through `mergeFieldsIntoItem` (Claude's discretion per CONTEXT).**
+2. **Where to thread `value-at-read` through `mergeFieldsIntoItem` (O-2) — ✅ RESOLVED (Claude's discretion per CONTEXT).** Resolution: capture the pre-merge item snapshot in `processContinuousChunk` and pass into `mergeFieldsIntoItem` (no extra Gemini call, honors D-06). Implemented by plan 39-03 T1.
    - What we know: `mergeFieldsIntoItem` (geminiContinuous.ts:214) builds an `updates` array then loops `updateItemField`. The per-field values it wants to write are known at loop entry; the value-at-read must be captured from the item state the merge read at chunk-processing start.
    - Recommendation: capture the pre-merge item snapshot in `processContinuousChunk` (which already has the item) and pass it into `mergeFieldsIntoItem`, rather than re-reading inside the loop. No extra Gemini call (honors D-06).
 
