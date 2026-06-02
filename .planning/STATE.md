@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 39 context gathered
-last_updated: "2026-06-01T20:12:28.380Z"
+stopped_at: Phase 36 UI-SPEC approved
+last_updated: "2026-06-02T13:58:12.030Z"
 progress:
   percent: 40
 ---
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 Phase: 35
 Plan: Not started
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
-Status: Executing Phase 35
+Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
@@ -129,6 +129,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-01T17:22:33.052Z
-Stopped at: Phase 39 context gathered
-Resume file: None
+Last session: 2026-06-02T13:38:27.015Z
+Stopped at: Phase 36 UI-SPEC approved
+Resume file: .planning/milestones/v1.3-phases/36-ux-visibility-polish/36-UI-SPEC.md
