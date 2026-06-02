@@ -166,7 +166,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
     - [x] 39-02-PLAN.md — core: preconditionUpdate() helper (0-row detect + bounded 3x reconcile + exhaustion toast, TDD) + route updateItemField through it + offline enqueue updated_at snapshot
     - [x] 39-03-PLAN.md — AI-merge D-06 per-field compare-and-skip (HEADLINE race, TDD) + offline flush precondition/reconcile + legacy-entry fallback
 
-- [ ] **Phase 40: ai-proxy-cloud-run-migration** *(🟠 cross-app infra — cut AI traffic off the Cloudflare Worker onto the shared GCloud proxy)*
+- [x] **Phase 40: ai-proxy-cloud-run-migration** *(🟠 cross-app infra — cut AI traffic off the Cloudflare Worker onto the shared GCloud proxy)* (completed 2026-06-02)
   - **What:** repoint this app's AI calls from the local Cloudflare Worker (`proxy/` → `tpc-gemini-proxy`) to the shared **`tpc-ai-proxy`** Cloud Run service (the-potomack-company / GCP project `gen-lang-client-0662587427`, us-east1) that now fronts AI for all TPC projects. Then retire the in-repo Worker.
   - **Decision basis:** D-056 (this migration — timing + auth), D-013 (one centralized proxy), D-049 (host = Cloud Run, overrides D-013's CF host), D-053 (deployment bindings, Phase 39a stood the service up for the extension), D-043 (GCP consolidation target). The extension already migrated in Phase 39a; this is the cataloger's turn.
   - **Timing note (D-056):** D-049 framed the cataloger's move as *post-v3.0*. D-052 (2026-05-27) deferred the hub cutover and freed apps to mature independently, so doing it now in v1.3 is consistent with D-052 — it lands ahead of D-049's stated sequence (D-056 amends that timing; flagged, not a blocker).
@@ -481,7 +481,7 @@ Plans:
 **Plans**: 3 plans (3 waves — ship order is load-bearing)
 - [x] 40-01-PLAN.md — proxy-side Supabase-JWT verify + web-origin CORS + tpc-*.vercel.app allowlist on Cloud Run (deploy+verify dev/prod) [wave 1]
 - [x] 40-02-PLAN.md — cataloger VITE_GEMINI_PROXY_URL cutover to Cloud Run + end-to-end dev/prod verify (config-only) [wave 2]
-- [ ] 40-03-PLAN.md — retire in-repo CF Worker (proxy/), repoint tests + .env.example, isolated rollback commit [wave 3, gated on prod verify]
+- [x] 40-03-PLAN.md — retire in-repo CF Worker (proxy/), repoint tests + .env.example, isolated rollback commit [wave 3, gated on prod verify]
 **Estimated plan count**: 3
 
 ## Backlog
