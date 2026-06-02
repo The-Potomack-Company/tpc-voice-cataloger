@@ -11,6 +11,19 @@ import { trackEvent } from "./analytics";
 import { blobToBase64, formatExistingValuesBlock, SYSTEM_PROMPT } from "./gemini";
 import { catalogFieldsJsonSchema, catalogFieldsSchema } from "./geminiSchema";
 import { ensureFreshSession } from "../lib/authGuard";
+import { preconditionUpdate, type ReconcileFn } from "../db/optimisticUpdate";
+
+// D-06 catalog fields the continuous-merge writes; each is compare-and-skipped
+// against its value-at-read on a write conflict.
+const MERGE_FIELDS = [
+  "title",
+  "description",
+  "condition",
+  "estimate",
+  "category",
+  "measurements",
+  "transcript",
+] as const;
 
 const CONTINUOUS_CHUNK_TIMEOUT_MS = 60_000;
 const WEBM_CLUSTER_ID = [0x1f, 0x43, 0xb6, 0x75] as const;
@@ -211,7 +224,7 @@ async function sendChunkToGemini(
   return result.data;
 }
 
-async function mergeFieldsIntoItem(
+export async function mergeFieldsIntoItem(
   itemId: string,
   sessionId: string,
   fields: ReturnType<typeof catalogFieldsSchema.parse>,
@@ -248,10 +261,49 @@ async function mergeFieldsIntoItem(
   // overwrite the established receipt. Manual mid-session receipt correction is deferred
   // — user can edit the item directly after Stop if a fix is needed.
 
-  const sessionStore = useSessionStore.getState();
-  for (const [field, value] of updates) {
-    await sessionStore.updateItemField(itemId, sessionId, field, value);
+  // D-06 value-at-read: capture the item's per-field values + updated_at token BEFORE
+  // the AI write, so a 0-row conflict can tell which fields the user changed since the
+  // read (those must NOT be re-applied — the AI yields, D-08) from those still safe to
+  // re-apply. No extra Gemini round-trip: the snapshot is this DB read, not the model.
+  const { data: snapshot } = await supabase
+    .from("items")
+    .select("*")
+    .eq("id", itemId)
+    .maybeSingle();
+  const snapshotRow = (snapshot ?? {}) as Record<string, unknown>;
+  const valueAtRead: Record<string, unknown> = {};
+  for (const field of MERGE_FIELDS) {
+    valueAtRead[field] = snapshotRow[field];
   }
+
+  const patch: Record<string, unknown> = {};
+  for (const [field, value] of updates) {
+    patch[field] = value;
+  }
+
+  // On conflict, drop every catalog field the user touched since the read; control
+  // fields (ai_status) and untouched catalog fields re-apply against the fresh token.
+  const reconcile: ReconcileFn = (fresh, intended) => {
+    const next: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(intended)) {
+      if ((MERGE_FIELDS as readonly string[]).includes(field)) {
+        if (fresh[field] !== valueAtRead[field]) continue; // user changed it → AI yields (D-06)
+      }
+      next[field] = value;
+    }
+    return next;
+  };
+
+  await preconditionUpdate({
+    table: "items",
+    id: itemId,
+    prevUpdatedAt: snapshotRow.updated_at as string | undefined,
+    patch,
+    reconcile,
+  });
+
+  // Keep local state fresh so the dormant UI reflects the merge on revival (D-050).
+  await useSessionStore.getState().fetchItems(sessionId);
 
   return updates.map(([field]) => field);
 }
