@@ -1,10 +1,11 @@
 ---
 phase: 39
 slug: optimistic-locking
-status: planned
+status: validated
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-06-02
+validated: 2026-06-02
 ---
 
 # Phase 39 — Validation Strategy
@@ -48,16 +49,16 @@ created: 2026-06-02
 
 | Behavior | Plan | Wave | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |----------|------|------|------------|-----------------|-----------|-------------------|-------------|--------|
-| Migration adds `items.updated_at` + BEFORE UPDATE trigger (reuse `set_updated_at()`) + backfill `coalesce(created_at, now())` | 39-01 | 0 | T-39-00 | RLS on `items` undisturbed | manual/DB | apply migration to branch DB; assert `updated_at` bumps on UPDATE | ❌ Wave 0 (Claude-owned, D-046) | ⬜ pending |
-| Types regenerated include `items.Row.updated_at: string` | 39-01 | 0 | — | N/A | unit | extend `src/tests/supabase-types.test.ts` | ⚠️ extend existing | ⬜ pending |
-| Wave-0 RED specs exist and fail (no impl yet) | 39-01 | 0 | — | test-first | unit | `npx vitest --run src/tests/optimistic-update.test.ts` (expected RED) | ❌ Wave 0 | ⬜ pending |
-| 0-row precondition miss detected (`data:[]`, not error) | 39-02 | 1 | T-39-01 | conflict ≠ thrown error; RLS-deny disambiguated by re-read | unit | `npx vitest --run src/tests/optimistic-update.test.ts` | ❌ Wave 0 | ⬜ pending |
-| `preconditionUpdate` re-reads + re-applies user field, ≤3 attempts, refreshes prev token each attempt | 39-02 | 1 | T-39-02 | bounded loop — no livelock | unit | same | ❌ Wave 0 | ⬜ pending |
-| Exhaustion (3×) surfaces `notifyError` w/ Retry callback | 39-02 | 1 | T-39-02 | failure visible, not silent | unit | same (mock `notificationStore`) | ❌ Wave 0 | ⬜ pending |
-| `updateItemField` routes through helper; offline enqueue carries `updated_at` snapshot | 39-02 | 1 | T-39-01 | user intent preserved; offline edit snapshotted | unit | `npx vitest --run src/tests/update-item-field-notify.test.ts` | ✅ exists (no-regress) | ⬜ pending |
-| **AI continuous-merge skips user-changed field (D-06) — HEADLINE RACE** | 39-03 | 2 | T-39-03 | AI yields to user; user edit survives | unit | `npx vitest --run src/tests/continuous-merge-no-clobber.test.ts` (drive `mergeFieldsIntoItem` directly — continuous UI dormant, `CONTINUOUS_MODE_ENABLED=false`) | ❌ Wave 0 | ⬜ pending |
-| Offline flush 0-row routes through reconcile; queued edit survives, unrelated fields untouched | 39-03 | 2 | T-39-04 | offline edit not lost on reconnect | unit | `npx vitest --run src/tests/write-ahead-queue.test.ts` | ⚠️ extend existing | ⬜ pending |
-| Legacy queue entry (no `updated_at` snapshot) handled (fallback, not crash) | 39-03 | 2 | T-39-05 | backward-compat, no clobber | unit | same | ❌ Wave 0 | ⬜ pending |
+| Migration adds `items.updated_at` + BEFORE UPDATE trigger (reuse `set_updated_at()`) + backfill `coalesce(created_at, now())` | 39-01 | 0 | T-39-00 | RLS on `items` undisturbed | manual/DB | apply migration to branch DB; assert `updated_at` bumps on UPDATE | ✅ applied to prod (D-046) | ✅ green |
+| Types regenerated include `items.Row.updated_at: string` | 39-01 | 0 | — | N/A | unit | extend `src/tests/supabase-types.test.ts` | ✅ exists | ✅ green |
+| Wave-0 RED specs exist and fail (no impl yet) | 39-01 | 0 | — | test-first | unit | `npx vitest --run src/tests/optimistic-update.test.ts` (expected RED) | ✅ exists (now GREEN) | ✅ green |
+| 0-row precondition miss detected (`data:[]`, not error) | 39-02 | 1 | T-39-01 | conflict ≠ thrown error; RLS-deny disambiguated by re-read | unit | `npx vitest --run src/tests/optimistic-update.test.ts` | ✅ exists | ✅ green |
+| `preconditionUpdate` re-reads + re-applies user field, ≤3 attempts, refreshes prev token each attempt | 39-02 | 1 | T-39-02 | bounded loop — no livelock | unit | same | ✅ exists | ✅ green |
+| Exhaustion (3×) surfaces `notifyError` w/ Retry callback | 39-02 | 1 | T-39-02 | failure visible, not silent | unit | same (mock `notificationStore`) | ✅ exists | ✅ green |
+| `updateItemField` routes through helper; offline enqueue carries `updated_at` snapshot | 39-02 | 1 | T-39-01 | user intent preserved; offline edit snapshotted | unit | `npx vitest --run src/tests/update-item-field-notify.test.ts` | ✅ exists | ✅ green |
+| **AI continuous-merge skips user-changed field (D-06) — HEADLINE RACE** | 39-03 | 2 | T-39-03 | AI yields to user; user edit survives | unit | `npx vitest --run src/tests/continuous-merge-no-clobber.test.ts` (drive `mergeFieldsIntoItem` directly — continuous UI dormant, `CONTINUOUS_MODE_ENABLED=false`) | ✅ exists | ✅ green |
+| Offline flush 0-row routes through reconcile; queued edit survives, unrelated fields untouched | 39-03 | 2 | T-39-04 | offline edit not lost on reconnect | unit | `npx vitest --run src/tests/write-ahead-queue.test.ts` | ✅ exists | ✅ green |
+| Legacy queue entry (no `updated_at` snapshot) handled (fallback, not crash) | 39-03 | 2 | T-39-05 | backward-compat, no clobber | unit | same | ✅ exists | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -65,11 +66,11 @@ created: 2026-06-02
 
 ## Wave 0 Requirements
 
-- [ ] `src/tests/optimistic-update.test.ts` — shared `preconditionUpdate` helper: 0-row detect, re-read, re-apply, 3-attempt cap, exhaustion → `notifyError`
-- [ ] `src/tests/continuous-merge-no-clobber.test.ts` — D-06 per-field compare-and-skip; HEADLINE race driving `mergeFieldsIntoItem` directly (NOT via the dormant continuous UI)
-- [ ] Extend `src/tests/write-ahead-queue.test.ts` — snapshot capture at enqueue + precondition on flush + legacy-entry fallback
-- [ ] Extend `src/tests/supabase-types.test.ts` — assert `items.Row.updated_at: string`
-- [ ] Reuse mock idioms: `vi.hoisted` mockFrom (`update-item-field-notify.test.ts`), `createMockFrom` (`gemini-no-clobber.test.ts`) — chain now needs a second `.eq("updated_at", …)` + `.select()` returning `{data, error}`. **Precedent: `src/services/offlineQueue.ts:123-132` already uses this exact `.update().eq().select()` + `length===0` idiom (Phase 33) — mirror its test approach.**
+- [x] `src/tests/optimistic-update.test.ts` — shared `preconditionUpdate` helper: 0-row detect, re-read, re-apply, 3-attempt cap, exhaustion → `notifyError` (4/4 GREEN)
+- [x] `src/tests/continuous-merge-no-clobber.test.ts` — D-06 per-field compare-and-skip; HEADLINE race driving `mergeFieldsIntoItem` directly (NOT via the dormant continuous UI) (1/1 GREEN)
+- [x] Extend `src/tests/write-ahead-queue.test.ts` — snapshot capture at enqueue + precondition on flush + legacy-entry fallback (17/17 GREEN)
+- [x] Extend `src/tests/supabase-types.test.ts` — assert `items.Row.updated_at: string` (GREEN)
+- [x] Reuse mock idioms: `vi.hoisted` mockFrom (`update-item-field-notify.test.ts`), `createMockFrom` (`gemini-no-clobber.test.ts`) — chain now needs a second `.eq("updated_at", …)` + `.select()` returning `{data, error}`. **Precedent: `src/services/offlineQueue.ts:123-132` already uses this exact `.update().eq().select()` + `length===0` idiom (Phase 33) — mirror its test approach.**
 
 *All Wave 0 test files are created in Plan 39-01 (Task 3) so Plans 02–03 turn them GREEN (TDD-first).*
 
@@ -77,10 +78,10 @@ created: 2026-06-02
 
 ## Manual-Only Verifications
 
-| Behavior | Why Manual | Test Instructions |
-|----------|------------|-------------------|
-| Migration applies cleanly: column added, trigger attached, existing rows backfilled | Claude-owned schema change (D-046); requires live/branch Supabase | Apply migration to a Supabase branch; `UPDATE items SET title='x' WHERE id=…`; assert `updated_at` advanced past prior value and past `created_at` for backfilled rows |
-| Cross-app schema docs updated | Doc consistency, not code-testable | `../_workspace/Schema/schema.md` shows `items.updated_at`; `../_workspace/Schema/migrations.md` logs the new migration |
+| Behavior | Why Manual | Test Instructions | Status |
+|----------|------------|-------------------|--------|
+| Migration applies cleanly: column added, trigger attached, existing rows backfilled | Claude-owned schema change (D-046); requires live/branch Supabase | Apply migration to a Supabase branch; `UPDATE items SET title='x' WHERE id=…`; assert `updated_at` advanced past prior value and past `created_at` for backfilled rows | ✅ applied to prod + verified live (39-01: column + trigger present, 0 null rows, history reconciled `20260602173217 → 20260603000000`) |
+| Cross-app schema docs updated | Doc consistency, not code-testable | `../_workspace/Schema/schema.md` shows `items.updated_at`; `../_workspace/Schema/migrations.md` logs the new migration | ✅ done (39-01: both docs updated; fixed stale `sessions` trigger claim) |
 
 ---
 
@@ -93,4 +94,16 @@ created: 2026-06-02
 - [x] Feedback latency < 60s
 - [x] `nyquist_compliant: true` set in frontmatter (set by planner once tasks map to these tests)
 
-**Approval:** planned (Wave-0 tests created in 39-01; impl GREEN in 39-02/03)
+**Approval:** validated (all 10 behaviors ✅ green; both manual DB items satisfied during 39-01)
+
+---
+
+## Validation Audit 2026-06-02
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 (all Wave-0 specs already GREEN via 39-02/03) |
+| Escalated | 0 |
+
+Re-ran the full phase-39 test set (`optimistic-update`, `continuous-merge-no-clobber`, `write-ahead-queue`, `supabase-types`, `update-item-field-notify`): **39/39 GREEN**. No MISSING/PARTIAL coverage. Phase is Nyquist-compliant — every conflict/reconcile threat path (T-39-01…05) has an automated verify. No new test files generated; no auditor spawn required.
