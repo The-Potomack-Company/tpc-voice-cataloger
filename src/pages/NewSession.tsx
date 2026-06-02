@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { createSession, deleteSession } from "../db/sessions";
 import { createBlankItem, deleteItem } from "../db/items";
-import { toUserMessage } from "../lib/toUserMessage";
 import { useNotificationStore } from "../stores/notificationStore";
 import { useActiveSessions } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
