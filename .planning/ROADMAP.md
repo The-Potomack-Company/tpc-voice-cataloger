@@ -429,7 +429,13 @@ Plans:
   3. Partial state surfaces in the UI via the DAT-1 `partial` flag (banner: "N items not yet synced — Retry"); retry re-runs the migration.
   4. A retry-after-partial test migrates only the remaining rows, creates no duplicates, and the banner reflects partial state.
 
-**Plans**: TBD
+**Plans**: 2 plans (2 waves)
+
+Plans:
+
+- [ ] 38-01-PLAN.md — Data layer (TDD): Dexie v12 [oldId+type] index + getNewIdByOldId, per-row needsMigration (D-01/D-02), lookup-before-insert guards on session + item loops (D-05), failed/alreadyMigrated counter split (D-10), ground-truth exportHistory cleanup (D-09) — SC1/SC2/SC4
+- [ ] 38-02-PLAN.md — UI surfacing: split-counter plumbing through useDataMigration (D-06), additive WarnBanner action slot, MigrationRetryBanner reading Outlet context (D-07), AppLayout mount, MigrationSplash unchanged (D-08) — SC3/SC4
+
 **Estimated plan count**: 2
 **UI hint**: yes
 
