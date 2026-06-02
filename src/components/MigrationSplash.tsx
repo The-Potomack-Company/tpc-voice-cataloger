@@ -1,5 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+
+function usePrefersReducedMotion(): boolean {
+  const [pref, setPref] = useState<boolean>(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const listener = (e: MediaQueryListEvent) => setPref(e.matches);
+    mq.addEventListener("change", listener);
+    return () => mq.removeEventListener("change", listener);
+  }, []);
+  return pref;
+}
 
 interface MigrationSplashProps {
   // SC3/D-07: "partial" is a first-class state — a run that skipped items must
@@ -17,13 +33,19 @@ export function MigrationSplash({
   state,
   current,
   total,
-  skipped,
   onRetry,
   onSkip,
   onComplete,
 }: MigrationSplashProps) {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = usePrefersReducedMotion();
+
+  // Fold the real focus trap in (D-02) — the splash already declared
+  // role=dialog/aria-modal but had no trap. It is a blocking splash with no
+  // user-driven close, so Escape is swallowed (no-op onClose).
+  useFocusTrap(panelRef, { onClose: () => {} });
 
   useEffect(() => {
     // SC3/D-07: partial auto-dismisses like complete — P36 adds no retry button
@@ -75,9 +97,10 @@ export function MigrationSplash({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-gray-900 transition-opacity duration-300 ${
-        fading ? "opacity-0" : "opacity-100"
-      }`}
+      ref={panelRef}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-gray-900 ${
+        reduceMotion ? "" : "transition-opacity duration-300 "
+      }${fading && !reduceMotion ? "opacity-0" : "opacity-100"}`}
       role="dialog"
       aria-modal="true"
       aria-label="Data migration in progress"
