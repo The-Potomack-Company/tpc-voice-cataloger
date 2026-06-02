@@ -83,5 +83,8 @@ export function ProtectedRoute() {
     );
   }
 
-  return <Outlet />;
+  // D-07: share the single migration hook instance down to AppLayout's
+  // MigrationRetryBanner via Outlet context — prevents a second useDataMigration
+  // call (which would spawn a parallel migration, T-38-04).
+  return <Outlet context={migration} />;
 }

@@ -9,6 +9,7 @@ import { drainPhotoQueue } from "../services/photoUploadQueue";
 import { drainAudioQueue } from "../services/audioUploadQueue";
 import { migrateExistingPhotos } from "../services/photoMigration";
 import { PhotoMigrationBanner } from "../components/PhotoMigrationBanner";
+import { MigrationRetryBanner } from "../components/MigrationRetryBanner";
 import { ErrorToast } from "../components/ErrorToast";
 import {
   useWriteAheadQueue,
@@ -84,6 +85,7 @@ export function AppLayout() {
       <OfflineIndicator />
       <BlockedQueueBadge />
       <PhotoMigrationBanner />
+      <MigrationRetryBanner />
       <main className="flex-1 overflow-y-auto isolate">
         {/* Phase 27 (MOTION-03): keyed wrapper triggers the route cross-fade
             declared in base.css. The keyframes are wrapped in a
