@@ -21,6 +21,7 @@ export function useUserRole(): {
   retry: () => void;
 } {
   const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
   const [role, setRole] = useState<string | null | undefined>(undefined);
   // Bump to force the effect to re-run (retry affordance on the surfaced toast).
   const [reloadKey, setReloadKey] = useState(0);
@@ -28,12 +29,12 @@ export function useUserRole(): {
   const retry = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     let cancelled = false;
     supabase
       .from("profiles")
       .select("role")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single()
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -50,11 +51,15 @@ export function useUserRole(): {
           setRole(data?.role ?? null);
         }
       });
+    // WR-02: key on userId (stable across auth-store object replacement on token
+    // refresh) and DON'T setRole(undefined) on cleanup — a same-id refresh would
+    // otherwise blank the role, flip loading true, and momentarily drop isAdmin,
+    // churning admin-only UI. The `cancelled` flag alone discards stale
+    // resolutions; this stays fail-closed (a real id change unmounts/refetches).
     return () => {
       cancelled = true;
-      setRole(undefined);
     };
-  }, [user, reloadKey, retry]);
+  }, [userId, reloadKey, retry]);
 
   const loading = !!user && role === undefined;
   const error = role === ROLE_ERROR;
