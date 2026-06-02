@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 36 UI-SPEC approved
-last_updated: "2026-06-02T13:58:12.030Z"
+stopped_at: Phase 36 Plan 01 executed (error-visibility contract layer)
+last_updated: "2026-06-02T14:10:00.000Z"
 progress:
   percent: 40
 ---
@@ -71,6 +71,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 32 P05 | 4min | 2 tasks | 3 files |
 | Phase 33 P02 | 5 min | 1 tasks | 2 files |
 | Phase 34 P00 | 1 min | 2 tasks | 2 files |
+| Phase 36 P01 | ~10 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase ?]: [Phase 33]: P02: STALE_MS=300_000; stale 'processing' rows reclaimed to 'queued' at drain start via .eq('ai_status','processing').lt('claimed_at',cutoff) so a dead tab self-heals.
 - [Phase 34]: P00: multi-chunk base64 reference oracle builds binary in 8192-byte slices then btoa once (chunk-free) so it cannot share the alignment bug it guards
 - [Phase 34]: P00: render-fan-out test mocks useSessionItems to drive ItemList's 3 items; forward-references __itemCardRenderCounts (RED until Plan 02)
+- [Phase 36]: P01: toUserMessage (D-09) is the single error-copy funnel — returns exactly one of "Wrong email or password" / "Connection problem — try again" / "Something went wrong"; inlines the network-token set (mirrors sessionStore.isNetworkError) rather than importing it; navigator.onLine===false also maps to the connection string. Raw backend text never reaches the user.
+- [Phase 36]: P01: notificationStore.notifyError dedupes identical-current message (D-05, no flicker); ErrorToast gates the 6s auto-dismiss on `message===null || retry!==null` with deps [message, retry] — retryable toasts are sticky (D-06), informational still auto-dismiss. Plans 02/03 import toUserMessage before notifyError.
 
 ### Pending Todos
 
@@ -129,6 +132,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-02T13:38:27.015Z
-Stopped at: Phase 36 UI-SPEC approved
-Resume file: .planning/milestones/v1.3-phases/36-ux-visibility-polish/36-UI-SPEC.md
+Last session: 2026-06-02T14:10:00.000Z
+Stopped at: Phase 36 Plan 01 executed (error-visibility contract layer — toUserMessage D-09 + dedupe D-05 + retry-sticky D-06; 10/10 tests green, full suite 611 passed). Wave 1 done; Plans 02 & 03 (Wave 2) now unblocked — both import toUserMessage before notifyError.
+Resume file: .planning/milestones/v1.3-phases/36-ux-visibility-polish/36-02-PLAN.md

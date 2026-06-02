@@ -387,7 +387,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 36-01-PLAN.md — Wave 1: toUserMessage helper (D-09) + notificationStore dedupe (D-05) + ErrorToast retry-sticky (D-06)
+- [x] 36-01-PLAN.md — Wave 1: toUserMessage helper (D-09) + notificationStore dedupe (D-05) + ErrorToast retry-sticky (D-06)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -464,7 +464,7 @@ Plans:
 
 **Goal:** Replace base64-embedded photos in export JSON with Supabase Storage URLs fetched on demand during extension import. Current approach embeds all photos as base64, which balloons to 200-450MB for typical house visits (100-300 items x multiple photos). With Storage URLs, export JSON drops to ~500KB and photos stream one at a time during import. Requires: export emits storage paths/signed URLs instead of base64 blobs, importController fetches URL->blob->File before injection. Supabase Storage infra already exists from Phase 19.
 **Requirements:** TBD
-**Plans:** 4/4 plans complete
+**Plans:** 1/3 plans executed
 
 Plans:
 
