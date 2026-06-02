@@ -27,7 +27,13 @@ export function ProtectedRoute() {
 
   // Drain write-ahead queue first, then fetch sessions from server
   useEffect(() => {
-    if (migration.state === 'complete' || migration.state === 'not-needed') {
+    // WR-01: 'partial' is a terminal state that hands control to the app (the
+    // splash auto-dismisses to <Outlet />). It must drain the write-ahead queue
+    // and fetch sessions like 'complete'/'not-needed', or the user lands on a
+    // stale list with un-drained queued writes. The 'error'/skip path is left
+    // out deliberately: the user hasn't accepted the data state there, and skip
+    // keeps them on whatever was already loaded.
+    if (['complete', 'not-needed', 'partial'].includes(migration.state)) {
       processWriteAheadQueue().then(() => fetchSessions());
     }
   }, [migration.state, fetchSessions]);
