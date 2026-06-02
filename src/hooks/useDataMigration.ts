@@ -40,7 +40,10 @@ export function useDataMigration(userId: string | undefined) {
         ...s,
         state: result.partial ? "partial" : "complete",
         migrated: result.migrated,
-        skipped: result.skipped,
+        // Phase 38 D-10 split the return counter; `skipped` here keeps the old
+        // field name (existing ProtectedRoute consumer) pointing at failures
+        // only. Plan 02 plumbs the full failed/alreadyMigrated split + banner.
+        skipped: result.failed,
       }));
     } catch {
       setStatus((s) => ({ ...s, state: "error" }));

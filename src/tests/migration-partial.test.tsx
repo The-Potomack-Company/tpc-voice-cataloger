@@ -31,7 +31,8 @@ describe("useDataMigration partial honesty (SC3, D-07)", () => {
   it("drives state to 'partial' when result.partial is true (skipped > 0)", async () => {
     mockMigrateToSupabase.mockResolvedValue({
       migrated: 3,
-      skipped: 2,
+      alreadyMigrated: 0,
+      failed: 2,
       partial: true,
     });
 
@@ -45,7 +46,8 @@ describe("useDataMigration partial honesty (SC3, D-07)", () => {
   it("drives state to 'complete' on a clean run (partial false, skipped 0)", async () => {
     mockMigrateToSupabase.mockResolvedValue({
       migrated: 5,
-      skipped: 0,
+      alreadyMigrated: 0,
+      failed: 0,
       partial: false,
     });
 

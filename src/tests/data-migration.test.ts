@@ -23,9 +23,11 @@ vi.mock("../lib/supabase", () => ({
 // addIdMapping is spied (assertions at :212/:276) but must ALSO write real Dexie
 // so getNewIdByOldId and the ground-truth needsMigration() cleanup gate (D-09)
 // observe the mappings within a run. getNewIdByOldId stays real (indexed lookup).
+// The impl clones before .add() — Dexie mutates its arg with the auto `id`, which
+// would otherwise pollute the spy's captured call args (toHaveBeenCalledWith).
 vi.mock("../db/idMapping", async (importActual) => {
   const actual = await importActual<typeof import("../db/idMapping")>();
-  mockAddIdMapping.mockImplementation(actual.addIdMapping);
+  mockAddIdMapping.mockImplementation((m) => actual.addIdMapping({ ...m }));
   return {
     addIdMapping: mockAddIdMapping,
     getNewIdByOldId: actual.getNewIdByOldId,
@@ -113,7 +115,7 @@ describe("data migration", () => {
     // Re-bind the real-writing impl after clearAllMocks wiped it.
     const actual =
       await vi.importActual<typeof import("../db/idMapping")>("../db/idMapping");
-    mockAddIdMapping.mockImplementation(actual.addIdMapping);
+    mockAddIdMapping.mockImplementation((m) => actual.addIdMapping({ ...m }));
   });
 
   afterEach(async () => {
@@ -153,6 +155,7 @@ describe("data migration", () => {
         oldId: itemId!,
         newId: "uuid-item",
         type: "item",
+        itemTable: "house",
       });
       const result = await needsMigration();
       expect(result).toBe(false);
@@ -307,6 +310,7 @@ describe("data migration", () => {
         oldId: itemId,
         newId: "supabase-item-1",
         type: "item",
+        itemTable: "house",
       });
     });
 
@@ -342,7 +346,7 @@ describe("data migration", () => {
       expect(onProgress).toHaveBeenCalledWith(2, 2);
     });
 
-    it("returns { migrated, skipped } counts", async () => {
+    it("returns { migrated, alreadyMigrated, failed, partial } counts", async () => {
       const sessId = await db.sessions.add(makeDexieSession());
       await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
 
@@ -362,7 +366,12 @@ describe("data migration", () => {
       const onProgress = vi.fn();
       const result = await migrateToSupabase("user-123", onProgress);
 
-      expect(result).toEqual({ migrated: 1, skipped: 0, partial: false });
+      expect(result).toEqual({
+        migrated: 1,
+        alreadyMigrated: 0,
+        failed: 0,
+        partial: false,
+      });
     });
 
     it("after successful migration, Dexie sessions/houseVisitItems/saleItems/exportHistory tables are cleared", async () => {
@@ -435,7 +444,7 @@ describe("data migration", () => {
       // idMapping will have entries from addIdMapping calls (which is mocked)
     });
 
-    it("on individual item insert error, item is skipped (counted in skipped), migration continues", async () => {
+    it("on individual item insert error, item is counted in failed, migration continues", async () => {
       const sessId = await db.sessions.add(makeDexieSession());
       await db.houseVisitItems.add(makeDexieHouseItem(sessId!));
       await db.houseVisitItems.add(
@@ -475,7 +484,7 @@ describe("data migration", () => {
       const result = await migrateToSupabase("user-123", onProgress);
 
       expect(result.migrated).toBe(1);
-      expect(result.skipped).toBe(1);
+      expect(result.failed).toBe(1);
     });
 
     it("preserves failed records on partial migration (DAT-1)", async () => {
@@ -553,8 +562,8 @@ describe("data migration", () => {
       const result = await migrateToSupabase("user-123", onProgress);
 
       // (a) partial run reported.
-      // FailItem (1) + OrphanItem under FailSession (1) skipped = 2.
-      expect(result.skipped).toBe(2);
+      // FailItem (1) + OrphanItem under FailSession (1) failed = 2.
+      expect(result.failed).toBe(2);
       expect(result.migrated).toBe(2); // GoodItem + GoodSale
       expect(result.partial).toBe(true);
 

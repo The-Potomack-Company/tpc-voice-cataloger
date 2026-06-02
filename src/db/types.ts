@@ -96,6 +96,10 @@ export interface IdMapping {
   oldId: number;
   newId: string;
   type: "session" | "item";
+  // Disambiguates house vs sale items: both Dexie tables have independent ++id
+  // keyspaces, so oldId is not unique across them. Unindexed additive field
+  // (no schema migration); only present on item mappings written by Phase 38+.
+  itemTable?: "house" | "sale";
 }
 
 export interface WriteAheadEntry {
