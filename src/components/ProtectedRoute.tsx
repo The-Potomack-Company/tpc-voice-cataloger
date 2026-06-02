@@ -68,7 +68,6 @@ export function ProtectedRoute() {
             state={migration.state}
             current={migration.current}
             total={migration.total}
-            skipped={migration.failed}
             onRetry={migration.retry}
             onSkip={dismissMigration}
             onComplete={dismissMigration}

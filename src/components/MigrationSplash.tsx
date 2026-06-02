@@ -9,7 +9,9 @@ interface MigrationSplashProps {
   state: "in-progress" | "partial" | "complete" | "error";
   current: number;
   total: number;
-  skipped: number;
+  // WR-03: there is intentionally NO `skipped`/failed count prop. The splash's
+  // partial/error copy is deliberately count-free (locked "no count in splash"
+  // decision); the failed-count "N" surface is MigrationRetryBanner, not here.
   onRetry: () => void;
   onSkip: () => void;
   onComplete: () => void;
