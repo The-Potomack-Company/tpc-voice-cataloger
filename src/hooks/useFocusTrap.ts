@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 /**
  * Zero-dependency focus trap for modal dialogs (Phase 37, D-01).
@@ -51,6 +51,14 @@ export function useFocusTrap(
   panelRef: RefObject<HTMLElement | null>,
   { onClose, initialFocusRef }: UseFocusTrapOptions,
 ): void {
+  // CR-01: hold the live onClose in a ref so the keydown handler always calls
+  // the latest closure WITHOUT putting onClose in the effect deps. Callers pass
+  // a fresh onClose each render (inline arrows); keeping it in deps tore down
+  // and re-armed the trap on every parent re-render, stealing focus back to the
+  // initial element mid-interaction and corrupting the focus-restore target.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
@@ -70,7 +78,7 @@ export function useFocusTrap(
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -104,5 +112,5 @@ export function useFocusTrap(
         previouslyFocused.focus();
       }
     };
-  }, [panelRef, onClose, initialFocusRef]);
+  }, [panelRef, initialFocusRef]);
 }

@@ -132,4 +132,50 @@ describe("useFocusTrap", () => {
     expect(screen.queryByTestId("trigger")).toBeNull();
     expect(document.activeElement).not.toBe(null);
   });
+
+  // CR-01 regression: a parent re-render that hands the trap a NEW onClose
+  // identity (every caller passes inline arrows) must NOT tear down + re-arm
+  // the trap. If it did, focus would be yanked back to the first focusable and
+  // the user's caret/active element would be lost mid-interaction. We force the
+  // re-render with rerender() (a fresh prop) rather than a click, because a
+  // click would itself move focus to the clicked control and mask the defect.
+  it("does not steal focus when the parent re-renders with a new onClose", () => {
+    function ReRenderHarness({ tick }: { tick: number }) {
+      const panelRef = useRef<HTMLDivElement>(null);
+      const secondBtnRef = useRef<HTMLButtonElement>(null);
+      return (
+        <Panel
+          panelRef={panelRef}
+          secondBtnRef={secondBtnRef}
+          // NEW closure every render (depends on `tick`) — the defect-trigger.
+          onClose={() => void tick}
+        />
+      );
+    }
+
+    const { rerender } = render(<ReRenderHarness tick={0} />);
+    // Initial focus lands on "first"; move the user into the panel.
+    screen.getByTestId("second").focus();
+    expect(screen.getByTestId("second")).toHaveFocus();
+
+    // Re-render with a new onClose identity. Focus must stay put.
+    rerender(<ReRenderHarness tick={1} />);
+    expect(screen.getByTestId("second")).toHaveFocus();
+    expect(screen.getByTestId("first")).not.toHaveFocus();
+  });
+
+  // CR-01 restore-target integrity: after the user moves focus inside the
+  // panel and the parent re-renders, unmounting must still restore focus to the
+  // original opener (the trigger), not to a now-detached panel child.
+  it("restores focus to the opener even after a mid-trap parent re-render", async () => {
+    const user = userEvent.setup();
+    render(<TrapHarness onClose={vi.fn()} />);
+    const trigger = screen.getByTestId("trigger");
+    await user.click(trigger);
+    // User moves focus inside the panel.
+    screen.getByTestId("second").focus();
+    // Close: restore must target the opener, not the panel child.
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+  });
 });
