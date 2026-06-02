@@ -426,16 +426,13 @@ const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 **Confirm A4/A5 on the first written test** — they gate all jest-axe/Playwright wiring.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Keyboard e2e auth path**
+1. **Keyboard e2e auth path** — RESOLVED: Plan 37-03 Task 3 scopes the keyboard-only axe/e2e gate to the deepest unauthenticated-reachable surface and uses per-component jest-axe for authed screens; if an authed storage-state fixture is unavailable at execution, the authed record→edit→save leg is recorded as a HUMAN-UAT item (consistent with the v1.3 defer-UAT-to-milestone-end policy) rather than dropping SC4.
    - What we know: `playwright.config.ts` gates protected routes behind `SUPABASE_URL`; existing smoke spec runs login + theme toggle without creds.
-   - What's unclear: whether the record→edit→save flow needs an authenticated session fixture or can run against a seeded/mock state.
-   - Recommendation: planner decides — either add a storage-state auth fixture (matching `tests/e2e/visual-smoke.spec.ts`) or scope the keyboard gate to the deepest unauthenticated-reachable surface plus per-component jest-axe for the authed screens.
 
-2. **Nested-modal trap behavior (PhotoLightbox + ConfirmDialog)**
+2. **Nested-modal trap behavior (PhotoLightbox + ConfirmDialog)** — RESOLVED: Plan 37-02 Task 2 migrates PhotoLightbox onto `<Modal>` and Task 3 adds an explicit nested-trap test asserting that opening the inner ConfirmDialog moves focus into it and Escape returns to the lightbox (not all the way out).
    - What we know: lightbox embeds a ConfirmDialog; both will be `<Modal>`.
-   - Recommendation: explicit test that opening the inner confirm moves focus into it and Escape returns to the lightbox, not all the way out.
 
 ## Environment Availability
 

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 36 Plan 03 executed (remaining silent paths — migration partial honesty, useUserRole fail-closed, offlineQueue surfacing); phase 36 complete (3/3 plans)
-last_updated: "2026-06-02T14:16:00.000Z"
+stopped_at: Phase 37 UI-SPEC approved
+last_updated: "2026-06-02T15:06:34.600Z"
 progress:
   percent: 40
 ---
@@ -136,6 +136,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-02T14:16:00.000Z
-Stopped at: Phase 36 Plan 03 executed (remaining silent paths — migration partial honesty SC3/D-07, useUserRole fail-closed SC4/ASVS-V4, offlineQueue read surfacing T-36-07; 25/25 plan tests green, full suite 631 passed). Phase 36 COMPLETE (3/3 plans). Next: Phase 37 (a11y-foundation) — `/gsd-discuss-phase 37`.
-Resume file: none (phase 36 done — proceed to phase 37 or phase verification)
+Last session: 2026-06-02T14:35:38.359Z
+Stopped at: Phase 37 UI-SPEC approved
+Resume file: .planning/milestones/v1.3-phases/37-a11y-foundation/37-UI-SPEC.md

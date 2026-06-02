@@ -1,8 +1,8 @@
 ---
 phase: 37
 slug: a11y-foundation
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-06-02
 ---
@@ -39,9 +39,17 @@ created: 2026-06-02
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | — | — | A11Y / SC1-4 | — | focus-trap can't be escaped except via Escape/close | unit + axe | `npx vitest run` | ❌ W0 | ⬜ pending |
+| 37-01-01 | 01 | 1 | D-05 / SC4 | T-37-SC | dev-deps test-only, no shipped runtime dep | setup | `npx vitest run` (matcher loads) | ❌ W0 | ⬜ pending |
+| 37-01-02 | 01 | 1 | D-01 / SC1 | T-37-01 | focus trap escapable only via Escape/close | unit (tdd) | `npx vitest run src/tests/a11y/use-focus-trap.test.tsx` | ❌ W0 | ⬜ pending |
+| 37-01-03 | 01 | 1 | D-02 / SC1 | T-37-01 | Modal sets role=dialog + aria-modal, restores focus | unit (tdd) | `npx vitest run src/tests/a11y/modal.test.tsx` | ❌ W0 | ⬜ pending |
+| 37-02-01 | 02 | 2 | D-02 / SC1 | — | ConfirmDialog/ReturnDialog/ItemPeekModal trap + label | unit + axe | `npx vitest run src/tests/a11y/modal-migration.test.tsx` | ❌ W0 | ⬜ pending |
+| 37-02-02 | 02 | 2 | D-02 / SC1 | — | PhotoLightbox nested-trap; MigrationSplash reduced-motion | unit + axe | `npx vitest run src/tests/a11y/nested-trap.test.tsx` | ❌ W0 | ⬜ pending |
+| 37-02-03 | 02 | 2 | SC4 | — | all 5 modals pass jest-axe toHaveNoViolations | axe | `npx vitest run src/tests/a11y/modal-axe.test.tsx` | ❌ W0 | ⬜ pending |
+| 37-03-01 | 03 | 2 | D-03/D-06/D-07 / SC2,SC3 | — | ⋯ trigger 44px + aria-label; menu keyboard-navigable | unit + axe | `npx vitest run src/tests/a11y/overflow-menu.test.tsx src/tests/a11y/touch-targets.test.tsx` | ❌ W0 | ⬜ pending |
+| 37-03-02 | 03 | 2 | D-03/D-04 / SC3 | — | ⋯ delete routes to existing ConfirmDialog, no new destructive path | unit | `npx vitest run src/tests/a11y/row-overflow-delete.test.tsx` | ❌ W0 | ⬜ pending |
+| 37-03-03 | 03 | 2 | SC4 | — | keyboard-only flow + axe clean (authed leg → HUMAN-UAT if no fixture) | e2e (playwright + axe) | `npx playwright test tests/e2e/a11y-keyboard.spec.ts` | ❌ W0 | ⬜ pending |
 
-*Planner replaces TBD rows from PLAN.md tasks.*
+*Sampling continuity: every task has an automated command; no 3-consecutive-task gap. `touch-targets.test.tsx` is authored RED-first inside Plan 03 Task 1 alongside OverflowMenu (not a separate Wave-0 stub).*
 
 ---
 
@@ -64,11 +72,11 @@ created: 2026-06-02
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 90s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (dev-deps + jest-axe matcher + test scaffolds in Plan 01 Task 1)
+- [x] No watch-mode flags
+- [x] Feedback latency < 90s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-06-02
