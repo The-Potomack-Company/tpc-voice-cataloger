@@ -30,7 +30,11 @@ export async function getDexieSessionId(
  * Reverse lookup: the Supabase UUID for a legacy Dexie integer ID. Used by the
  * idempotent migration guard (D-04) to skip re-inserting a row that already
  * reached Supabase on a prior (partial) run. The [oldId+type] index (v12)
- * makes this an indexed lookup, mirroring getDexieItemId/getDexieSessionId.
+ * makes the candidate fetch an indexed lookup, mirroring
+ * getDexieItemId/getDexieSessionId. When itemTable is supplied (the path that
+ * runs during migration), the discriminator is applied as an in-memory
+ * .filter() over that small indexed [oldId+type] candidate set, not as a second
+ * index — correct and cheap since a colliding pair is only 1-2 rows.
  *
  * itemTable disambiguates house vs sale: houseVisitItems and saleItems are
  * separate Dexie tables with INDEPENDENT ++id keyspaces, so a house item and a
