@@ -7,16 +7,18 @@ export function ErrorToast() {
   const retry = useNotificationStore((s) => s.retry);
   const dismiss = useNotificationStore((s) => s.dismiss);
 
-  // Auto-dismiss after 6 seconds, keyed on the current message.
+  // Auto-dismiss after 6 seconds — but only for informational toasts. A toast
+  // carrying a retry callback is sticky (D-06): it must persist until the user
+  // taps Try Again or Dismiss, so we never schedule the timer when retry !== null.
   useEffect(() => {
-    if (message === null) return;
+    if (message === null || retry !== null) return;
 
     const timer = setTimeout(() => {
       useNotificationStore.getState().dismiss();
     }, 6000);
 
     return () => clearTimeout(timer);
-  }, [message]);
+  }, [message, retry]);
 
   if (message === null) {
     return null;

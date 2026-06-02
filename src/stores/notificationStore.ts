@@ -10,6 +10,7 @@ interface NotificationState {
 export const useNotificationStore = create<NotificationState>()((set) => ({
   message: null,
   retry: null,
-  notifyError: (message, retry) => set({ message, retry: retry ?? null }),
+  notifyError: (message, retry) =>
+    set((s) => (s.message === message ? s : { message, retry: retry ?? null })),
   dismiss: () => set({ message: null, retry: null }),
 }));
