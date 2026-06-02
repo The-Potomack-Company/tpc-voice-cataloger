@@ -97,6 +97,10 @@ export function OverflowMenu({
     const items = Array.from(
       menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
     );
+    // WR-01: the Arrow branches compute `% items.length`; an empty menu would
+    // make that NaN. Bail before any index arithmetic (also documents the
+    // never-empty invariant for this reusable primitive).
+    if (items.length === 0) return;
     const activeIndex = items.indexOf(document.activeElement as HTMLElement);
     if (e.key === "Escape") {
       e.preventDefault();
