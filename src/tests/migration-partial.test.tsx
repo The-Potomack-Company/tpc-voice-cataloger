@@ -39,14 +39,15 @@ describe("useDataMigration partial honesty (SC3, D-07)", () => {
     const { result } = renderHook(() => useDataMigration("user-1"));
 
     await waitFor(() => expect(result.current.state).toBe("partial"));
-    expect(result.current.skipped).toBe(2);
+    expect(result.current.failed).toBe(2);
+    expect(result.current.alreadyMigrated).toBe(0);
     expect(result.current.migrated).toBe(3);
   });
 
-  it("drives state to 'complete' on a clean run (partial false, skipped 0)", async () => {
+  it("drives state to 'complete' on a clean run (partial false, failed 0)", async () => {
     mockMigrateToSupabase.mockResolvedValue({
       migrated: 5,
-      alreadyMigrated: 0,
+      alreadyMigrated: 1,
       failed: 0,
       partial: false,
     });
@@ -54,7 +55,8 @@ describe("useDataMigration partial honesty (SC3, D-07)", () => {
     const { result } = renderHook(() => useDataMigration("user-1"));
 
     await waitFor(() => expect(result.current.state).toBe("complete"));
-    expect(result.current.skipped).toBe(0);
+    expect(result.current.failed).toBe(0);
+    expect(result.current.alreadyMigrated).toBe(1);
   });
 });
 

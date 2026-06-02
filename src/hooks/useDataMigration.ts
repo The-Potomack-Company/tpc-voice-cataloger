@@ -17,7 +17,8 @@ interface MigrationStatus {
   current: number;
   total: number;
   migrated: number;
-  skipped: number;
+  alreadyMigrated: number;
+  failed: number;
 }
 
 export function useDataMigration(userId: string | undefined) {
@@ -26,7 +27,8 @@ export function useDataMigration(userId: string | undefined) {
     current: 0,
     total: 0,
     migrated: 0,
-    skipped: 0,
+    alreadyMigrated: 0,
+    failed: 0,
   });
 
   const runMigration = useCallback(async () => {
@@ -40,10 +42,10 @@ export function useDataMigration(userId: string | undefined) {
         ...s,
         state: result.partial ? "partial" : "complete",
         migrated: result.migrated,
-        // Phase 38 D-10 split the return counter; `skipped` here keeps the old
-        // field name (existing ProtectedRoute consumer) pointing at failures
-        // only. Plan 02 plumbs the full failed/alreadyMigrated split + banner.
-        skipped: result.failed,
+        // D-10: surface the failed/alreadyMigrated split so MigrationRetryBanner
+        // can show the failed-only "N" while idempotent skips stay invisible.
+        alreadyMigrated: result.alreadyMigrated,
+        failed: result.failed,
       }));
     } catch {
       setStatus((s) => ({ ...s, state: "error" }));
