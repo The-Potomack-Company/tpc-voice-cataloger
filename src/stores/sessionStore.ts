@@ -430,7 +430,7 @@ export const useSessionStore = create<SessionState>()(
         // updated_at token (intent-preserving — last human intent wins). buildPatch
         // is the default (re-apply verbatim); exhaustion surfaces its own toast.
         try {
-          await preconditionUpdate({
+          const res = await preconditionUpdate({
             table: "items",
             id: itemId,
             prevUpdatedAt: (originalItem as Record<string, unknown>).updated_at as
@@ -439,6 +439,24 @@ export const useSessionStore = create<SessionState>()(
               | undefined,
             patch: { [field]: value },
           });
+          // WR-02: the trigger just bumped updated_at and the helper returns the fresh
+          // row. Fold the new token into local state so the NEXT edit to this item
+          // preconditions against the current token instead of a stale/absent one —
+          // otherwise every subsequent same-item edit starts with a guaranteed
+          // first-attempt 0-row + extra re-read, and freshly-created items stay tokenless.
+          if (res.status === "applied") {
+            const freshToken = (res.row as { updated_at?: string }).updated_at;
+            if (freshToken) {
+              set((state) => ({
+                itemsBySession: {
+                  ...state.itemsBySession,
+                  [sessionId]: (state.itemsBySession[sessionId] ?? []).map((i) =>
+                    i.id === itemId ? { ...i, updated_at: freshToken } : i,
+                  ),
+                },
+              }));
+            }
+          }
           scheduleFieldEditEvent(itemId, sessionId, field);
         } catch (err) {
           if (isNetworkError(err)) {
