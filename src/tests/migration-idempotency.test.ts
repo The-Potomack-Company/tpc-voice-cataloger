@@ -204,6 +204,55 @@ describe("migration idempotency (SC2/SC4)", () => {
     expect(await db.sessions.count()).toBe(0);
   });
 
+  it("WR-02: session insert fails but an already-mapped child is counted alreadyMigrated + cleaned up, not failed", async () => {
+    // Interrupted-run shape: a prior run mapped an item but crashed before the
+    // session mapping was written. This run's session insert fails again. The
+    // mapped item must NOT be counted failed (it's safely in Supabase) and must
+    // be queued for bulkDelete; only the genuinely-unmapped sibling is failed.
+    const sessId = await db.sessions.add(makeDexieSession({ name: "Interrupted" }));
+    const mappedHouseId = await db.houseVisitItems.add(
+      makeDexieHouseItem(sessId!, { title: "AlreadyInSupabase", sortOrder: 0 }),
+    );
+    await db.houseVisitItems.add(
+      makeDexieHouseItem(sessId!, { title: "NeverMigrated", sortOrder: 1 }),
+    );
+    // Prior run mapped only the item, never the session.
+    await db.idMapping.add({
+      oldId: mappedHouseId!,
+      newId: "item-prior",
+      type: "item",
+      itemTable: "house",
+    });
+
+    // Force the session insert to fail this run; items never get a chance to insert.
+    mockFrom.mockImplementation((table: string) => ({
+      insert: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockImplementation(() =>
+            Promise.resolve(
+              table === "sessions"
+                ? { data: null, error: { message: "session insert failed" } }
+                : { data: { id: "should-not-happen" }, error: null },
+            ),
+          ),
+        }),
+      }),
+    }));
+
+    const result = await migrateToSupabase("user-123", vi.fn());
+
+    // The mapped item is alreadyMigrated, the unmapped sibling is the only failure.
+    expect(result.alreadyMigrated).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(result.partial).toBe(true);
+    expect(result.migrated).toBe(0);
+
+    // The already-mapped dead recovery row was cleaned up; the failed one stays.
+    expect(await db.houseVisitItems.get(mappedHouseId!)).toBeUndefined();
+    const survivors = await db.houseVisitItems.toArray();
+    expect(survivors.map((i) => i.title)).toEqual(["NeverMigrated"]);
+  });
+
   it("house and sale items with colliding ++id are not confused by the reverse guard", async () => {
     // House item id and sale item id both auto-increment from 1 → collision.
     const sessId = await db.sessions.add(makeDexieSession({ name: "Collide" }));

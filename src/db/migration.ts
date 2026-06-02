@@ -87,7 +87,12 @@ export async function migrateToSupabase(
         .single();
 
       if (sessError || !newSession) {
-        // Whole-session insert failed → every item under it is a failure.
+        // WR-02: the session insert failed, but a prior interrupted run may have
+        // already migrated+mapped some of these items (crashed between the item
+        // mapping and the session mapping). Those items ARE in Supabase, so count
+        // them alreadyMigrated and push them into the delete lists for cleanup —
+        // counting them `failed` would inflate the banner "N" and leak their dead
+        // recovery rows forever. Only genuinely-unmapped items are failures.
         const hItems = await db.houseVisitItems
           .where("sessionId")
           .equals(dexieSession.id!)
@@ -96,7 +101,22 @@ export async function migrateToSupabase(
           .where("sessionId")
           .equals(dexieSession.id!)
           .toArray();
-        failed += hItems.length + sItems.length;
+        for (const it of hItems) {
+          if (await getNewIdByOldId(it.id!, "item", "house")) {
+            alreadyMigrated++;
+            migratedHouseItemIds.push(it.id!);
+          } else {
+            failed++;
+          }
+        }
+        for (const it of sItems) {
+          if (await getNewIdByOldId(it.id!, "item", "sale")) {
+            alreadyMigrated++;
+            migratedSaleItemIds.push(it.id!);
+          } else {
+            failed++;
+          }
+        }
         onProgress(migrated + failed + alreadyMigrated, totalItems);
         continue;
       }
