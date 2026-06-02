@@ -35,3 +35,36 @@ the `meta-viewport` rule rather than silently flipping zoom behavior.
 **Decision needed:** confirm whether to drop `user-scalable=no` (a11y win, but
 changes mobile pinch-zoom UX for the PWA). If yes, edit `index.html:5` and remove
 the `meta-viewport` entry from `.disableRules([...])` in `keyboard-flow.spec.ts`.
+
+## From code review post-fix (WR-05, IN-03)
+
+### UAT-37-03 — MigrationSplash error-state Escape maps to onSkip (WR-05)
+
+**Why deferred:** The WR-05 fix (commit `e651dc7`) correctly wires
+`onClose: state === "error" ? onSkip : () => {}` in `MigrationSplash`. No
+automated test covers the error-state-specific keyboard path because triggering
+the `error` state requires real migration infrastructure.
+
+**How to verify:**
+1. Force or observe a migration error (disconnect network mid-migration, or
+   temporarily throw in `useDataMigration`).
+2. When MigrationSplash is in the error state (shows "Retry Migration" /
+   "Skip and Continue" buttons), confirm focus lands on a button.
+3. Press Escape. Expected: the "Skip and Continue" action fires and the modal
+   dismisses. Focus should not escape the modal before dismissal; keyboard user
+   should not be stranded.
+
+### UAT-37-04 — MigrationSplash auto-dismiss timer does not restart on parent re-render (IN-03)
+
+**Why deferred:** The IN-03 fix (commit `2798f97`) stabilizes `onComplete` in a
+ref so an unstable parent closure does not re-arm the 1500/1800ms dismiss timers.
+Verifying timer-restart behavior requires real Dexie-driven parent re-renders
+during an active migration.
+
+**How to verify:**
+1. Start a migration that completes successfully (or partial — both trigger the
+   timer).
+2. Observe the splash behavior: it should begin fading at approximately 1.5s and
+   fully dismiss at approximately 1.8s.
+3. Confirm it does not restart or delay — the dismiss timing should be consistent
+   regardless of Dexie progress events firing during that window.
