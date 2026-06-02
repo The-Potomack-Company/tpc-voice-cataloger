@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
-stopped_at: Phase 38 UI-SPEC approved
-last_updated: "2026-06-02T16:11:40.029Z"
+stopped_at: Phase 38 Plan 01 complete
+last_updated: "2026-06-02T16:22:00.000Z"
 progress:
   percent: 40
 ---
@@ -77,6 +77,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 37 P01 | ~9 min | 3 tasks | 6 files |
 | Phase 37 P02 | ~10 min | 3 tasks | 7 files |
 | Phase 37 P03 | ~12 min | 3 tasks | 10 files |
+| Phase 38 P01 | ~9 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,7 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase 37]: P03: OverflowMenu (⋯) primitive (D-03, hand-rolled, no portal — relative dropdown) wired into ItemCard/SessionTile/SessionCard via the EXISTING delete path (D-04, no new delete logic): ItemCard→setShowDeleteConfirm, SessionTile/Card→onDelete prop; swipe gesture kept (additive). 44px trigger (min-h-11 min-w-11, aria-label/title "More actions", aria-haspopup=menu+aria-expanded); items carry tpc-btn for the A11Y-02 ring, destructive Delete uses --err ink; Escape closes+restores focus to trigger, arrow-key roving, outside-click/Tab close; open/close gated on prefers-reduced-motion. Keyboard-only e2e (tests/e2e/keyboard-flow.spec.ts) + @axe-core/playwright scan on /login (deepest unauthenticated-reachable surface, SC4) — green; authed record→edit→save leg gated behind SUPABASE_URL → UAT-37-01. [Rule 2] Login wrapped in <main> to close pre-existing axe landmark-one-main/region. meta-viewport user-scalable=no (WCAG 1.4.4, app-wide PWA setting) excluded from scan → UAT-37-02. Full suite 682 pass, tsc clean. 37-HUMAN-UAT.md created (2 items).
 - [Phase 37]: P02: all 5 modals migrated onto <Modal> (D-02) — ConfirmDialog (8 callers inherit, signature unchanged), ReturnDialog (textarea initialFocusRef), ItemPeekModal (gains role/aria-modal/Escape + 44px close btn — biggest prior gap closed), PhotoLightbox (bareOverlay full-screen, swipe nav kept, nested ConfirmDialog), MigrationSplash (folds trap in directly, opacity fade gated on prefers-reduced-motion, pre-existing TS6133 'skipped' resolved). <Modal> extended with additive overlayClassName/panelClassName/bareOverlay props (defaults preserve centered-card look) so non-centered modals route through it without forking. Nested-trap needs NO explicit stack: sibling portals to document.body, each useFocusTrap keydown bound to its own panel → Escape inside inner confirm fires only inner listener, returns focus to lightbox (T-37-03 mitigated, explicit test). jest-axe scan (color-contrast off) for all 5 + nested-trap + reduced-motion in src/tests/a11y/modals.test.tsx (22 tests). Full suite 671 pass, tsc clean.
 - [Phase 37]: P01: useFocusTrap (D-01, zero deps) filters focusables via getComputedStyle (display/visibility/hidden/aria-hidden), NOT offsetParent — offsetParent is always null under jsdom and silently emptied the focusable set. Recomputes on each Tab keydown (Pitfall 2); isConnected guard on restore so a deleted trigger can't throw (Pitfall 4). <Modal> (D-02) portals to document.body, --bg-3 scrim via color-mix(in oklch,...), scrim-click + Escape both onClose, open transition gated on prefers-reduced-motion. jest-axe + @axe-core/playwright are devDeps ONLY (D-05, never shipped); no @types/jest-axe (jest-axe@10 bundles its own types). Plans 02/03 wire against useFocusTrap(panelRef,{onClose,initialFocusRef?}) + <Modal open onClose ariaLabelledBy?/ariaLabel? initialFocusRef?>.
+- [Phase 38]: P01: migration is now idempotent at the data layer. needsMigration() is per-row (D-01/D-02) — true while any non-deleted session OR house/sale item lacks an idMapping row (replaces the count short-circuit). getNewIdByOldId reverse helper + Dexie v12 [oldId+type] index guard the session insert (the dangerous duplicate path) and both item loops (D-05); return shape is now { migrated, alreadyMigrated, failed, partial } with partial=failed>0 (D-10); exportHistory cleared on post-run ground-truth needsMigration() (D-09). **[Rule 1] houseVisitItems and saleItems have independent ++id keyspaces** → a sale item id collides with a migrated house item id and the reverse guard would silently skip it (data loss). Fixed with an additive **unindexed** itemTable?:"house"|"sale" field on item idMapping rows (no schema migration; type stays "session"|"item" per the locked contract; forward getDexieItemId/photoMigration filters unaffected). Hook maps legacy skipped<-failed to keep ProtectedRoute compiling; full failed/alreadyMigrated plumbing + MigrationRetryBanner is Plan 02. Full suite 690 pass, tsc clean.
 - [Phase 36]: P02: import atomicity (D-01) is client-side compensating rollback — handleImport tracks createdSessionId + createdItemIds, on mid-loop throw deletes in reverse order best-effort then sticky notifyError; NO transactional RPC, NO schema change (SC2). A3/Q2 resolved: deleteSession/deleteItem are Supabase+zustand (FK cascade), not Dexie idMapping — no explicit Dexie cleanup needed. Export catch blocks + doCreate use fixed UI-SPEC copy; Login uses toUserMessage (T-36-02 — two old tests asserting raw 'Invalid login credentials' updated to 'Wrong email or password').
 
 ### Pending Todos
@@ -142,6 +144,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-02T15:50:40.179Z
-Stopped at: Phase 38 UI-SPEC approved
-Resume file: .planning/milestones/v1.3-phases/38-migration-retryability/38-UI-SPEC.md
+Last session: 2026-06-02T16:22:00.000Z
+Stopped at: Phase 38 Plan 01 complete (data layer); Plan 02 (banner/hook plumbing) next
+Resume file: .planning/milestones/v1.3-phases/38-migration-retryability/38-02-PLAN.md

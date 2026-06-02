@@ -435,7 +435,7 @@ Plans:
 
 **Wave 1**
 
-- [ ] 38-01-PLAN.md — Data layer (TDD): Dexie v12 [oldId+type] index + getNewIdByOldId, per-row needsMigration (D-01/D-02), lookup-before-insert guards on session + item loops (D-05), failed/alreadyMigrated counter split (D-10), ground-truth exportHistory cleanup (D-09) — SC1/SC2/SC4
+- [x] 38-01-PLAN.md — Data layer (TDD): Dexie v12 [oldId+type] index + getNewIdByOldId, per-row needsMigration (D-01/D-02), lookup-before-insert guards on session + item loops (D-05), failed/alreadyMigrated counter split (D-10), ground-truth exportHistory cleanup (D-09) — SC1/SC2/SC4
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
