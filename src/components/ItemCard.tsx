@@ -11,6 +11,7 @@ import { useAudioUploadStatus } from "../hooks/useAudioUploadStatus";
 import { retryFailedUploads } from "../services/audioUploadQueue";
 import { Badge } from "../ui/Badge";
 import { AiFailureBanner } from "./AiFailureBanner";
+import { OverflowMenu } from "../ui/OverflowMenu";
 
 type SupabaseItem = Tables<"items">;
 
@@ -229,6 +230,21 @@ function ItemCardImpl({
                   />
                 </svg>
               </button>
+            )}
+
+            {/* Accessible-equivalent of swipe-to-delete (D-03). Routes through
+                the existing local ConfirmDialog via setShowDeleteConfirm — no
+                new delete path (D-04). */}
+            {!readOnly && (
+              <OverflowMenu
+                actions={[
+                  {
+                    label: "Delete",
+                    destructive: true,
+                    onSelect: () => setShowDeleteConfirm(true),
+                  },
+                ]}
+              />
             )}
           </div>
         </div>

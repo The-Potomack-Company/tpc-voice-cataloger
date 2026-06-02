@@ -16,6 +16,7 @@ import { useLongPress } from "../hooks/useLongPress";
 import { SwipeableRow } from "./SwipeableRow";
 import { Badge } from "../ui/Badge";
 import { Icon } from "../ui/icons";
+import { OverflowMenu } from "../ui/OverflowMenu";
 import type { Tables } from "../db/database.types";
 
 type SupabaseSession = Tables<"sessions">;
@@ -195,6 +196,12 @@ export function SessionTile({
             {assigneeName && <span>{` · ${assigneeName}`}</span>}
           </div>
         </div>
+
+        {/* Accessible-equivalent of swipe-to-delete (D-03/D-04): routes
+            through the same onDelete the parent already confirms. */}
+        <OverflowMenu
+          actions={[{ label: "Delete", destructive: true, onSelect: onDelete }]}
+        />
 
         <Icon name="chev" size={14} style={{ color: "var(--ink-4)" }} aria-hidden />
       </div>
