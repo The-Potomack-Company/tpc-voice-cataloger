@@ -20,17 +20,17 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 ## Current Position
 
-Phase: 39
-Plan: Not started
-Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29); 4/10 phases done (31, 32, 33, 34)
-Status: Ready to execute
+Phase: 39 (optimistic-locking) — COMPLETE 2026-06-02 (3/3 plans, 4/4 SC verified)
+Plan: 3/3 complete
+Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
+Status: Phase 39 complete; Phase 40 (ai-proxy-cloud-run-migration, cross-app) next
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
 Progress: [████░░░░░░] 40%
 
-Next action: Phase 34 (ios-memory-optimization) COMPLETE — PERF-1 chunked base64 encoder (CR-01 iOS-JSC arg-spread crash found in code review + fixed, commit f655226), PERF-3 ItemList aggregate hoist + React.memo ItemCard (~4N subscriptions → 1; render-count test green), PERF-2 deferred (D-04/D-050). Phase 35 (ai-correctness-track-2) is next — `/gsd-discuss-phase 35` then plan/execute. Deferred to v1.3 milestone end: branch push + on-device UAT batch — now owes **two** HUMAN-UAT files (`33-HUMAN-UAT.md` 3 items + `34-HUMAN-UAT.md` 1 item: iOS memory smoke). All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED.
+Next action: Phase 39 (optimistic-locking) COMPLETE — items.updated_at version-token migration APPLIED TO PROD (trigger bump empirically verified, rolled-back tx; remote migration history reconciled to 20260603000000); shared `preconditionUpdate` helper (0-row conflict → bounded re-read/reconcile → notifyError on exhaustion) now wires updateItemField (user intent-preserving), the AI continuous-merge (D-06 per-field compare-and-skip; UI dormant D-050), and the offline write-ahead flush (precondition + Pitfall-5 retain + Pitfall-6 legacy fallback). Deep code review found + fixed CR-01 (undefined-token silent clobber) + WR-02 (stale local token). 710 tests pass, build clean. Phase 40 (ai-proxy-cloud-run-migration) is the last v1.3 phase — **cross-app infra**, drive via `/tpc-coordinate`, not a plain in-repo phase. Recommended before advancing: `/gsd:secure-phase 39` (threat model T-39-00..SC, no SECURITY.md yet). Deferred to v1.3 milestone end: branch push + on-device UAT batch — now owes **three** HUMAN-UAT files (`33` 3 items + `34` 1 item + `39-HUMAN-UAT.md` 1 item: cross-session live edit race). All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED.
 
 ## v1.3 Phase Queue
 
