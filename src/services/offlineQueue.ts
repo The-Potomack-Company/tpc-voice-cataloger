@@ -4,6 +4,8 @@ import { processAudioWithAi } from "./gemini";
 import { isInBackoff, ATTEMPT_CAP } from "../utils/backoff";
 import { classifyAiError } from "../utils/aiErrorClass";
 import { notifyDrainComplete } from "../stores/drainSignalStore";
+import { useNotificationStore } from "../stores/notificationStore";
+import { toUserMessage } from "../lib/toUserMessage";
 
 const CONCURRENCY = 4;
 
@@ -47,7 +49,13 @@ export async function getQueuedItems(): Promise<QueuedItem[]> {
   if (error || !data) {
     // IN-01: a transient read failure is not an empty queue — log it so a
     // persistently stuck queue is diagnosable instead of silently draining nothing.
-    if (error) console.warn("getQueuedItems: Supabase read failed", error);
+    if (error) {
+      console.warn("getQueuedItems: Supabase read failed", error);
+      // SC4 / T-36-07: surface the failure to the user (informational toast, no
+      // retry → 6s auto-dismiss). Visibility ONLY — the empty-return contract is
+      // intentional and preserved; we never fabricate queue data.
+      useNotificationStore.getState().notifyError(toUserMessage(error));
+    }
     return [];
   }
 
