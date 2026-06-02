@@ -480,7 +480,7 @@ Plans:
 
 **Plans**: 3 plans (3 waves — ship order is load-bearing)
 - [x] 40-01-PLAN.md — proxy-side Supabase-JWT verify + web-origin CORS + tpc-*.vercel.app allowlist on Cloud Run (deploy+verify dev/prod) [wave 1]
-- [ ] 40-02-PLAN.md — cataloger VITE_GEMINI_PROXY_URL cutover to Cloud Run + end-to-end dev/prod verify (config-only) [wave 2]
+- [x] 40-02-PLAN.md — cataloger VITE_GEMINI_PROXY_URL cutover to Cloud Run + end-to-end dev/prod verify (config-only) [wave 2]
 - [ ] 40-03-PLAN.md — retire in-repo CF Worker (proxy/), repoint tests + .env.example, isolated rollback commit [wave 3, gated on prod verify]
 **Estimated plan count**: 3
 
