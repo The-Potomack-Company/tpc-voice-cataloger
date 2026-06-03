@@ -322,15 +322,28 @@ Plans:
 
 ### Phase 40.1: Harden tpc-ai-proxy deploy.yml CI before proxy push (INSERTED)
 
-**Goal:** [Urgent work - to be planned] — close the open `tpc-ai-proxy` deploy landmine before the next proxy push. The Cloud Run `deploy.yml` CI is missing the `SUPABASE_*` env it now needs for the JWT bearer-verify added in Phase 40; a push without them crashes prod (per project memory `tpc-ai-proxy-deploy`). This phase hardens the deploy workflow so the proxy can't ship without its required secrets.
+**Goal:** Harden the `tpc-ai-proxy` Cloud Run `deploy.yml` so the proxy can't ship without its required secrets — add a CI preflight secret-presence gate, wire the missing `SUPABASE_*` env, correct the origin allowlist via per-service secrets, rename the dead `BODY_CAP_BYTES`, and fan the deploy out to prod+dev — closing the open landmine where the next push to proxy `main` would crash-loop prod.
 **Depends on:** Phase 40 (Cloud Run cutover + JWT verify must already be the live auth path)
-**Requirements**: TBD
-**Cross-app note:** `deploy.yml` lives in the **`tpc-ai-proxy`** repo, not this one. Scope is a cross-app guardrail — strongly consider driving via `/tpc-coordinate` rather than single-repo GSD.
-**Plans:** 0 plans
+**Requirements**: none formally assigned; must_haves derived from phase goal + locked decisions D-01..D-05
+**Cross-app note:** `deploy.yml` lives in the **`tpc-ai-proxy`** repo (`The-Potomack-Company/tpc-ai-proxy`), not this one. All file/git/gh ops in both plans target the sibling repo.
+**Success Criteria** (what must be TRUE):
+
+  1. `deploy.yml` sets `SUPABASE_URL` + `SUPABASE_ANON_KEY` (D-01/D-02) and a preflight CI step fails the run with a clear `::error::` if any required secret is empty, before any GCP call.
+  2. The comma-bearing `ALLOWED_ORIGINS` value is quoted (RESEARCH correction) so the cataloger origin survives; per-service `ALLOWED_ORIGINS_PROD`/`_DEV` secrets replace the shared one (D-03/D-05).
+  3. A `strategy.matrix` deploys both `tpc-ai-proxy-prod` and `tpc-ai-proxy-dev`; `env_vars_update_strategy: merge` preserves service-only `ALLOWED_MODELS`; `BODY_CAP_BYTES` is renamed to `MAX_BODY_BYTES` (D-04).
+  4. Ship order honored: secrets created → hardened workflow committed (triggers deploy) → the two unpushed phase-40 app commits (18ef932, f52adc4) pushed only after the hardened deploy is live.
+
+**Plans:** 2 plans (2 waves)
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 40.1 to break down)
 
+**Wave 1**
+
+- [ ] 40.1-01-PLAN.md — create the four GH repo secrets on the proxy repo (SUPABASE_URL/ANON_KEY + ALLOWED_ORIGINS_PROD/DEV); ship-order step 1, autonomous
+
+**Wave 2** *(blocked on Wave 1 — secrets must exist before the workflow commit triggers a deploy)*
+
+- [ ] 40.1-02-PLAN.md — rewrite deploy.yml (preflight gate + prod/dev matrix + Supabase env + quoted origins + MAX_BODY_BYTES rename + merge); commit (triggers deploy) → push the 2 app commits → retire legacy ALLOWED_ORIGINS secret
 ## v1.2 Phase Detail
 
 ### Phase 22: Foundation Tokens
