@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: Phase 40.1 context gathered
-last_updated: "2026-06-03T17:12:00.758Z"
+last_updated: "2026-06-03T17:15:40.984Z"
 progress:
   percent: 40
 ---
@@ -16,14 +16,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 40 — ai-proxy-cloud-run-migration
+**Current focus:** Phase 40.1 — harden-ai-proxy-deploy-ci
 
 ## Current Position
 
-Phase: 40
-Plan: Not started
+Phase: 40.1 (harden-ai-proxy-deploy-ci) — EXECUTING
+Plan: 1 of 2
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: Ready to execute
+Status: Executing Phase 40.1
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions

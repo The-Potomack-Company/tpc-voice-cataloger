@@ -333,13 +333,13 @@ Plans:
   3. A `strategy.matrix` deploys both `tpc-ai-proxy-prod` and `tpc-ai-proxy-dev`; `env_vars_update_strategy: merge` preserves service-only `ALLOWED_MODELS`; `BODY_CAP_BYTES` is renamed to `MAX_BODY_BYTES` (D-04).
   4. Ship order honored: secrets created → hardened workflow committed (triggers deploy) → the two unpushed phase-40 app commits (18ef932, f52adc4) pushed only after the hardened deploy is live.
 
-**Plans:** 2 plans (2 waves)
+**Plans:** 1/2 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 40.1-01-PLAN.md — create the four GH repo secrets on the proxy repo (SUPABASE_URL/ANON_KEY + ALLOWED_ORIGINS_PROD/DEV); ship-order step 1, autonomous
+- [x] 40.1-01-PLAN.md — create the four GH repo secrets on the proxy repo (SUPABASE_URL/ANON_KEY + ALLOWED_ORIGINS_PROD/DEV); ship-order step 1, autonomous
 
 **Wave 2** *(blocked on Wave 1 — secrets must exist before the workflow commit triggers a deploy)*
 
