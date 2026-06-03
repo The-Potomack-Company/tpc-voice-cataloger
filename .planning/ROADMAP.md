@@ -344,6 +344,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 — secrets must exist before the workflow commit triggers a deploy)*
 
 - [x] 40.1-02-PLAN.md — rewrite deploy.yml (preflight gate + prod/dev matrix + Supabase env + quoted origins + MAX_BODY_BYTES rename + merge); commit (triggers deploy) → push the 2 app commits → retire legacy ALLOWED_ORIGINS secret
+
 ## v1.2 Phase Detail
 
 ### Phase 22: Foundation Tokens
