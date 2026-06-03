@@ -178,7 +178,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: AI processing succeeds against the Cloud Run URL in dev + prod; unauthorized/cross-origin caller is rejected per the chosen auth model; `VITE_GEMINI_PROXY_URL`-unset still fails closed.
   - Risk: medium (config cutover is low-risk; the auth-model choice + cross-app `ALLOWED_ORIGINS` coordination is where the care goes).
 
-- [ ] **Phase 40.1: Harden tpc-ai-proxy deploy.yml CI before proxy push** *(INSERTED — urgent; cross-app guardrail on the `tpc-ai-proxy` repo)* — full detail under Current Milestone Phase Detail below.
+- [x] **Phase 40.1: Harden tpc-ai-proxy deploy.yml CI before proxy push** *(INSERTED — urgent; cross-app guardrail on the `tpc-ai-proxy` repo)* — full detail under Current Milestone Phase Detail below. (completed 2026-06-03)
 
 ## Progress
 
@@ -333,7 +333,7 @@ Plans:
   3. A `strategy.matrix` deploys both `tpc-ai-proxy-prod` and `tpc-ai-proxy-dev`; `env_vars_update_strategy: merge` preserves service-only `ALLOWED_MODELS`; `BODY_CAP_BYTES` is renamed to `MAX_BODY_BYTES` (D-04).
   4. Ship order honored: secrets created → hardened workflow committed (triggers deploy) → the two unpushed phase-40 app commits (18ef932, f52adc4) pushed only after the hardened deploy is live.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 
@@ -343,7 +343,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 — secrets must exist before the workflow commit triggers a deploy)*
 
-- [ ] 40.1-02-PLAN.md — rewrite deploy.yml (preflight gate + prod/dev matrix + Supabase env + quoted origins + MAX_BODY_BYTES rename + merge); commit (triggers deploy) → push the 2 app commits → retire legacy ALLOWED_ORIGINS secret
+- [x] 40.1-02-PLAN.md — rewrite deploy.yml (preflight gate + prod/dev matrix + Supabase env + quoted origins + MAX_BODY_BYTES rename + merge); commit (triggers deploy) → push the 2 app commits → retire legacy ALLOWED_ORIGINS secret
 ## v1.2 Phase Detail
 
 ### Phase 22: Foundation Tokens
