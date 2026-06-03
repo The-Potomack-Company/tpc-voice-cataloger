@@ -178,6 +178,8 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
   - Tests: AI processing succeeds against the Cloud Run URL in dev + prod; unauthorized/cross-origin caller is rejected per the chosen auth model; `VITE_GEMINI_PROXY_URL`-unset still fails closed.
   - Risk: medium (config cutover is low-risk; the auth-model choice + cross-app `ALLOWED_ORIGINS` coordination is where the care goes).
 
+- [ ] **Phase 40.1: Harden tpc-ai-proxy deploy.yml CI before proxy push** *(INSERTED — urgent; cross-app guardrail on the `tpc-ai-proxy` repo)* — full detail under v1.3 Phase Detail below.
+
 ## Progress
 
 | Phase | Milestone | Plans | Status | Completed |
@@ -485,6 +487,17 @@ Plans:
 - [x] 40-03-PLAN.md — retire in-repo CF Worker (proxy/), repoint tests + .env.example, isolated rollback commit [wave 3, gated on prod verify]
 
 **Estimated plan count**: 3
+
+### Phase 40.1: Harden tpc-ai-proxy deploy.yml CI before proxy push (INSERTED)
+
+**Goal:** [Urgent work - to be planned] — close the open `tpc-ai-proxy` deploy landmine before the next proxy push. The Cloud Run `deploy.yml` CI is missing the `SUPABASE_*` env it now needs for the JWT bearer-verify added in Phase 40; a push without them crashes prod (per project memory `tpc-ai-proxy-deploy`). This phase hardens the deploy workflow so the proxy can't ship without its required secrets.
+**Depends on:** Phase 40 (Cloud Run cutover + JWT verify must already be the live auth path)
+**Requirements**: TBD
+**Cross-app note:** `deploy.yml` lives in the **`tpc-ai-proxy`** repo, not this one. Scope is a cross-app guardrail — strongly consider driving via `/tpc-coordinate` rather than single-repo GSD.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 40.1 to break down)
 
 ## Backlog
 

@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: "Phase 39 Plan 03 complete — phase 39 (optimistic-locking) fully executed (3/3 plans); ready for /gsd:verify-work 39"
-last_updated: "2026-06-02T20:39:04.659Z"
+last_updated: "2026-06-03T13:15:19.181Z"
 progress:
   percent: 40
 ---
@@ -144,6 +144,7 @@ None.
 - v1.1 Accounts & Deploy: Phases 11-21 (shipped 2026-03-31)
 - v1.2 UI Overhaul: Phases 22-30 (shipped 2026-05-13 via PR #11)
 - v1.3 Maturation: Phases 31-40 queued 2026-05-29 (LIVE track; v3.0 hub cutover deferred per D-052) — none planned yet. Phase 40 = AI-proxy Cloudflare→Cloud Run migration (D-049).
+- Phase 40.1 inserted after Phase 40: Harden tpc-ai-proxy deploy.yml CI before proxy push (URGENT)
 
 ## Session Continuity
 
