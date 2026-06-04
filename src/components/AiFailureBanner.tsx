@@ -24,26 +24,41 @@ const processAudioWithAiRetry = processAudioWithAi as ProcessAudioWithAi;
  *  its own source (the card already receives it as a prop; the detail page
  *  derives it via useLiveQuery). Real terminal failures always have audio
  *  (that's what failed to process); if a synthetic state has no audio, the
- *  banner stays hidden so we don't surface an undismissable dead-end. */
+ *  banner stays hidden so we don't surface an undismissable dead-end.
+ *
+ *  `hasServerAudio` is the cross-device gate (F2 / GAP-5): for a Dexie-cleared
+ *  or cross-device item the audio lives only in Supabase Storage and
+ *  audioRecordsForItem returns Supabase-union rows with id:undefined, so the
+ *  parent's latestAudioId reduce yields null even though audio EXISTS. The
+ *  banner must render + retry off the server-side existence boolean, NOT the
+ *  device-local integer (SHARED-3). The orchestrator's resolveAudioForAi
+ *  resolves the blob by item_id, so a server-only retry passes a sentinel
+ *  audioId of 0 and still succeeds (gemini.ts:241). */
 export function AiFailureBanner({
   itemId,
   sessionId,
   latestAudioId,
+  hasServerAudio,
 }: {
   itemId: string;
   sessionId: string;
   latestAudioId: number | null;
+  hasServerAudio: boolean;
 }) {
   const [retrying, setRetrying] = useState(false);
 
-  if (latestAudioId == null) return null;
+  // Gate on server-side existence OR a real local integer. `== null` (not
+  // `=== null`) so cross-device id:undefined union rows are covered (Pitfall 2).
+  if (!hasServerAudio && latestAudioId == null) return null;
 
   const handleRetry = () => {
     if (retrying) return;
     setRetrying(true);
     // 4th arg isRetry=true: explicit retry signal (O-1). The param is added in
     // Plan 04 (optional, default false), so this is forward-compatible.
-    processAudioWithAiRetry(latestAudioId, itemId, sessionId, true)
+    // Sentinel 0 for the server-only case: resolveAudioForAi ignores the
+    // integer when the Dexie blob is absent and resolves by item_id.
+    processAudioWithAiRetry(latestAudioId ?? 0, itemId, sessionId, true)
       .catch((err) => {
         console.error("AI retry failed:", err);
       })
