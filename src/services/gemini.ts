@@ -10,6 +10,23 @@ import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 import { ensureFreshSession } from "../lib/authGuard";
 import { processAudioWithAi as resolveAudioForAi } from "./processAudioWithAi";
+import { preconditionUpdate, type ReconcileFn } from "../db/optimisticUpdate";
+
+// SEAM-3 (Phase 45): the single-item AI write commits these catalog fields. A field
+// another writer changed since the AI snapshot read (gemini.ts:254) must NOT be
+// re-applied — the AI yields (D-06). Includes receipt_number: unlike the continuous
+// MERGE_FIELDS (which omits it because continuous locks the receipt), the single-item
+// path writes receipt_number, so it must be in the yield set here.
+const CATALOG_FIELDS = [
+  "title",
+  "description",
+  "condition",
+  "estimate",
+  "category",
+  "measurements",
+  "transcript",
+  "receipt_number",
+] as const;
 
 export const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -253,7 +270,7 @@ export async function processAudioWithAi(
     // Read existing field values for smart merge context (per D-02)
     const { data: currentItem } = await supabase
       .from("items")
-      .select("title, description, condition, estimate, category, measurements, transcript, receipt_number")
+      .select("title, description, condition, estimate, category, measurements, transcript, receipt_number, updated_at")
       .eq("id", itemId)
       .maybeSingle();
 
@@ -268,7 +285,23 @@ export async function processAudioWithAi(
       return; // Item deleted mid-processing, bail out
     }
 
-    const hasExistingData = Object.values(currentItem).some(v => v !== null);
+    // SEAM-3: capture the precondition token + value-at-read catalog snapshot from
+    // the same read. `updated_at` is the optimistic-concurrency token (the trigger
+    // bumps it on every write); `valueAtRead` lets the reconcile detect which catalog
+    // fields another writer changed since this read.
+    const prevUpdatedAt = (currentItem as Record<string, unknown>).updated_at as
+      | string
+      | undefined;
+    const valueAtRead: Record<string, unknown> = {};
+    for (const field of CATALOG_FIELDS) {
+      valueAtRead[field] = (currentItem as Record<string, unknown>)[field];
+    }
+
+    // Exclude the concurrency token from the merge-context heuristic — updated_at is
+    // always non-null, so counting it would force MERGE mode on a first recording.
+    const hasExistingData = CATALOG_FIELDS.some(
+      (field) => (currentItem as Record<string, unknown>)[field] != null,
+    );
 
     // Strip codec parameters from mimeType (e.g., "audio/webm;codecs=opus" -> "audio/webm")
     const baseMimeType = (resolvedMimeType ?? "audio/webm").split(";")[0];
@@ -418,10 +451,35 @@ export async function processAudioWithAi(
       supabaseUpdate.receipt_number = fields.receipt_number;
     }
 
-    await supabase
-      .from("items")
-      .update(supabaseUpdate)
-      .eq("id", itemId);
+    // SEAM-3: route the catalog write through preconditionUpdate so a concurrent
+    // human edit (another tab/device) to an UNTOUCHED catalog field — made between
+    // the snapshot read above and this write — is not silently clobbered. On a 0-row
+    // conflict, a catalog field another writer changed since the read yields (D-06);
+    // control fields (ai_status, completed_at) + untouched catalog fields re-apply
+    // against the fresh token. The `flagged` set above is the first-line no-clobber
+    // for THIS device; this adds the cross-writer guard the flagged set can't see.
+    // Mirrors geminiContinuous.ts:286-303. preconditionUpdate owns the bounded retry
+    // + exhaustion toast (no loop here); the trigger owns updated_at (never patch it).
+    const reconcile: ReconcileFn = (fresh, intended) => {
+      const next: Record<string, unknown> = {};
+      for (const [field, value] of Object.entries(intended)) {
+        if (
+          (CATALOG_FIELDS as readonly string[]).includes(field) &&
+          fresh[field] !== valueAtRead[field]
+        ) {
+          continue; // D-06: user changed it since the read → AI yields
+        }
+        next[field] = value;
+      }
+      return next;
+    };
+    await preconditionUpdate({
+      table: "items",
+      id: itemId,
+      prevUpdatedAt,
+      patch: supabaseUpdate,
+      reconcile,
+    });
 
     // O-1: clear flags only on a FRESH (non-retry) success so a deliberate new
     // recording is honored; on a retry the flags are kept so the no-clobber holds.

@@ -172,6 +172,16 @@ describe("gemini pipeline", () => {
                   select: vi.fn().mockResolvedValue({ data: claimRows, error: null }),
                 };
               }),
+              // SEAM-3 (Phase 45): the catalog success write now routes through
+              // preconditionUpdate, which appends an updated_at precondition + a
+              // terminal .select() (.update(patch).eq("id").eq("updated_at").select()).
+              // Resolve it as an applied write so the patch (already captured in
+              // updateCalls above) is the recorded catalog write, not a failure.
+              eq: vi.fn().mockReturnValue({
+                select: vi
+                  .fn()
+                  .mockResolvedValue({ data: [{ id: "applied", ...data }], error: null }),
+              }),
               then: (resolve: (v: { error: null }) => unknown) =>
                 resolve({ error: null }),
             }),
