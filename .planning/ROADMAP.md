@@ -396,7 +396,7 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
   2. A test proves a house item and a sale item sharing the same legacy integer id resolve to distinct Supabase item ids (no cross-table photo misattribution).
 
 **Plans**: 1 plan
-- [ ] 43-01-PLAN.md — scope photoMigration idMapping lookup by itemTable (house/sale) and add a collision regression test
+- [x] 43-01-PLAN.md — scope photoMigration idMapping lookup by itemTable (house/sale) and add a collision regression test
 
 ### Phase 44: visibility-ux-polish
 

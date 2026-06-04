@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
 status: verifying
-stopped_at: Phase 40.1 context gathered
-last_updated: "2026-06-04T19:23:28.758Z"
+stopped_at: Completed 43-01-PLAN.md
+last_updated: "2026-06-04T19:36:42.548Z"
 progress:
   total_phases: 11
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
-  percent: 9
+  completed_plans: 3
+  percent: 18
 ---
 
 # Project State
@@ -20,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 42 — audio-upload-reliability
+**Current focus:** Phase 43 — photomigration-itemid-collision
 
 ## Current Position
 
-Phase: 42 (audio-upload-reliability) — EXECUTING
-Plan: 2 of 2
+Phase: 43 (photomigration-itemid-collision) — EXECUTING
+Plan: 1 of 1
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
 Status: Phase complete — ready for verification
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
-Progress: [███████░░░] 67%
+Progress: [██████████] 100%
 
 Next action: Phase 39 (optimistic-locking) COMPLETE — items.updated_at version-token migration APPLIED TO PROD (trigger bump empirically verified, rolled-back tx; remote migration history reconciled to 20260603000000); shared `preconditionUpdate` helper (0-row conflict → bounded re-read/reconcile → notifyError on exhaustion) now wires updateItemField (user intent-preserving), the AI continuous-merge (D-06 per-field compare-and-skip; UI dormant D-050), and the offline write-ahead flush (precondition + Pitfall-5 retain + Pitfall-6 legacy fallback). Deep code review found + fixed CR-01 (undefined-token silent clobber) + WR-02 (stale local token). 710 tests pass, build clean. Phase 40 (ai-proxy-cloud-run-migration) is the last v1.3 phase — **cross-app infra**, drive via `/tpc-coordinate`, not a plain in-repo phase. Recommended before advancing: `/gsd:secure-phase 39` (threat model T-39-00..SC, no SECURITY.md yet). Deferred to v1.3 milestone end: branch push + on-device UAT batch — now owes **three** HUMAN-UAT files (`33` 3 items + `34` 1 item + `39-HUMAN-UAT.md` 1 item: cross-session live edit race). All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED.
 
@@ -86,6 +86,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 38 P01 | ~9 min | 2 tasks | 8 files |
 | Phase 42 P01 | 9 min | 3 tasks | 5 files |
 | Phase 42 P02 | 3 min | 3 tasks | 5 files |
+| Phase 43 P01 | 3 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,7 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase ?]: [Phase 42]: P01: offlineQueue drainQueue reconcile generalized over BOTH 'pending' and 'failed' stuck states via one union-then-conditional-update loop (read audio.item_id IN, then update ai_status=queued .eq(stuckStatus).select(id) — SHARED-2/Pitfall-1); the 'failed' pass closes GAP-4. Keyed on item_id under existing RLS (no service-role); re-queued items bounded by processItem ATTEMPT_CAP (T-42-02).
 - [Phase ?]: [Phase 42]: P02: AiFailureBanner gates on hasServerAudio (server-side existence) not the device-local Dexie integer — gate is !hasServerAudio && latestAudioId == null (== null covers Supabase-union id:undefined, Pitfall 2). Closes F2/GAP-5: cross-device/Dexie-cleared failed items now show a working Retry on both list card and detail.
 - [Phase ?]: [Phase 42]: P02: server-only retry passes sentinel audioId 0 through the unchanged gemini.ts orchestrator (isRetry=true); resolveAudioForAi resolves the blob by item_id so no local integer needed (db.audio.get(0)->undefined falls through to RLS-scoped Storage, T-42-09). hasServerAudio computed as audios.some(a=>a.id==null) in the existing PERF-3 ItemList aggregate + parallel ItemEntry derivation — no per-banner round-trip (Open-Q3).
+- [Phase 43]: P01: migrateExistingPhotos resolves itemId via getNewIdByOldId(photo.itemId, "item", photo.itemType) instead of the inline db.idMapping query — itemType discriminator closes the house/sale ++id collision (UAT 38-3), reusing the helper migrateToSupabase uses. [Rule 1] photo-migration.test.ts mock re-pointed from the raw db.idMapping chain to a getNewIdByOldId mock (superseded internal-query contract). Collision test + 9 prior tests pass, tsc clean.
 
 ### Pending Todos
 
@@ -161,6 +163,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-04T19:23:01.701Z
-Stopped at: Phase 40.1 context gathered
+Last session: 2026-06-04T19:36:42.540Z
+Stopped at: Completed 43-01-PLAN.md
 Resume file: None
