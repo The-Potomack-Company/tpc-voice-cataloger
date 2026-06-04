@@ -6,7 +6,7 @@ import { BlockedQueueBadge } from "../components/BlockedQueueBadge";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { drainQueue } from "../services/offlineQueue";
 import { drainPhotoQueue } from "../services/photoUploadQueue";
-import { drainAudioQueue } from "../services/audioUploadQueue";
+import { drainAudioQueue, resweepFailedUploads } from "../services/audioUploadQueue";
 import { migrateExistingPhotos } from "../services/photoMigration";
 import { PhotoMigrationBanner } from "../components/PhotoMigrationBanner";
 import { MigrationRetryBanner } from "../components/MigrationRetryBanner";
@@ -62,6 +62,7 @@ export function AppLayout() {
       await processWriteAheadQueue(); // Write-ahead first (items must exist before AI can update)
       await fetchSessions(); // Re-fetch after queue drains so server data includes synced items
       await drainPhotoQueue(); // Photos after metadata synced
+      void resweepFailedUploads(); // SC-1: bounded failed→pending self-heal (fires its own drain); boot + every 'online'
       void drainAudioQueue(); // Audio uploads — resume any pending blobs stranded by app close / offline record
       drainQueue(); // AI offline write queue last
     };
