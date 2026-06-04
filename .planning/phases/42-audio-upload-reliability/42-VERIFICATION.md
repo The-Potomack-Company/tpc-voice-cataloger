@@ -1,7 +1,7 @@
 ---
 phase: 42-audio-upload-reliability
 verified: 2026-06-04T15:30:00Z
-status: human_needed
+status: passed   # human UAT legs passed 2026-06-04 (milestone-end)
 score: 3/3 must-haves verified
 overrides_applied: 0
 human_verification:
@@ -14,7 +14,7 @@ human_verification:
 
 **Phase Goal:** Audit and fix why recorded audio fails to reach the Supabase `audio` table (root cause of 34 stranded items); plus fix AiFailureBanner returning null for server-only audio so cross-device/historical failed items have a working Retry.
 **Verified:** 2026-06-04T15:30:00Z
-**Status:** human_needed
+**Status:** passed (human UAT passed 2026-06-04)
 **Re-verification:** No — initial verification
 
 ---

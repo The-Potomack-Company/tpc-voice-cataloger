@@ -1,7 +1,7 @@
 ---
 phase: 44-visibility-ux-polish
 verified: 2026-06-04T15:54:00Z
-status: human_needed
+status: passed   # human UAT legs passed 2026-06-04 (milestone-end)
 score: 4/4 must-haves verified
 overrides_applied: 0
 human_verification:
@@ -17,7 +17,7 @@ human_verification:
 
 **Phase Goal:** Two UX fixes from the v1.3 UAT walk. (U1/F1) The blocked-queue badge dropdown lists raw item UUIDs with no navigation — show item name/mode and let the user tap through to the item. (U2/F4) A duplicate-receipt import failure shows generic "Import didn't finish" copy — name the offending receipt number(s) so the user knows which one collided.
 **Verified:** 2026-06-04T15:54:00Z
-**Status:** human_needed
+**Status:** passed (human UAT passed 2026-06-04)
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
