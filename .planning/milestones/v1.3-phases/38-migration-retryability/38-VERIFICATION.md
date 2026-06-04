@@ -2,6 +2,7 @@
 phase: 38-migration-retryability
 verified: 2026-06-02T12:42:00Z
 status: human_needed
+human_uat_note: "2026-06-04 milestone-end walk: UAT-1 closed code-verified (migration is a spent one-time path); UAT-2 (atomicity sign-off) and UAT-3 (photoMigration itemId collision) tracked as follow-ups"
 score: 4/4
 overrides_applied: 0
 human_verification:

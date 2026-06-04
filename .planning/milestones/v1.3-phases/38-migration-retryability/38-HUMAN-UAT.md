@@ -81,3 +81,14 @@ This was explicitly out of Phase 38 scope (commit `f5b4930`, predates this phase
 **Confirmed by:** ___________ **Date:** ___________
 
 **Follow-up reference (phase/ticket):** ___________
+
+---
+
+## Resolution (2026-06-04 UAT walk)
+
+- **UAT-1** (live retry-after-partial): CLOSED code-verified — migration is a spent
+  one-time path, no legacy Dexie data in field. Unit tests green.
+- **UAT-2** (WR-04 atomicity window sign-off): OPEN — accept residual single-tab
+  risk for v1; log Supabase natural-key/upsert follow-up.
+- **UAT-3** (photoMigration.ts house/sale itemId collision): CONFIRMED real bug;
+  create a follow-up phase/ticket.

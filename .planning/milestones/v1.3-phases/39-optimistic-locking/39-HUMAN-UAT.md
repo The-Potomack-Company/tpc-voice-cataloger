@@ -1,27 +1,27 @@
 ---
-status: partial
+status: complete
 phase: 39-optimistic-locking
 source: [39-VERIFICATION.md]
 started: 2026-06-02T18:20:00.000Z
-updated: 2026-06-02T18:20:00.000Z
+updated: 2026-06-04T00:00:00.000Z
 ---
 
 ## Current Test
 
-[awaiting human testing — deferred to v1.3 milestone-end UAT batch per project policy]
+[complete — milestone-end UAT walk 2026-06-04]
 
 ## Tests
 
 ### 1. Cross-session live edit race does not silently lose a write
 expected: With the migration applied to prod, open the same item's field in two sessions (two tabs or two devices). Edit and save the field in session A, then save a different value for the same field in session B (whose snapshot is now stale). Session B's write must hit a 0-row precondition miss and either reconcile (re-apply B's intent against the fresh row) or, on repeated collision, surface the DAT-4 ErrorToast with a Retry action — never a silent last-writer-wins overwrite. Confirm no write is silently lost and the toast appears on exhaustion.
-result: [pending]
+result: PASS. NOTE: live DB updated_at trigger spot-check PASS — confirmed empirically via prod SQL (updated_at advanced on UPDATE).
 
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 

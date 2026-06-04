@@ -1,7 +1,8 @@
 ---
 phase: 37-a11y-foundation
 verified: 2026-06-02T11:45:00Z
-status: human_needed
+status: passed
+human_uat_note: "Human UAT completed 2026-06-04 (milestone-end walk)"
 score: 4/4 must-haves verified
 overrides_applied: 0
 human_verification:

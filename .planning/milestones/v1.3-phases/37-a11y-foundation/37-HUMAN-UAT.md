@@ -68,3 +68,13 @@ during an active migration.
    fully dismiss at approximately 1.8s.
 3. Confirm it does not restart or delay — the dismiss timing should be consistent
    regardless of Dexie progress events firing during that window.
+
+## Resolution (2026-06-04 UAT walk)
+
+- **UAT-37-01** (authed keyboard record→edit→save): PASS (manual keyboard pass).
+- **UAT-37-02** (`user-scalable=no` / WCAG 1.4.4): OPEN DECISION — deferred to a
+  follow-up a11y call (drop pinch-zoom lock vs keep).
+- **UAT-37-03** (MigrationSplash Escape→onSkip): CLOSED code-verified (migration
+  path spent; unit/fix in commit `e651dc7`).
+- **UAT-37-04** (MigrationSplash timer no-restart): CLOSED code-verified (fix
+  `2798f97`).
