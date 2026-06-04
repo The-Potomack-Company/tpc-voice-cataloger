@@ -281,6 +281,185 @@ describe("offlineQueue service (Supabase-backed)", () => {
       expect(processAudioWithAi).not.toHaveBeenCalled();
     });
 
+    it("reconcile: an item stuck pre-AI whose audio has since uploaded is re-queued (union-then-conditional-update, .select present)", async () => {
+      mockGetDexieItemId.mockResolvedValue(null);
+
+      let reconcileIds: string[] = [];
+      let reconcileSelectUsed = false;
+      let reconcileStuckStatuses: string[] = [];
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "items") {
+          return {
+            select: vi.fn(() => ({
+              // pending-reclaim read returns no pending rows; reconcile read
+              // returns the stuck pre-AI item.
+              eq: vi.fn((_field: string, status: string) => {
+                if (status === "pending") {
+                  return Promise.resolve({ data: [], error: null });
+                }
+                if (status === "failed") {
+                  return Promise.resolve({
+                    data: [{ id: "stuck-with-audio" }],
+                    error: null,
+                  });
+                }
+                // queued read (getQueuedItems)
+                return {
+                  order: vi.fn().mockResolvedValue({ data: [], error: null }),
+                };
+              }),
+            })),
+            update: mockSupabaseUpdate.mockImplementation(() => ({
+              eq: vi.fn(() => ({
+                lt: vi.fn().mockResolvedValue({ error: null }),
+              })),
+              in: vi.fn((_column: string, ids: string[]) => {
+                reconcileIds = ids;
+                return {
+                  eq: vi.fn((field: string, status: string) => {
+                    if (field === "ai_status") reconcileStuckStatuses.push(status);
+                    return {
+                      select: vi.fn(() => {
+                        reconcileSelectUsed = true;
+                        return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+                      }),
+                    };
+                  }),
+                };
+              }),
+            })),
+          };
+        }
+        if (table === "audio") {
+          return {
+            select: vi.fn(() => ({
+              in: vi.fn().mockResolvedValue({
+                data: [{ item_id: "stuck-with-audio" }],
+                error: null,
+              }),
+            })),
+          };
+        }
+        return {};
+      });
+
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      expect(reconcileIds).toContain("stuck-with-audio");
+      // Pitfall 1 / SHARED-2: conditional reconcile write keeps .select for real
+      // winner-detection.
+      expect(reconcileSelectUsed).toBe(true);
+      // Reconcile keys the conditional write on a prior stuck ai_status.
+      expect(reconcileStuckStatuses.length).toBeGreaterThan(0);
+    });
+
+    it("reconcile: an item with NO audio row is left untouched (never fabricate work)", async () => {
+      mockGetDexieItemId.mockResolvedValue(null);
+
+      let reconcileIds: string[] = [];
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "items") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn((_field: string, status: string) => {
+                if (status === "pending") {
+                  return Promise.resolve({ data: [], error: null });
+                }
+                if (status === "failed") {
+                  return Promise.resolve({
+                    data: [{ id: "stuck-no-audio" }],
+                    error: null,
+                  });
+                }
+                return { order: vi.fn().mockResolvedValue({ data: [], error: null }) };
+              }),
+            })),
+            update: mockSupabaseUpdate.mockImplementation(() => ({
+              eq: vi.fn(() => ({ lt: vi.fn().mockResolvedValue({ error: null }) })),
+              in: vi.fn((_column: string, ids: string[]) => {
+                reconcileIds = ids;
+                return {
+                  eq: vi.fn(() => ({
+                    select: vi.fn().mockResolvedValue({ data: [], error: null }),
+                  })),
+                };
+              }),
+            })),
+          };
+        }
+        if (table === "audio") {
+          // No audio row exists for the stuck item.
+          return {
+            select: vi.fn(() => ({
+              in: vi.fn().mockResolvedValue({ data: [], error: null }),
+            })),
+          };
+        }
+        return {};
+      });
+
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      expect(reconcileIds).not.toContain("stuck-no-audio");
+    });
+
+    it("reconcile: a cross-device audio union row (item_id present, no crash) does not break the reconcile", async () => {
+      mockGetDexieItemId.mockResolvedValue(null);
+
+      let reconcileIds: string[] = [];
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "items") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn((_field: string, status: string) => {
+                if (status === "pending") {
+                  return Promise.resolve({ data: [], error: null });
+                }
+                if (status === "failed") {
+                  return Promise.resolve({
+                    data: [{ id: "stuck-crossdev" }],
+                    error: null,
+                  });
+                }
+                return { order: vi.fn().mockResolvedValue({ data: [], error: null }) };
+              }),
+            })),
+            update: mockSupabaseUpdate.mockImplementation(() => ({
+              eq: vi.fn(() => ({ lt: vi.fn().mockResolvedValue({ error: null }) })),
+              in: vi.fn((_column: string, ids: string[]) => {
+                reconcileIds = ids;
+                return {
+                  eq: vi.fn(() => ({
+                    select: vi.fn().mockResolvedValue({ data: ids.map((id) => ({ id })), error: null }),
+                  })),
+                };
+              }),
+            })),
+          };
+        }
+        if (table === "audio") {
+          // Supabase audio row carries item_id (UUID) — the reconcile keys on
+          // item_id, never on a Dexie integer id (Pitfall 2: id may be undefined).
+          return {
+            select: vi.fn(() => ({
+              in: vi.fn().mockResolvedValue({
+                data: [{ item_id: "stuck-crossdev" }],
+                error: null,
+              }),
+            })),
+          };
+        }
+        return {};
+      });
+
+      const { drainQueue } = await import("../services/offlineQueue");
+      await expect(drainQueue()).resolves.not.toThrow();
+      expect(reconcileIds).toContain("stuck-crossdev");
+    });
+
     it("handles items with no audio by marking them as failed via supabase", async () => {
       mockGetDexieItemId.mockResolvedValue(null);
 
