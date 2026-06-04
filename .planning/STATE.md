@@ -4,12 +4,12 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: Phase 40.1 context gathered
-last_updated: "2026-06-04T19:09:51.454Z"
+last_updated: "2026-06-04T19:18:02.654Z"
 progress:
   total_phases: 11
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -20,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 40.1 — harden-ai-proxy-deploy-ci
+**Current focus:** Phase 42 — audio-upload-reliability
 
 ## Current Position
 
-Phase: 40.1
-Plan: Not started
+Phase: 42 (audio-upload-reliability) — EXECUTING
+Plan: 2 of 2
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
 Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
-Progress: [████░░░░░░] 40%
+Progress: [███░░░░░░░] 33%
 
 Next action: Phase 39 (optimistic-locking) COMPLETE — items.updated_at version-token migration APPLIED TO PROD (trigger bump empirically verified, rolled-back tx; remote migration history reconciled to 20260603000000); shared `preconditionUpdate` helper (0-row conflict → bounded re-read/reconcile → notifyError on exhaustion) now wires updateItemField (user intent-preserving), the AI continuous-merge (D-06 per-field compare-and-skip; UI dormant D-050), and the offline write-ahead flush (precondition + Pitfall-5 retain + Pitfall-6 legacy fallback). Deep code review found + fixed CR-01 (undefined-token silent clobber) + WR-02 (stale local token). 710 tests pass, build clean. Phase 40 (ai-proxy-cloud-run-migration) is the last v1.3 phase — **cross-app infra**, drive via `/tpc-coordinate`, not a plain in-repo phase. Recommended before advancing: `/gsd:secure-phase 39` (threat model T-39-00..SC, no SECURITY.md yet). Deferred to v1.3 milestone end: branch push + on-device UAT batch — now owes **three** HUMAN-UAT files (`33` 3 items + `34` 1 item + `39-HUMAN-UAT.md` 1 item: cross-session live edit race). All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED.
 
@@ -84,6 +84,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 37 P02 | ~10 min | 3 tasks | 7 files |
 | Phase 37 P03 | ~12 min | 3 tasks | 10 files |
 | Phase 38 P01 | ~9 min | 2 tasks | 8 files |
+| Phase 42 P01 | 9 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,8 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase 38]: P01: migration is now idempotent at the data layer. needsMigration() is per-row (D-01/D-02) — true while any non-deleted session OR house/sale item lacks an idMapping row (replaces the count short-circuit). getNewIdByOldId reverse helper + Dexie v12 [oldId+type] index guard the session insert (the dangerous duplicate path) and both item loops (D-05); return shape is now { migrated, alreadyMigrated, failed, partial } with partial=failed>0 (D-10); exportHistory cleared on post-run ground-truth needsMigration() (D-09). **[Rule 1] houseVisitItems and saleItems have independent ++id keyspaces** → a sale item id collides with a migrated house item id and the reverse guard would silently skip it (data loss). Fixed with an additive **unindexed** itemTable?:"house"|"sale" field on item idMapping rows (no schema migration; type stays "session"|"item" per the locked contract; forward getDexieItemId/photoMigration filters unaffected). Hook maps legacy skipped<-failed to keep ProtectedRoute compiling; full failed/alreadyMigrated plumbing + MigrationRetryBanner is Plan 02. Full suite 690 pass, tsc clean.
 - [Phase 39]: P03: mergeFieldsIntoItem (now exported) composes preconditionUpdate with a D-06 AI-yields reconcile — on a 0-row conflict, drop every catalog field whose fresh server value !== value-at-read (the user changed it since the merge read), re-apply untouched catalog fields + ai_status against the fresh token; all-skipped patch → noop. Value-at-read is a pre-write DB snapshot read inside the merge (no extra Gemini call). Replaces the old per-field sessionStore.updateItemField loop (which used the user-edit reconcile — wrong policy for the AI). Complementary to the Phase-35 userEditedFields guard (different write paths — retry vs merge; both kept). Merge path dormant (CONTINUOUS_MODE_ENABLED=false, D-050) but correct for revival. Offline write-ahead flush: items-update branch destructures updated_at out of the patch (snapshot WHERE-token, trigger owns the bump) and composes preconditionUpdate; 0-row exhaustion RETAINS the entry (Pitfall 5 — no silent offline lost write); legacy entry with no updated_at re-reads the current token then preconditions (Pitfall 6 — not unconditional, not a crash). Added a stale-entry guard skipping an in-memory queue entry already dropped by a permanent-failure same-item cascade before re-issuing its write. WriteAheadEntry.payload updated_at convention documented (no Dexie bump). [Rule 1] geminiContinuous.test.ts 6 assertions re-pointed from updateItemField to the recorded preconditionUpdate patch (superseded contract); WAQ legacy-routing test mock plumbing extended (assertions unchanged). Full suite 708 pass, tsc+build clean.
 - [Phase 36]: P02: import atomicity (D-01) is client-side compensating rollback — handleImport tracks createdSessionId + createdItemIds, on mid-loop throw deletes in reverse order best-effort then sticky notifyError; NO transactional RPC, NO schema change (SC2). A3/Q2 resolved: deleteSession/deleteItem are Supabase+zustand (FK cascade), not Dexie idMapping — no explicit Dexie cleanup needed. Export catch blocks + doCreate use fixed UI-SPEC copy; Login uses toUserMessage (T-36-02 — two old tests asserting raw 'Invalid login credentials' updated to 'Wrong email or password').
+- [Phase ?]: [Phase 42]: P01: resweepFailedUploads (RESWEEP_CAP=6 > MAX_RETRIES) resurfaces failed audio-upload entries on boot+online but PRESERVES retryCount (never resets 0) so a permanently-failing entry ages out instead of re-arming every online event (T-42-01, Pitfall 3); reset-to-0 stays exclusive to the manual ItemCard retryFailedUploads one-shot. Reuses idempotent upsert (DAT-5).
+- [Phase ?]: [Phase 42]: P01: offlineQueue drainQueue reconcile generalized over BOTH 'pending' and 'failed' stuck states via one union-then-conditional-update loop (read audio.item_id IN, then update ai_status=queued .eq(stuckStatus).select(id) — SHARED-2/Pitfall-1); the 'failed' pass closes GAP-4. Keyed on item_id under existing RLS (no service-role); re-queued items bounded by processItem ATTEMPT_CAP (T-42-02).
 
 ### Pending Todos
 
@@ -155,6 +158,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-03T15:59:20.315Z
+Last session: 2026-06-04T19:17:39.507Z
 Stopped at: Phase 40.1 context gathered
-Resume file: .planning/milestones/v1.3-phases/40.1-harden-ai-proxy-deploy-ci/40.1-CONTEXT.md
+Resume file: None
