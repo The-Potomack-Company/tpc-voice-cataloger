@@ -396,6 +396,7 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
   2. A test proves a house item and a sale item sharing the same legacy integer id resolve to distinct Supabase item ids (no cross-table photo misattribution).
 
 **Plans**: 1 plan
+
 - [x] 43-01-PLAN.md — scope photoMigration idMapping lookup by itemTable (house/sale) and add a collision regression test
 
 ### Phase 44: visibility-ux-polish
@@ -411,6 +412,7 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
 **Plans**: 1 plan
 
 - [x] 44-01-visibility-ux-polish-PLAN.md — blocked badge named/tappable rows (SC1) + 23505 import names the offending receipt (SC2)
+
 **Estimated plan count**: 1
 **UI hint**: yes
 
@@ -590,7 +592,7 @@ Plans:
 
 **Goal:** Replace base64-embedded photos in export JSON with Supabase Storage URLs fetched on demand during extension import. Current approach embeds all photos as base64, which balloons to 200-450MB for typical house visits (100-300 items x multiple photos). With Storage URLs, export JSON drops to ~500KB and photos stream one at a time during import. Requires: export emits storage paths/signed URLs instead of base64 blobs, importController fetches URL->blob->File before injection. Supabase Storage infra already exists from Phase 19.
 **Requirements:** TBD
-**Plans:** 3/3 plans complete
+**Plans:** 1/1 plans complete
 
 Plans:
 
