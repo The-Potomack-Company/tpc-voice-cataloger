@@ -187,7 +187,9 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 | 1-9 + 5.1 | v1.0 | 27/27 | Complete | 2026-03-17 |
 | 11-21 | v1.1 | 36/36 | Complete | 2026-03-31 |
 | 22-30 | v1.2 | All | Complete (shipped in PR #11) | 2026-05-13 |
-| 31-40 | v1.3 | 0/10 | Queued — none planned | — |
+| 31-40.1 | v1.3 | complete | Verified — milestone-end UAT 2026-06-04 | 2026-06-04 |
+| 41 | v1.3 | complete | ai-pending-stranding (urgent lane) | 2026-06-04 |
+| 42-44 | v1.3 | planned | UAT-walk follow-ups (queued) | — |
 
 ## Current Milestone Phase Detail (v1.3)
 
@@ -344,6 +346,65 @@ Plans:
 **Wave 2** *(blocked on Wave 1 — secrets must exist before the workflow commit triggers a deploy)*
 
 - [x] 40.1-02-PLAN.md — rewrite deploy.yml (preflight gate + prod/dev matrix + Supabase env + quoted origins + MAX_BODY_BYTES rename + merge); commit (triggers deploy) → push the 2 app commits → retire legacy ALLOWED_ORIGINS secret
+
+### Phase 41: ai-pending-stranding (COMPLETE — shipped via urgent lane)
+
+**Goal**: Close the reliability hole where an item can weld to `ai_status='pending'` forever with no retry path — surfaced by milestone-end UAT-9 (phase 33 gap). The offline drain only ever scanned `'queued'`; an online record-stop fired `processAudioWithAi` fire-and-forget from `pending`, so an abandoned (tab close/nav) or network-down-during-catch call stranded the item. 34 prod items were stranded back to 2026-05-06.
+**Depends on**: Phase 33 (offline-reliability — this fixes its `pending`/`queued` state-machine gap)
+**Requirements**: none mapped (reliability; v1.3 UAT-9 finding)
+**Success Criteria** (what must be TRUE):
+
+  1. An abandoned/failed online AI call leaves the item `'queued'` (drainable), never welded to `'pending'` — RecordButton sets a durable `'queued'` anchor before the fire-and-forget call.
+  2. The inline AI call and a concurrent drain never double-process the same item — `processAudioWithAi`'s initial flip is an atomic claim (fresh from `'queued'`, retry from `['failed','processing']`, drain passes `alreadyClaimed`); bails on 0 rows.
+  3. `drainQueue` reclaims `pending`-with-Supabase-audio items to `'queued'`; `pending`-without-audio left untouched (unrecoverable).
+  4. The item detail view (`ItemEntry`) renders a waiting indicator for `pending`/`queued`.
+
+**Plans**: complete (shipped outside the per-phase planner via the urgent lane).
+Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual stuck-processing retry re-claim), `2ae60f0` (drop temp summary). Implemented by Codex, reviewed by Claude. 698 tests green, build clean. Record: `_workspace/Urgent/done/ai-pending-stranding.md`.
+**Out of scope (→ Phase 42)**: the 34 existing stranded items have no audio anywhere and are NOT recovered; the audio-upload reliability audit is deferred.
+
+**Estimated plan count**: 0 (already implemented)
+
+### Phase 42: audio-upload-reliability
+
+**Goal**: Audit and fix why recorded audio fails to reach the Supabase `audio` table — the root cause of the 34 stranded items (Phase 41 fixed only the `pending`-orphan symptom; all 34 had zero `audio` rows). Also surface the AI-failure row + Retry for items whose audio is not in the local Dexie cache: `AiFailureBanner` currently returns `null` when `latestAudioId == null`, so cross-device/historical failed items show only a red title with no recovery path (UAT-1 finding F2).
+**Depends on**: Phase 41
+**Requirements**: none mapped (reliability; v1.3 UAT findings F2 + audio-upload root cause)
+**Success Criteria** (what must be TRUE):
+
+  1. Recorded audio uploads durably to Supabase Storage + `audio` table with retry; no item can end with a synced `items` row but no `audio` row (the stranding precondition is closed at the source).
+  2. `AiFailureBanner` (and the list-card failure row) render with a working Retry for failed items whose audio exists only server-side (no local Dexie blob).
+  3. Regression tests cover the cross-device path (item present, audio only in Supabase).
+
+**Plans**: TBD
+**Estimated plan count**: 2
+
+### Phase 43: photomigration-itemid-collision
+
+**Goal**: Fix the confirmed house/sale `++id` keyspace collision in `src/services/photoMigration.ts`. Its `oldId + type==='item'` idMapping lookup is missing the `itemTable` discriminator that Phase 38 added to `migrateToSupabase`, so a photo belonging to a sale item can resolve to the wrong Supabase item id when a house item shares the same legacy integer id (UAT finding 38-3).
+**Depends on**: Phase 38 (the `itemTable` discriminator fix this extends)
+**Requirements**: none mapped (bug; v1.3 UAT finding 38-3)
+**Success Criteria** (what must be TRUE):
+
+  1. `photoMigration.ts`'s idMapping lookup includes the `itemTable` discriminator, matching Phase 38's `migrateToSupabase` path.
+  2. A test proves a house item and a sale item sharing the same legacy integer id resolve to distinct Supabase item ids (no cross-table photo misattribution).
+
+**Plans**: TBD
+**Estimated plan count**: 1
+
+### Phase 44: visibility-ux-polish
+
+**Goal**: Two UX fixes surfaced by the v1.3 UAT walk. (U1/F1) The blocked-queue badge dropdown lists raw item UUIDs with no navigation — show item name/mode and let the user tap through to the item. (U2/F4) A duplicate-receipt import failure shows generic "Import didn't finish" copy — name the offending receipt number(s) so the user knows which one collided.
+**Depends on**: none (isolated UI)
+**Requirements**: none mapped (UX; v1.3 UAT findings F1 + F4)
+**Success Criteria** (what must be TRUE):
+
+  1. The blocked-queue (`BlockedQueueBadge`) detail dropdown shows human-readable item info (name/mode) and navigates to the item on tap, instead of bare UUIDs.
+  2. A `23505` duplicate-receipt import surfaces the specific offending receipt number(s) in the failure toast, not the generic copy.
+
+**Plans**: TBD
+**Estimated plan count**: 1
+**UI hint**: yes
 
 ## v1.2 Phase Detail
 

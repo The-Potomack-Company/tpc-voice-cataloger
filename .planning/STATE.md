@@ -145,6 +145,9 @@ None.
 - v1.2 UI Overhaul: Phases 22-30 (shipped 2026-05-13 via PR #11)
 - v1.3 Maturation: Phases 31-40 queued 2026-05-29 (LIVE track; v3.0 hub cutover deferred per D-052) — none planned yet. Phase 40 = AI-proxy Cloudflare→Cloud Run migration (D-049).
 - Phase 40.1 inserted after Phase 40: Harden tpc-ai-proxy deploy.yml CI before proxy push (URGENT)
+- Phases 31-40.1 verified complete at milestone-end UAT walk (2026-06-04).
+- Phase 41 added (COMPLETE): ai-pending-stranding reliability fix — shipped via urgent lane (UAT-9 finding); commits 6d210b9/7efcd17/2ae60f0.
+- Phases 42-44 added (queued, UAT-walk follow-ups): 42 audio-upload-reliability (+F2), 43 photomigration-itemid-collision (38-3), 44 visibility-ux-polish (F1+F4).
 
 ## Session Continuity
 
