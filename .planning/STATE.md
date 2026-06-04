@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
-status: executing
+status: verifying
 stopped_at: Completed 43-01-PLAN.md
-last_updated: "2026-06-04T19:48:00.063Z"
+last_updated: "2026-06-04T19:52:31.587Z"
 progress:
   total_phases: 11
   completed_phases: 2
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 Phase: 44 (visibility-ux-polish) — EXECUTING
 Plan: 1 of 1
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: Executing Phase 44
+Status: Phase complete — ready for verification
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
@@ -87,6 +87,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 42 P01 | 9 min | 3 tasks | 5 files |
 | Phase 42 P02 | 3 min | 3 tasks | 5 files |
 | Phase 43 P01 | 3 min | 2 tasks | 3 files |
+| Phase 44 P01 | 2 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,7 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase ?]: [Phase 42]: P02: AiFailureBanner gates on hasServerAudio (server-side existence) not the device-local Dexie integer — gate is !hasServerAudio && latestAudioId == null (== null covers Supabase-union id:undefined, Pitfall 2). Closes F2/GAP-5: cross-device/Dexie-cleared failed items now show a working Retry on both list card and detail.
 - [Phase ?]: [Phase 42]: P02: server-only retry passes sentinel audioId 0 through the unchanged gemini.ts orchestrator (isRetry=true); resolveAudioForAi resolves the blob by item_id so no local integer needed (db.audio.get(0)->undefined falls through to RLS-scoped Storage, T-42-09). hasServerAudio computed as audios.some(a=>a.id==null) in the existing PERF-3 ItemList aggregate + parallel ItemEntry derivation — no per-banner round-trip (Open-Q3).
 - [Phase 43]: P01: migrateExistingPhotos resolves itemId via getNewIdByOldId(photo.itemId, "item", photo.itemType) instead of the inline db.idMapping query — itemType discriminator closes the house/sale ++id collision (UAT 38-3), reusing the helper migrateToSupabase uses. [Rule 1] photo-migration.test.ts mock re-pointed from the raw db.idMapping chain to a getNewIdByOldId mock (superseded internal-query contract). Collision test + 9 prior tests pass, tsc clean.
+- [Phase ?]: [Phase 44]: P01: BlockedQueueBadge row label fallback chain title → #receipt → id.slice(0,8) — never the bare UUID (Pitfall 3); each row a full-width button that navigates to /session/:sid/item/:id + setOpen(false) on tap. Import 23505 names the single collider via lastReceipt per loop iteration (in-file dupes pre-filtered to skipped); catch(err) narrowed (err as {code?:string}|null)?.code === '23505', strict gate keeps generic copy + retry for all other failures (Pitfall 1).
 
 ### Pending Todos
 
@@ -163,6 +165,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-04T19:36:42.540Z
+Last session: 2026-06-04T19:52:16.863Z
 Stopped at: Completed 43-01-PLAN.md
 Resume file: None

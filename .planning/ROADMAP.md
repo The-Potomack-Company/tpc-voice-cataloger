@@ -410,7 +410,7 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
 
 **Plans**: 1 plan
 
-- [ ] 44-01-visibility-ux-polish-PLAN.md — blocked badge named/tappable rows (SC1) + 23505 import names the offending receipt (SC2)
+- [x] 44-01-visibility-ux-polish-PLAN.md — blocked badge named/tappable rows (SC1) + 23505 import names the offending receipt (SC2)
 **Estimated plan count**: 1
 **UI hint**: yes
 
