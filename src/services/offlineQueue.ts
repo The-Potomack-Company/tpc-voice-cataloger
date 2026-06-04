@@ -207,42 +207,59 @@ export async function drainQueue(): Promise<void> {
       .eq("ai_status", "processing")
       .lt("claimed_at", staleCutoff);
 
-    try {
-      const { data: pendingItems, error: pendingError } = await supabase
-        .from("items")
-        .select("id")
-        .eq("ai_status", "pending");
+    // Audio<->item reconcile (SC-1, T-42-02/03/05). An item whose ai_status is
+    // stuck in a non-drainable pre-AI state but whose audio has since landed in
+    // the `audio` table is re-queued so it becomes drainable again. Two stuck
+    // states are covered with the SAME union-then-conditional-update shape:
+    //   - 'pending': never advanced to queued (Phase-41 anchor that missed audio)
+    //   - 'failed' : GAP-4 — marked failed because findAudioForItem saw no audio
+    //                at the time, but the upload-queue resweep has since landed it.
+    // Reconcile keys on item_id (UUID) under existing session-owner RLS — no
+    // service-role, no cross-session broadening (SHARED-4). A re-queued item is
+    // still bounded by processItem's ATTEMPT_CAP, so a genuinely poison item caps
+    // to terminal 'failed' instead of looping forever (T-42-02).
+    for (const stuckStatus of ["pending", "failed"] as const) {
+      try {
+        const { data: stuckItems, error: stuckError } = await supabase
+          .from("items")
+          .select("id")
+          .eq("ai_status", stuckStatus);
 
-      if (pendingError) {
-        console.warn("drainQueue: pending reclaim read failed", pendingError);
-      } else {
-        const pendingIds = (pendingItems ?? []).map((item) => item.id);
-        if (pendingIds.length > 0) {
-          const { data: audioRows, error: audioError } = await supabase
-            .from("audio")
-            .select("item_id")
-            .in("item_id", pendingIds);
-
-          if (audioError) {
-            console.warn("drainQueue: pending audio lookup failed", audioError);
-          } else {
-            const idsWithAudio = [
-              ...new Set((audioRows ?? []).map((row) => row.item_id)),
-            ];
-            if (idsWithAudio.length > 0) {
-              // Pending rows without uploaded audio are unrecoverable here; keep
-              // them pending so this drain never fabricates work it cannot run.
-              await supabase
-                .from("items")
-                .update({ ai_status: "queued" })
-                .in("id", idsWithAudio)
-                .eq("ai_status", "pending");
-            }
-          }
+        if (stuckError) {
+          console.warn(`drainQueue: ${stuckStatus} reclaim read failed`, stuckError);
+          continue;
         }
+        const stuckIds = (stuckItems ?? []).map((item) => item.id);
+        if (stuckIds.length === 0) continue;
+
+        const { data: audioRows, error: audioError } = await supabase
+          .from("audio")
+          .select("item_id")
+          .in("item_id", stuckIds);
+
+        if (audioError) {
+          console.warn(`drainQueue: ${stuckStatus} audio lookup failed`, audioError);
+          continue;
+        }
+        // De-dup by item_id (UUID). Cross-device rows are keyed on item_id, never
+        // on a Dexie integer id, so an `id: undefined` union row cannot leak here.
+        const idsWithAudio = [
+          ...new Set((audioRows ?? []).map((row) => row.item_id)),
+        ];
+        if (idsWithAudio.length === 0) continue; // no audio ⇒ never fabricate work
+
+        // SHARED-2 / Pitfall 1: keep .select on the conditional write so the
+        // .eq(ai_status, stuckStatus) winner-detection is real, not a silent
+        // no-op on data:null.
+        await supabase
+          .from("items")
+          .update({ ai_status: "queued" })
+          .in("id", idsWithAudio)
+          .eq("ai_status", stuckStatus)
+          .select("id");
+      } catch (err) {
+        console.warn(`drainQueue: ${stuckStatus} reclaim skipped`, err);
       }
-    } catch (err) {
-      console.warn("drainQueue: pending reclaim skipped", err);
     }
 
     const items = await getQueuedItems();

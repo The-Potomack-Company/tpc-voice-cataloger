@@ -241,6 +241,9 @@ describe("offlineQueue service (Supabase-backed)", () => {
                     error: null,
                   });
                 }
+                if (status === "failed") {
+                  return Promise.resolve({ data: [], error: null });
+                }
                 return {
                   order: vi.fn().mockResolvedValue({ data: [], error: null }),
                 };
@@ -253,7 +256,11 @@ describe("offlineQueue service (Supabase-backed)", () => {
               in: vi.fn((_column: string, ids: string[]) => {
                 reclaimedIds = ids;
                 return {
-                  eq: vi.fn().mockResolvedValue({ error: null }),
+                  eq: vi.fn(() => ({
+                    select: vi
+                      .fn()
+                      .mockResolvedValue({ data: ids.map((id) => ({ id })), error: null }),
+                  })),
                 };
               }),
             })),
