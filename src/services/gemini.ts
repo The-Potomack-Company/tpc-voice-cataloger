@@ -196,12 +196,15 @@ function isTranscriptEmpty(t: string | null | undefined): boolean {
  *   (AiFailureBanner, ItemCard handleRetryAi) pass true; fresh record-stop sites
  *   keep the default false. On a fresh success the item's user-edited flags are
  *   cleared; on a retry they are kept so the no-clobber holds.
+ * @param alreadyClaimed - true when the offline drain has already won its
+ *   queued→processing claim before calling into this pipeline.
  */
 export async function processAudioWithAi(
   audioId: number,
   itemId: string,
   sessionId: string,
   isRetry = false,
+  alreadyClaimed = false,
 ): Promise<void> {
   const startedAt = performance.now();
   trackEvent({
@@ -212,11 +215,16 @@ export async function processAudioWithAi(
   try {
     const accessToken = await ensureFreshSession();
 
-    // Set ai_status to "processing" via Supabase
-    await supabase
-      .from("items")
-      .update({ ai_status: "processing" })
-      .eq("id", itemId);
+    if (!alreadyClaimed) {
+      const fromStatus = isRetry ? "failed" : "queued";
+      const { data: claimed } = await supabase
+        .from("items")
+        .update({ ai_status: "processing", claimed_at: new Date().toISOString() })
+        .eq("id", itemId)
+        .eq("ai_status", fromStatus)
+        .select("id");
+      if (!claimed || claimed.length === 0) return;
+    }
 
     // Refresh local store so UI (e.g. waveform → spinner swap) reflects
     // the new processing state. fire-and-forget; failure is non-fatal.

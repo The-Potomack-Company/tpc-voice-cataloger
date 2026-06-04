@@ -144,7 +144,7 @@ async function processItem(item: QueuedItem): Promise<void> {
   }, HEARTBEAT_MS);
 
   try {
-    await processAudioWithAi(audioId, item.id, item.sessionId);
+    await processAudioWithAi(audioId, item.id, item.sessionId, false, true);
   } catch (err) {
     // A transient error (offline/network/5xx/429, folds in #17 net-abort) is
     // re-queued and aged out via the attempt cap; a permanent error (4xx/Zod)
@@ -206,6 +206,44 @@ export async function drainQueue(): Promise<void> {
       .update({ ai_status: "queued" })
       .eq("ai_status", "processing")
       .lt("claimed_at", staleCutoff);
+
+    try {
+      const { data: pendingItems, error: pendingError } = await supabase
+        .from("items")
+        .select("id")
+        .eq("ai_status", "pending");
+
+      if (pendingError) {
+        console.warn("drainQueue: pending reclaim read failed", pendingError);
+      } else {
+        const pendingIds = (pendingItems ?? []).map((item) => item.id);
+        if (pendingIds.length > 0) {
+          const { data: audioRows, error: audioError } = await supabase
+            .from("audio")
+            .select("item_id")
+            .in("item_id", pendingIds);
+
+          if (audioError) {
+            console.warn("drainQueue: pending audio lookup failed", audioError);
+          } else {
+            const idsWithAudio = [
+              ...new Set((audioRows ?? []).map((row) => row.item_id)),
+            ];
+            if (idsWithAudio.length > 0) {
+              // Pending rows without uploaded audio are unrecoverable here; keep
+              // them pending so this drain never fabricates work it cannot run.
+              await supabase
+                .from("items")
+                .update({ ai_status: "queued" })
+                .in("id", idsWithAudio)
+                .eq("ai_status", "pending");
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("drainQueue: pending reclaim skipped", err);
+    }
 
     const items = await getQueuedItems();
     // Process in batches of CONCURRENCY

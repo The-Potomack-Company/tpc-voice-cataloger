@@ -152,12 +152,21 @@ describe("gemini pipeline", () => {
     function createMockFrom(options: {
       updateCalls?: Array<Record<string, unknown>>;
       existingItem?: Record<string, unknown> | null;
+      claimRows?: Array<Record<string, unknown>>;
     }) {
-      const { updateCalls = [], existingItem = null } = options;
+      const { updateCalls = [], existingItem = null, claimRows = [{ id: "claimed" }] } = options;
       return () => ({
         update: (data: Record<string, unknown>) => {
           updateCalls.push(data);
-          return { eq: vi.fn().mockResolvedValue({ error: null }) };
+          return {
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockResolvedValue({ data: claimRows, error: null }),
+              }),
+              then: (resolve: (v: { error: null }) => unknown) =>
+                resolve({ error: null }),
+            }),
+          };
         },
         select: () => ({
           eq: () => ({
@@ -187,8 +196,36 @@ describe("gemini pipeline", () => {
 
       await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
 
-      // First update should be setting ai_status to 'processing'
-      expect(updateCalls[0]).toEqual({ ai_status: "processing" });
+      // First update should atomically claim the item for processing
+      expect(updateCalls[0]).toEqual({
+        ai_status: "processing",
+        claimed_at: expect.any(String),
+      });
+    });
+
+    it("bails without fetching Gemini when the processing claim returns zero rows", async () => {
+      const updateCalls: Array<Record<string, unknown>> = [];
+      mockFrom.mockImplementation(createMockFrom({
+        updateCalls,
+        existingItem: nullItem,
+        claimRows: [],
+      }));
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        mockGeminiResponse({
+          title: "Oak table",
+          description: "nice oak table",
+          condition: null,
+          estimate: null,
+          category: null,
+          measurements: null,
+          transcript: "nice oak table",
+        }) as unknown as Response,
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(updateCalls).toHaveLength(1);
     });
 
     it("on success, writes title, description, condition, estimate, category, measurements, transcript to Supabase items table", async () => {
@@ -335,7 +372,16 @@ describe("gemini pipeline", () => {
 
       mockFrom.mockImplementation(() => ({
         update: () => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: [{ id: "claimed" }],
+                error: null,
+              }),
+            }),
+            then: (resolve: (v: { error: null }) => unknown) =>
+              resolve({ error: null }),
+          }),
         }),
         select: () => ({
           eq: () => ({

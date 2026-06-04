@@ -192,12 +192,14 @@ describe("offlineQueue service (Supabase-backed)", () => {
         audioId,
         "uuid-item-1",
         "sess-uuid-1",
+        false,
+        true,
       );
     });
   });
 
   describe("drainQueue", () => {
-    it("calls processAudioWithAi with (audioId, itemId as string UUID, sessionId as string UUID)", async () => {
+    it("calls processAudioWithAi with (audioId, itemId as string UUID, sessionId as string UUID, alreadyClaimed=true)", async () => {
       // Create audio with legacy integer itemId
       mockGetDexieItemId.mockResolvedValue(42);
       const audioId = await createAudio(42, "house");
@@ -219,7 +221,64 @@ describe("offlineQueue service (Supabase-backed)", () => {
         audioId,
         "uuid-item-1",
         "sess-uuid-1",
+        false,
+        true,
       );
+    });
+
+    it("reclaims pending items with uploaded audio and leaves pending no-audio items untouched", async () => {
+      mockGetDexieItemId.mockResolvedValue(null);
+
+      let reclaimedIds: string[] = [];
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "items") {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn((_field: string, status: string) => {
+                if (status === "pending") {
+                  return Promise.resolve({
+                    data: [{ id: "pending-with-audio" }, { id: "pending-no-audio" }],
+                    error: null,
+                  });
+                }
+                return {
+                  order: vi.fn().mockResolvedValue({ data: [], error: null }),
+                };
+              }),
+            })),
+            update: mockSupabaseUpdate.mockImplementation(() => ({
+              eq: vi.fn(() => ({
+                lt: vi.fn().mockResolvedValue({ error: null }),
+              })),
+              in: vi.fn((_column: string, ids: string[]) => {
+                reclaimedIds = ids;
+                return {
+                  eq: vi.fn().mockResolvedValue({ error: null }),
+                };
+              }),
+            })),
+          };
+        }
+        if (table === "audio") {
+          return {
+            select: vi.fn(() => ({
+              in: vi.fn().mockResolvedValue({
+                data: [{ item_id: "pending-with-audio" }],
+                error: null,
+              }),
+            })),
+          };
+        }
+        return {};
+      });
+
+      const { processAudioWithAi } = await import("../services/gemini");
+      const { drainQueue } = await import("../services/offlineQueue");
+      await drainQueue();
+
+      expect(reclaimedIds).toEqual(["pending-with-audio"]);
+      expect(reclaimedIds).not.toContain("pending-no-audio");
+      expect(processAudioWithAi).not.toHaveBeenCalled();
     });
 
     it("handles items with no audio by marking them as failed via supabase", async () => {
@@ -394,6 +453,8 @@ describe("offlineQueue service (Supabase-backed)", () => {
         audioId,
         "uuid-eligible",
         "sess-uuid-1",
+        false,
+        true,
       );
     });
 
@@ -567,6 +628,8 @@ describe("offlineQueue service (Supabase-backed)", () => {
         audioId,
         "uuid-race",
         "sess-uuid-1",
+        false,
+        true,
       );
     });
 

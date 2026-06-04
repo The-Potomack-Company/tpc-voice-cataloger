@@ -301,6 +301,17 @@ export function ItemEntryPage() {
           />
         )}
 
+        {(item?.ai_status === "pending" || item?.ai_status === "queued") && (
+          <div
+            role="status"
+            className="rounded-lg border border-rule bg-bg-2 px-3 py-3 text-center"
+          >
+            <p className="text-sm text-ink-3">
+              Waiting for connectivity to process...
+            </p>
+          </div>
+        )}
+
         {/* Receipt number input for sale mode (top field) */}
         {mode === "sale" && (
           <div onBlur={handleReceiptBlur}>

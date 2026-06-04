@@ -5,6 +5,16 @@ import { RecordButton } from "../components/RecordButton";
 import { RecordingIndicator } from "../components/RecordingIndicator";
 import { RecordingToast } from "../components/RecordingToast";
 import { useRecordingStore } from "../stores/recordingStore";
+import { processAudioWithAi } from "../services/gemini";
+import { updateItemField } from "../db/items";
+
+vi.mock("../services/gemini", () => ({
+  processAudioWithAi: vi.fn(),
+}));
+
+vi.mock("../db/items", () => ({
+  updateItemField: vi.fn(),
+}));
 
 // Mock the useAudioRecorder hook
 const mockStartRecording = vi.fn();
@@ -32,6 +42,8 @@ describe("RecordButton", () => {
       stopRecording: mockStopRecording,
     };
     vi.clearAllMocks();
+    vi.mocked(processAudioWithAi).mockResolvedValue(undefined);
+    vi.mocked(updateItemField).mockResolvedValue(undefined);
   });
 
   it("renders microphone icon in idle state", () => {
@@ -72,6 +84,33 @@ describe("RecordButton", () => {
     const button = screen.getByRole("button");
     await user.click(button);
     expect(mockStopRecording).toHaveBeenCalled();
+  });
+
+  it("sets ai_status to queued before fire-and-forget AI so a rejected inline call stays drainable", async () => {
+    mockHookReturn.status = "recording";
+    vi.mocked(processAudioWithAi).mockRejectedValue(new Error("network down"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const user = userEvent.setup();
+
+    render(<RecordButton itemId="item-1" sessionId="session-1" />);
+    await user.click(screen.getByRole("button"));
+    await Promise.resolve();
+
+    expect(updateItemField).toHaveBeenCalledWith(
+      "item-1",
+      "session-1",
+      "ai_status",
+      "queued",
+    );
+    expect(updateItemField).not.toHaveBeenCalledWith(
+      "item-1",
+      "session-1",
+      "ai_status",
+      "pending",
+    );
+    expect(processAudioWithAi).toHaveBeenCalledWith(1, "item-1", "session-1");
+
+    consoleSpy.mockRestore();
   });
 
   it("shows disabled state while requesting", () => {

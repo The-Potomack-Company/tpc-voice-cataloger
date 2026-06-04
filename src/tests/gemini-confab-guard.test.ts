@@ -69,7 +69,18 @@ function createMockFrom(options: {
   return () => ({
     update: (data: Record<string, unknown>) => {
       updateCalls.push(data);
-      return { eq: vi.fn().mockResolvedValue({ error: null }) };
+      return {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({
+              data: [{ id: "claimed" }],
+              error: null,
+            }),
+          }),
+          then: (resolve: (v: { error: null }) => unknown) =>
+            resolve({ error: null }),
+        }),
+      };
     },
     select: () => ({
       eq: () => ({
@@ -131,7 +142,10 @@ describe("gemini confab guard (SC-2)", () => {
 
   function assertRejected(updateCalls: Array<Record<string, unknown>>) {
     // Only two writes allowed: the leading processing flag, then the failed flag.
-    expect(updateCalls[0]).toEqual({ ai_status: "processing" });
+    expect(updateCalls[0]).toEqual({
+      ai_status: "processing",
+      claimed_at: expect.any(String),
+    });
     const last = updateCalls[updateCalls.length - 1];
     expect(last.ai_status).toBe("failed");
     // No catalog field may appear in ANY write — invented fields must not persist.

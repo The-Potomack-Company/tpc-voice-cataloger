@@ -48,6 +48,7 @@ type ProcessAudioWithAi = (
   itemId: string,
   sessionId: string,
   isRetry?: boolean,
+  alreadyClaimed?: boolean,
 ) => Promise<void>;
 let processAudioWithAi: ProcessAudioWithAi;
 
@@ -78,7 +79,18 @@ function createMockFrom(options: {
   return () => ({
     update: (data: Record<string, unknown>) => {
       updateCalls.push(data);
-      return { eq: vi.fn().mockResolvedValue({ error: null }) };
+      return {
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({
+              data: [{ id: "claimed" }],
+              error: null,
+            }),
+          }),
+          then: (resolve: (v: { error: null }) => unknown) =>
+            resolve({ error: null }),
+        }),
+      };
     },
     select: () => ({
       eq: () => ({

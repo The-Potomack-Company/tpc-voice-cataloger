@@ -11,6 +11,7 @@ type ProcessAudioWithAi = (
   itemId: string,
   sessionId: string,
   isRetry?: boolean,
+  alreadyClaimed?: boolean,
 ) => Promise<void>;
 const processAudioWithAiRetry = processAudioWithAi as ProcessAudioWithAi;
 
