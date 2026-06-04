@@ -258,4 +258,123 @@ describe("audioUploadQueue", () => {
       expect(failCall).toBeDefined();
     });
   });
+
+  describe("resweepFailedUploads (bounded failed->pending self-heal)", () => {
+    // Routes db.audioUploadQueue.where("status").equals(<x>) to different
+    // backing arrays: 'failed' feeds the resweep toArray(), 'pending' feeds the
+    // subsequent drain sortBy(). Lets one test exercise failed->pending->uploaded.
+    function setupStatusChains(byStatus: { failed?: unknown[]; pending?: unknown[] }) {
+      mockAudioUploadQueue.where.mockReturnValue({
+        equals: vi.fn((status: string) => ({
+          toArray: vi.fn().mockResolvedValue(
+            (byStatus[status as "failed" | "pending"] ?? []) as unknown[],
+          ),
+          sortBy: vi.fn().mockResolvedValue(
+            (byStatus[status as "failed" | "pending"] ?? []) as unknown[],
+          ),
+        })),
+      });
+    }
+
+    it("resets a below-cap failed entry to pending WITHOUT zeroing retryCount", async () => {
+      const { resweepFailedUploads, _resetDraining } = await import(
+        "../services/audioUploadQueue"
+      );
+      _resetDraining();
+
+      const failed = makeEntry({ id: 7, status: "failed", retryCount: 3 });
+      setupStatusChains({ failed: [failed], pending: [] });
+      mockAudioUploadQueue.update.mockResolvedValue(1);
+
+      await resweepFailedUploads();
+
+      const resetCall = mockAudioUploadQueue.update.mock.calls.find(
+        (c: unknown[]) => c[0] === 7,
+      );
+      expect(resetCall).toBeDefined();
+      const patch = resetCall![1] as Record<string, unknown>;
+      expect(patch.status).toBe("pending");
+      // Bounded self-heal: retryCount preserved so the entry ages out (no re-arm storm).
+      expect(patch.retryCount).toBeUndefined();
+    });
+
+    it("leaves an at/over-cap failed entry terminal (no re-arm)", async () => {
+      const { resweepFailedUploads, _resetDraining } = await import(
+        "../services/audioUploadQueue"
+      );
+      _resetDraining();
+
+      const stuck = makeEntry({ id: 9, status: "failed", retryCount: 99 });
+      setupStatusChains({ failed: [stuck], pending: [] });
+      mockAudioUploadQueue.update.mockResolvedValue(1);
+
+      await resweepFailedUploads();
+
+      const resetCall = mockAudioUploadQueue.update.mock.calls.find(
+        (c: unknown[]) =>
+          c[0] === 9 && (c[1] as Record<string, unknown>).status === "pending",
+      );
+      expect(resetCall).toBeUndefined();
+    });
+
+    it("failed -> pending -> uploaded: a below-cap entry with a live blob lands the audio row", async () => {
+      const { resweepFailedUploads, _resetDraining } = await import(
+        "../services/audioUploadQueue"
+      );
+      _resetDraining();
+
+      const failed = makeEntry({ id: 5, dexieAudioId: 50, status: "failed", retryCount: 1 });
+      // After resweep flips it to pending, the drain reads it from the pending chain.
+      const pendingVersion = makeEntry({ id: 5, dexieAudioId: 50, status: "pending", retryCount: 1 });
+      setupStatusChains({ failed: [failed], pending: [pendingVersion] });
+
+      mockAudio.get.mockResolvedValue({ id: 50, blob: new Blob(["audio"]) });
+      mockStorageUpload.mockResolvedValue({ error: null });
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
+      mockAudioUploadQueue.update.mockResolvedValue(1);
+
+      await resweepFailedUploads();
+      // resweep fires drain fire-and-forget; flush microtasks/timers.
+      await vi.runOnlyPendingTimersAsync();
+
+      // The drain reuses the idempotent upsert path (DAT-5).
+      expect(mockSupabaseUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({ upload_status: "uploaded" }),
+        { onConflict: "storage_path", ignoreDuplicates: true },
+      );
+      const uploadedCall = mockAudioUploadQueue.update.mock.calls.find(
+        (c: unknown[]) => (c[1] as Record<string, unknown>).status === "uploaded",
+      );
+      expect(uploadedCall).toBeDefined();
+    });
+
+    it("is idempotent: a second resweep does not re-reset an entry already moved to pending", async () => {
+      const { resweepFailedUploads, _resetDraining } = await import(
+        "../services/audioUploadQueue"
+      );
+      _resetDraining();
+
+      // First sweep sees the failed entry; after it flips to pending there are
+      // no more 'failed' rows, so the second sweep finds nothing to reset.
+      const failed = makeEntry({ id: 3, status: "failed", retryCount: 0 });
+      setupStatusChains({ failed: [failed], pending: [] });
+      mockAudioUploadQueue.update.mockResolvedValue(1);
+
+      await resweepFailedUploads();
+      const firstResetCount = mockAudioUploadQueue.update.mock.calls.filter(
+        (c: unknown[]) =>
+          c[0] === 3 && (c[1] as Record<string, unknown>).status === "pending",
+      ).length;
+      expect(firstResetCount).toBe(1);
+
+      // Second sweep: no failed rows remain.
+      setupStatusChains({ failed: [], pending: [] });
+      await resweepFailedUploads();
+      const totalResetCount = mockAudioUploadQueue.update.mock.calls.filter(
+        (c: unknown[]) =>
+          c[0] === 3 && (c[1] as Record<string, unknown>).status === "pending",
+      ).length;
+      expect(totalResetCount).toBe(1);
+    });
+  });
 });
