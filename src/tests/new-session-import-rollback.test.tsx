@@ -145,8 +145,10 @@ describe("NewSession import compensating rollback (SC2, D-01)", () => {
     expect(mockDeleteSession).toHaveBeenCalledWith("session-1");
     // No false success: the loop never reaches navigate().
     expect(mockNavigate).not.toHaveBeenCalled();
+    // 23505 names the offending receipt (R2 is the collider — item-1 resolves,
+    // the 2nd createBlankItem rejects). Retry callback preserved.
     expect(mockNotifyError).toHaveBeenCalledWith(
-      "Import didn't finish — changes were undone. Try again.",
+      expect.stringContaining("R2"),
       expect.any(Function),
     );
   });
