@@ -522,6 +522,10 @@ export async function processAudioWithAi(
         // DAT-2: do not write status into `description` — it clobbers AI content / manual edits.
         : { ai_status: "failed" };
 
+      // SEAM-3 (Phase 45) scope note: this failure write is intentionally NOT routed
+      // through preconditionUpdate. It writes ai_status only — a control field — so it
+      // cannot clobber catalog content (the lost-write vector Phase 45 closed on the
+      // success path). A last-writer-wins ai_status transition here is acceptable.
       await supabase
         .from("items")
         .update(update)
