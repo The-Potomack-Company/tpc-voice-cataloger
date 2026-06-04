@@ -190,7 +190,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 | 31-40.1 | v1.3 | complete | Verified — milestone-end UAT 2026-06-04 | 2026-06-04 |
 | 41 | v1.3 | complete | ai-pending-stranding (urgent lane) | 2026-06-04 |
 | 42-44 | v1.3 | complete | UAT-walk follow-ups (42 audio-upload, 43 photo-collision, 44 visibility-ux) — live UAT passed 2026-06-04 | 2026-06-04 |
-| 45 | v1.3 | planned | ai-write-precondition (milestone-audit SEAM-3 fix) | — |
+| 45 | v1.3 | 1/1 | Complete   | 2026-06-04 |
 
 ## Current Milestone Phase Detail (v1.3)
 
@@ -430,7 +430,7 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
 
 **Plans**: 1 plan
 
-- [ ] 45-01-ai-write-precondition-PLAN.md — route single-item AI success write through preconditionUpdate with compare-and-skip reconcile (TDD)
+- [x] 45-01-ai-write-precondition-PLAN.md — route single-item AI success write through preconditionUpdate with compare-and-skip reconcile (TDD)
 
 **Estimated plan count**: 1
 **UI hint**: no

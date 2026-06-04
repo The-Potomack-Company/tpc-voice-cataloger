@@ -4,13 +4,13 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: verifying
 stopped_at: Completed 43-01-PLAN.md
-last_updated: "2026-06-04T19:58:14.836Z"
+last_updated: "2026-06-04T20:24:30.837Z"
 progress:
-  total_phases: 2
+  total_phases: 12
   completed_phases: 2
   total_plans: 3
   completed_plans: 3
-  percent: 100
+  percent: 17
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 44 — visibility-ux-polish
+**Current focus:** Phase 45 — ai-write-precondition
 
 ## Current Position
 
-Phase: 44
-Plan: Not started
+Phase: 45 (ai-write-precondition) — EXECUTING
+Plan: 1 of 1
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
 Status: Phase complete — ready for verification
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
@@ -88,6 +88,7 @@ Source: `docs/audit-consolidated-backlog-2026-05-27.md` + 2026-05-28 UAT + audio
 | Phase 42 P02 | 3 min | 3 tasks | 5 files |
 | Phase 43 P01 | 3 min | 2 tasks | 3 files |
 | Phase 44 P01 | 2 min | 2 tasks | 4 files |
+| Phase 45 P01 | 3 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,7 @@ Decisions are logged in PROJECT.md Key Decisions table and the vault (`../_works
 - [Phase ?]: [Phase 42]: P02: server-only retry passes sentinel audioId 0 through the unchanged gemini.ts orchestrator (isRetry=true); resolveAudioForAi resolves the blob by item_id so no local integer needed (db.audio.get(0)->undefined falls through to RLS-scoped Storage, T-42-09). hasServerAudio computed as audios.some(a=>a.id==null) in the existing PERF-3 ItemList aggregate + parallel ItemEntry derivation — no per-banner round-trip (Open-Q3).
 - [Phase 43]: P01: migrateExistingPhotos resolves itemId via getNewIdByOldId(photo.itemId, "item", photo.itemType) instead of the inline db.idMapping query — itemType discriminator closes the house/sale ++id collision (UAT 38-3), reusing the helper migrateToSupabase uses. [Rule 1] photo-migration.test.ts mock re-pointed from the raw db.idMapping chain to a getNewIdByOldId mock (superseded internal-query contract). Collision test + 9 prior tests pass, tsc clean.
 - [Phase ?]: [Phase 44]: P01: BlockedQueueBadge row label fallback chain title → #receipt → id.slice(0,8) — never the bare UUID (Pitfall 3); each row a full-width button that navigates to /session/:sid/item/:id + setOpen(false) on tap. Import 23505 names the single collider via lastReceipt per loop iteration (in-file dupes pre-filtered to skipped); catch(err) narrowed (err as {code?:string}|null)?.code === '23505', strict gate keeps generic copy + retry for all other failures (Pitfall 1).
+- [Phase ?]: [Phase 45]: P01: single-item AI success write routes through preconditionUpdate with a compare-and-skip reconcile mirroring geminiContinuous.ts:286-303 (SEAM-3 lost-write fix); snapshot read selects updated_at → prevUpdatedAt + valueAtRead, a catalog field another writer changed since the AI read yields (D-06), control + untouched fields re-apply. Single-item CATALOG_FIELDS includes receipt_number. hasExistingData !==null→!=null so updated_at can't force MERGE. [Rule 1] gemini-pipeline.test.ts mock re-pointed to the precondition write shape. 721 tests pass, tsc clean.
 
 ### Pending Todos
 
@@ -165,6 +167,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-04T19:52:16.863Z
+Last session: 2026-06-04T20:24:01.111Z
 Stopped at: Completed 43-01-PLAN.md
 Resume file: None
