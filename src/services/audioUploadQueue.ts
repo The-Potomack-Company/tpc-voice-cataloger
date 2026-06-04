@@ -8,6 +8,16 @@ const CONCURRENCY = 2;
 const MAX_RETRIES = 3;
 const BACKOFF_BASE = 1000; // delay = 4^retryCount * 1000 => 1s, 4s, 16s
 
+// Bound on how many times a `failed` entry may be automatically resurfaced by
+// the boot/online resweep before it is left terminal. WHY a cap > MAX_RETRIES:
+// each resweep cycle that re-fails bumps retryCount by one (processOneAudioUpload
+// re-fails at MAX_RETRIES and persists newRetryCount), so RESWEEP_CAP measured
+// against the persisted retryCount ages a permanently-failing entry out instead
+// of re-arming it on every `online` event — the Phase-33/41 retry-storm bug we
+// must NOT reintroduce. retryCount is preserved on resweep (never reset to 0);
+// the unbounded reset-to-0 lives only in the manual retryFailedUploads one-shot.
+const RESWEEP_CAP = 6;
+
 let draining = false;
 
 /**
@@ -173,6 +183,39 @@ export async function retryFailedUploads(): Promise<void> {
 
   // Fire-and-forget drain
   drainAudioQueue();
+}
+
+/**
+ * Boot/online self-heal: bounded resweep of `failed` entries back to `pending`.
+ *
+ * Unlike retryFailedUploads (the manual ItemCard one-shot, which resets
+ * retryCount:0 unconditionally), this is safe to fire on every app boot and
+ * every `online` event: an entry is only resurfaced while its persisted
+ * retryCount is below RESWEEP_CAP, and retryCount is PRESERVED (never zeroed),
+ * so a permanently-failing entry ages out instead of re-arming forever (the
+ * retry-storm anti-pattern, RESEARCH Pitfall 3 / SHARED-1). The drain reuses the
+ * existing idempotent upsert (DAT-5), so a resurfaced upload cannot duplicate a
+ * Storage object or audio row. An entry whose Dexie blob is gone re-fails
+ * terminally (self-limiting) and ages out via the same cap.
+ */
+export async function resweepFailedUploads(): Promise<void> {
+  const failed = await db.audioUploadQueue
+    .where("status")
+    .equals("failed")
+    .toArray();
+
+  let reset = 0;
+  await Promise.all(
+    failed.map((entry) => {
+      if (entry.retryCount >= RESWEEP_CAP) return undefined; // terminal — never re-arm
+      reset += 1;
+      // Preserve retryCount: only flip status so the entry ages out under the cap.
+      return db.audioUploadQueue.update(entry.id!, { status: "pending" as const });
+    })
+  );
+
+  // Fire-and-forget drain only when something was actually resurfaced.
+  if (reset > 0) drainAudioQueue();
 }
 
 // Export for testing
