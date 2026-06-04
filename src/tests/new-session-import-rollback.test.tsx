@@ -153,6 +153,31 @@ describe("NewSession import compensating rollback (SC2, D-01)", () => {
     );
   });
 
+  it("WR-01: a pre-loop 23505 (createSession) keeps generic copy — never 'Receipt #undefined'", async () => {
+    // A 23505 thrown before the receipt loop has no identified collider:
+    // lastReceipt is still undefined, so the dup branch must NOT fire.
+    mockCreateSession.mockReset();
+    const dupErr = Object.assign(new Error("duplicate key value"), {
+      code: "23505",
+    });
+    mockCreateSession.mockRejectedValue(dupErr);
+
+    const user = userEvent.setup();
+    renderNewSession();
+    await selectSaleModeAndName(user);
+    await user.click(screen.getByRole("button", { name: "mock-import" }));
+
+    // No collider identified → generic copy, not the receipt-naming branch.
+    expect(mockNotifyError).toHaveBeenCalledWith(
+      "Import didn't finish — changes were undone. Try again.",
+      expect.any(Function),
+    );
+    const [[msg]] = mockNotifyError.mock.calls;
+    expect(msg).not.toContain("undefined");
+    expect(mockCreateBlankItem).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it("CR-02: clean import passes each receipt to createBlankItem at creation", async () => {
     mockCreateBlankItem
       .mockResolvedValueOnce("item-1")

@@ -163,7 +163,12 @@ export function NewSessionPage() {
       }
       // Gate strictly on 23505 (Pitfall 1) — every other failure keeps the
       // generic copy. catch binds unknown, so narrow via a code probe (Pitfall 2).
-      const isDup = (err as { code?: string } | null)?.code === "23505";
+      // WR-01: also require lastReceipt to be set — a 23505 from the pre-loop
+      // createSession would otherwise name "Receipt #undefined". Only an
+      // in-loop createBlankItem collision has an identified offending receipt.
+      const isDup =
+        lastReceipt !== undefined &&
+        (err as { code?: string } | null)?.code === "23505";
       useNotificationStore
         .getState()
         .notifyError(
