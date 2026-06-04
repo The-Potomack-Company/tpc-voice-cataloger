@@ -9,6 +9,7 @@
  * Clicking the badge toggles a detail list of the blocked item ids.
  */
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { supabase } from "../lib/supabase";
 import { Badge } from "../ui/Badge";
 import { useDrainSignalStore } from "../stores/drainSignalStore";
@@ -17,22 +18,33 @@ interface BlockedItem {
   id: string;
   mode: string;
   session_id: string;
+  title: string | null;
+  receipt_number: string | null;
 }
 
 async function fetchBlockedItems(): Promise<BlockedItem[]> {
   // Mirror getQueuedItems' query shape (offlineQueue.ts) but filter ai_status='failed'.
   const { data, error } = await supabase
     .from("items")
-    .select("id, mode, session_id")
+    .select("id, mode, session_id, title, receipt_number")
     .eq("ai_status", "failed");
 
   if (error || !data) return [];
   return data as BlockedItem[];
 }
 
+// Fallback chain (mirror ItemCard.tsx:127 idiom): title → #receipt → short id slice.
+// Never the bare UUID (Pitfall 3).
+function blockedItemLabel(item: BlockedItem): string {
+  if (item.title) return item.title;
+  if (item.receipt_number) return `#${item.receipt_number}`;
+  return item.id.slice(0, 8);
+}
+
 export function BlockedQueueBadge() {
   const [items, setItems] = useState<BlockedItem[]>([]);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const refresh = useCallback(() => {
     fetchBlockedItems()
@@ -79,8 +91,20 @@ export function BlockedQueueBadge() {
           className="absolute top-full z-10 mt-1 max-h-60 w-56 overflow-y-auto rounded-md border border-red-300 bg-bg p-2 text-sm shadow-lg dark:border-red-800"
         >
           {items.map((item) => (
-            <li key={item.id} className="truncate py-0.5">
-              {item.id}
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  navigate(`/session/${item.session_id}/item/${item.id}`);
+                }}
+                className="flex w-full items-center justify-between gap-2 py-0.5 text-left"
+              >
+                <span className="truncate">{blockedItemLabel(item)}</span>
+                <span className="shrink-0 text-xs opacity-70">
+                  {item.mode === "sale" ? "Sale" : "House"}
+                </span>
+              </button>
             </li>
           ))}
         </ul>
