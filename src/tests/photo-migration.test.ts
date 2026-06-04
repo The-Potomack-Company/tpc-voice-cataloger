@@ -26,6 +26,16 @@ vi.mock("../db", () => ({
   },
 }));
 
+// migrateExistingPhotos now resolves itemId via the getNewIdByOldId helper
+// (itemTable-scoped, Phase 43) rather than the raw db.idMapping query chain.
+const { mockGetNewIdByOldId } = vi.hoisted(() => {
+  return { mockGetNewIdByOldId: vi.fn() };
+});
+
+vi.mock("../db/idMapping", () => ({
+  getNewIdByOldId: mockGetNewIdByOldId,
+}));
+
 const { mockEnqueuePhotoUpload, mockDrainPhotoQueue } = vi.hoisted(() => {
   return {
     mockEnqueuePhotoUpload: vi.fn().mockResolvedValue(undefined),
@@ -114,17 +124,9 @@ describe("photo migration", () => {
 
   describe("migrateExistingPhotos", () => {
     function setupIdMappingMock(mappings: Record<number, string>) {
-      mockIdMapping.where.mockReturnValue({
-        equals: vi.fn().mockImplementation((oldId: number) => ({
-          filter: vi.fn().mockImplementation(() => ({
-            first: vi.fn().mockResolvedValue(
-              mappings[oldId]
-                ? { oldId, newId: mappings[oldId], type: "item" }
-                : undefined,
-            ),
-          })),
-        })),
-      });
+      mockGetNewIdByOldId.mockImplementation(
+        async (oldId: number) => mappings[oldId] ?? null,
+      );
     }
 
     function setupSupabaseItemLookup(items: Record<string, string>) {
@@ -180,7 +182,7 @@ describe("photo migration", () => {
       );
       await migrateExistingPhotos();
 
-      expect(mockIdMapping.where).toHaveBeenCalledWith("oldId");
+      expect(mockGetNewIdByOldId).toHaveBeenCalledWith(42, "item", undefined);
       expect(mockEnqueuePhotoUpload).toHaveBeenCalledWith(
         expect.objectContaining({
           itemId: "uuid-item-42",

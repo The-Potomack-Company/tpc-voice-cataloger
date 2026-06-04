@@ -1,4 +1,5 @@
 import { db } from "../db";
+import { getNewIdByOldId } from "../db/idMapping";
 import { supabase } from "../lib/supabase";
 import { enqueuePhotoUpload, drainPhotoQueue } from "./photoUploadQueue";
 
@@ -46,15 +47,15 @@ export async function migrateExistingPhotos(): Promise<MigrationResult> {
   let queued = 0;
   let skipped = 0;
   for (const photo of unhandled) {
-    // Resolve Dexie itemId (oldId) to Supabase UUID (newId) via idMapping
-    const mapping = await db.idMapping
-      .where("oldId")
-      .equals(photo.itemId)
-      .filter((m) => m.type === "item")
-      .first();
+    // Resolve Dexie itemId (oldId) to Supabase UUID (newId) via idMapping,
+    // scoped by the photo's source table (itemType). houseVisitItems and
+    // saleItems have INDEPENDENT ++id keyspaces, so passing photo.itemType as
+    // the itemTable discriminator stops a sale photo from resolving to a
+    // colliding house item's UUID (UAT 38-3), matching migrateToSupabase.
+    const newId = await getNewIdByOldId(photo.itemId, "item", photo.itemType);
 
     // Use mapping newId if found, otherwise treat itemId as already a Supabase UUID string
-    const supabaseItemId = mapping ? mapping.newId : String(photo.itemId);
+    const supabaseItemId = newId ?? String(photo.itemId);
 
     // Look up sessionId from Supabase items table
     const { data: item } = await supabase
