@@ -4,9 +4,13 @@ milestone: v1.3
 milestone_name: Maturation — Phases
 status: executing
 stopped_at: Phase 40.1 context gathered
-last_updated: "2026-06-03T20:44:32.036Z"
+last_updated: "2026-06-04T19:09:51.454Z"
 progress:
-  percent: 40
+  total_phases: 11
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -23,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 Phase: 40.1
 Plan: Not started
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: Executing Phase 40.1
+Status: Ready to execute
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
