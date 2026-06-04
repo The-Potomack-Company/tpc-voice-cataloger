@@ -189,7 +189,7 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 | 22-30 | v1.2 | All | Complete (shipped in PR #11) | 2026-05-13 |
 | 31-40.1 | v1.3 | complete | Verified — milestone-end UAT 2026-06-04 | 2026-06-04 |
 | 41 | v1.3 | complete | ai-pending-stranding (urgent lane) | 2026-06-04 |
-| 42-44 | v1.3 | planned | UAT-walk follow-ups (queued) | — |
+| 42-44 | v1.3 | complete | UAT-walk follow-ups (42 audio-upload, 43 photo-collision, 44 visibility-ux) — 44 has 2 deferred live UAT checks | 2026-06-04 |
 
 ## Current Milestone Phase Detail (v1.3)
 
