@@ -52,6 +52,7 @@ function renderCard(item = makeItem()) {
         onToggle={() => {}}
         audioCount={1}
         latestAudioId={10}
+        hasServerAudio={false}
         photoCount={0}
         dexieItemId={10}
         isPending={false}

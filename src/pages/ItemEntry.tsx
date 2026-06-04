@@ -155,18 +155,25 @@ export function ItemEntryPage() {
     getDexieItemId(itemId).then(id => setDexieItemId(id ?? itemId));
   }, [itemId, isNewItem]);
 
-  // Latest audio id for this item — feeds the shared AiFailureBanner's Retry.
-  const bannerLatestAudioId = useLiveQuery(
+  // Latest audio id + server-side existence for this item — feeds the shared
+  // AiFailureBanner. hasServerAudio (F2) gates the banner off cross-device audio
+  // that lives only in Supabase (id:undefined union rows ⇒ latestAudioId null).
+  const bannerAudioMeta = useLiveQuery(
     async () => {
-      if (!itemId || isNewItem) return null;
+      if (!itemId || isNewItem) return { latestAudioId: null, hasServerAudio: false };
       const audios = await audioRecordsForItem(itemId);
-      return audios.length > 0
+      const latestAudioId = audios.length > 0
         ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
         : null;
+      // `== null` covers the intentional id:undefined of Supabase-union rows.
+      const hasServerAudio = audios.some((a) => a.id == null);
+      return { latestAudioId, hasServerAudio };
     },
     [itemId, isNewItem],
-    null as number | null,
+    { latestAudioId: null as number | null, hasServerAudio: false },
   );
+  const bannerLatestAudioId = bannerAudioMeta.latestAudioId;
+  const bannerHasServerAudio = bannerAudioMeta.hasServerAudio;
 
   const photos = useLiveQuery(
     () => {
@@ -298,6 +305,7 @@ export function ItemEntryPage() {
             itemId={itemId}
             sessionId={sessionId!}
             latestAudioId={bannerLatestAudioId}
+            hasServerAudio={bannerHasServerAudio}
           />
         )}
 

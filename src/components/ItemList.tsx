@@ -24,6 +24,10 @@ interface ItemListProps {
 interface ItemMeta {
   audioCount: number;
   latestAudioId: number | null;
+  // F2 cross-device gate: audio exists server-side but no local Dexie integer id
+  // (audioRecordsForItem returned a Supabase-union row with id:undefined). Drives
+  // the AiFailureBanner Retry off server-side existence, not the device-local int.
+  hasServerAudio: boolean;
   photoCount: number;
   dexieItemId: number | string | null;
   isPending: boolean;
@@ -57,12 +61,15 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
         const latestAudioId = audioCount > 0
           ? audios.reduce((max, a) => (a.id! > max ? a.id! : max), audios[0].id!)
           : null;
+        // Server-only audio: any returned row whose id is absent is a Supabase-union
+        // row (audioLookup leaves remote rows id:undefined). `== null` covers undefined.
+        const hasServerAudio = audios.some((a) => a.id == null);
         const dexieItemId = (await getDexieItemId(item.id)) ?? item.id;
         const photoCount = item.mode === "house" && dexieItemId != null
           ? await db.photos.where("itemId").equals(dexieItemId).count()
           : 0;
         const isPending = await hasPendingForItem(item.id);
-        map.set(item.id, { audioCount, latestAudioId, photoCount, dexieItemId, isPending });
+        map.set(item.id, { audioCount, latestAudioId, hasServerAudio, photoCount, dexieItemId, isPending });
       }
       return map;
     },
@@ -368,6 +375,7 @@ export function ItemList({ sessionId, mode, onAddItemRef, readOnly, compact = fa
               readOnly={readOnly || selectMode}
               audioCount={meta?.audioCount ?? 0}
               latestAudioId={meta?.latestAudioId ?? null}
+              hasServerAudio={meta?.hasServerAudio ?? false}
               photoCount={meta?.photoCount ?? 0}
               dexieItemId={meta?.dexieItemId ?? null}
               isPending={meta?.isPending ?? false}

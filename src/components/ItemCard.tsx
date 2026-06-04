@@ -23,6 +23,8 @@ interface ItemCardProps {
   readOnly?: boolean;
   audioCount: number;
   latestAudioId: number | null;
+  // F2: server-side audio existence (cross-device) — gates AiFailureBanner Retry.
+  hasServerAudio: boolean;
   photoCount: number;
   dexieItemId: number | string | null;
   isPending: boolean;
@@ -42,6 +44,7 @@ function ItemCardImpl({
   readOnly,
   audioCount,
   latestAudioId,
+  hasServerAudio,
   photoCount,
   isPending,
 }: ItemCardProps) {
@@ -260,6 +263,7 @@ function ItemCardImpl({
               itemId={item.id}
               sessionId={sessionId}
               latestAudioId={latestAudioId}
+              hasServerAudio={hasServerAudio}
             />
           </div>
         )}
@@ -442,6 +446,7 @@ function arePropsEqual(prev: ItemCardProps, next: ItemCardProps): boolean {
     prev.readOnly !== next.readOnly ||
     prev.audioCount !== next.audioCount ||
     prev.latestAudioId !== next.latestAudioId ||
+    prev.hasServerAudio !== next.hasServerAudio ||
     prev.photoCount !== next.photoCount ||
     prev.dexieItemId !== next.dexieItemId ||
     prev.isPending !== next.isPending
