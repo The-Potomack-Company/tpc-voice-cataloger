@@ -153,15 +153,24 @@ describe("gemini pipeline", () => {
       updateCalls?: Array<Record<string, unknown>>;
       existingItem?: Record<string, unknown> | null;
       claimRows?: Array<Record<string, unknown>>;
+      claimStatuses?: string[][];
     }) {
-      const { updateCalls = [], existingItem = null, claimRows = [{ id: "claimed" }] } = options;
+      const {
+        updateCalls = [],
+        existingItem = null,
+        claimRows = [{ id: "claimed" }],
+        claimStatuses = [],
+      } = options;
       return () => ({
         update: (data: Record<string, unknown>) => {
           updateCalls.push(data);
           return {
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                select: vi.fn().mockResolvedValue({ data: claimRows, error: null }),
+              in: vi.fn((_column: string, statuses: string[]) => {
+                claimStatuses.push(statuses);
+                return {
+                  select: vi.fn().mockResolvedValue({ data: claimRows, error: null }),
+                };
               }),
               then: (resolve: (v: { error: null }) => unknown) =>
                 resolve({ error: null }),
@@ -205,10 +214,12 @@ describe("gemini pipeline", () => {
 
     it("bails without fetching Gemini when the processing claim returns zero rows", async () => {
       const updateCalls: Array<Record<string, unknown>> = [];
+      const claimStatuses: string[][] = [];
       mockFrom.mockImplementation(createMockFrom({
         updateCalls,
         existingItem: nullItem,
         claimRows: [],
+        claimStatuses,
       }));
       const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
         mockGeminiResponse({
@@ -224,6 +235,67 @@ describe("gemini pipeline", () => {
 
       await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1");
 
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(updateCalls).toHaveLength(1);
+      expect(claimStatuses).toEqual([["queued"]]);
+    });
+
+    it("retry claims a stuck processing row and proceeds to Gemini", async () => {
+      const updateCalls: Array<Record<string, unknown>> = [];
+      const claimStatuses: string[][] = [];
+      mockFrom.mockImplementation(createMockFrom({
+        updateCalls,
+        existingItem: nullItem,
+        claimRows: [{ id: "claimed" }],
+        claimStatuses,
+      }));
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        mockGeminiResponse({
+          title: "Oak table",
+          description: "nice oak table",
+          condition: "good",
+          estimate: "300",
+          category: "furniture",
+          measurements: null,
+          transcript: "nice oak table",
+        }) as unknown as Response,
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1", true);
+
+      expect(claimStatuses).toEqual([["failed", "processing"]]);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(updateCalls[0]).toEqual({
+        ai_status: "processing",
+        claimed_at: expect.any(String),
+      });
+      expect(updateCalls[updateCalls.length - 1].ai_status).toBe("done");
+    });
+
+    it("fresh processing still bails when the row is not queued", async () => {
+      const updateCalls: Array<Record<string, unknown>> = [];
+      const claimStatuses: string[][] = [];
+      mockFrom.mockImplementation(createMockFrom({
+        updateCalls,
+        existingItem: nullItem,
+        claimRows: [],
+        claimStatuses,
+      }));
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        mockGeminiResponse({
+          title: "Oak table",
+          description: "nice oak table",
+          condition: "good",
+          estimate: "300",
+          category: "furniture",
+          measurements: null,
+          transcript: "nice oak table",
+        }) as unknown as Response,
+      );
+
+      await processAudioWithAi(testAudioId, "item-uuid-1", "session-uuid-1", false);
+
+      expect(claimStatuses).toEqual([["queued"]]);
       expect(fetchSpy).not.toHaveBeenCalled();
       expect(updateCalls).toHaveLength(1);
     });
@@ -373,7 +445,7 @@ describe("gemini pipeline", () => {
       mockFrom.mockImplementation(() => ({
         update: () => ({
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
               select: vi.fn().mockResolvedValue({
                 data: [{ id: "claimed" }],
                 error: null,

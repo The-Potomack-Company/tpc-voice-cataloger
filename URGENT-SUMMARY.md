@@ -21,6 +21,7 @@
 2. Atomic inline claim: `processAudioWithAi` now conditionally claims `queued` or `failed` rows into `processing`, bailing without Gemini work when another worker already owns the row.
 3. Orphan pending reclaim: `drainQueue` now flips `pending` items with uploaded Supabase audio to `queued`; pending items without audio stay pending because there is no runnable audio.
 4. Detail-view indicator: `ItemEntry` now shows the waiting message for `pending` and `queued` items.
+5. R-1: Manual stuck-processing retry now re-claims `processing` rows on the retry path while fresh processing remains `queued`-only.
 
 ## Deviations
 
@@ -28,7 +29,7 @@
 
 ## Verification
 
-- `npm test`: 92 files passed, 4 skipped; 696 tests passed, 49 todo.
+- `npm test`: 92 files passed, 4 skipped; 698 tests passed, 49 todo.
 - `npm run build`: passed. Vite emitted the existing large-chunk warning.
 
 ## Out Of Scope

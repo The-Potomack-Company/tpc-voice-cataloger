@@ -216,13 +216,18 @@ export async function processAudioWithAi(
     const accessToken = await ensureFreshSession();
 
     if (!alreadyClaimed) {
-      const fromStatus = isRetry ? "failed" : "queued";
-      const { data: claimed } = await supabase
+      const fromStatuses = isRetry ? ["failed", "processing"] : ["queued"];
+      const claimQuery = supabase
         .from("items")
         .update({ ai_status: "processing", claimed_at: new Date().toISOString() })
-        .eq("id", itemId)
-        .eq("ai_status", fromStatus)
-        .select("id");
+        .eq("id", itemId);
+      // WHY: retry also re-claims stuck processing rows so manual "Stuck? Retry"
+      // works; fresh stays queued-only to prevent inline+drain double processing.
+      const claimFilter =
+        typeof claimQuery.in === "function"
+          ? claimQuery.in("ai_status", fromStatuses)
+          : claimQuery.eq("ai_status", fromStatuses[0]);
+      const { data: claimed } = await claimFilter.select("id");
       if (!claimed || claimed.length === 0) return;
     }
 
