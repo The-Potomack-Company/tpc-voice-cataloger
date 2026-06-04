@@ -124,6 +124,9 @@ export function NewSessionPage() {
     // no orphan session/items remain, without needing a transactional RPC.
     let createdSessionId: string | undefined;
     const createdItemIds: string[] = [];
+    // RESEARCH Q2: the loop variable at throw time is the single collider
+    // (await-then-throw stops iteration; in-file dupes are pre-filtered to skipped).
+    let lastReceipt: string | undefined;
     try {
       createdSessionId = await createSession(
         name.trim(),
@@ -133,6 +136,7 @@ export function NewSessionPage() {
       );
 
       for (const receipt of receipts) {
+        lastReceipt = receipt;
         // CR-02: persist receipt_number at creation time. updateItemField
         // swallows a duplicate-receipt (23505) violation internally and returns
         // normally, which would leave a blank-receipt orphan AND let the loop
@@ -145,7 +149,7 @@ export function NewSessionPage() {
       const msg = `${receipts.length} item${receipts.length === 1 ? "" : "s"} created${skipped > 0 ? `, ${skipped} ${skipped === 1 ? "entry" : "entries"} skipped` : ""}`;
       sessionStorage.setItem("importToast", msg);
       navigate(`/session/${createdSessionId}`);
-    } catch {
+    } catch (err) {
       // Compensate in reverse creation order; each delete is best-effort so a
       // failed cleanup never masks the original error. deleteSession/deleteItem
       // are Supabase-backed (FK cascade), leaving no Dexie idMapping to purge.
@@ -157,10 +161,15 @@ export function NewSessionPage() {
       if (createdSessionId) {
         await deleteSession(createdSessionId).catch(() => {});
       }
+      // Gate strictly on 23505 (Pitfall 1) — every other failure keeps the
+      // generic copy. catch binds unknown, so narrow via a code probe (Pitfall 2).
+      const isDup = (err as { code?: string } | null)?.code === "23505";
       useNotificationStore
         .getState()
         .notifyError(
-          "Import didn't finish — changes were undone. Try again.",
+          isDup
+            ? `Receipt #${lastReceipt} is already in use — that import was undone. Remove it and try again.`
+            : "Import didn't finish — changes were undone. Try again.",
           () => handleImport(receipts, skipped),
         );
     } finally {
