@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
-status: ready_to_plan
-stopped_at: Phase 43 complete (1/1) — ready to discuss Phase 44
-last_updated: 2026-06-04T19:38:59.096Z
+status: executing
+stopped_at: Completed 43-01-PLAN.md
+last_updated: "2026-06-04T19:48:00.063Z"
 progress:
   total_phases: 11
   completed_phases: 2
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 44 — visibility ux polish
+**Current focus:** Phase 44 — visibility-ux-polish
 
 ## Current Position
 
-Phase: 44
-Plan: Not started
+Phase: 44 (visibility-ux-polish) — EXECUTING
+Plan: 1 of 1
 Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: Ready to plan
+Status: Executing Phase 44
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
 Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
