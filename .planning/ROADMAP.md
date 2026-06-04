@@ -389,8 +389,8 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
   1. `photoMigration.ts`'s idMapping lookup includes the `itemTable` discriminator, matching Phase 38's `migrateToSupabase` path.
   2. A test proves a house item and a sale item sharing the same legacy integer id resolve to distinct Supabase item ids (no cross-table photo misattribution).
 
-**Plans**: TBD
-**Estimated plan count**: 1
+**Plans**: 1 plan
+- [ ] 43-01-PLAN.md — scope photoMigration idMapping lookup by itemTable (house/sale) and add a collision regression test
 
 ### Phase 44: visibility-ux-polish
 
@@ -402,7 +402,9 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
   1. The blocked-queue (`BlockedQueueBadge`) detail dropdown shows human-readable item info (name/mode) and navigates to the item on tap, instead of bare UUIDs.
   2. A `23505` duplicate-receipt import surfaces the specific offending receipt number(s) in the failure toast, not the generic copy.
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+- [ ] 44-01-visibility-ux-polish-PLAN.md — blocked badge named/tappable rows (SC1) + 23505 import names the offending receipt (SC2)
 **Estimated plan count**: 1
 **UI hint**: yes
 
