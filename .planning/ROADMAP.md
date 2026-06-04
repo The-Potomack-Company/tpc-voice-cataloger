@@ -189,7 +189,8 @@ Ready to plan via `/gsd-discuss-phase` → `/gsd-plan-phase`.
 | 22-30 | v1.2 | All | Complete (shipped in PR #11) | 2026-05-13 |
 | 31-40.1 | v1.3 | complete | Verified — milestone-end UAT 2026-06-04 | 2026-06-04 |
 | 41 | v1.3 | complete | ai-pending-stranding (urgent lane) | 2026-06-04 |
-| 42-44 | v1.3 | complete | UAT-walk follow-ups (42 audio-upload, 43 photo-collision, 44 visibility-ux) — 44 has 2 deferred live UAT checks | 2026-06-04 |
+| 42-44 | v1.3 | complete | UAT-walk follow-ups (42 audio-upload, 43 photo-collision, 44 visibility-ux) — live UAT passed 2026-06-04 | 2026-06-04 |
+| 45 | v1.3 | planned | ai-write-precondition (milestone-audit SEAM-3 fix) | — |
 
 ## Current Milestone Phase Detail (v1.3)
 
@@ -415,6 +416,24 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
 
 **Estimated plan count**: 1
 **UI hint**: yes
+
+### Phase 45: ai-write-precondition
+
+**Goal**: Close the SEAM-3 lost-write gap found in the v1.3 milestone audit. The dominant single-item AI write-back in `processAudioWithAi` (`gemini.ts`) does an unconditional `.update().eq("id")` last-writer-wins write, bypassing Phase 39's `preconditionUpdate`. A concurrent human edit (another tab/device) to a field the local device hasn't flagged, made between the AI read and write, is silently clobbered. Route the single-item AI success write through `preconditionUpdate` with the same per-field compare-and-skip reconcile the continuous path already uses (`geminiContinuous.ts:286-303`), so the AI yields on conflicting catalog fields while control fields (`ai_status`, `completed_at`) and untouched catalog fields still apply.
+**Depends on**: Phase 39 (`preconditionUpdate` primitive), Phase 35 (the AI write path being hardened)
+**Requirements**: none mapped (concurrency-correctness fix; v1.3 milestone-audit SEAM-3)
+**Success Criteria** (what must be TRUE):
+
+  1. `processAudioWithAi`'s success write resolves through `preconditionUpdate` carrying the `updated_at` token read alongside the merge snapshot — no bare `.update().eq("id")` for the AI catalog write remains.
+  2. On a concurrent conflict, a catalog field changed by another writer since the AI read is NOT overwritten by the AI result (the AI yields, D-06), while `ai_status`/`completed_at` and untouched catalog fields still land.
+  3. The existing per-field user-edit provenance skip (`flagged`) and the `claimed_at` claim guard are preserved; no schema changes, no new deps.
+
+**Plans**: 1 plan
+
+- [ ] 45-01-ai-write-precondition-PLAN.md — route single-item AI success write through preconditionUpdate with compare-and-skip reconcile (TDD)
+
+**Estimated plan count**: 1
+**UI hint**: no
 
 ## v1.2 Phase Detail
 
