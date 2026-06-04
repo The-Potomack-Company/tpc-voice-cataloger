@@ -67,9 +67,11 @@ Decisions that apply to **app**. Bodies live in the vault — IDs only here.
 - **[D-063](../../_workspace/Decisions/D-063-invoice-fab-standalone-v23-defer-audit.md)** — Pull Feature B (Invoice fab) out of the v3-hub roadmap (was slated v3.2) into a standalone extension milestone v2.3 — RFC Power Features, alongside the relocated Phase 40 (parallel photo upload). Ships independently of the v3.0 hub. The DR-5 per-fetch Supabase audit trail is deferred to the v3 hub.
 
 <!-- VAULT:decisions-end -->
-## Current Milestone: v1.3 Maturation (LIVE track)
+## Last Milestone: v1.3 Maturation — ✅ SHIPPED 2026-06-04 (phases 31-45)
 
-**Goal:** Harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). Close the security, durability, performance, quality, and concurrency gaps surfaced by the 2026-05-27 consolidated audit + 2026-05-28 UAT, ship the durable-audio ask, and migrate off the Cloudflare Worker AI proxy onto the shared GCloud AI proxy — each phase shipping independently with its own UAT + tests.
+**Status:** Complete + archived. Audit verdict `tech_debt` (no blockers); all 3 integration seams wired; live UAT passed; SEAM-3 lost-write gap closed by inserted Phase 45. Full record: `milestones/v1.3-ROADMAP.md`, `milestones/v1.3-MILESTONE-AUDIT.md`. **Next:** v1.4 not yet defined — run `/gsd-new-milestone`. v3.0 hub cutover still deferred (D-052).
+
+**Goal (delivered):** Harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). Close the security, durability, performance, quality, and concurrency gaps surfaced by the 2026-05-27 consolidated audit + 2026-05-28 UAT, ship the durable-audio ask, and migrate off the Cloudflare Worker AI proxy onto the shared GCloud AI proxy — each phase shipping independently with its own UAT + tests.
 
 **Predecessor:** v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11, phases 22-30).
 
@@ -224,4 +226,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-29 -- v1.2 UI Overhaul shipped (PR #11); v1.3 Maturation opened (phases 31-39 + AI-proxy GCloud migration queued).*
+*Last updated: 2026-06-04 -- v1.3 Maturation SHIPPED + archived (phases 31-45; SEAM-3 closed by Phase 45; live UAT passed). Next: v1.4 via /gsd-new-milestone.*

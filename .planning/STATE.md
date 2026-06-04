@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Maturation — Phases
-status: verifying
-stopped_at: Completed 43-01-PLAN.md
+status: shipped
+stopped_at: v1.3 milestone shipped + archived 2026-06-04
 last_updated: "2026-06-04T20:28:52.238Z"
 progress:
   total_phases: 2
@@ -20,21 +20,30 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-29)
 
 **Core value:** Auctioneers can dictate catalog entries by voice and get structured, accurate auction catalog data faster than typing -- with entries flowing directly into RFC Invaluable.
-**Current focus:** Phase 45 — ai-write-precondition
+**Current focus:** v1.3 SHIPPED + archived 2026-06-04 — planning v1.4 (`/gsd-new-milestone`)
 
 ## Current Position
 
-Phase: 45
-Plan: Not started
-Milestone: v1.3 Maturation — IN PROGRESS (opened 2026-05-29)
-Status: Phase complete — ready for verification
+Milestone: v1.3 Maturation — ✅ SHIPPED + ARCHIVED 2026-06-04 (phases 31-45)
+Status: Milestone complete. Audit verdict tech_debt (no blockers); all seams wired; live UAT passed; SEAM-3 closed by Phase 45.
 Predecessor: v1.2 UI Overhaul — SHIPPED 2026-05-13 (PR #11)
-Successor: ../tpc-hub (v3.0-hub-merge milestone) — DEFERRED (D-052)
+Successor: v1.4 (not yet defined) — run `/gsd-new-milestone`. v3.0 hub cutover still DEFERRED (D-052).
 Work policy: feature + hardening work allowed in-repo (D-052); /tpc-urgent still used for prod regressions
 
 Progress: [██████████] 100%
 
-Next action: Phase 39 (optimistic-locking) COMPLETE — items.updated_at version-token migration APPLIED TO PROD (trigger bump empirically verified, rolled-back tx; remote migration history reconciled to 20260603000000); shared `preconditionUpdate` helper (0-row conflict → bounded re-read/reconcile → notifyError on exhaustion) now wires updateItemField (user intent-preserving), the AI continuous-merge (D-06 per-field compare-and-skip; UI dormant D-050), and the offline write-ahead flush (precondition + Pitfall-5 retain + Pitfall-6 legacy fallback). Deep code review found + fixed CR-01 (undefined-token silent clobber) + WR-02 (stale local token). 710 tests pass, build clean. Phase 40 (ai-proxy-cloud-run-migration) is the last v1.3 phase — **cross-app infra**, drive via `/tpc-coordinate`, not a plain in-repo phase. Recommended before advancing: `/gsd:secure-phase 39` (threat model T-39-00..SC, no SECURITY.md yet). Deferred to v1.3 milestone end: branch push + on-device UAT batch — now owes **three** HUMAN-UAT files (`33` 3 items + `34` 1 item + `39-HUMAN-UAT.md` 1 item: cross-session live edit race). All v1.3 work on branch **`gsd/v1.3-maturation`** (off origin/main `11b0ee2`); `main` clean. Branch still UNPUSHED.
+Next action: v1.3 archived (ROADMAP collapsed; `milestones/v1.3-ROADMAP.md` + `-REQUIREMENTS.md` + `-MILESTONE-AUDIT.md`; tag `v1.3`). Remaining ops: **push `gsd/v1.3-maturation`** (off origin/main `11b0ee2`) for preview, then open the PR to `main`. Accepted tech-debt backlog carried in `milestones/v1.3-MILESTONE-AUDIT.md`. Start v1.4 scoping with `/gsd-new-milestone`.
+
+## Deferred Items
+
+Acknowledged and deferred at v1.3 milestone close (2026-06-04). 27 historical artifacts — pre-v1.3 cruft surfaced by `audit-open`; none block v1.3. Triage (close or promote) during v1.4 scoping.
+
+| Category | Count | Notes |
+|----------|-------|-------|
+| debug sessions | 5 | all `diagnosed` (resolved, session files never closed): `delete-item-406-transcript`, `export-permission-denied`, `photos-not-visible-house-visit`, `session-complete-400`, `swipe-delete-clipped` |
+| quick tasks | 22 | March–April-era; most describe already-shipped features (AI quote/karat parsing, estimate rounding, add-item UX, export tweaks). Likely stale-done — sweep in v1.4 triage. |
+
+`uat_gaps` = 0, `verification_gaps` = 0 at close.
 
 ## v1.3 Phase Queue
 
