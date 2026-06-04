@@ -376,7 +376,13 @@ Commits on `gsd/v1.3-maturation`: `6d210b9` (4-part fix), `7efcd17` (R-1: manual
   2. `AiFailureBanner` (and the list-card failure row) render with a working Retry for failed items whose audio exists only server-side (no local Dexie blob).
   3. Regression tests cover the cross-device path (item present, audio only in Supabase).
 
-**Plans**: TBD
+**Plans**: 2 plans (1 wave — disjoint files, fully parallel)
+
+**Wave 1** *(parallel — zero files_modified overlap)*
+
+- [ ] 42-01-PLAN.md — SC-1 durable self-heal: bounded failed→pending resweep in audioUploadQueue (boot+online via AppLayout) + audio↔item reconcile edge in offlineQueue (mirror the existing pending-reclaim union; re-queue design over RecordButton gating, Open-Q2) — TDD
+- [ ] 42-02-PLAN.md — SC-2/SC-3 F2: gate AiFailureBanner + Retry on a server-side hasServerAudio boolean threaded through the PERF-3 ItemMeta aggregate (ItemList→ItemCard) + parallel ItemEntry derivation; retry resolves by item_id via the gemini orchestrator (Open-Q3) + cross-device regression test (Wave 0 RED) — TDD
+
 **Estimated plan count**: 2
 
 ### Phase 43: photomigration-itemid-collision
