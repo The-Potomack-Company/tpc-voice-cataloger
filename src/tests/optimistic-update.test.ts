@@ -197,6 +197,42 @@ describe("preconditionUpdate (optimistic locking helper)", () => {
     expect(m.updateCount).toBe(0); // never wrote without a precondition
   });
 
+  it("CR-02: a transient error on the conflict re-read THROWS (not noop) so the caller keeps the queued edit", async () => {
+    // The write-ahead flush deletes the entry on noop. A network blip on the
+    // re-read must not masquerade as a gone-row noop, or the offline edit is
+    // silently lost — the exact failure this primitive guards against.
+    const m = installMock({
+      updateResults: [{ data: [], error: null }], // attempt 1 -> 0-row conflict
+      reReads: [{ data: null, error: { message: "network down" } }], // re-read errors
+    });
+    await expect(
+      preconditionUpdate({
+        table: "items",
+        id: "i1",
+        prevUpdatedAt: "T0",
+        patch: { title: "X" },
+      }),
+    ).rejects.toMatchObject({ message: "network down" });
+    expect(m.updateCount).toBe(1); // attempted the write once, then threw on the errored re-read
+    expect(mockNotifyError).not.toHaveBeenCalled();
+  });
+
+  it("CR-02: a transient error on the missing-token re-read THROWS instead of noop (no silent drop)", async () => {
+    const m = installMock({
+      updateResults: [],
+      reReads: [{ data: null, error: { message: "network down" } }],
+    });
+    await expect(
+      preconditionUpdate({
+        table: "items",
+        id: "i1",
+        prevUpdatedAt: undefined,
+        patch: { title: "X" },
+      }),
+    ).rejects.toMatchObject({ message: "network down" });
+    expect(m.updateCount).toBe(0); // never wrote without a precondition token
+  });
+
   it("surfaces notifyError(message, retry) after 3 failed attempts (exhaustion)", async () => {
     const m = installMock({
       updateResults: [

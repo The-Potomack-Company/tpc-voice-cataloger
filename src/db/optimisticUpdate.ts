@@ -45,11 +45,17 @@ export async function preconditionUpdate(args: {
   // offline entry with no snapshot. Re-read to obtain a real token first; if the row is
   // gone (deleted / RLS-deny), do not write.
   if (prev === undefined || prev === null) {
-    const { data: fresh } = await supabase
+    const { data: fresh, error: readError } = await supabase
       .from(table as never)
       .select("*")
       .eq("id", id)
       .maybeSingle();
+    // CR-02: a transient read error must NOT collapse to noop. The write-ahead
+    // flush deletes the queued edit on noop (useWriteAheadQueue.ts), so swallowing
+    // a network blip here silently drops the offline write — the exact lost write
+    // this primitive exists to prevent. Throw so the caller keeps the entry for
+    // retry; only a SUCCESSFUL read returning no row is a genuine gone/RLS-deny noop.
+    if (readError) throw readError;
     if (!fresh) return { status: "noop" };
     const freshRow = fresh as Record<string, unknown>;
     prev = freshRow.updated_at as string;
@@ -83,12 +89,15 @@ export async function preconditionUpdate(args: {
     // 0-row: conflict, RLS-deny, or deleted — all share this shape. Re-read to
     // disambiguate: a row back = real conflict (reconcile + retry); nothing back =
     // gone (deleted / RLS-deny) → stop, do NOT loop.
-    const { data: fresh } = await supabase
+    const { data: fresh, error: readError } = await supabase
       .from(table as never)
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
+    // CR-02: as above — a transient re-read error must throw, not become noop,
+    // or the caller silently deletes the queued offline edit.
+    if (readError) throw readError;
     if (!fresh) return { status: "noop" };
 
     const freshRow = fresh as Record<string, unknown>;
