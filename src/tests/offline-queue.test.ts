@@ -293,7 +293,7 @@ describe("offlineQueue service (Supabase-backed)", () => {
 
       let reconcileIds: string[] = [];
       let reconcileSelectUsed = false;
-      let reconcileStuckStatuses: string[] = [];
+      const reconcileStuckStatuses: string[] = [];
 
       mockFrom.mockImplementation((table: string) => {
         if (table === "items") {

@@ -12,14 +12,6 @@ import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/re
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { MemoryRouter } from "react-router";
 
-type BlockedRow = {
-  id: string;
-  mode: string;
-  session_id: string;
-  title: string | null;
-  receipt_number: string | null;
-};
-
 // --- Supabase mock: items select().eq('ai_status','failed') returns a controllable set ---
 const { mockFrom, setBlocked } = vi.hoisted(() => {
   let blocked: Array<{

@@ -9,7 +9,6 @@ const {
   mockStorageDownload,
   mockStorageFrom,
   mockSupabaseEq,
-  mockSupabaseSelect,
   mockSupabaseFrom,
 } = vi.hoisted(() => {
   const mockStorageDownload = vi.fn();

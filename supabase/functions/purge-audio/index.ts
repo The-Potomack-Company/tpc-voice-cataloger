@@ -92,7 +92,6 @@ Deno.serve(async (req) => {
     // Supabase storage.list returns one directory level at a time; recurse.
     const walk = async (prefix: string): Promise<void> => {
       let page = 0
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { data: entries, error: listErr } = await supabaseAdmin.storage
           .from('audio')

@@ -185,7 +185,9 @@ describe("gemini determinism (SC-1)", () => {
       // Account for the leading { ai_status: "processing" } write — assert on the
       // final catalog write only, minus the non-deterministic completed_at stamp.
       const last = updateCalls[updateCalls.length - 1];
-      const { completed_at: _ignored, ...stable } = last;
+      // Drop the non-deterministic completed_at stamp before comparing.
+      const stable = { ...last } as Record<string, unknown>;
+      delete stable.completed_at;
       return stable;
     }
 

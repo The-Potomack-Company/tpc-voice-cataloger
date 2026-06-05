@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
-const { mockFrom, mockStorageRemove, mockStorageFrom } = vi.hoisted(() => {
+const { mockFrom, mockStorageFrom } = vi.hoisted(() => {
   const mockFrom = vi.fn();
   const mockStorageRemove = vi.fn().mockResolvedValue({ data: [], error: null });
   const mockStorageFrom = vi.fn(() => ({ remove: mockStorageRemove }));
