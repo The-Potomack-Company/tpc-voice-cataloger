@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Eyebrow } from '../ui/Eyebrow';
+import { toUserMessage } from '../lib/toUserMessage';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -22,7 +23,9 @@ export function LoginPage() {
     const { error } = await signIn(email, password);
 
     if (error) {
-      setError(error.message);
+      // T-36-02: never render raw GoTrue text — funnel through the single
+      // friendly-copy mapper so no email-exists/credentials oracle leaks.
+      setError(toUserMessage(error));
       setSubmitting(false);
     } else {
       navigate('/', { replace: true });
@@ -30,7 +33,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center h-dvh">
+    <main className="flex items-center justify-center h-dvh">
       <div className="w-full max-w-sm mx-4">
         <header className="text-center mb-8">
           {/* Italic serif "P" monogram — the only place the italic display font
@@ -108,6 +111,6 @@ export function LoginPage() {
           )}
         </form>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { createSession } from "../db/sessions";
-import { createBlankItem, updateItemField } from "../db/items";
+import { createSession, deleteSession } from "../db/sessions";
+import { createBlankItem, deleteItem } from "../db/items";
+import { useNotificationStore } from "../stores/notificationStore";
 import { useActiveSessions } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
 import { listAccounts, type Account } from "../services/adminApi";
@@ -85,6 +86,15 @@ export function NewSessionPage() {
         isAdmin ? assignedTo : undefined,
       );
       navigate(`/session/${newId}`);
+    } catch {
+      // Surface the failure instead of dying silently; navigation only on success.
+      // UI-SPEC copy overrides toUserMessage's generic for this known operation.
+      useNotificationStore
+        .getState()
+        .notifyError(
+          "Couldn't create the session — nothing was saved. Try again.",
+          () => doCreate(),
+        );
     } finally {
       setSubmitting(false);
     }
@@ -96,9 +106,29 @@ export function NewSessionPage() {
       return;
     }
 
+    // CR-01/D-01: a transactional import requires connectivity. The store's
+    // create/update actions silently offline-queue on network errors and return
+    // normally, which would let the loop "succeed" and navigate while leaving
+    // un-drained queued rows — no rollback ever fires. Refuse up front when
+    // offline so the SC2 atomicity contract stays honest.
+    if (!navigator.onLine) {
+      useNotificationStore
+        .getState()
+        .notifyError("You're offline — reconnect to import.");
+      return;
+    }
+
     setImporting(true);
+    // D-01: client-side atomicity. Track every row this import lands so a
+    // mid-loop failure can compensate (reverse-order best-effort deletes) —
+    // no orphan session/items remain, without needing a transactional RPC.
+    let createdSessionId: string | undefined;
+    const createdItemIds: string[] = [];
+    // RESEARCH Q2: the loop variable at throw time is the single collider
+    // (await-then-throw stops iteration; in-file dupes are pre-filtered to skipped).
+    let lastReceipt: string | undefined;
     try {
-      const sessionId = await createSession(
+      createdSessionId = await createSession(
         name.trim(),
         "sale",
         notes.trim() || undefined,
@@ -106,16 +136,47 @@ export function NewSessionPage() {
       );
 
       for (const receipt of receipts) {
-        const itemId = await createBlankItem(sessionId, "sale");
-        await updateItemField(itemId, sessionId, "receipt_number", receipt);
+        lastReceipt = receipt;
+        // CR-02: persist receipt_number at creation time. updateItemField
+        // swallows a duplicate-receipt (23505) violation internally and returns
+        // normally, which would leave a blank-receipt orphan AND let the loop
+        // navigate to success. createItem reverts + throws on that non-network
+        // error, so a duplicate now reaches the catch and triggers rollback.
+        const itemId = await createBlankItem(createdSessionId, "sale", receipt);
+        createdItemIds.push(itemId);
       }
 
       const msg = `${receipts.length} item${receipts.length === 1 ? "" : "s"} created${skipped > 0 ? `, ${skipped} ${skipped === 1 ? "entry" : "entries"} skipped` : ""}`;
       sessionStorage.setItem("importToast", msg);
-      navigate(`/session/${sessionId}`);
+      navigate(`/session/${createdSessionId}`);
     } catch (err) {
-      console.error("Import failed:", err);
-      setToastMessage("Import failed. Please try again.");
+      // Compensate in reverse creation order; each delete is best-effort so a
+      // failed cleanup never masks the original error. deleteSession/deleteItem
+      // are Supabase-backed (FK cascade), leaving no Dexie idMapping to purge.
+      for (const itemId of [...createdItemIds].reverse()) {
+        if (createdSessionId) {
+          await deleteItem(itemId, createdSessionId).catch(() => {});
+        }
+      }
+      if (createdSessionId) {
+        await deleteSession(createdSessionId).catch(() => {});
+      }
+      // Gate strictly on 23505 (Pitfall 1) — every other failure keeps the
+      // generic copy. catch binds unknown, so narrow via a code probe (Pitfall 2).
+      // WR-01: also require lastReceipt to be set — a 23505 from the pre-loop
+      // createSession would otherwise name "Receipt #undefined". Only an
+      // in-loop createBlankItem collision has an identified offending receipt.
+      const isDup =
+        lastReceipt !== undefined &&
+        (err as { code?: string } | null)?.code === "23505";
+      useNotificationStore
+        .getState()
+        .notifyError(
+          isDup
+            ? `Receipt #${lastReceipt} is already in use — that import was undone. Remove it and try again.`
+            : "Import didn't finish — changes were undone. Try again.",
+          () => handleImport(receipts, skipped),
+        );
     } finally {
       setImporting(false);
     }

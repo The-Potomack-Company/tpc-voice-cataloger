@@ -1,5 +1,5 @@
-import { db } from "../db";
 import { supabase } from "../lib/supabase";
+import { db } from "../db";
 import { catalogFieldsSchema, catalogFieldsJsonSchema } from "./geminiSchema";
 import { formatEstimate } from "../utils/formatEstimate";
 import { mapCategoryToCode } from "../utils/categoryMapper";
@@ -9,6 +9,24 @@ import { applySpokenQuotes, applySpokenBullets } from "../utils/spokenPunctuatio
 import { reformatMeasurements } from "../utils/formatMeasurements";
 import { trackEvent } from "./analytics";
 import { ensureFreshSession } from "../lib/authGuard";
+import { processAudioWithAi as resolveAudioForAi } from "./processAudioWithAi";
+import { preconditionUpdate, type ReconcileFn } from "../db/optimisticUpdate";
+
+// SEAM-3 (Phase 45): the single-item AI write commits these catalog fields. A field
+// another writer changed since the AI snapshot read (gemini.ts:254) must NOT be
+// re-applied — the AI yields (D-06). Includes receipt_number: unlike the continuous
+// MERGE_FIELDS (which omits it because continuous locks the receipt), the single-item
+// path writes receipt_number, so it must be in the yield set here.
+const CATALOG_FIELDS = [
+  "title",
+  "description",
+  "condition",
+  "estimate",
+  "category",
+  "measurements",
+  "transcript",
+  "receipt_number",
+] as const;
 
 export const SYSTEM_PROMPT = `You are an auction catalog field extractor. You will receive an audio recording of an auctioneer describing an item.
 
@@ -133,21 +151,51 @@ export function formatExistingValuesBlock(item: ExistingValuesContext): string {
  * Uses Response API to read the blob (works across environments including jsdom).
  */
 export async function blobToBase64(blob: Blob): Promise<string> {
-  // Re-wrap to ensure we have a proper Blob (handles structured clone edge cases)
+  // Re-wrap retained (D-02 contingency): a blob read back out of Dexie
+  // (structured-clone deserialized) can lack a live arrayBuffer() method, so calling
+  // blob.arrayBuffer() directly throws "blob.arrayBuffer is not a function" — exactly
+  // the gemini-pipeline processAudioWithAi path. Re-wrapping yields a fresh native Blob
+  // whose arrayBuffer() works. This is a single bounded copy; the OOM win comes from
+  // the chunked encode below (no whole-buffer binary string), not from dropping this.
   const freshBlob = new Blob([blob], { type: blob.type });
   const buffer = await freshBlob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  // Window MUST be a multiple of 3 so per-chunk btoa concatenation is byte-identical
+  // to whole-buffer btoa (each 3 input bytes map to exactly 4 base64 chars; a
+  // non-3-aligned split would emit interior padding). 0x8000 - 2 = 32766.
+  const CHUNK_SIZE = 32766;
+  let result = "";
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const end = Math.min(i + CHUNK_SIZE, bytes.length);
+    // Per-byte append, not String.fromCharCode(...chunk): a 32766-element argument
+    // spread overflows JavaScriptCore's call-stack limit on iOS Safari (the target
+    // platform) and throws RangeError. The binary string stays chunk-bounded (~32KB),
+    // so the PERF-1 memory win is preserved.
+    let binary = "";
+    for (let j = i; j < end; j++) {
+      binary += String.fromCharCode(bytes[j]);
+    }
+    result += btoa(binary);
   }
-  return btoa(binary);
+  return result;
 }
 function isTransientNetworkError(error: unknown): boolean {
   if (!navigator.onLine) return true;
   if (error instanceof DOMException && error.name === "AbortError") return true;
   if (error instanceof Error && /abort|Load failed|Failed to fetch|NetworkError/i.test(error.message)) return true;
   return false;
+}
+
+// D-03/D-04: confabulation guard. Zod stays the structural validator; this is a
+// post-validation output-trust check. Single-shot ONLY — NOT applied to the
+// continuous path, where empty/silent chunks are legitimate (RESEARCH Pitfall 5).
+export class ConfabRejectedError extends Error {}
+
+// D-03: crisp transcript-emptiness gate — no content-quality heuristics.
+// A well-behaved model returns null on unintelligible audio; whitespace-only
+// is treated the same. An empty transcript means we refuse the whole response.
+function isTranscriptEmpty(t: string | null | undefined): boolean {
+  return t == null || t.trim().length === 0;
 }
 
 
@@ -161,11 +209,19 @@ function isTransientNetworkError(error: unknown): boolean {
  * @param audioId - Dexie integer ID for the audio blob
  * @param itemId - Supabase UUID string for the item
  * @param sessionId - Supabase UUID string for the session (for potential store refresh)
+ * @param isRetry - O-1: explicit fresh-vs-retry oracle. Retry call sites
+ *   (AiFailureBanner, ItemCard handleRetryAi) pass true; fresh record-stop sites
+ *   keep the default false. On a fresh success the item's user-edited flags are
+ *   cleared; on a retry they are kept so the no-clobber holds.
+ * @param alreadyClaimed - true when the offline drain has already won its
+ *   queued→processing claim before calling into this pipeline.
  */
 export async function processAudioWithAi(
   audioId: number,
   itemId: string,
   sessionId: string,
+  isRetry = false,
+  alreadyClaimed = false,
 ): Promise<void> {
   const startedAt = performance.now();
   trackEvent({
@@ -176,21 +232,31 @@ export async function processAudioWithAi(
   try {
     const accessToken = await ensureFreshSession();
 
-    // Set ai_status to "processing" via Supabase
-    await supabase
-      .from("items")
-      .update({ ai_status: "processing" })
-      .eq("id", itemId);
+    if (!alreadyClaimed) {
+      const fromStatuses = isRetry ? ["failed", "processing"] : ["queued"];
+      const claimQuery = supabase
+        .from("items")
+        .update({ ai_status: "processing", claimed_at: new Date().toISOString() })
+        .eq("id", itemId);
+      // WHY: retry also re-claims stuck processing rows so manual "Stuck? Retry"
+      // works; fresh stays queued-only to prevent inline+drain double processing.
+      const claimFilter =
+        typeof claimQuery.in === "function"
+          ? claimQuery.in("ai_status", fromStatuses)
+          : claimQuery.eq("ai_status", fromStatuses[0]);
+      const { data: claimed } = await claimFilter.select("id");
+      if (!claimed || claimed.length === 0) return;
+    }
 
     // Refresh local store so UI (e.g. waveform → spinner swap) reflects
     // the new processing state. fire-and-forget; failure is non-fatal.
     useSessionStore.getState().fetchItems(sessionId).catch(() => {});
 
-    // Fetch audio record from Dexie (blobs stay in IndexedDB)
-    const audioRecord = await db.audio.get(audioId);
-    if (!audioRecord) {
-      throw new Error(`Audio record ${audioId} not found`);
-    }
+    // Resolve the audio blob: Dexie-first with a cross-device Storage
+    // fallback keyed by item_id (UUID), NOT the local integer audioId
+    // (Pitfall 4 / T-32-12). Throws clearly when both sources miss.
+    const { blob: audioBlob, mimeType: resolvedMimeType } =
+      await resolveAudioForAi({ itemId, dexieAudioId: audioId });
 
     // Guard: ensure proxy URL is configured before doing any work
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
@@ -199,12 +265,12 @@ export async function processAudioWithAi(
     }
 
     // Convert audio blob to base64
-    const base64Audio = await blobToBase64(audioRecord.blob);
+    const base64Audio = await blobToBase64(audioBlob);
 
     // Read existing field values for smart merge context (per D-02)
     const { data: currentItem } = await supabase
       .from("items")
-      .select("title, description, condition, estimate, category, measurements, transcript, receipt_number")
+      .select("title, description, condition, estimate, category, measurements, transcript, receipt_number, updated_at")
       .eq("id", itemId)
       .maybeSingle();
 
@@ -219,10 +285,26 @@ export async function processAudioWithAi(
       return; // Item deleted mid-processing, bail out
     }
 
-    const hasExistingData = Object.values(currentItem).some(v => v !== null);
+    // SEAM-3: capture the precondition token + value-at-read catalog snapshot from
+    // the same read. `updated_at` is the optimistic-concurrency token (the trigger
+    // bumps it on every write); `valueAtRead` lets the reconcile detect which catalog
+    // fields another writer changed since this read.
+    const prevUpdatedAt = (currentItem as Record<string, unknown>).updated_at as
+      | string
+      | undefined;
+    const valueAtRead: Record<string, unknown> = {};
+    for (const field of CATALOG_FIELDS) {
+      valueAtRead[field] = (currentItem as Record<string, unknown>)[field];
+    }
+
+    // Exclude the concurrency token from the merge-context heuristic — updated_at is
+    // always non-null, so counting it would force MERGE mode on a first recording.
+    const hasExistingData = CATALOG_FIELDS.some(
+      (field) => (currentItem as Record<string, unknown>)[field] != null,
+    );
 
     // Strip codec parameters from mimeType (e.g., "audio/webm;codecs=opus" -> "audio/webm")
-    const baseMimeType = audioRecord.mimeType.split(";")[0];
+    const baseMimeType = (resolvedMimeType ?? "audio/webm").split(";")[0];
 
     // Build Gemini request payload
     const geminiPayload = {
@@ -247,6 +329,8 @@ export async function processAudioWithAi(
         },
       ],
       generationConfig: {
+        // D-01: greedy decoding for deterministic extraction (SC-1). No seed/topP/topK (D-02).
+        temperature: 0,
         responseMimeType: "application/json",
         responseSchema: (() => {
           // Gemini API rejects $schema and additionalProperties fields
@@ -300,6 +384,16 @@ export async function processAudioWithAi(
 
     const fields = result.data;
 
+    // D-03 confab guard: reject the WHOLE response on an empty transcript before
+    // anything touches the DB (Pitfall 2). Throwing a tagged terminal error reuses
+    // the existing catch → { ai_status: "failed" } write and fires
+    // ai.processing_failed for free; NO catalog fields are persisted.
+    if (isTranscriptEmpty(fields.transcript)) {
+      throw new ConfabRejectedError(
+        "Empty transcript — refusing to persist invented fields",
+      );
+    }
+
     // Safety net: ensure spoken quote markers are converted even if AI missed them
     const textFields = ['title', 'description', 'condition', 'transcript'] as const;
     for (const field of textFields) {
@@ -311,42 +405,87 @@ export async function processAudioWithAi(
       fields.description = applySpokenBullets(fields.description);
     }
 
+    // D-05/D-06: read the per-field user-edited provenance set. Any flagged
+    // field is skipped in the write-back below so a retry never clobbers a
+    // deliberate user edit (the hard skip-on-flag IS the no-clobber mechanism,
+    // not prompt-merge).
+    const flagged = new Set(
+      (await db.userEditedFields.where("itemId").equals(itemId).toArray()).map(
+        (r) => r.field,
+      ),
+    );
+
     // Write fields to Supabase items table
     const supabaseUpdate: Record<string, unknown> = {
       ai_status: "done",
+      // D-07: stamp the retention clock the daily pg_cron purge keys on.
+      // Single-item AI-done write-path only; continuous-mode write-paths are
+      // OUT of scope (D-050 continuous gated off).
+      completed_at: new Date().toISOString(),
     };
 
-    if (fields.title !== null) {
+    if (fields.title !== null && !flagged.has("title")) {
       supabaseUpdate.title = toAllCaps(fields.title);
     }
-    if (fields.description !== null) {
+    if (fields.description !== null && !flagged.has("description")) {
       supabaseUpdate.description = fields.description;
     }
-    if (fields.condition !== null) {
+    if (fields.condition !== null && !flagged.has("condition")) {
       supabaseUpdate.condition = fields.condition;
     }
     const formattedEstimate = formatEstimate(fields.estimate);
-    if (formattedEstimate !== null) {
+    if (formattedEstimate !== null && !flagged.has("estimate")) {
       supabaseUpdate.estimate = formattedEstimate;
     }
     const mappedCategory = mapCategoryToCode(fields.category);
-    if (mappedCategory !== null) {
+    if (mappedCategory !== null && !flagged.has("category")) {
       supabaseUpdate.category = mappedCategory;
     }
-    if (fields.measurements !== null) {
+    if (fields.measurements !== null && !flagged.has("measurements")) {
       supabaseUpdate.measurements = reformatMeasurements(fields.measurements);
     }
-    if (fields.transcript !== null) {
+    if (fields.transcript !== null && !flagged.has("transcript")) {
       supabaseUpdate.transcript = fields.transcript;
     }
-    if (fields.receipt_number != null) {
+    if (fields.receipt_number != null && !flagged.has("receipt_number")) {
       supabaseUpdate.receipt_number = fields.receipt_number;
     }
 
-    await supabase
-      .from("items")
-      .update(supabaseUpdate)
-      .eq("id", itemId);
+    // SEAM-3: route the catalog write through preconditionUpdate so a concurrent
+    // human edit (another tab/device) to an UNTOUCHED catalog field — made between
+    // the snapshot read above and this write — is not silently clobbered. On a 0-row
+    // conflict, a catalog field another writer changed since the read yields (D-06);
+    // control fields (ai_status, completed_at) + untouched catalog fields re-apply
+    // against the fresh token. The `flagged` set above is the first-line no-clobber
+    // for THIS device; this adds the cross-writer guard the flagged set can't see.
+    // Mirrors geminiContinuous.ts:286-303. preconditionUpdate owns the bounded retry
+    // + exhaustion toast (no loop here); the trigger owns updated_at (never patch it).
+    const reconcile: ReconcileFn = (fresh, intended) => {
+      const next: Record<string, unknown> = {};
+      for (const [field, value] of Object.entries(intended)) {
+        if (
+          (CATALOG_FIELDS as readonly string[]).includes(field) &&
+          fresh[field] !== valueAtRead[field]
+        ) {
+          continue; // D-06: user changed it since the read → AI yields
+        }
+        next[field] = value;
+      }
+      return next;
+    };
+    await preconditionUpdate({
+      table: "items",
+      id: itemId,
+      prevUpdatedAt,
+      patch: supabaseUpdate,
+      reconcile,
+    });
+
+    // O-1: clear flags only on a FRESH (non-retry) success so a deliberate new
+    // recording is honored; on a retry the flags are kept so the no-clobber holds.
+    if (!isRetry) {
+      await db.userEditedFields.where("itemId").equals(itemId).delete();
+    }
 
     trackEvent({
       event_type: "ai.processing_succeeded",
@@ -372,11 +511,21 @@ export async function processAudioWithAi(
       items_content: { item_id: itemId },
     });
     try {
-      const update = isTransientNetworkError(error)
+      // O-2: a confab rejection is a terminal data-integrity failure, never a
+      // transient network error. Branch on type AHEAD of isTransientNetworkError
+      // so classification never depends on the error message wording — this
+      // guarantees ai_status:"failed" (not "queued", which would re-loop).
+      const update = error instanceof ConfabRejectedError
+        ? { ai_status: "failed" }
+        : isTransientNetworkError(error)
         ? { ai_status: "queued" }
         // DAT-2: do not write status into `description` — it clobbers AI content / manual edits.
         : { ai_status: "failed" };
 
+      // SEAM-3 (Phase 45) scope note: this failure write is intentionally NOT routed
+      // through preconditionUpdate. It writes ai_status only — a control field — so it
+      // cannot clobber catalog content (the lost-write vector Phase 45 closed on the
+      // success path). A last-writer-wins ai_status transition here is acceptable.
       await supabase
         .from("items")
         .update(update)

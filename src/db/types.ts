@@ -69,6 +69,7 @@ export interface ItemAudio {
   blob: Blob;
   mimeType: string;
   durationMs?: number;
+  sessionId?: string;
   createdAt: Date;
 }
 
@@ -81,17 +82,37 @@ export interface SessionAudio {
   updatedAt: Date;
 }
 
+export interface UserEditedField {
+  // Supabase UUID — the SAME value updateItemField/processAudioWithAi pass around,
+  // NOT the integer Dexie item id (the houseVisitItems/saleItems tables are legacy
+  // pre-Supabase-migration stores keyed by ++id). Keying on the integer id would make
+  // the no-clobber retry guard silently miss migrated items. (RESEARCH Pitfall 1.)
+  itemId: string;
+  field: string;
+}
+
 export interface IdMapping {
   id?: number;
   oldId: number;
   newId: string;
   type: "session" | "item";
+  // Disambiguates house vs sale items: both Dexie tables have independent ++id
+  // keyspaces, so oldId is not unique across them. Unindexed additive field
+  // (no schema migration); only present on item mappings written by Phase 38+.
+  itemTable?: "house" | "sale";
 }
 
 export interface WriteAheadEntry {
   id?: number;
   table: "sessions" | "items" | "analytics_events" | "ui_interactions";
   operation: "insert" | "update" | "delete";
+  // Phase 39 (D-04): for an `items` update, an optional `updated_at` key in the
+  // payload carries the optimistic-concurrency snapshot taken at enqueue time. On
+  // flush it is pulled OUT of the written patch and applied as a `.eq("updated_at")`
+  // precondition (WHERE-token, never a SET column — the items_updated_at trigger owns
+  // the bump). No structural change / no Dexie version bump: payload is already an
+  // open Record. A legacy entry with no `updated_at` falls back to re-read-then-
+  // precondition on flush (Pitfall 6).
   payload: Record<string, unknown>;
   tempId?: string;
   createdAt: Date;
@@ -105,6 +126,19 @@ export interface PhotoUploadEntry {
   sortOrder: number;
   storagePath: string;
   thumbnailPath: string;
+  status: 'pending' | 'uploading' | 'uploaded' | 'failed';
+  retryCount: number;
+  createdAt: Date;
+  lastAttemptAt?: Date;
+}
+
+export interface AudioUploadEntry {
+  id?: number;
+  dexieAudioId: number;
+  itemId: string;
+  sessionId: string;
+  mimeType: string;
+  storagePath: string;
   status: 'pending' | 'uploading' | 'uploaded' | 'failed';
   retryCount: number;
   createdAt: Date;

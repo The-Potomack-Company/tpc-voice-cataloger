@@ -1,17 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // --- Mocks (vi.hoisted ensures these are available when vi.mock factory runs) ---
-const { mockFrom } = vi.hoisted(() => {
+const { mockFrom, mockStorageFrom } = vi.hoisted(() => {
   const mockFrom = vi.fn();
+  const mockStorageRemove = vi.fn().mockResolvedValue({ data: [], error: null });
+  const mockStorageFrom = vi.fn(() => ({ remove: mockStorageRemove }));
 
   return {
     mockFrom,
+    mockStorageRemove,
+    mockStorageFrom,
   };
 });
 
 vi.mock("../lib/supabase", () => ({
   supabase: {
     from: mockFrom,
+    storage: { from: mockStorageFrom },
   },
 }));
 
@@ -72,28 +77,53 @@ function setupInsertChain(
   return chain;
 }
 
+// Supports BOTH write shapes off one chain:
+//   updateSession:   .update({...}).eq("id", x)                         -> awaited
+//   updateItemField: .update({...}).eq("id").eq("updated_at").select()  -> Phase 39 precondition
+// `.eq()` returns a thenable chain so `await update().eq()` resolves to {error},
+// while further `.eq().select()` chaining still works for the precondition path.
 function setupUpdateChain(error: unknown = null) {
-  const chain = {
+  const result = error
+    ? { data: null, error }
+    : { data: [{ id: "item-1", updated_at: "T1" }], error: null };
+  const chain: Record<string, unknown> = {
     update: vi.fn(),
     eq: vi.fn(),
+    select: vi.fn(),
+    then: (resolve: (v: unknown) => unknown) => resolve(result),
   };
-  chain.update.mockReturnValue(chain);
-  chain.eq.mockResolvedValue({ error });
+  (chain.update as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.eq as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.select as ReturnType<typeof vi.fn>).mockResolvedValue(result);
   mockFrom.mockReturnValue(chain);
   return chain;
 }
 
 function setupDeleteChain(error: unknown = null, data: unknown[] | null = null) {
-  const chain = {
+  // items: delete().eq().select() -> { data, error }
+  const itemsChain = {
     delete: vi.fn(),
     eq: vi.fn(),
     select: vi.fn(),
   };
-  chain.delete.mockReturnValue(chain);
-  chain.eq.mockReturnValue(chain);
-  chain.select.mockResolvedValue({ data, error });
-  mockFrom.mockReturnValue(chain);
-  return chain;
+  itemsChain.delete.mockReturnValue(itemsChain);
+  itemsChain.eq.mockReturnValue(itemsChain);
+  itemsChain.select.mockResolvedValue({ data, error });
+
+  // audio (D-04 cleanup): select('storage_path').eq('item_id', id) -> { data }
+  // Default: no audio rows so the storage.remove() guard is skipped and these
+  // item-state assertions stay isolated from the cleanup path.
+  const audioChain = {
+    select: vi.fn(),
+    eq: vi.fn(),
+  };
+  audioChain.select.mockReturnValue(audioChain);
+  audioChain.eq.mockResolvedValue({ data: [], error: null });
+
+  mockFrom.mockImplementation((table: string) =>
+    table === "audio" ? audioChain : itemsChain,
+  );
+  return itemsChain;
 }
 
 describe("sessionStore", () => {
@@ -447,6 +477,7 @@ describe("sessionStore", () => {
           receipt_number: null,
           ai_status: "pending",
           created_at: "2026-01-01",
+          updated_at: "T0",
         },
       ];
 
@@ -605,6 +636,7 @@ describe("sessionStore", () => {
           receipt_number: null,
           ai_status: "pending",
           created_at: "2026-01-01",
+          updated_at: "T0",
         },
       ];
 
@@ -640,6 +672,7 @@ describe("sessionStore", () => {
           receipt_number: null,
           ai_status: "pending",
           created_at: "2026-01-01",
+          updated_at: "T0",
         },
       ];
 

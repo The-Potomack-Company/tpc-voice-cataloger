@@ -21,6 +21,8 @@ export interface WarnBannerProps {
   body?: ReactNode;
   /** When provided, renders an X close affordance that fires this callback. */
   onDismiss?: () => void;
+  /** Optional action button rendered after the body, before the dismiss X. */
+  action?: { label: string; onClick: () => void; busy?: boolean };
   className?: string;
 }
 
@@ -29,6 +31,7 @@ export function WarnBanner({
   title,
   body,
   onDismiss,
+  action,
   className,
 }: WarnBannerProps) {
   const classes = [
@@ -44,6 +47,17 @@ export function WarnBanner({
         <p className="text-sm font-medium">{title}</p>
         {body && <p className="text-sm mt-0.5">{body}</p>}
       </div>
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          disabled={action.busy}
+          aria-busy={action.busy || undefined}
+          className="tpc-btn shrink-0 min-h-11 min-w-11 text-warn underline"
+        >
+          <Icon name="refresh" size={18} aria-hidden /> {action.label}
+        </button>
+      )}
       {onDismiss && (
         <button
           type="button"

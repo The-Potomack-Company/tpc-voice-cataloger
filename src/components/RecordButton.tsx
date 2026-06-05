@@ -19,6 +19,7 @@ export function RecordButton({ itemId, sessionId }: RecordButtonProps) {
       const audioId = await stopRecording();
       if (audioId != null) {
         if (navigator.onLine) {
+          await updateItemField(itemId, sessionId, "ai_status", "queued");
           // Fire-and-forget -- do not await. Auctioneer moves on immediately.
           processAudioWithAi(audioId, itemId, sessionId).catch((err) =>
             console.error("AI processing failed:", err)

@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import type { ItemPhoto } from "../db/types";
 import { usePhotoUrl } from "../hooks/usePhotoUrl";
+import { Modal } from "../ui/Modal";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface PhotoLightboxProps {
@@ -92,7 +93,14 @@ export function PhotoLightbox({
   };
 
   const handleDelete = () => {
-    const photoId = currentPhoto.id!;
+    // WR-04: a not-yet-persisted photo has an undefined Dexie auto-increment
+    // id. Dispatching onDelete(undefined) would target the wrong record (or
+    // no-op silently), so bail before deleting.
+    if (currentPhoto.id == null) {
+      setShowDeleteConfirm(false);
+      return;
+    }
+    const photoId = currentPhoto.id;
     const wasLastPhoto = photos.length === 1;
     const wasLastIndex = safeIndex === photos.length - 1;
 
@@ -109,11 +117,19 @@ export function PhotoLightbox({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black flex flex-col"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+    <Modal
+      open
+      onClose={onClose}
+      ariaLabel="Photo viewer"
+      bareOverlay
+      overlayClassName="fixed inset-0 z-50"
+      panelClassName="fixed inset-0 bg-black flex flex-col"
     >
+      <div
+        className="flex-1 flex flex-col"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
       {/* Top bar */}
       <div className="flex items-center justify-between p-2 z-10">
         {/* Close button */}
@@ -154,8 +170,11 @@ export function PhotoLightbox({
       <div className="text-center text-white text-sm pb-4 pt-2">
         {safeIndex + 1} / {photos.length}
       </div>
+      </div>
 
-      {/* Delete confirmation */}
+      {/* Delete confirmation — nested Modal; its trap takes precedence while
+          open, and Escape on it returns focus to the lightbox (not all the
+          way out) because the inner panel owns the keydown event. */}
       <ConfirmDialog
         open={showDeleteConfirm}
         title="Delete Photo"
@@ -166,6 +185,6 @@ export function PhotoLightbox({
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
       />
-    </div>
+    </Modal>
   );
 }

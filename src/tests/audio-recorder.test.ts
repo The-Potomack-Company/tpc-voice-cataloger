@@ -206,4 +206,87 @@ describe("useAudioRecorder", () => {
     expect(state).toHaveProperty("lastSavedAudioId");
     expect(state).toHaveProperty("lastSavedDurationMs");
   });
+
+  it("stopRecording settles to undefined (no hang) when db.audio.add always rejects, sets error + stashes blob", async () => {
+    const addSpy = vi
+      .spyOn(db.audio, "add")
+      .mockRejectedValue(new Error("QuotaExceededError"));
+
+    const { result } = renderHook(() => useAudioRecorder());
+
+    await act(async () => {
+      result.current.startRecording("item-uuid", "house");
+      await flushPromises();
+    });
+
+    let resolved: number | undefined = -1 as unknown as number;
+    await act(async () => {
+      const stopPromise = result.current.stopRecording();
+      await flushPromises();
+      // If onstop hangs, this await never resolves and the test times out.
+      resolved = await stopPromise;
+    });
+
+    expect(resolved).toBeUndefined();
+    // initial attempt + 2 retries = 3 calls
+    expect(addSpy).toHaveBeenCalledTimes(3);
+    expect(useRecordingStore.getState().recorderError).toBeTruthy();
+    const buf = useRecordingStore.getState().retryBuffer;
+    expect(buf).not.toBeNull();
+    expect(buf?.itemId).toBe("item-uuid");
+    expect(buf?.blob).toBeTruthy();
+
+    addSpy.mockRestore();
+  });
+
+  it("stopRecording resolves with id when db.audio.add rejects once then succeeds (retry path)", async () => {
+    const realAdd = db.audio.add.bind(db.audio);
+    const addSpy = vi
+      .spyOn(db.audio, "add")
+      .mockRejectedValueOnce(new Error("transient"))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockImplementation((...args: any[]) => realAdd(...args));
+
+    const { result } = renderHook(() => useAudioRecorder());
+
+    await act(async () => {
+      result.current.startRecording("item-uuid", "house");
+      await flushPromises();
+    });
+
+    let resolved: number | undefined;
+    await act(async () => {
+      const stopPromise = result.current.stopRecording();
+      await flushPromises();
+      resolved = await stopPromise;
+    });
+
+    expect(resolved).toBeDefined();
+    expect(typeof resolved).toBe("number");
+    expect(useRecordingStore.getState().recorderError).toBeNull();
+    expect(useRecordingStore.getState().retryBuffer).toBeNull();
+
+    addSpy.mockRestore();
+  });
+
+  it("recording store exposes recorderError + retryBuffer (default null) with setters", () => {
+    const state = useRecordingStore.getState();
+    expect(state.recorderError).toBeNull();
+    expect(state.retryBuffer).toBeNull();
+    expect(typeof state.setRecorderError).toBe("function");
+    expect(typeof state.stashForRetry).toBe("function");
+  });
+
+  it("reset() clears recorderError and retryBuffer", () => {
+    const blob = new Blob(["x"], { type: "audio/webm" });
+    useRecordingStore.getState().setRecorderError("boom");
+    useRecordingStore.getState().stashForRetry({ blob, itemId: "abc", durationMs: 5 });
+    expect(useRecordingStore.getState().recorderError).toBe("boom");
+    expect(useRecordingStore.getState().retryBuffer).not.toBeNull();
+
+    useRecordingStore.getState().reset();
+
+    expect(useRecordingStore.getState().recorderError).toBeNull();
+    expect(useRecordingStore.getState().retryBuffer).toBeNull();
+  });
 });

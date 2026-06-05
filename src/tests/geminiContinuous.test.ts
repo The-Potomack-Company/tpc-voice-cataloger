@@ -31,9 +31,15 @@ const sessionStore = vi.hoisted(() => ({
     "session-1": [{ id: "item-1" }],
   } as Record<string, Array<{ id: string }>>,
   updateItemField: vi.fn(async () => {}),
+  fetchItems: vi.fn(async () => {}),
 }));
 
 const maybeSingle = vi.hoisted(() => vi.fn());
+// Phase 39: mergeFieldsIntoItem now writes the catalog patch through
+// preconditionUpdate (supabase.update(patch).eq("id").eq("updated_at").select())
+// instead of per-field sessionStore.updateItemField. Record each merge write as
+// [itemId, patch] so the merge-routing assertions can inspect what landed where.
+const mergeWrites = vi.hoisted(() => [] as Array<[string, Record<string, unknown>]>);
 const authMock = vi.hoisted(() => ({
   getSession: vi.fn(),
   refreshSession: vi.fn(),
@@ -47,6 +53,16 @@ vi.mock("../lib/supabase", () => ({
       select: () => ({
         eq: () => ({
           maybeSingle,
+        }),
+      }),
+      update: (patch: Record<string, unknown>) => ({
+        eq: (_c1: string, id: string) => ({
+          eq: () => ({
+            select: () => {
+              mergeWrites.push([id, patch]);
+              return Promise.resolve({ data: [{ id }], error: null });
+            },
+          }),
         }),
       }),
     }),
@@ -112,10 +128,23 @@ const baseFields = {
   receipt_number: null,
 };
 
+// Did any merge write to `itemId` set `field` to `value`?
+function mergeWroteField(itemId: string, field: string, value: unknown): boolean {
+  return mergeWrites.some(([id, patch]) => id === itemId && patch[field] === value);
+}
+
+// The ordered list of values a given field received on a given item across all merge writes.
+function mergeFieldWrites(itemId: string, field: string): unknown[] {
+  return mergeWrites
+    .filter(([id, patch]) => id === itemId && field in patch)
+    .map(([, patch]) => patch[field]);
+}
+
 describe("processContinuousChunk", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://proxy.test");
+    mergeWrites.length = 0;
+    vi.stubEnv("VITE_GEMINI_PROXY_URL", "https://tpc-ai-proxy-prod-588770300226.us-east1.run.app/");
     continuousStore.active = true;
     continuousStore.finalizing = false;
     continuousStore.epoch = 0;
@@ -166,7 +195,7 @@ describe("processContinuousChunk", () => {
     await processContinuousChunk(1, "item-1", "session-1", 0);
 
     expect(continuousStore.markChunkPending).toHaveBeenCalledWith(0);
-    expect(sessionStore.updateItemField).toHaveBeenCalledWith("item-1", "session-1", "title", "BRASS LAMP");
+    expect(mergeWroteField("item-1", "title", "BRASS LAMP")).toBe(true);
     expect(continuousStore.appendTranscript).toHaveBeenCalledWith("Antique brass lamp");
     expect(continuousStore.advanceItem).toHaveBeenCalledWith("12345-2");
     expect(continuousStore.markChunkDone).toHaveBeenCalledWith(0);
@@ -205,7 +234,7 @@ describe("processContinuousChunk", () => {
 
     await processContinuousChunk(1, "item-1", "session-1", 2);
 
-    expect(sessionStore.updateItemField).toHaveBeenCalledWith("item-1", "session-1", "description", "Antique brass lamp");
+    expect(mergeWroteField("item-1", "description", "Antique brass lamp")).toBe(true);
     expect(continuousStore.advanceItem).not.toHaveBeenCalled();
     expect(continuousStore.markChunkDone).toHaveBeenCalledWith(2);
   });
@@ -312,9 +341,9 @@ describe("processContinuousChunk", () => {
     });
 
     expect(continuousStore.appendTranscript).toHaveBeenCalledWith("Antique brass lamp");
-    expect(sessionStore.updateItemField).toHaveBeenCalledWith("item-2", "session-1", "title", "BRASS LAMP");
-    expect(sessionStore.updateItemField).toHaveBeenCalledWith("item-2", "session-1", "description", "Antique brass lamp");
-    expect(sessionStore.updateItemField).not.toHaveBeenCalledWith("item-1", "session-1", "title", "BRASS LAMP");
+    expect(mergeWroteField("item-2", "title", "BRASS LAMP")).toBe(true);
+    expect(mergeWroteField("item-2", "description", "Antique brass lamp")).toBe(true);
+    expect(mergeWroteField("item-1", "title", "BRASS LAMP")).toBe(false);
   });
 
   it("serializes session chunks with different snapshot item ids so live-item writes stay FIFO", async () => {
@@ -339,12 +368,9 @@ describe("processContinuousChunk", () => {
       }),
     ]);
 
-    const titleWrites = sessionStore.updateItemField.mock.calls
-      .filter((call) => call[0] === "live-item" && call[2] === "title")
-      .map((call) => call[3]);
-    expect(titleWrites).toEqual(["FIRST", "SECOND", "THIRD"]);
-    expect(sessionStore.updateItemField).not.toHaveBeenCalledWith("old-item-1", "session-1", "title", expect.any(String));
-    expect(sessionStore.updateItemField).not.toHaveBeenCalledWith("old-item-2", "session-1", "title", expect.any(String));
+    expect(mergeFieldWrites("live-item", "title")).toEqual(["FIRST", "SECOND", "THIRD"]);
+    expect(mergeFieldWrites("old-item-1", "title")).toEqual([]);
+    expect(mergeFieldWrites("old-item-2", "title")).toEqual([]);
   });
 
   it("processes chunks while finalizing even after recording is inactive", async () => {
@@ -361,7 +387,7 @@ describe("processContinuousChunk", () => {
     await processContinuousChunk(1, "item-1", "session-1", 20);
 
     expect(continuousStore.appendTranscript).toHaveBeenCalledWith("final slice");
-    expect(sessionStore.updateItemField).toHaveBeenCalledWith("item-1", "session-1", "title", "FINAL SLICE");
+    expect(mergeWroteField("item-1", "title", "FINAL SLICE")).toBe(true);
     expect(continuousStore.markChunkDone).toHaveBeenCalledWith(20);
   });
 

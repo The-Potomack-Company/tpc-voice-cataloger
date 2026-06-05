@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { needsMigration, migrateToSupabase } from "../db/migration";
 
 type MigrationState =
   | "checking"
   | "not-needed"
   | "in-progress"
+  // SC3/D-07: a run that skipped ≥1 item is NOT "complete". Distinguishing
+  // "partial" here is what stops the splash from claiming full success — the
+  // catch below still owns thrown failures; "partial" is a success-path outcome.
+  | "partial"
   | "complete"
   | "error";
 
@@ -13,7 +17,8 @@ interface MigrationStatus {
   current: number;
   total: number;
   migrated: number;
-  skipped: number;
+  alreadyMigrated: number;
+  failed: number;
 }
 
 export function useDataMigration(userId: string | undefined) {
@@ -22,24 +27,44 @@ export function useDataMigration(userId: string | undefined) {
     current: 0,
     total: 0,
     migrated: 0,
-    skipped: 0,
+    alreadyMigrated: 0,
+    failed: 0,
   });
 
+  // CR-01: re-entrancy guard. setStatus("in-progress") is async, so a second
+  // synchronous runMigration() (e.g. a double-clicked splash Retry) would fall
+  // straight through to a SECOND concurrent migrateToSupabase before the first
+  // wrote any idMapping — both read a null mapping and both insert, defeating
+  // the check-then-insert idempotency and duplicating the Supabase session/items.
+  // A ref flips synchronously so the second call is rejected in the same tick.
+  // (A ref suffices: both stores are single-tab IndexedDB; cross-tab is out of v1.)
+  const runningRef = useRef(false);
+
   const runMigration = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || runningRef.current) return;
+    runningRef.current = true;
     setStatus((s) => ({ ...s, state: "in-progress" }));
     try {
       const result = await migrateToSupabase(userId, (current, total) => {
-        setStatus((s) => ({ ...s, current, total }));
+        // WR-01: a whole-session insert failure adds its items to the numerator
+        // while they're still counted in `total`, so `current` can reach `total`
+        // before the run ends → the bar reads 100% mid-run. Clamp so progress
+        // is monotonic and never overshoots the honest denominator (SC3).
+        setStatus((s) => ({ ...s, current: Math.min(current, total), total }));
       });
       setStatus((s) => ({
         ...s,
-        state: "complete",
+        state: result.partial ? "partial" : "complete",
         migrated: result.migrated,
-        skipped: result.skipped,
+        // D-10: surface the failed/alreadyMigrated split so MigrationRetryBanner
+        // can show the failed-only "N" while idempotent skips stay invisible.
+        alreadyMigrated: result.alreadyMigrated,
+        failed: result.failed,
       }));
     } catch {
       setStatus((s) => ({ ...s, state: "error" }));
+    } finally {
+      runningRef.current = false;
     }
   }, [userId]);
 

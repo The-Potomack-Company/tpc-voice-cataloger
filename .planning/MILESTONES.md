@@ -1,5 +1,51 @@
 # Milestones
 
+## v1.3 Maturation (Shipped: 2026-06-04)
+
+**Phases completed:** 16 phases (31-45, incl. 40.1 inserted + 41 urgent-lane)
+**Theme:** Security / durability / quality maturation from the 2026-05-27 consolidated audit + 2026-05-28 UAT findings + audio-blob-persistence ask + AI-proxy Cloud Run migration (D-049).
+**Audit:** `milestones/v1.3-MILESTONE-AUDIT.md` — verdict `tech_debt` (no blockers); all 3 integration seams wired; live UAT passed.
+
+**Key accomplishments:**
+1. Security: profiles self-update escalation closed on prod (column-scoped UPDATE + privileged-column guard trigger; anon revoked) — Phase 31.
+2. Durable audio: blobs persist to a Supabase `audio` bucket with owner-scoped RLS + cross-device retry + purge job; offline drain + pending-stranding recovery — Phases 32/33/41/42.
+3. Concurrency correctness: `items.updated_at` optimistic-locking primitive (`preconditionUpdate`) + AI-merge no-clobber, extended to the single-item AI write path (SEAM-3 closed) — Phases 39/45.
+4. AI pipeline: deterministic/non-confabulating extraction hardening + Cloudflare→Cloud Run proxy cutover with JWT verify + CI secret-preflight hardening — Phases 35/40/40.1.
+5. Data integrity: retryable Dexie→Supabase migration (idempotent, itemTable discriminator) + photo-migration house/sale collision fix — Phases 38/43.
+6. UX/a11y: ErrorToast surfacing of silent failures, a11y primitives (focus-trap/touch-targets/labels), blocked-queue nav + named duplicate-receipt import errors — Phases 36/37/44.
+
+**Notable:**
+- SEAM-3 lost-write gap (single-item AI write bypassed `preconditionUpdate`) found in the milestone audit and closed inline via inserted Phase 45.
+- Phase 41 shipped via the urgent lane (Codex impl / Claude review); retroactive verification back-filled at close.
+
+**Known deferred items at close:** 27 historical artifacts (5 diagnosed debug sessions + 22 quick_tasks, March-era) acknowledged and deferred — see STATE.md Deferred Items. Accepted tech-debt backlog enumerated in `milestones/v1.3-MILESTONE-AUDIT.md`.
+
+**Requirements:** none mapped (bug/UAT/quality-driven) — see `milestones/v1.3-REQUIREMENTS.md`.
+
+---
+
+## v1.2 UI Overhaul (Shipped: 2026-05-13)
+
+**Phases completed:** 9 phases (22-30) -- shipped as a single mega-PR (#11)
+**Ship:** PR #11 (`1985ac2`), milestone closed `9b9b896`
+
+**Key accomplishments:**
+1. Unified TPC design tokens replace Tailwind 4 `@theme` — single source in `src/ui/tokens/`, light + dark + system-follow cascade via `.tpc` / `.tpc-dark`, no-FOUC pre-paint, CI guard rejecting raw hex/oklch/font-family literals
+2. Self-hosted typography (EB Garamond / Inter / IBM Plex Mono via `@fontsource`) — zero Google Fonts CDN requests
+3. Reusable component library in `src/ui/` (Button, Badge, Card, Input, Eyebrow, Bar, Placeholder, mono numerics) consumed by every screen
+4. Mockup-faithful restyle of Sessions / Recording / Review screens + extrapolated restyle of admin/specialist/login/walkthrough screens
+5. Live recording pulse + real waveform render + screen transitions (respecting `prefers-reduced-motion`)
+6. Theme toggle in Settings (Light / Dark / System), persisted per-user (Supabase) + localStorage fallback
+7. WCAG AA contrast verification + focus rings across all primitives
+
+**Known Gaps (rolled into v1.3 Maturation):**
+- 18 pre-existing test failures (`localStorage.clear is not a function`) in `persist-scoping.test.ts` / `photo-migration.test.ts` — pre-existing at HEAD~3, tracked in Phase 22 deferred-items
+- A11y touch-target / focus-trap follow-ups → v1.3 Phase 37
+
+**Successor:** v3.0 hub cutover DEFERRED (D-052); repo matures independently via v1.3 Maturation (phases 31-39 + AI-proxy GCloud migration).
+
+---
+
 ## v1.1 Accounts & Deploy (Shipped: 2026-03-31)
 
 **Phases completed:** 11 phases (11-21), 36 plans, 66 tasks

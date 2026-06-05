@@ -3,6 +3,7 @@ import { useUIStore } from "../stores/uiStore";
 import { useLongPress } from "../hooks/useLongPress";
 import { SwipeableRow } from "./SwipeableRow";
 import { Badge } from "../ui/Badge";
+import { OverflowMenu } from "../ui/OverflowMenu";
 import type { Tables } from "../db/database.types";
 
 type SupabaseSession = Tables<"sessions">;
@@ -11,6 +12,12 @@ interface SessionCardProps {
   session: SupabaseSession;
   itemCount: number;
   onTap: () => void;
+  /**
+   * WR-06/D-04: invoked by both the swipe-delete gesture AND the ⋯ overflow
+   * menu's Delete item. The ⋯ menu does NOT confirm internally — this handler
+   * MUST perform its own confirmation (e.g. Sessions.tsx routes it through the
+   * shared ConfirmDialog). Never wire a raw deleteSession here.
+   */
   onDelete: () => void;
   onRename: (newName: string) => void;
   sessionStatus?: string;
@@ -160,9 +167,15 @@ export function SessionCard({
             </div>
           </div>
 
-          <span className="text-xs text-ink-3 whitespace-nowrap shrink-0 mt-1">
-            {formatRelativeTime(session.updated_at)}
-          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-xs text-ink-3 whitespace-nowrap mt-1">
+              {formatRelativeTime(session.updated_at)}
+            </span>
+            {/* Accessible-equivalent of swipe-to-delete (D-03/D-04). */}
+            <OverflowMenu
+              actions={[{ label: "Delete", destructive: true, onSelect: onDelete }]}
+            />
+          </div>
         </div>
       </div>
     </SwipeableRow>

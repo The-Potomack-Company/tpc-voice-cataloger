@@ -10,6 +10,8 @@ import type {
   IdMapping,
   WriteAheadEntry,
   PhotoUploadEntry,
+  AudioUploadEntry,
+  UserEditedField,
 } from "./types";
 
 const db = new Dexie("TPCCatalog") as Dexie & {
@@ -23,6 +25,8 @@ const db = new Dexie("TPCCatalog") as Dexie & {
   idMapping: EntityTable<IdMapping, "id">;
   writeAheadQueue: EntityTable<WriteAheadEntry, "id">;
   photoUploadQueue: EntityTable<PhotoUploadEntry, "id">;
+  audioUploadQueue: EntityTable<AudioUploadEntry, "id">;
+  userEditedFields: EntityTable<UserEditedField, "itemId">;
 };
 
 db.version(1).stores({
@@ -127,6 +131,59 @@ db.version(9).stores({
   idMapping: "++id, oldId, newId, type, [newId+type]",
   writeAheadQueue: "++id, createdAt",
   photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
+});
+
+// v10: Add audioUploadQueue table for offline audio blob upload queuing
+db.version(10).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  sessionAudio: "sessionId, updatedAt",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
+  audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
+});
+
+// v11: Add userEditedFields table for per-field user-edited provenance (D-05).
+// Compound primary key [itemId+field] + itemId secondary index for O(1) per-item
+// reads and a trivial where("itemId").delete() clear-on-fresh-success. New empty
+// table — no .upgrade() needed; absence of a row === field not user-edited.
+db.version(11).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  sessionAudio: "sessionId, updatedAt",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
+  audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
+  userEditedFields: "[itemId+field], itemId",
+});
+
+// v12: Add [oldId+type] reverse index on idMapping for idempotent migration
+// retry (Phase 38, D-03). Pure index add — no .upgrade(), Dexie re-indexes
+// existing rows. The reverse lookup (oldId -> newId) guards re-inserts so a
+// retry over a preserved DAT-1 partial set creates no duplicate Supabase rows.
+db.version(12).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  sessionAudio: "sessionId, updatedAt",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type], [oldId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
+  audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
+  userEditedFields: "[itemId+field], itemId",
 });
 
 export { db };

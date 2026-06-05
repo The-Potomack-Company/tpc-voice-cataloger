@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
 import { enqueueWrite } from "../hooks/useWriteAheadQueue";
+import { preconditionUpdate } from "../db/optimisticUpdate";
 import { trackEvent } from "../services/analytics";
 import { useNotificationStore } from "./notificationStore";
 import type { Tables } from "../db/database.types";
@@ -424,20 +425,51 @@ export const useSessionStore = create<SessionState>()(
           },
         }));
 
+        // D-07/D-08: route through the bounded optimistic-locking helper. A stale
+        // write 0-rows, re-reads, and re-applies the user's value against the fresh
+        // updated_at token (intent-preserving — last human intent wins). buildPatch
+        // is the default (re-apply verbatim); exhaustion surfaces its own toast.
         try {
-          const { error } = await supabase
-            .from("items")
-            .update({ [field]: value })
-            .eq("id", itemId);
-
-          if (error) throw error;
+          const res = await preconditionUpdate({
+            table: "items",
+            id: itemId,
+            prevUpdatedAt: (originalItem as Record<string, unknown>).updated_at as
+              | string
+              | null
+              | undefined,
+            patch: { [field]: value },
+          });
+          // WR-02: the trigger just bumped updated_at and the helper returns the fresh
+          // row. Fold the new token into local state so the NEXT edit to this item
+          // preconditions against the current token instead of a stale/absent one —
+          // otherwise every subsequent same-item edit starts with a guaranteed
+          // first-attempt 0-row + extra re-read, and freshly-created items stay tokenless.
+          if (res.status === "applied") {
+            const freshToken = (res.row as { updated_at?: string }).updated_at;
+            if (freshToken) {
+              set((state) => ({
+                itemsBySession: {
+                  ...state.itemsBySession,
+                  [sessionId]: (state.itemsBySession[sessionId] ?? []).map((i) =>
+                    i.id === itemId ? { ...i, updated_at: freshToken } : i,
+                  ),
+                },
+              }));
+            }
+          }
           scheduleFieldEditEvent(itemId, sessionId, field);
         } catch (err) {
           if (isNetworkError(err)) {
             await enqueueWrite({
               table: "items",
               operation: "update",
-              payload: { id: itemId, [field]: value },
+              // D-04: snapshot updated_at at enqueue time so Plan 03's flush can
+              // re-apply the .eq("updated_at", snapshot) precondition on reconnect.
+              payload: {
+                id: itemId,
+                [field]: value,
+                updated_at: (originalItem as Record<string, unknown>).updated_at,
+              },
             });
             scheduleFieldEditEvent(itemId, sessionId, field);
             return;
@@ -502,6 +534,36 @@ export const useSessionStore = create<SessionState>()(
             ),
           },
         }));
+
+        // D-04: the FK ON DELETE CASCADE only drops the public.audio metadata row;
+        // the Storage binary must be explicitly removed or it orphans (the exact
+        // photo leak this phase closes for audio). First storage.remove() in the
+        // codebase. A remove() failure is non-fatal — the pg_cron purge-audio
+        // reaper is the orphan backstop, so we log + continue rather than abort
+        // the item delete.
+        const { data: audioRows } = await supabase
+          .from("audio")
+          .select("storage_path")
+          .eq("item_id", itemId);
+        if (audioRows?.length) {
+          const paths = audioRows.map((r) => r.storage_path);
+          try {
+            const { error: removeError } = await supabase.storage
+              .from("audio")
+              .remove(paths);
+            if (removeError) {
+              console.error(
+                "Audio Storage cleanup failed (pg_cron reaper will backstop):",
+                removeError.message,
+              );
+            }
+          } catch (removeErr) {
+            console.error(
+              "Audio Storage cleanup threw (pg_cron reaper will backstop):",
+              removeErr,
+            );
+          }
+        }
 
         const { data: deleted, error } = await supabase
           .from("items")

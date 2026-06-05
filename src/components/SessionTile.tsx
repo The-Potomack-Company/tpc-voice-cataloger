@@ -16,6 +16,7 @@ import { useLongPress } from "../hooks/useLongPress";
 import { SwipeableRow } from "./SwipeableRow";
 import { Badge } from "../ui/Badge";
 import { Icon } from "../ui/icons";
+import { OverflowMenu } from "../ui/OverflowMenu";
 import type { Tables } from "../db/database.types";
 
 type SupabaseSession = Tables<"sessions">;
@@ -26,6 +27,12 @@ interface SessionTileProps {
   /** Optional ordinal suffix (mockup shows TPC23 / HSE-04 style ids). */
   shortId?: string;
   onTap: () => void;
+  /**
+   * WR-06/D-04: invoked by both the swipe-delete gesture AND the ⋯ overflow
+   * menu's Delete item. The ⋯ menu does NOT confirm internally — this handler
+   * MUST perform its own confirmation (e.g. Sessions.tsx routes it through the
+   * shared ConfirmDialog). Never wire a raw deleteSession here.
+   */
   onDelete: () => void;
   onRename: (newName: string) => void;
   /** Show a divider below this tile. The parent list controls this. */
@@ -195,6 +202,12 @@ export function SessionTile({
             {assigneeName && <span>{` · ${assigneeName}`}</span>}
           </div>
         </div>
+
+        {/* Accessible-equivalent of swipe-to-delete (D-03/D-04): routes
+            through the same onDelete the parent already confirms. */}
+        <OverflowMenu
+          actions={[{ label: "Delete", destructive: true, onSelect: onDelete }]}
+        />
 
         <Icon name="chev" size={14} style={{ color: "var(--ink-4)" }} aria-hidden />
       </div>

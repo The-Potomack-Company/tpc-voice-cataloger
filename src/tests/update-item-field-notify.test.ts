@@ -51,18 +51,28 @@ function makeItem(overrides: Record<string, unknown> = {}) {
     receipt_number: null,
     ai_status: "pending",
     created_at: "2026-01-01",
+    updated_at: "T0", // Phase 39: fetched items always carry the optimistic-locking token
     ...overrides,
   };
 }
 
-// supabase.from('items').update({...}).eq('id', id) → { error }
+// Phase 39: updateItemField now writes via preconditionUpdate, so the supabase
+// chain is .update({...}).eq("id").eq("updated_at").select() → { data, error }.
+// A genuine error throws out of the helper (existing revert/notify/enqueue catch).
+// On success data carries the fresh row.
 function setupUpdateChain(error: unknown = null) {
   const chain = {
     update: vi.fn(),
     eq: vi.fn(),
+    select: vi.fn(),
   };
   chain.update.mockReturnValue(chain);
-  chain.eq.mockResolvedValue({ error });
+  chain.eq.mockReturnValue(chain);
+  chain.select.mockResolvedValue(
+    error
+      ? { data: null, error }
+      : { data: [{ id: "item-1", updated_at: "T1" }], error: null },
+  );
   mockFrom.mockReturnValue(chain);
   return chain;
 }
@@ -181,7 +191,9 @@ describe("updateItemField error notification (DAT-4)", () => {
     expect(mockEnqueueWrite).toHaveBeenCalledWith({
       table: "items",
       operation: "update",
-      payload: { id: "item-1", title: "New Title" },
+      // D-04: the offline payload snapshots the item's updated_at token so the flush
+      // can re-apply the precondition on reconnect.
+      payload: { id: "item-1", title: "New Title", updated_at: "T0" },
     });
     expect(mockNotifyError).not.toHaveBeenCalled();
 
