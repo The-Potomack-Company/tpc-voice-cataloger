@@ -56,8 +56,12 @@ export function useFocusTrap(
   // a fresh onClose each render (inline arrows); keeping it in deps tore down
   // and re-armed the trap on every parent re-render, stealing focus back to the
   // initial element mid-interaction and corrupting the focus-restore target.
+  // Update via effect (not during render) so the keydown handler reads the
+  // latest onClose at event time without violating react-hooks/refs.
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     const panel = panelRef.current;

@@ -38,8 +38,12 @@ export function MigrationSplash({
 
   // IN-03: hold onComplete in a ref so an unstable parent closure does not
   // re-arm the auto-dismiss timers (which would delay/restart the dismiss).
+  // Update via effect (not during render) so the latest closure is captured
+  // without violating react-hooks/refs; the timer reads .current at fire time.
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
 
   // Fold the real focus trap in (D-02) — the splash already declared
   // role=dialog/aria-modal but had no trap. It is a blocking splash with no
