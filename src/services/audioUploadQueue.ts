@@ -18,6 +18,17 @@ const BACKOFF_BASE = 1000; // delay = 4^retryCount * 1000 => 1s, 4s, 16s
 // the unbounded reset-to-0 lives only in the manual retryFailedUploads one-shot.
 const RESWEEP_CAP = 6;
 
+// An entry welds to `uploading` only inside processOneAudioUpload, which always
+// resolves it to `uploaded`/`failed` within the same call. So a persisted
+// `uploading` entry can only survive a crash/tab-close mid-upload — neither the
+// drain (`pending`) nor the resweep (`failed`) would ever pick it up again,
+// stranding the audio forever. Reclaim it on boot/online once its claim is
+// demonstrably stale. The threshold is generous (single opus blob uploads finish
+// in seconds) so a genuinely in-flight upload — even over a slow link — is never
+// reset out from under itself; the idempotent upsert (DAT-5) makes a redundant
+// re-upload harmless regardless.
+const STALE_UPLOADING_MS = 2 * 60 * 1000;
+
 let draining = false;
 
 /**
@@ -210,6 +221,25 @@ export async function resweepFailedUploads(): Promise<void> {
       if (entry.retryCount >= RESWEEP_CAP) return undefined; // terminal — never re-arm
       reset += 1;
       // Preserve retryCount: only flip status so the entry ages out under the cap.
+      return db.audioUploadQueue.update(entry.id!, { status: "pending" as const });
+    })
+  );
+
+  // Reclaim entries stranded in `uploading` by a crash/tab-close mid-upload.
+  // Only those whose claim is older than STALE_UPLOADING_MS (or carry no
+  // lastAttemptAt) — never a live in-flight upload. retryCount preserved so a
+  // repeatedly-crashing entry still ages out under RESWEEP_CAP.
+  const stuck = await db.audioUploadQueue
+    .where("status")
+    .equals("uploading")
+    .toArray();
+  const now = Date.now();
+  await Promise.all(
+    stuck.map((entry) => {
+      const startedAt = entry.lastAttemptAt?.getTime();
+      const isStale = startedAt === undefined || now - startedAt > STALE_UPLOADING_MS;
+      if (!isStale || entry.retryCount >= RESWEEP_CAP) return undefined;
+      reset += 1;
       return db.audioUploadQueue.update(entry.id!, { status: "pending" as const });
     })
   );

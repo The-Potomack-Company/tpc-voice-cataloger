@@ -263,14 +263,18 @@ describe("audioUploadQueue", () => {
     // Routes db.audioUploadQueue.where("status").equals(<x>) to different
     // backing arrays: 'failed' feeds the resweep toArray(), 'pending' feeds the
     // subsequent drain sortBy(). Lets one test exercise failed->pending->uploaded.
-    function setupStatusChains(byStatus: { failed?: unknown[]; pending?: unknown[] }) {
+    function setupStatusChains(byStatus: {
+      failed?: unknown[];
+      pending?: unknown[];
+      uploading?: unknown[];
+    }) {
       mockAudioUploadQueue.where.mockReturnValue({
         equals: vi.fn((status: string) => ({
           toArray: vi.fn().mockResolvedValue(
-            (byStatus[status as "failed" | "pending"] ?? []) as unknown[],
+            (byStatus[status as "failed" | "pending" | "uploading"] ?? []) as unknown[],
           ),
           sortBy: vi.fn().mockResolvedValue(
-            (byStatus[status as "failed" | "pending"] ?? []) as unknown[],
+            (byStatus[status as "failed" | "pending" | "uploading"] ?? []) as unknown[],
           ),
         })),
       });
@@ -296,6 +300,58 @@ describe("audioUploadQueue", () => {
       expect(patch.status).toBe("pending");
       // Bounded self-heal: retryCount preserved so the entry ages out (no re-arm storm).
       expect(patch.retryCount).toBeUndefined();
+    });
+
+    it("reclaims a STALE `uploading` entry (crash mid-upload) back to pending", async () => {
+      const { resweepFailedUploads, _resetDraining } = await import(
+        "../services/audioUploadQueue"
+      );
+      _resetDraining();
+
+      // lastAttemptAt well past the staleness threshold → crashed claim.
+      const stale = makeEntry({
+        id: 11,
+        status: "uploading",
+        retryCount: 0,
+        lastAttemptAt: new Date(Date.now() - 10 * 60 * 1000),
+      });
+      setupStatusChains({ failed: [], pending: [], uploading: [stale] });
+      mockAudioUploadQueue.update.mockResolvedValue(1);
+
+      await resweepFailedUploads();
+
+      const resetCall = mockAudioUploadQueue.update.mock.calls.find(
+        (c: unknown[]) =>
+          c[0] === 11 && (c[1] as Record<string, unknown>).status === "pending",
+      );
+      expect(resetCall).toBeDefined();
+      // retryCount preserved (ages out under cap, no re-arm storm).
+      expect((resetCall![1] as Record<string, unknown>).retryCount).toBeUndefined();
+    });
+
+    it("does NOT reset a FRESH `uploading` entry (live in-flight upload)", async () => {
+      const { resweepFailedUploads, _resetDraining } = await import(
+        "../services/audioUploadQueue"
+      );
+      _resetDraining();
+
+      // Claimed seconds ago → a genuinely in-flight upload, must be left alone.
+      const live = makeEntry({
+        id: 12,
+        status: "uploading",
+        retryCount: 0,
+        lastAttemptAt: new Date(Date.now() - 5 * 1000),
+      });
+      setupStatusChains({ failed: [], pending: [], uploading: [live] });
+      mockAudioUploadQueue.update.mockResolvedValue(1);
+
+      await resweepFailedUploads();
+
+      const resetCall = mockAudioUploadQueue.update.mock.calls.find(
+        (c: unknown[]) =>
+          c[0] === 12 && (c[1] as Record<string, unknown>).status === "pending",
+      );
+      expect(resetCall).toBeUndefined();
     });
 
     it("leaves an at/over-cap failed entry terminal (no re-arm)", async () => {
