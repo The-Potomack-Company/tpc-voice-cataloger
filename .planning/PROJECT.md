@@ -67,9 +67,24 @@ Decisions that apply to **app**. Bodies live in the vault — IDs only here.
 - **[D-063](../../_workspace/Decisions/D-063-invoice-fab-standalone-v23-defer-audit.md)** — Pull Feature B (Invoice fab) out of the v3-hub roadmap (was slated v3.2) into a standalone extension milestone v2.3 — RFC Power Features, alongside the relocated Phase 40 (parallel photo upload). Ships independently of the v3.0 hub. The DR-5 per-fetch Supabase audit trail is deferred to the v3 hub.
 
 <!-- VAULT:decisions-end -->
+## Current Milestone: v1.4 Photo Notes — 📋 PLANNED 2026-06-10 (phases 46-50)
+
+**Goal:** Catalog from photographed handwritten notes. From the session detail screen the cataloger photographs N pages of notes, hits process once, and Gemini (existing tpc-ai-proxy + existing key — no new billed resources) segments them into M draft items with fields filled. Drafts land in a review queue; reviewer confirm/edit/discard is the only path to a real session item, protecting the extension import contract from OCR garbage.
+
+**Locked decisions (2026-06-10, with user):** existing Gemini key/proxy only (anything beyond = BILLING item for user triage); batch + auto-segment capture flow; mandatory draft review gate. Ships **independent of the continuous-mode rework (D-050)** — reuses the single-shot patterns (gemini.ts service shape, preconditionUpdate, upload queues, Phase 37 modal primitives), never the dormant continuous pipeline; D-050's hazards are audio-streaming-specific.
+
+**Phases (46-50, detail in `.planning/ROADMAP.md`):**
+- Phase 46 — photo-notes-capture-ui: client-only capture/manage of note pages (Dexie), Process stub. SPEC ready: `milestones/v1.4-phases/46-photo-notes-capture-ui/46-SPEC.md`.
+- Phase 47 — photo-notes-vision-segmentation: `item_drafts` migration (wave 0, cross-app schema ceremony) + Gemini multi-image call via tpc-ai-proxy + per-field confidence (blank-and-flag under threshold).
+- Phase 48 — draft-review-queue: review/edit/confirm/discard; promotion via the existing item-creation path; receipt_number always reviewer-acknowledged (sale).
+- Phase 49 — import-contract-alignment: diff promoted-item fields against the extension import-contract audit (parallel job 00-urgent-20260610-150427-tpc-extension); regression-pin the export shape.
+- Phase 50 — photo-notes-e2e-uat: E2E + live mobile UAT with real handwriting; cost/usage measurement; milestone audit + archive.
+
+**Risks:** `milestones/v1.4-RISKS.md` (OCR accuracy containment, untrustable fields, drafts-table schema choice, page durability, image limits/cost, proxy payload compatibility).
+
 ## Last Milestone: v1.3 Maturation — ✅ SHIPPED 2026-06-04 (phases 31-45)
 
-**Status:** Complete + archived. Audit verdict `tech_debt` (no blockers); all 3 integration seams wired; live UAT passed; SEAM-3 lost-write gap closed by inserted Phase 45. Full record: `milestones/v1.3-ROADMAP.md`, `milestones/v1.3-MILESTONE-AUDIT.md`. **Next:** v1.4 not yet defined — run `/gsd-new-milestone`. v3.0 hub cutover still deferred (D-052).
+**Status:** Complete + archived. Audit verdict `tech_debt` (no blockers); all 3 integration seams wired; live UAT passed; SEAM-3 lost-write gap closed by inserted Phase 45. Full record: `milestones/v1.3-ROADMAP.md`, `milestones/v1.3-MILESTONE-AUDIT.md`. v3.0 hub cutover still deferred (D-052).
 
 **Goal (delivered):** Harden the live-on-prod app independently while the v3.0 hub cutover stays deferred (D-052). Close the security, durability, performance, quality, and concurrency gaps surfaced by the 2026-05-27 consolidated audit + 2026-05-28 UAT, ship the durable-audio ask, and migrate off the Cloudflare Worker AI proxy onto the shared GCloud AI proxy — each phase shipping independently with its own UAT + tests.
 
@@ -125,16 +140,14 @@ Decisions that apply to **app**. Bodies live in the vault — IDs only here.
 
 ### Active
 
-v1.3 Maturation -- phases 31-39 + the AI-proxy migration, queued from the 2026-05-27 consolidated audit + 2026-05-28 UAT. Full phase detail in `.planning/ROADMAP.md`. Tracks:
-- SEC -- profiles self-update hardening (Phase 31, P0 LIVE on prod)
-- AUDIO -- durable audio in Supabase Storage + cross-device retry (Phase 32)
-- REL -- offline-queue backoff, cross-tab coordination, blocked-write surfacing (Phase 33)
-- PERF -- iOS memory / render-storm reduction (Phase 34)
-- AI -- determinism, confabulation guard, no-clobber retry (Phase 35)
-- UX -- surface previously-silent failures (Phase 36)
-- A11Y -- focus-trap, touch targets, labels, non-swipe affordances (Phase 37)
-- DATA -- migration retryability (Phase 38) + optimistic locking (Phase 39)
-- PROXY -- migrate AI traffic from the Cloudflare Worker to the shared GCloud AI proxy
+v1.4 Photo Notes -- phases 46-50, PHN-01..PHN-10 (full set + traceability in `milestones/v1.4-REQUIREMENTS.md`; phase detail in `.planning/ROADMAP.md`):
+- CAPTURE -- multi-page rear-camera capture of handwritten notes from session detail; offline-capable, reorder/retake/delete (PHN-01/02, Phase 46)
+- VISION -- one process action → Gemini segmentation via existing tpc-ai-proxy → M drafts with per-field confidence; blank-and-flag under threshold; idempotent retry (PHN-03/04/09/10, Phase 47)
+- REVIEW -- draft queue: edit/confirm/discard; promotion only via existing item-creation path; receipt_number reviewer-acknowledged (PHN-05/06/08, Phase 48)
+- CONTRACT -- promoted items indistinguishable from manual items in export/extension import; regression-pinned (PHN-07, Phase 49)
+- E2E/UAT -- live mobile UAT with real handwriting + usage measurement (Phase 50)
+
+(v1.3 Maturation -- SEC / AUDIO / REL / PERF / AI / UX / A11Y / DATA / PROXY tracks, phases 31-45 -- SHIPPED 2026-06-04; full record in `milestones/v1.3-ROADMAP.md`.)
 
 (v1.2 UI Overhaul -- TOKENS / TYPE / LIB / SCREEN / MOTION / A11Y -- SHIPPED 2026-05-13, PR #11.)
 
@@ -207,6 +220,10 @@ v1.3 Maturation -- phases 31-39 + the AI-proxy migration, queued from the 2026-0
 | Adopt mockup density verbatim (v1.2) | Drop the v1.0 48 px+ tap-target baseline in favour of designer-specified density | ✓ Shipped v1.2 -- note: Phase 37 (v1.3) restores 44px minimum touch targets for a11y |
 | Migrate AI proxy Cloudflare Worker → Cloud Run (v1.3 Phase 40) | Cut the cataloger onto the shared `tpc-ai-proxy` Cloud Run service (the-potomack-company / GCP), retiring the in-repo CF Worker. Done in v1.3 ahead of D-049's "post-v3.0" timing (consistent with D-052); Supabase JWT auth preserved (D-014 pulled forward) — per **D-056** (amends D-049), D-013, D-053, D-043 | TBD -- v1.3 Phase 40 to be planned |
 | Extrapolate unmocked screens (v1.2) | Item detail/edit, admin views, login, walkthrough derived from tokens & primitives in discuss-phase reviews | TBD -- per-phase approval gate |
+| Photo-notes OCR on the existing Gemini key/proxy only (v1.4) | No new API enablement or billed resources; gemini-2.5-flash already multimodal via tpc-ai-proxy; anything beyond = BILLING item for user triage | Locked 2026-06-10 with user |
+| Photo-notes drafts in a separate `item_drafts` table, not an items status (v1.4) | Drafts invisible to every items consumer (export, extension import, AI queue, counts) by construction; one missed exclusion clause would leak OCR garbage into the export contract | Proposed -- migration at Phase 47 wave 0 |
+| Mandatory review gate for OCR items; receipt_number never trusted (v1.4) | Handwriting misreads contained: low-confidence fields blank+flagged, promotion only via reviewer confirm through the existing creation path | Locked 2026-06-10 with user |
+| Photo-notes independent of continuous-mode rework (v1.4) | D-050 hazards are audio-streaming-specific (byte-splicing, liveItemId race, wake-phrase replay); batch photos reuse single-shot patterns, dormant pipeline untouched; cost bounded (one call per user action) | Locked 2026-06-10 |
 
 ## Evolution
 
@@ -226,4 +243,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-04 -- v1.3 Maturation SHIPPED + archived (phases 31-45; SEAM-3 closed by Phase 45; live UAT passed). Next: v1.4 via /gsd-new-milestone.*
+*Last updated: 2026-06-10 -- v1.4 Photo Notes PLANNED (phases 46-50; PHN-01..10; Phase 46 SPEC execution-ready). Predecessor: v1.3 Maturation SHIPPED + archived 2026-06-04.*
