@@ -3,7 +3,7 @@
   "granularity": "comprehensive",
   "parallelization": true,
   "commit_docs": true,
-  "model_profile": "quality",
+  "model_profile": "balanced",
   "workflow": {
     "research": true,
     "plan_check": true,
@@ -40,5 +40,18 @@
   },
   "hooks": {
     "context_warnings": true
+  },
+  "model_overrides": {
+    "gsd-planner": "claude-opus-4-8",
+    "gsd-executor": "claude-sonnet-4-6",
+    "gsd-debugger": "claude-fable-5",
+    "gsd-code-reviewer": "claude-sonnet-4-6",
+    "gsd-phase-researcher": "claude-sonnet-4-6",
+    "gsd-project-researcher": "claude-sonnet-4-6",
+    "gsd-verifier": "claude-sonnet-4-6",
+    "gsd-plan-checker": "claude-sonnet-4-6",
+    "gsd-integration-checker": "claude-sonnet-4-6",
+    "gsd-codebase-mapper": "claude-haiku-4-5",
+    "gsd-doc-writer": "claude-haiku-4-5"
   }
 }
