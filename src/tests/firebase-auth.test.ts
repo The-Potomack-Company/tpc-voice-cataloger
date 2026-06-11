@@ -5,6 +5,7 @@ import {
   roleFromFirebaseClaims,
   setFirebaseSdkLoaderForTests,
   signInWithGoogle,
+  type FirebaseClaims,
 } from "../lib/firebaseAuth";
 
 function stubFirebaseEnv() {
@@ -16,6 +17,73 @@ function stubFirebaseEnv() {
   vi.stubEnv("VITE_FIREBASE_APP_ID", "1:123:web:tpc-hub");
 }
 
+function firebaseUser({
+  uid = "firebase-1",
+  email = "staff@potomackco.com",
+  displayName = "Staff User",
+  token = "id-token",
+  claims,
+}: {
+  uid?: string;
+  email?: string | null;
+  displayName?: string | null;
+  token?: string;
+  claims?: FirebaseClaims;
+} = {}) {
+  return {
+    uid,
+    email,
+    displayName,
+    getIdToken: vi.fn().mockResolvedValue("fallback-token"),
+    getIdTokenResult: vi.fn().mockResolvedValue({
+      token,
+      claims: claims ?? {
+        email,
+        email_verified: true,
+        firebase: { sign_in_provider: "google.com" },
+      },
+    }),
+  };
+}
+
+function installFirebaseSdk({
+  auth = {},
+  popupUser = firebaseUser(),
+  omitProfileHd = false,
+  profileHd = "potomackco.com",
+  signOut = vi.fn(),
+}: {
+  auth?: unknown;
+  popupUser?: ReturnType<typeof firebaseUser>;
+  omitProfileHd?: boolean;
+  profileHd?: string | undefined;
+  signOut?: ReturnType<typeof vi.fn>;
+} = {}) {
+  const result = { user: popupUser };
+  const setCustomParameters = vi.fn();
+  const signInWithPopup = vi.fn().mockResolvedValue(result);
+  const getAdditionalUserInfo = vi.fn(() => ({
+    profile: omitProfileHd ? {} : { hd: profileHd },
+  }));
+
+  setFirebaseSdkLoaderForTests(async () => ({
+    initializeApp: vi.fn(() => ({})),
+    getApps: vi.fn(() => []),
+    getApp: vi.fn(() => ({})),
+    getAuth: vi.fn(() => auth),
+    GoogleAuthProvider: class {
+      setCustomParameters = setCustomParameters;
+    },
+    getAdditionalUserInfo,
+    onAuthStateChanged: vi.fn(),
+    signInWithPopup,
+    signOut,
+    updatePassword: vi.fn(),
+  }));
+
+  return { getAdditionalUserInfo, result, setCustomParameters, signInWithPopup, signOut };
+}
+
 describe("firebaseAuth", () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
@@ -23,7 +91,7 @@ describe("firebaseAuth", () => {
     stubFirebaseEnv();
   });
 
-  it("maps role claims and only falls back to specialist for Potomack emails", () => {
+  it("maps role claims and falls back to specialist without requiring hd in Firebase claims", () => {
     expect(
       roleFromFirebaseClaims({
         id: "1",
@@ -37,7 +105,6 @@ describe("firebaseAuth", () => {
         email: "staff@potomackco.com",
         claims: {
           email_verified: true,
-          hd: "potomackco.com",
           firebase: { sign_in_provider: "google.com" },
         },
       }),
@@ -46,17 +113,14 @@ describe("firebaseAuth", () => {
       roleFromFirebaseClaims({
         id: "2a",
         email: "staff@potomackco.com",
-        claims: {
-          email_verified: true,
-          firebase: { sign_in_provider: "google.com" },
-        },
+        claims: { email_verified: false, firebase: { sign_in_provider: "google.com" } },
       }),
     ).toBeNull();
     expect(
       roleFromFirebaseClaims({
         id: "2b",
         email: "staff@potomackco.com",
-        claims: { email_verified: false, hd: "potomackco.com" },
+        claims: { email_verified: true, firebase: { sign_in_provider: "password" } },
       }),
     ).toBeNull();
     expect(
@@ -75,39 +139,9 @@ describe("firebaseAuth", () => {
     ).toBeNull();
   });
 
-  it("uses Google popup with hd and returns a Firebase app session", async () => {
-    const setCustomParameters = vi.fn();
-    const signInWithPopup = vi.fn().mockResolvedValue({
-      user: {
-        uid: "firebase-1",
-        email: "staff@potomackco.com",
-        displayName: "Staff User",
-        getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-        getIdTokenResult: vi.fn().mockResolvedValue({
-          token: "id-token",
-          claims: {
-            role: "specialist",
-            email_verified: true,
-            hd: "potomackco.com",
-            firebase: { sign_in_provider: "google.com" },
-          },
-        }),
-      },
-    });
-    const auth = {};
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => auth),
-      GoogleAuthProvider: class {
-        setCustomParameters = setCustomParameters;
-      },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup,
-      signOut: vi.fn(),
-      updatePassword: vi.fn(),
-    }));
+  it("uses Google popup with hd and returns a Firebase app session when raw profile hd is correct", async () => {
+    const { getAdditionalUserInfo, result, setCustomParameters, signInWithPopup } =
+      installFirebaseSdk();
 
     const session = await signInWithGoogle();
 
@@ -116,40 +150,13 @@ describe("firebaseAuth", () => {
       prompt: "select_account",
     });
     expect(signInWithPopup).toHaveBeenCalled();
+    expect(getAdditionalUserInfo).toHaveBeenCalledWith(result);
     expect(session.access_token).toBe("id-token");
     expect(session.user.id).toBe("firebase-1");
   });
 
-  it("rejects verified Google Potomack users when hd is absent", async () => {
-    const signOut = vi.fn();
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => ({})),
-      GoogleAuthProvider: class {
-        setCustomParameters = vi.fn();
-      },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup: vi.fn().mockResolvedValue({
-        user: {
-          uid: "firebase-hd-absent",
-          email: "staff@potomackco.com",
-          displayName: "Workspace User",
-          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-          getIdTokenResult: vi.fn().mockResolvedValue({
-            token: "id-token",
-            claims: {
-              email: "staff@potomackco.com",
-              email_verified: true,
-              firebase: { sign_in_provider: "google.com" },
-            },
-          }),
-        },
-      }),
-      signOut,
-      updatePassword: vi.fn(),
-    }));
+  it("rejects and signs out when Google raw profile hd is missing", async () => {
+    const { signOut } = installFirebaseSdk({ omitProfileHd: true });
 
     await expect(signInWithGoogle()).rejects.toThrow(
       "Please use your Potomack Workspace account",
@@ -157,37 +164,8 @@ describe("firebaseAuth", () => {
     expect(signOut).toHaveBeenCalled();
   });
 
-  it("rejects verified Google Potomack users when hd is present for another domain", async () => {
-    const signOut = vi.fn();
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => ({})),
-      GoogleAuthProvider: class {
-        setCustomParameters = vi.fn();
-      },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup: vi.fn().mockResolvedValue({
-        user: {
-          uid: "firebase-wrong-hd",
-          email: "staff@potomackco.com",
-          displayName: "Wrong HD User",
-          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-          getIdTokenResult: vi.fn().mockResolvedValue({
-            token: "id-token",
-            claims: {
-              email: "staff@potomackco.com",
-              email_verified: true,
-              hd: "example.com",
-              firebase: { sign_in_provider: "google.com" },
-            },
-          }),
-        },
-      }),
-      signOut,
-      updatePassword: vi.fn(),
-    }));
+  it("rejects and signs out when Google raw profile hd is mismatched", async () => {
+    const { signOut } = installFirebaseSdk({ profileHd: "example.com" });
 
     await expect(signInWithGoogle()).rejects.toThrow(
       "Please use your Potomack Workspace account",
@@ -195,187 +173,92 @@ describe("firebaseAuth", () => {
     expect(signOut).toHaveBeenCalled();
   });
 
-  it("signs out and rejects stale current users whose refreshed claims are no longer allowed", async () => {
-    const signOut = vi.fn();
-    const getIdTokenResult = vi.fn().mockResolvedValue({
-      token: "stale-user-token",
-      claims: {
-        email: "staff@example.com",
-        email_verified: true,
-        hd: "example.com",
-        firebase: { sign_in_provider: "google.com" },
-      },
-    });
-    const auth = {
-      currentUser: {
-        uid: "firebase-stale",
-        email: "staff@example.com",
-        displayName: "Stale User",
-        getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-        getIdTokenResult,
-      },
-    };
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => auth),
-      GoogleAuthProvider: class {
-        setCustomParameters = vi.fn();
-      },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup: vi.fn(),
-      signOut,
-      updatePassword: vi.fn(),
-    }));
-
-    await expect(getFreshFirebaseIdToken()).rejects.toThrow(
-      "Please use your Potomack Workspace account",
-    );
-    expect(getIdTokenResult).toHaveBeenCalledWith(true);
-    expect(signOut).toHaveBeenCalledWith(auth);
-  });
-
-  it("signs out and rejects stale current users whose refreshed claims lack hd", async () => {
-    const signOut = vi.fn();
-    const getIdTokenResult = vi.fn().mockResolvedValue({
-      token: "consumer-work-email-token",
+  it("accepts refreshed Firebase claims for a vetted user without requiring hd", async () => {
+    const currentUser = firebaseUser({
+      uid: "firebase-no-hd",
+      token: "fresh-token",
       claims: {
         email: "staff@potomackco.com",
         email_verified: true,
         firebase: { sign_in_provider: "google.com" },
       },
     });
-    const auth = {
-      currentUser: {
-        uid: "firebase-no-hd",
-        email: "staff@potomackco.com",
-        displayName: "No HD User",
-        getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-        getIdTokenResult,
+    const auth = { currentUser };
+    const { signOut } = installFirebaseSdk({ auth });
+
+    await expect(getFreshFirebaseIdToken()).resolves.toBe("fresh-token");
+    expect(currentUser.getIdTokenResult).toHaveBeenCalledWith(true);
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("signs out and rejects refreshed users outside the Potomack domain", async () => {
+    const currentUser = firebaseUser({
+      uid: "firebase-stale",
+      email: "staff@example.com",
+      claims: {
+        email: "staff@example.com",
+        email_verified: true,
+        firebase: { sign_in_provider: "google.com" },
       },
-    };
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => auth),
-      GoogleAuthProvider: class {
-        setCustomParameters = vi.fn();
-      },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup: vi.fn(),
-      signOut,
-      updatePassword: vi.fn(),
-    }));
+    });
+    const auth = { currentUser };
+    const { signOut } = installFirebaseSdk({ auth });
 
     await expect(getFreshFirebaseIdToken()).rejects.toThrow(
       "Please use your Potomack Workspace account",
     );
-    expect(getIdTokenResult).toHaveBeenCalledWith(true);
+    expect(currentUser.getIdTokenResult).toHaveBeenCalledWith(true);
     expect(signOut).toHaveBeenCalledWith(auth);
   });
 
-  it("signs out and rejects users outside the Potomack domain", async () => {
-    const signOut = vi.fn();
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => ({})),
-      GoogleAuthProvider: class {
-        setCustomParameters = vi.fn();
+  it("signs out and rejects refreshed users whose email is unverified", async () => {
+    const currentUser = firebaseUser({
+      uid: "firebase-unverified",
+      claims: {
+        email: "staff@potomackco.com",
+        email_verified: false,
+        firebase: { sign_in_provider: "google.com" },
       },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup: vi.fn().mockResolvedValue({
-        user: {
-          uid: "firebase-2",
-          email: "person@example.com",
-          displayName: "Outside User",
-          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-          getIdTokenResult: vi.fn().mockResolvedValue({
-            token: "id-token",
-            claims: { hd: "example.com" },
-          }),
-        },
-      }),
-      signOut,
-      updatePassword: vi.fn(),
-    }));
+    });
+    const auth = { currentUser };
+    const { signOut } = installFirebaseSdk({ auth });
 
-    await expect(signInWithGoogle()).rejects.toThrow(
+    await expect(getFreshFirebaseIdToken()).rejects.toThrow(
       "Please use your Potomack Workspace account",
     );
-    expect(signOut).toHaveBeenCalled();
+    expect(currentUser.getIdTokenResult).toHaveBeenCalledWith(true);
+    expect(signOut).toHaveBeenCalledWith(auth);
   });
 
-  it("signs out and rejects unverified Potomack email accounts", async () => {
-    const signOut = vi.fn();
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => ({})),
-      GoogleAuthProvider: class {
-        setCustomParameters = vi.fn();
+  it("signs out and rejects refreshed users whose Firebase provider is not Google", async () => {
+    const currentUser = firebaseUser({
+      uid: "firebase-password",
+      claims: {
+        email: "staff@potomackco.com",
+        email_verified: true,
+        firebase: { sign_in_provider: "password" },
       },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup: vi.fn().mockResolvedValue({
-        user: {
-          uid: "firebase-3",
-          email: "staff@potomackco.com",
-          displayName: "Unverified User",
-          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-          getIdTokenResult: vi.fn().mockResolvedValue({
-            token: "id-token",
-            claims: {
-              email_verified: false,
-              hd: "potomackco.com",
-              firebase: { sign_in_provider: "google.com" },
-            },
-          }),
-        },
-      }),
-      signOut,
-      updatePassword: vi.fn(),
-    }));
+    });
+    const auth = { currentUser };
+    const { signOut } = installFirebaseSdk({ auth });
 
-    await expect(signInWithGoogle()).rejects.toThrow(
+    await expect(getFreshFirebaseIdToken()).rejects.toThrow(
       "Please use your Potomack Workspace account",
     );
-    expect(signOut).toHaveBeenCalled();
+    expect(currentUser.getIdTokenResult).toHaveBeenCalledWith(true);
+    expect(signOut).toHaveBeenCalledWith(auth);
   });
 
-  it("signs out and rejects non-Google Potomack email accounts", async () => {
-    const signOut = vi.fn();
-    setFirebaseSdkLoaderForTests(async () => ({
-      initializeApp: vi.fn(() => ({})),
-      getApps: vi.fn(() => []),
-      getApp: vi.fn(() => ({})),
-      getAuth: vi.fn(() => ({})),
-      GoogleAuthProvider: class {
-        setCustomParameters = vi.fn();
+  it("signs out and rejects sign-in when Firebase claims fail the practical layer", async () => {
+    const popupUser = firebaseUser({
+      uid: "firebase-unverified",
+      claims: {
+        email: "staff@potomackco.com",
+        email_verified: false,
+        firebase: { sign_in_provider: "google.com" },
       },
-      onAuthStateChanged: vi.fn(),
-      signInWithPopup: vi.fn().mockResolvedValue({
-        user: {
-          uid: "firebase-4",
-          email: "staff@potomackco.com",
-          displayName: "Password User",
-          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
-          getIdTokenResult: vi.fn().mockResolvedValue({
-            token: "id-token",
-            claims: {
-              email_verified: true,
-              hd: "potomackco.com",
-              firebase: { sign_in_provider: "password" },
-            },
-          }),
-        },
-      }),
-      signOut,
-      updatePassword: vi.fn(),
-    }));
+    });
+    const { signOut } = installFirebaseSdk({ popupUser });
 
     await expect(signInWithGoogle()).rejects.toThrow(
       "Please use your Potomack Workspace account",

@@ -35,6 +35,7 @@ interface FirebaseSdk {
   getApp: () => unknown;
   getAuth: (app?: unknown) => unknown;
   GoogleAuthProvider: new () => { setCustomParameters: (params: Record<string, string>) => void };
+  getAdditionalUserInfo: (result: FirebaseSignInResult) => { profile?: { hd?: unknown } | null } | null;
   onAuthStateChanged: (
     auth: unknown,
     nextOrObserver: (user: FirebaseSdkUser | null) => void,
@@ -42,9 +43,13 @@ interface FirebaseSdk {
   signInWithPopup: (
     auth: unknown,
     provider: unknown,
-  ) => Promise<{ user: FirebaseSdkUser }>;
+  ) => Promise<FirebaseSignInResult>;
   signOut: (auth: unknown) => Promise<void>;
   updatePassword: (user: FirebaseSdkUser, newPassword: string) => Promise<void>;
+}
+
+interface FirebaseSignInResult {
+  user: FirebaseSdkUser;
 }
 
 interface FirebaseSdkUser {
@@ -124,11 +129,8 @@ function hasGoogleProviderClaim(claims: FirebaseClaims): boolean {
 }
 
 function hasVerifiedWorkspaceClaims(claims: FirebaseClaims): boolean {
-  const hd = claims.hd;
   return (
     claims.email_verified === true &&
-    typeof hd === "string" &&
-    hd.toLowerCase() === ALLOWED_DOMAIN &&
     hasGoogleProviderClaim(claims)
   );
 }
@@ -157,6 +159,13 @@ export async function getFreshFirebaseIdToken(): Promise<string> {
     throw err;
   }
   return tokenResult.token;
+}
+
+function assertPopupHostedDomain(result: FirebaseSignInResult, sdk: FirebaseSdk) {
+  const hd = sdk.getAdditionalUserInfo(result)?.profile?.hd;
+  if (hd !== ALLOWED_DOMAIN) {
+    throw new Error("Please use your Potomack Workspace account");
+  }
 }
 
 async function toAppSession(user: FirebaseSdkUser): Promise<AppSession> {
@@ -192,6 +201,7 @@ export async function signInWithGoogle(): Promise<AppSession> {
   provider.setCustomParameters({ hd: ALLOWED_DOMAIN, prompt: "select_account" });
   const result = await sdk.signInWithPopup(auth, provider);
   try {
+    assertPopupHostedDomain(result, sdk);
     return await toAppSession(result.user);
   } catch (err) {
     await sdk.signOut(auth);

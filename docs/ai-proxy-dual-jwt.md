@@ -40,7 +40,10 @@ export async function verifyAuth(authHeader, config) {
 - `aud === "gen-lang-client-0662587427"`
 - `exp`, `iat`, and signature are valid
 - `email` ends with `@potomackco.com`
-- if `hd` exists, it equals `potomackco.com`
+- `email_verified === true`
+- Firebase sign-in provider is Google
+
+Do not require `hd` in Phase 1 Firebase ID tokens. Google's raw hosted-domain value is only available to the client at popup sign-in via `getAdditionalUserInfo(result).profile.hd`. Phase 2 should add defense-in-depth by having `cataloger-api` provision a server-side `hd` custom claim with the Firebase Admin SDK after Workspace membership is verified.
 
 ## Tests
 

@@ -44,4 +44,8 @@ If no admin claim is present, an authenticated `@potomackco.com` user falls back
 
 ## Domain Restriction
 
-The app sends Google OAuth `hd=potomackco.com` during popup sign-in and checks the signed-in Firebase user after login. Users outside `@potomackco.com`, or tokens with an incompatible `hd` claim, are immediately signed out.
+The app uses a layered Phase 1 domain restriction:
+
+- Sign-in gate: Google popup sign-in sends OAuth `hd=potomackco.com`, then reads `getAdditionalUserInfo(result).profile.hd` from the raw Google profile. The app requires exactly `potomackco.com`; missing or mismatched hosted-domain profiles are immediately signed out with the "use your Potomack Workspace account" message.
+- Token refresh: Firebase ID tokens do not include Google's raw `hd` profile value. Fresh-token checks require `email_verified`, a Google Firebase provider, and an `@potomackco.com` email, but they must not require `hd`.
+- Phase 2 defense-in-depth: `cataloger-api` should provision a server-side `hd` custom claim through the Firebase Admin SDK after verifying Workspace membership. That claim is documentation/planning only in Phase 1 and is not implemented here.
