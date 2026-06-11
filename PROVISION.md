@@ -1,51 +1,131 @@
-# v1.4 Phase 1 Provisioning
+# v1.4 Migration Provisioning
 
-Do not run `gcloud` or `firebase` CLI from the worker. Perform these console steps manually.
+Do not run `gcloud` or `firebase` CLI from the worker. Run these commands from a trusted local shell with billing enabled on project `gen-lang-client-0662587427` ("Potomack App").
 
-## Firebase Auth
+## Phase 1 Auth Baseline
 
-1. In GCP project `gen-lang-client-0662587427` / Firebase app "Potomack App", open Authentication.
-2. Confirm Google is enabled as a sign-in provider.
-3. Add `app.potomackco.com` to Firebase Authentication authorized domains. Keep the Firebase default domains.
-4. In Google Cloud OAuth consent settings, confirm the app is internal or otherwise restricted to The Potomack Co. Workspace users.
-5. In Firebase project settings, open the web app named `tpc-hub` and copy the public web config into deployment env:
-   - `VITE_FIREBASE_API_KEY`
-   - `VITE_FIREBASE_AUTH_DOMAIN`
-   - `VITE_FIREBASE_PROJECT_ID`
-   - `VITE_FIREBASE_STORAGE_BUCKET`
-   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
-   - `VITE_FIREBASE_APP_ID`
+1. In Firebase Authentication, confirm Google is enabled as a sign-in provider.
+2. Add `app.potomackco.com` to Firebase Authentication authorized domains. Keep the Firebase default domains.
+3. In Google Cloud OAuth consent settings, confirm the app is internal or restricted to The Potomack Co. Workspace users.
+4. Copy the Firebase web config into app deployment env:
 
-## Auth Backend Flag
-
-Keep `VITE_AUTH_BACKEND=supabase` for staff until Phase 2 is deployed.
-
-The Phase 1 Firebase login path is intentionally dark-launched. Firebase ID tokens cannot satisfy current Supabase RLS, so normal data calls still require the Supabase auth backend until the PostgREST/Cloud SQL data path lands in Phase 2.
-
-## Firebase Role Claims
-
-Preferred custom claim shape:
-
-```json
-{
-  "role": "admin",
-  "is_active": true
-}
+```bash
+VITE_AUTH_BACKEND=supabase
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=gen-lang-client-0662587427.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=gen-lang-client-0662587427
+VITE_FIREBASE_STORAGE_BUCKET=gen-lang-client-0662587427.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
 ```
 
-Accepted forward-compatible variants:
+Keep `VITE_AUTH_BACKEND=supabase` for staff until the Phase 2 PostgREST and `cataloger-api` services are deployed and smoke-tested.
 
-```json
-{ "admin": true, "is_active": true }
-{ "roles": ["admin"], "is_active": true }
+## Cloud SQL
+
+```bash
+gcloud config set project gen-lang-client-0662587427
+gcloud services enable sqladmin.googleapis.com run.googleapis.com secretmanager.googleapis.com artifactregistry.googleapis.com
+gcloud artifacts repositories create potomack \
+  --repository-format=docker \
+  --location=us-central1 \
+  --description="Potomack app Cloud Run images"
+
+gcloud sql instances create potomack-cataloger-db \
+  --database-version=POSTGRES_16 \
+  --tier=db-f1-micro \
+  --region=us-central1 \
+  --storage-type=HDD \
+  --storage-size=10GB \
+  --availability-type=zonal \
+  --no-backup
+
+DB_PASSWORD="$(openssl rand -base64 32)"
+gcloud sql databases create cataloger --instance=potomack-cataloger-db
+gcloud sql users create cataloger_app --instance=potomack-cataloger-db --password="$DB_PASSWORD"
 ```
 
-If no admin claim is present, an authenticated `@potomackco.com` user falls back to `specialist`. `is_active: false` always denies role access. Admin access is never granted by fallback.
+Store the connection string and service credentials:
 
-## Domain Restriction
+```bash
+printf '%s' "postgres://cataloger_app:${DB_PASSWORD}@/cataloger?host=/cloudsql/gen-lang-client-0662587427:us-central1:potomack-cataloger-db" \
+  | gcloud secrets create cataloger-postgres-uri --data-file=-
 
-The app uses a layered Phase 1 domain restriction:
+gcloud iam service-accounts create cataloger-postgrest \
+  --display-name="Cataloger PostgREST"
+gcloud iam service-accounts create cataloger-api \
+  --display-name="Cataloger API"
+gcloud projects add-iam-policy-binding gen-lang-client-0662587427 \
+  --member="serviceAccount:cataloger-postgrest@gen-lang-client-0662587427.iam.gserviceaccount.com" \
+  --role="roles/cloudsql.client"
+gcloud projects add-iam-policy-binding gen-lang-client-0662587427 \
+  --member="serviceAccount:cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com" \
+  --role="roles/firebaseauth.admin"
+gcloud secrets add-iam-policy-binding cataloger-postgres-uri \
+  --member="serviceAccount:cataloger-postgrest@gen-lang-client-0662587427.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
 
-- Sign-in gate: Google popup sign-in sends OAuth `hd=potomackco.com`, then reads `getAdditionalUserInfo(result).profile.hd` from the raw Google profile. The app requires exactly `potomackco.com`; missing or mismatched hosted-domain profiles are immediately signed out with the "use your Potomack Workspace account" message.
-- Token refresh: Firebase ID tokens do not include Google's raw `hd` profile value. Fresh-token checks require `email_verified`, a Google Firebase provider, and an `@potomackco.com` email, but they must not require `hd`.
-- Phase 2 defense-in-depth: `cataloger-api` should provision a server-side `hd` custom claim through the Firebase Admin SDK after verifying Workspace membership. That claim is documentation/planning only in Phase 1 and is not implemented here.
+Apply schema from a trusted machine that can reach Cloud SQL:
+
+```bash
+for f in db/migrations/*.sql; do
+  psql "$CATALOGER_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+done
+```
+
+## Firebase JWKS for PostgREST
+
+PostgREST reads the Firebase Secure Token JWKS from the `PGRST_JWT_SECRET` environment variable, injected from Secret Manager. The Firebase project audience is `PGRST_JWT_AUD=gen-lang-client-0662587427`. Fetch the current JWKS and redeploy PostgREST when Google rotates keys.
+
+```bash
+curl -fsSL https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com \
+  | gcloud secrets create firebase-securetoken-jwks --data-file=-
+gcloud secrets add-iam-policy-binding firebase-securetoken-jwks \
+  --member="serviceAccount:cataloger-postgrest@gen-lang-client-0662587427.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+The app mints `workspace=potomackco.com` and `workspace_role=authenticated` via `cataloger-api`. PostgREST maps only `.workspace_role` to the database role; tokens lacking it fall back to `anon`, which has no cataloger table grants.
+
+## Cloud Run Deploys
+
+Build and deploy PostgREST:
+
+```bash
+gcloud builds submit --config=postgrest/cloudbuild.yaml .
+
+gcloud run deploy cataloger-postgrest \
+  --image=us-central1-docker.pkg.dev/gen-lang-client-0662587427/potomack/postgrest \
+  --region=us-central1 \
+  --allow-unauthenticated \
+  --service-account=cataloger-postgrest@gen-lang-client-0662587427.iam.gserviceaccount.com \
+  --add-cloudsql-instances=gen-lang-client-0662587427:us-central1:potomack-cataloger-db \
+  --set-env-vars=PGRST_JWT_AUD=gen-lang-client-0662587427,PGRST_OPENAPI_SERVER_PROXY_URI=https://cataloger-postgrest-REPLACE.a.run.app \
+  --set-secrets=PGRST_DB_URI=cataloger-postgres-uri:latest,PGRST_JWT_SECRET=firebase-securetoken-jwks:latest
+```
+
+Build and deploy `cataloger-api`:
+
+```bash
+gcloud builds submit --config=cataloger-api/cloudbuild.yaml .
+
+gcloud run deploy cataloger-api \
+  --image=us-central1-docker.pkg.dev/gen-lang-client-0662587427/potomack/cataloger-api \
+  --region=us-central1 \
+  --allow-unauthenticated \
+  --service-account=cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com \
+  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427
+```
+
+## App Env Flip
+
+After smoke tests pass:
+
+```bash
+VITE_AUTH_BACKEND=firebase
+VITE_POSTGREST_URL=https://cataloger-postgrest-REPLACE.a.run.app
+VITE_CATALOGER_API_URL=https://cataloger-api-REPLACE.a.run.app
+```
+
+`VITE_POSTGREST_ANON_KEY` is optional in Firebase mode and defaults to a placeholder because standalone PostgREST does not require a Supabase anon key.

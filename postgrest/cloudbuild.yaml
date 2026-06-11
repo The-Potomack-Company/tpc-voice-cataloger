@@ -1,0 +1,11 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - postgrest/Dockerfile
+      - -t
+      - us-central1-docker.pkg.dev/$PROJECT_ID/potomack/postgrest
+      - .
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/potomack/postgrest

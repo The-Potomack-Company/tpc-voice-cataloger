@@ -1,0 +1,17 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: cataloger-api
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    spec:
+      serviceAccountName: cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com
+      containers:
+        - image: us-central1-docker.pkg.dev/gen-lang-client-0662587427/potomack/cataloger-api
+          ports:
+            - containerPort: 8080
+          env:
+            - name: FIREBASE_PROJECT_ID
+              value: gen-lang-client-0662587427

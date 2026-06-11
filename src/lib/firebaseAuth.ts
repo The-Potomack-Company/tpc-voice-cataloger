@@ -1,5 +1,7 @@
 const FIREBASE_SDK_VERSION = "12.14.0";
 const ALLOWED_DOMAIN = "potomackco.com";
+const WORKSPACE_CLAIM = "workspace";
+const WORKSPACE_ROLE_CLAIM = "workspace_role";
 
 export interface FirebaseClaims {
   role?: string;
@@ -7,6 +9,8 @@ export interface FirebaseClaims {
   admin?: boolean;
   is_active?: boolean;
   hd?: string;
+  workspace?: string;
+  workspace_role?: string;
   email?: string;
   email_verified?: boolean;
   firebase?: {
@@ -131,7 +135,9 @@ function hasGoogleProviderClaim(claims: FirebaseClaims): boolean {
 function hasVerifiedWorkspaceClaims(claims: FirebaseClaims): boolean {
   return (
     claims.email_verified === true &&
-    hasGoogleProviderClaim(claims)
+    hasGoogleProviderClaim(claims) &&
+    claims[WORKSPACE_CLAIM] === ALLOWED_DOMAIN &&
+    claims[WORKSPACE_ROLE_CLAIM] === "authenticated"
   );
 }
 
@@ -161,6 +167,30 @@ export async function getFreshFirebaseIdToken(): Promise<string> {
   return tokenResult.token;
 }
 
+async function claimWorkspaceSession(token: string): Promise<void> {
+  const apiUrl = import.meta.env.VITE_CATALOGER_API_URL;
+  if (!apiUrl) {
+    throw new Error("VITE_CATALOGER_API_URL is not set. Add it to .env.local");
+  }
+
+  const response = await fetch(`${apiUrl.replace(/\/$/, "")}/session/claim`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    let message = "Please use your Potomack Workspace account";
+    try {
+      const body = (await response.json()) as { error?: string };
+      message = body.error ?? message;
+    } catch {
+      // Keep the stable sign-in error if the API did not return JSON.
+    }
+    throw new Error(message);
+  }
+}
+
 function assertPopupHostedDomain(result: FirebaseSignInResult, sdk: FirebaseSdk) {
   const hd = sdk.getAdditionalUserInfo(result)?.profile?.hd;
   if (hd !== ALLOWED_DOMAIN) {
@@ -169,7 +199,14 @@ function assertPopupHostedDomain(result: FirebaseSignInResult, sdk: FirebaseSdk)
 }
 
 async function toAppSession(user: FirebaseSdkUser): Promise<AppSession> {
-  const tokenResult = await user.getIdTokenResult();
+  let tokenResult = await user.getIdTokenResult();
+  if (
+    tokenResult.claims[WORKSPACE_CLAIM] !== ALLOWED_DOMAIN ||
+    tokenResult.claims[WORKSPACE_ROLE_CLAIM] !== "authenticated"
+  ) {
+    await claimWorkspaceSession(tokenResult.token || (await user.getIdToken()));
+    tokenResult = await user.getIdTokenResult(true);
+  }
   assertAllowedDomain(user, tokenResult.claims);
   return {
     access_token: tokenResult.token || (await user.getIdToken()),

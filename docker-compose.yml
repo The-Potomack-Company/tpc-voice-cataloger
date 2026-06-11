@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cataloger
+      POSTGRES_USER: cataloger
+      POSTGRES_PASSWORD: cataloger
+    ports:
+      - "54322:5432"
+    volumes:
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cataloger -d cataloger"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgrest:
+    build:
+      context: .
+      dockerfile: postgrest/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://cataloger:cataloger@postgres:5432/cataloger
+      PGRST_JWT_SECRET: '{"keys":[{"kty":"RSA","use":"sig","kid":"local-dev-placeholder","alg":"RS256","n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiG8YQ","e":"AQAB"}]}'
+      PGRST_JWT_AUD: gen-lang-client-0662587427
+      PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:3000
+    ports:
+      - "3000:8080"
