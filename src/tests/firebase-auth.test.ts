@@ -34,9 +34,20 @@ describe("firebaseAuth", () => {
       roleFromFirebaseClaims({
         id: "2",
         email: "staff@potomackco.com",
-        claims: {},
+        claims: {
+          email_verified: true,
+          hd: "potomackco.com",
+          firebase: { sign_in_provider: "google.com" },
+        },
       }),
     ).toBe("specialist");
+    expect(
+      roleFromFirebaseClaims({
+        id: "2b",
+        email: "staff@potomackco.com",
+        claims: { email_verified: false, hd: "potomackco.com" },
+      }),
+    ).toBeNull();
     expect(
       roleFromFirebaseClaims({
         id: "3",
@@ -63,7 +74,12 @@ describe("firebaseAuth", () => {
         getIdToken: vi.fn().mockResolvedValue("fallback-token"),
         getIdTokenResult: vi.fn().mockResolvedValue({
           token: "id-token",
-          claims: { role: "specialist", hd: "potomackco.com" },
+          claims: {
+            role: "specialist",
+            email_verified: true,
+            hd: "potomackco.com",
+            firebase: { sign_in_provider: "google.com" },
+          },
         }),
       },
     });
@@ -113,6 +129,76 @@ describe("firebaseAuth", () => {
           getIdTokenResult: vi.fn().mockResolvedValue({
             token: "id-token",
             claims: { hd: "example.com" },
+          }),
+        },
+      }),
+      signOut,
+      updatePassword: vi.fn(),
+    }));
+
+    await expect(signInWithGoogle()).rejects.toThrow("outside the allowed Google Workspace domain");
+    expect(signOut).toHaveBeenCalled();
+  });
+
+  it("signs out and rejects unverified Potomack email accounts", async () => {
+    const signOut = vi.fn();
+    setFirebaseSdkLoaderForTests(async () => ({
+      initializeApp: vi.fn(() => ({})),
+      getApps: vi.fn(() => []),
+      getApp: vi.fn(() => ({})),
+      getAuth: vi.fn(() => ({})),
+      GoogleAuthProvider: class {
+        setCustomParameters = vi.fn();
+      },
+      onAuthStateChanged: vi.fn(),
+      signInWithPopup: vi.fn().mockResolvedValue({
+        user: {
+          uid: "firebase-3",
+          email: "staff@potomackco.com",
+          displayName: "Unverified User",
+          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
+          getIdTokenResult: vi.fn().mockResolvedValue({
+            token: "id-token",
+            claims: {
+              email_verified: false,
+              hd: "potomackco.com",
+              firebase: { sign_in_provider: "google.com" },
+            },
+          }),
+        },
+      }),
+      signOut,
+      updatePassword: vi.fn(),
+    }));
+
+    await expect(signInWithGoogle()).rejects.toThrow("outside the allowed Google Workspace domain");
+    expect(signOut).toHaveBeenCalled();
+  });
+
+  it("signs out and rejects non-Google Potomack email accounts", async () => {
+    const signOut = vi.fn();
+    setFirebaseSdkLoaderForTests(async () => ({
+      initializeApp: vi.fn(() => ({})),
+      getApps: vi.fn(() => []),
+      getApp: vi.fn(() => ({})),
+      getAuth: vi.fn(() => ({})),
+      GoogleAuthProvider: class {
+        setCustomParameters = vi.fn();
+      },
+      onAuthStateChanged: vi.fn(),
+      signInWithPopup: vi.fn().mockResolvedValue({
+        user: {
+          uid: "firebase-4",
+          email: "staff@potomackco.com",
+          displayName: "Password User",
+          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
+          getIdTokenResult: vi.fn().mockResolvedValue({
+            token: "id-token",
+            claims: {
+              email_verified: true,
+              hd: "potomackco.com",
+              firebase: { sign_in_provider: "password" },
+            },
           }),
         },
       }),

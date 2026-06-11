@@ -43,6 +43,14 @@ function setupProfileResponse(data: unknown, error: unknown) {
   mockFrom.mockReturnValue({ select });
 }
 
+function deferredProfileResponse() {
+  let resolve!: (value: { data: unknown; error: unknown }) => void;
+  const promise = new Promise<{ data: unknown; error: unknown }>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 describe("useUserRole", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -136,6 +144,42 @@ describe("useUserRole", () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.isAdmin).toBe(true);
     expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears a loaded Supabase role synchronously when a different user id loads", async () => {
+    let currentUser: { id: string } = { id: "admin-1" };
+    mockUseAuthStore.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ user: currentUser }),
+    );
+
+    const first = deferredProfileResponse();
+    const second = deferredProfileResponse();
+    const single = vi
+      .fn()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    const eq = vi.fn().mockReturnValue({ single });
+    const select = vi.fn().mockReturnValue({ eq });
+    mockFrom.mockReturnValue({ select });
+
+    const { result, rerender } = renderHook(() => useUserRole());
+    first.resolve({ data: { role: "admin" }, error: null });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isAdmin).toBe(true);
+    expect(result.current.role).toBe("admin");
+
+    currentUser = { id: "specialist-1" };
+    rerender();
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.isAdmin).toBe(false);
+    expect(result.current.role).toBeNull();
+
+    second.resolve({ data: { role: "specialist" }, error: null });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isAdmin).toBe(false);
+    expect(result.current.role).toBe("specialist");
   });
 
   it("uses Firebase custom claims without querying Supabase profiles", async () => {

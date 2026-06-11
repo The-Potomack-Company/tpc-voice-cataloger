@@ -8,6 +8,11 @@ export interface FirebaseClaims {
   is_active?: boolean;
   hd?: string;
   email?: string;
+  email_verified?: boolean;
+  firebase?: {
+    sign_in_provider?: string;
+    identities?: Record<string, unknown>;
+  };
   [key: string]: unknown;
 }
 
@@ -46,8 +51,12 @@ interface FirebaseSdkUser {
   uid: string;
   email?: string | null;
   displayName?: string | null;
-  getIdToken: () => Promise<string>;
+  getIdToken: (forceRefresh?: boolean) => Promise<string>;
   getIdTokenResult: () => Promise<{ token: string; claims: FirebaseClaims }>;
+}
+
+interface FirebaseAuthInstance {
+  currentUser?: FirebaseSdkUser | null;
 }
 
 let sdkPromise: Promise<FirebaseSdk> | null = null;
@@ -105,14 +114,40 @@ function isAllowedEmail(email?: string | null): boolean {
   return String(email ?? "").toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`);
 }
 
+function hasGoogleProviderClaim(claims: FirebaseClaims): boolean {
+  const firebase = claims.firebase;
+  const identities = firebase?.identities;
+  return (
+    firebase?.sign_in_provider === "google.com" ||
+    (identities ? Object.prototype.hasOwnProperty.call(identities, "google.com") : false)
+  );
+}
+
+function hasVerifiedWorkspaceClaims(claims: FirebaseClaims): boolean {
+  return (
+    claims.email_verified === true &&
+    typeof claims.hd === "string" &&
+    claims.hd.toLowerCase() === ALLOWED_DOMAIN &&
+    hasGoogleProviderClaim(claims)
+  );
+}
+
 function assertAllowedDomain(user: FirebaseSdkUser, claims: FirebaseClaims) {
   const claimEmail = typeof claims.email === "string" ? claims.email : null;
   const email = user.email ?? claimEmail;
-  const hd = typeof claims.hd === "string" ? claims.hd.toLowerCase() : null;
 
-  if (!isAllowedEmail(email) || (hd && hd !== ALLOWED_DOMAIN)) {
+  if (!isAllowedEmail(email) || !hasVerifiedWorkspaceClaims(claims)) {
     throw new Error("Firebase account is outside the allowed Google Workspace domain");
   }
+}
+
+export async function getFreshFirebaseIdToken(): Promise<string> {
+  const auth = (await getFirebaseAuth()) as FirebaseAuthInstance;
+  const token = await auth.currentUser?.getIdToken(true);
+  if (!token) {
+    throw new Error("No active Firebase session — user must sign in");
+  }
+  return token;
 }
 
 async function toAppSession(user: FirebaseSdkUser): Promise<AppSession> {
@@ -136,7 +171,9 @@ export function roleFromFirebaseClaims(user: AppUser | null | undefined): string
   if (claims?.admin === true) return "admin";
   if (claims?.role === "admin" || claims?.role === "specialist") return claims.role;
   if (Array.isArray(claims?.roles) && claims.roles.includes("admin")) return "admin";
-  return isAllowedEmail(user.email) ? "specialist" : null;
+  return isAllowedEmail(user.email) && hasVerifiedWorkspaceClaims(claims ?? {})
+    ? "specialist"
+    : null;
 }
 
 export async function signInWithGoogle(): Promise<AppSession> {

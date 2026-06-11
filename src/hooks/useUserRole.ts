@@ -14,6 +14,10 @@ import { toUserMessage } from "../lib/toUserMessage";
 // The sentinel is a non-"admin" string so isAdmin (role === "admin") stays false
 // on error, while letting callers tell a load failure apart from not-admin.
 const ROLE_ERROR = "__role_error__";
+type RoleState = {
+  userId: string | undefined;
+  role: string | null | undefined;
+};
 
 export function useUserRole(): {
   role: string | null;
@@ -26,7 +30,10 @@ export function useUserRole(): {
   const userId = user?.id;
   const isFirebaseAuth = isFirebaseAuthBackend();
   const firebaseRole = isFirebaseAuth ? roleFromFirebaseClaims(user as AppUser) : null;
-  const [role, setRole] = useState<string | null | undefined>(undefined);
+  const [roleState, setRoleState] = useState<RoleState>({
+    userId: undefined,
+    role: undefined,
+  });
   // Bump to force the effect to re-run (retry affordance on the surfaced toast).
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -49,19 +56,18 @@ export function useUserRole(): {
           // the failure rather than silently demoting to not-admin. Surface only
           // on a definite error (here, an actual Supabase error), via the
           // toUserMessage funnel so raw backend text never reaches the user.
-          setRole(ROLE_ERROR);
+          setRoleState({ userId, role: ROLE_ERROR });
           useNotificationStore
             .getState()
             .notifyError(toUserMessage(error), retry);
         } else {
-          setRole(data?.role ?? null);
+          setRoleState({ userId, role: data?.role ?? null });
         }
       });
     // WR-02: key on userId (stable across auth-store object replacement on token
-    // refresh) and DON'T setRole(undefined) on cleanup — a same-id refresh would
-    // otherwise blank the role, flip loading true, and momentarily drop isAdmin,
-    // churning admin-only UI. The `cancelled` flag alone discards stale
-    // resolutions; this stays fail-closed (a real id change unmounts/refetches).
+    // refresh) and DON'T blank role state on cleanup — a same-id refresh would
+    // otherwise momentarily drop isAdmin. Loaded roles are stored with their
+    // userId, so a real account switch renders loading/fail-closed immediately.
     return () => {
       cancelled = true;
     };
@@ -77,6 +83,7 @@ export function useUserRole(): {
     };
   }
 
+  const role = roleState.userId === userId ? roleState.role : undefined;
   const loading = !!user && role === undefined;
   const error = role === ROLE_ERROR;
 
