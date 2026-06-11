@@ -19,17 +19,26 @@ export async function addNotePage(input: {
   blob: Blob;
   thumbnail: Blob;
 }): Promise<number> {
-  const sortOrder = await countNotePages(input.sessionId);
-  const id = await db.notePages.add({
-    pageUid: crypto.randomUUID(),
-    sessionId: input.sessionId,
-    blob: input.blob,
-    thumbnail: input.thumbnail,
-    sortOrder,
-    status: "captured",
-    createdAt: new Date().toISOString(),
+  // Allocate max(sortOrder)+1, not count: a middle delete leaves gaps, so count
+  // could collide with an existing sortOrder and make processing order ambiguous.
+  // Read-allocate-write in one transaction to avoid a concurrent-capture race.
+  return db.transaction("rw", db.notePages, async () => {
+    const existing = await db.notePages
+      .where("sessionId")
+      .equals(input.sessionId)
+      .toArray();
+    const sortOrder = existing.reduce((max, p) => Math.max(max, p.sortOrder + 1), 0);
+    const id = await db.notePages.add({
+      pageUid: crypto.randomUUID(),
+      sessionId: input.sessionId,
+      blob: input.blob,
+      thumbnail: input.thumbnail,
+      sortOrder,
+      status: "captured",
+      createdAt: new Date().toISOString(),
+    });
+    return id as number;
   });
-  return id as number;
 }
 
 /** Replace the image of a page in place — pageUid, sessionId and sortOrder unchanged. */

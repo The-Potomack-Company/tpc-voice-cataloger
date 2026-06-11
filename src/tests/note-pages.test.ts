@@ -94,6 +94,36 @@ describe("notePages CRUD + ordering", () => {
   });
 });
 
+describe("sortOrder allocation survives a middle delete (codex HIGH regression)", () => {
+  it("does not duplicate sortOrder when re-adding after deleting a middle page", async () => {
+    const id0 = await capture("S1", "a");
+    const id1 = await capture("S1", "b");
+    const id2 = await capture("S1", "c");
+
+    // Delete the middle page → sortOrder 1 becomes a gap.
+    await deleteNotePage(id1);
+
+    // count-based allocation would have picked sortOrder=2 here (== id2), colliding.
+    const id3 = await capture("S1", "d");
+
+    const pages = await getNotePages("S1");
+    const orders = pages.map((p) => p.sortOrder);
+
+    // All sortOrders unique → processing order is unambiguous.
+    expect(new Set(orders).size).toBe(orders.length);
+    // sortBy is monotonic → deterministic processing order, new page last.
+    expect(orders).toEqual([...orders].sort((a, b) => a - b));
+    expect(pages.map((p) => p.id)).toEqual([id0, id2, id3]);
+    expect(pages[pages.length - 1].id).toBe(id3);
+
+    // Reorder still normalizes back to contiguous 0..N-1.
+    await reorderNotePages([id3, id0, id2]);
+    const reordered = await getNotePages("S1");
+    expect(reordered.map((p) => p.id)).toEqual([id3, id0, id2]);
+    expect(reordered.map((p) => p.sortOrder)).toEqual([0, 1, 2]);
+  });
+});
+
 describe("deleteNotePagesForSession (cleanup sweep)", () => {
   it("sweeps only the target session's pages (SPEC Cleanup)", async () => {
     await capture("A", "a1");
