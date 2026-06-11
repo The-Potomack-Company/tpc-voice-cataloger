@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Eyebrow } from '../ui/Eyebrow';
 import { toUserMessage } from '../lib/toUserMessage';
+import { isFirebaseAuthBackend } from '../lib/authBackend';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const signIn = useAuthStore((s) => s.signIn);
+  const isFirebaseAuth = isFirebaseAuthBackend();
   const navigate = useNavigate();
 
   async function handleSubmit(e: FormEvent) {
@@ -20,7 +22,7 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = isFirebaseAuth ? await signIn() : await signIn(email, password);
 
     if (error) {
       // T-36-02: never render raw GoTrue text — funnel through the single
@@ -68,25 +70,29 @@ export function LoginPage() {
         </header>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 tpc-card p-5" style={{ background: "var(--bg-2)" }}>
-          <Input
-            id="email"
-            type="email"
-            label="Email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoFocus
-          />
+          {!isFirebaseAuth && (
+            <>
+              <Input
+                id="email"
+                type="email"
+                label="Email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
 
-          <Input
-            id="password"
-            type="password"
-            label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+              <Input
+                id="password"
+                type="password"
+                label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </>
+          )}
 
           <Button
             type="submit"
@@ -100,7 +106,7 @@ export function LoginPage() {
                 aria-hidden="true"
               />
             ) : (
-              'Sign In'
+              isFirebaseAuth ? 'Sign in with Google' : 'Sign In'
             )}
           </Button>
 

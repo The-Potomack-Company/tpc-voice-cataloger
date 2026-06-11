@@ -5,9 +5,10 @@ import { MemoryRouter } from 'react-router';
 import { LoginPage } from '../pages/Login';
 
 // --- Mocks ---
-const { mockSignIn, mockNavigate } = vi.hoisted(() => ({
+const { mockSignIn, mockNavigate, mockIsFirebaseAuthBackend } = vi.hoisted(() => ({
   mockSignIn: vi.fn(),
   mockNavigate: vi.fn(),
+  mockIsFirebaseAuthBackend: vi.fn(),
 }));
 
 vi.mock('../stores/authStore', () => ({
@@ -15,6 +16,10 @@ vi.mock('../stores/authStore', () => ({
     const state = { signIn: mockSignIn };
     return selector(state);
   }),
+}));
+
+vi.mock('../lib/authBackend', () => ({
+  isFirebaseAuthBackend: mockIsFirebaseAuthBackend,
 }));
 
 vi.mock('react-router', async () => {
@@ -33,6 +38,7 @@ function renderLogin() {
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsFirebaseAuthBackend.mockReturnValue(false);
   });
 
   it('renders the Potomack Co. branding pair (eyebrow + display title)', () => {
@@ -199,6 +205,23 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Sign In' }));
 
     await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+    });
+  });
+
+  it('renders Google SSO only when Firebase auth is enabled', async () => {
+    mockIsFirebaseAuthBackend.mockReturnValue(true);
+    mockSignIn.mockResolvedValueOnce({ error: null });
+    const user = userEvent.setup();
+    renderLogin();
+
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Sign in with Google' }));
+
+    await waitFor(() => {
+      expect(mockSignIn).toHaveBeenCalledWith();
       expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
     });
   });

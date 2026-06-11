@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
 // --- Mocks ---
-const { mockUseAuthStore, mockFrom, mockNotifyError } = vi.hoisted(() => ({
+const { mockUseAuthStore, mockFrom, mockNotifyError, mockIsFirebaseAuthBackend } = vi.hoisted(() => ({
   mockUseAuthStore: vi.fn(),
   mockFrom: vi.fn(),
   mockNotifyError: vi.fn(),
+  mockIsFirebaseAuthBackend: vi.fn(),
 }));
 
 vi.mock("../stores/authStore", () => ({
@@ -14,6 +15,10 @@ vi.mock("../stores/authStore", () => ({
 
 vi.mock("../lib/supabase", () => ({
   supabase: { from: mockFrom },
+}));
+
+vi.mock("../lib/authBackend", () => ({
+  isFirebaseAuthBackend: mockIsFirebaseAuthBackend,
 }));
 
 vi.mock("../stores/notificationStore", () => ({
@@ -41,6 +46,7 @@ function setupProfileResponse(data: unknown, error: unknown) {
 describe("useUserRole", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsFirebaseAuthBackend.mockReturnValue(false);
   });
 
   it("returns isAdmin true when profile role is admin, no error signal", async () => {
@@ -130,5 +136,25 @@ describe("useUserRole", () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.isAdmin).toBe(true);
     expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses Firebase custom claims without querying Supabase profiles", async () => {
+    mockIsFirebaseAuthBackend.mockReturnValue(true);
+    mockUseAuthStore.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({
+        user: {
+          id: "firebase-admin",
+          email: "admin@potomackco.com",
+          claims: { role: "admin", is_active: true },
+        },
+      }),
+    );
+
+    const { result } = renderHook(() => useUserRole());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.role).toBe("admin");
+    expect(result.current.isAdmin).toBe(true);
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "../stores/authStore";
 import { supabase } from "../lib/supabase";
+import { isFirebaseAuthBackend } from "../lib/authBackend";
+import { roleFromFirebaseClaims, type AppUser } from "../lib/firebaseAuth";
 import { useNotificationStore } from "../stores/notificationStore";
 import { toUserMessage } from "../lib/toUserMessage";
 
@@ -22,6 +24,8 @@ export function useUserRole(): {
 } {
   const user = useAuthStore((s) => s.user);
   const userId = user?.id;
+  const isFirebaseAuth = isFirebaseAuthBackend();
+  const firebaseRole = isFirebaseAuth ? roleFromFirebaseClaims(user as AppUser) : null;
   const [role, setRole] = useState<string | null | undefined>(undefined);
   // Bump to force the effect to re-run (retry affordance on the surfaced toast).
   const [reloadKey, setReloadKey] = useState(0);
@@ -30,6 +34,8 @@ export function useUserRole(): {
 
   useEffect(() => {
     if (!userId) return;
+    if (isFirebaseAuth) return;
+
     let cancelled = false;
     supabase
       .from("profiles")
@@ -59,7 +65,17 @@ export function useUserRole(): {
     return () => {
       cancelled = true;
     };
-  }, [userId, reloadKey, retry]);
+  }, [isFirebaseAuth, userId, reloadKey, retry]);
+
+  if (isFirebaseAuth) {
+    return {
+      role: firebaseRole,
+      isAdmin: firebaseRole === "admin",
+      loading: false,
+      error: false,
+      retry,
+    };
+  }
 
   const loading = !!user && role === undefined;
   const error = role === ROLE_ERROR;
