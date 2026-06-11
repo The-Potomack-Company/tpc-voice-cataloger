@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getFreshFirebaseIdToken,
   resetFirebaseAuthForTests,
   roleFromFirebaseClaims,
   setFirebaseSdkLoaderForTests,
@@ -37,6 +38,16 @@ describe("firebaseAuth", () => {
         claims: {
           email_verified: true,
           hd: "potomackco.com",
+          firebase: { sign_in_provider: "google.com" },
+        },
+      }),
+    ).toBe("specialist");
+    expect(
+      roleFromFirebaseClaims({
+        id: "2a",
+        email: "staff@potomackco.com",
+        claims: {
+          email_verified: true,
           firebase: { sign_in_provider: "google.com" },
         },
       }),
@@ -107,6 +118,119 @@ describe("firebaseAuth", () => {
     expect(signInWithPopup).toHaveBeenCalled();
     expect(session.access_token).toBe("id-token");
     expect(session.user.id).toBe("firebase-1");
+  });
+
+  it("accepts verified Google Workspace users when hd is absent", async () => {
+    setFirebaseSdkLoaderForTests(async () => ({
+      initializeApp: vi.fn(() => ({})),
+      getApps: vi.fn(() => []),
+      getApp: vi.fn(() => ({})),
+      getAuth: vi.fn(() => ({})),
+      GoogleAuthProvider: class {
+        setCustomParameters = vi.fn();
+      },
+      onAuthStateChanged: vi.fn(),
+      signInWithPopup: vi.fn().mockResolvedValue({
+        user: {
+          uid: "firebase-hd-absent",
+          email: "staff@potomackco.com",
+          displayName: "Workspace User",
+          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
+          getIdTokenResult: vi.fn().mockResolvedValue({
+            token: "id-token",
+            claims: {
+              email: "staff@potomackco.com",
+              email_verified: true,
+              firebase: { sign_in_provider: "google.com" },
+            },
+          }),
+        },
+      }),
+      signOut: vi.fn(),
+      updatePassword: vi.fn(),
+    }));
+
+    const session = await signInWithGoogle();
+
+    expect(session.access_token).toBe("id-token");
+    expect(session.user.id).toBe("firebase-hd-absent");
+  });
+
+  it("rejects verified Google Potomack users when hd is present for another domain", async () => {
+    const signOut = vi.fn();
+    setFirebaseSdkLoaderForTests(async () => ({
+      initializeApp: vi.fn(() => ({})),
+      getApps: vi.fn(() => []),
+      getApp: vi.fn(() => ({})),
+      getAuth: vi.fn(() => ({})),
+      GoogleAuthProvider: class {
+        setCustomParameters = vi.fn();
+      },
+      onAuthStateChanged: vi.fn(),
+      signInWithPopup: vi.fn().mockResolvedValue({
+        user: {
+          uid: "firebase-wrong-hd",
+          email: "staff@potomackco.com",
+          displayName: "Wrong HD User",
+          getIdToken: vi.fn().mockResolvedValue("fallback-token"),
+          getIdTokenResult: vi.fn().mockResolvedValue({
+            token: "id-token",
+            claims: {
+              email: "staff@potomackco.com",
+              email_verified: true,
+              hd: "example.com",
+              firebase: { sign_in_provider: "google.com" },
+            },
+          }),
+        },
+      }),
+      signOut,
+      updatePassword: vi.fn(),
+    }));
+
+    await expect(signInWithGoogle()).rejects.toThrow("outside the allowed Google Workspace domain");
+    expect(signOut).toHaveBeenCalled();
+  });
+
+  it("signs out and rejects stale current users whose refreshed claims are no longer allowed", async () => {
+    const signOut = vi.fn();
+    const getIdTokenResult = vi.fn().mockResolvedValue({
+      token: "stale-user-token",
+      claims: {
+        email: "staff@example.com",
+        email_verified: true,
+        hd: "example.com",
+        firebase: { sign_in_provider: "google.com" },
+      },
+    });
+    const auth = {
+      currentUser: {
+        uid: "firebase-stale",
+        email: "staff@example.com",
+        displayName: "Stale User",
+        getIdToken: vi.fn().mockResolvedValue("fallback-token"),
+        getIdTokenResult,
+      },
+    };
+    setFirebaseSdkLoaderForTests(async () => ({
+      initializeApp: vi.fn(() => ({})),
+      getApps: vi.fn(() => []),
+      getApp: vi.fn(() => ({})),
+      getAuth: vi.fn(() => auth),
+      GoogleAuthProvider: class {
+        setCustomParameters = vi.fn();
+      },
+      onAuthStateChanged: vi.fn(),
+      signInWithPopup: vi.fn(),
+      signOut,
+      updatePassword: vi.fn(),
+    }));
+
+    await expect(getFreshFirebaseIdToken()).rejects.toThrow(
+      "outside the allowed Google Workspace domain",
+    );
+    expect(getIdTokenResult).toHaveBeenCalledWith(true);
+    expect(signOut).toHaveBeenCalledWith(auth);
   });
 
   it("signs out and rejects users outside the Potomack domain", async () => {
