@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { supabase } from "../lib/supabase";
 import { enqueueWrite } from "../hooks/useWriteAheadQueue";
 import { preconditionUpdate } from "../db/optimisticUpdate";
+import { deleteNotePagesForSession } from "../db/notePages";
 import { trackEvent } from "../services/analytics";
 import { useNotificationStore } from "./notificationStore";
 import type { Tables } from "../db/database.types";
@@ -298,6 +299,9 @@ export const useSessionStore = create<SessionState>()(
           });
           return false;
         }
+        // Sweep client-only note pages for the deleted session (Phase 46). Best-effort:
+        // the Supabase delete is already committed, and the rows are local-only.
+        await deleteNotePagesForSession(id).catch(() => {});
         trackEvent({ event_type: "session.deleted", session_id: id });
         return true;
       },

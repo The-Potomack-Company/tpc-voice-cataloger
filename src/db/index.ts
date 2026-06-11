@@ -12,6 +12,7 @@ import type {
   PhotoUploadEntry,
   AudioUploadEntry,
   UserEditedField,
+  NotePage,
 } from "./types";
 
 const db = new Dexie("TPCCatalog") as Dexie & {
@@ -27,6 +28,7 @@ const db = new Dexie("TPCCatalog") as Dexie & {
   photoUploadQueue: EntityTable<PhotoUploadEntry, "id">;
   audioUploadQueue: EntityTable<AudioUploadEntry, "id">;
   userEditedFields: EntityTable<UserEditedField, "itemId">;
+  notePages: EntityTable<NotePage, "id">;
 };
 
 db.version(1).stores({
@@ -184,6 +186,26 @@ db.version(12).stores({
   photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
   audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
   userEditedFields: "[itemId+field], itemId",
+});
+
+// v13: Add notePages table for v1.4 Photo Notes capture (Phase 46). Client-only
+// (Dexie) page storage — no Supabase write, no schema change. New empty table, no
+// .upgrade() needed (v9/v11 precedent). pageUid is the stable retake/reorder identity
+// and the Phase 47 idempotency key; sessionId is the Supabase session UUID string.
+db.version(13).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  sessionAudio: "sessionId, updatedAt",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type], [oldId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
+  audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
+  userEditedFields: "[itemId+field], itemId",
+  notePages: "++id, pageUid, sessionId, sortOrder",
 });
 
 export { db };

@@ -8,7 +8,7 @@ afterEach(async () => {
 });
 
 describe("Dexie database", () => {
-  it("opens successfully and has 12 tables", () => {
+  it("opens successfully and has 13 tables", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toEqual([
       "audio",
@@ -16,6 +16,7 @@ describe("Dexie database", () => {
       "exportHistory",
       "houseVisitItems",
       "idMapping",
+      "notePages",
       "photoUploadQueue",
       "photos",
       "saleItems",
@@ -137,7 +138,7 @@ describe("Dexie database", () => {
 });
 
 describe("Dexie v6 migration", () => {
-  it("has 12 tables including userEditedFields after v11 migration", () => {
+  it("has 13 tables including notePages after v13 migration", () => {
     const tableNames = db.tables.map((t) => t.name).sort();
     expect(tableNames).toContain("exportHistory");
     expect(tableNames).toContain("idMapping");
@@ -146,7 +147,36 @@ describe("Dexie v6 migration", () => {
     expect(tableNames).toContain("sessionAudio");
     expect(tableNames).toContain("audioUploadQueue");
     expect(tableNames).toContain("userEditedFields");
-    expect(tableNames).toHaveLength(12);
+    expect(tableNames).toContain("notePages");
+    expect(tableNames).toHaveLength(13);
+  });
+
+  it("notePages has pageUid, sessionId, sortOrder indexes (v13)", () => {
+    const indexNames = db.table("notePages").schema.indexes.map((idx) => idx.name);
+    expect(indexNames).toContain("pageUid");
+    expect(indexNames).toContain("sessionId");
+    expect(indexNames).toContain("sortOrder");
+  });
+
+  it("v13 preserves existing session + item data alongside the new table", async () => {
+    const sessionId = await db.sessions.add({
+      name: "Pre-v13 Session",
+      mode: "house",
+      status: "active",
+      notes: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Session);
+    await db.houseVisitItems.add({
+      sessionId: sessionId as number,
+      title: "Pre-v13 Item",
+      sortOrder: 1,
+      createdAt: new Date(),
+    } as HouseVisitItem);
+
+    expect((await db.sessions.get(sessionId))!.name).toBe("Pre-v13 Session");
+    expect(await db.houseVisitItems.where("sessionId").equals(sessionId).count()).toBe(1);
+    expect(await db.notePages.count()).toBe(0);
   });
 
   it("exportHistory table has sessionId and exportedAt indexes", () => {

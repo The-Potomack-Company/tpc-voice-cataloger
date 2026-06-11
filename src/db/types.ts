@@ -82,6 +82,20 @@ export interface SessionAudio {
   updatedAt: Date;
 }
 
+export interface NotePage {
+  id?: number;
+  // crypto.randomUUID() — stable identity across retake/reorder and the Phase 47
+  // idempotency key. NOT the Dexie ++id (which churns) and NOT a Supabase id.
+  pageUid: string;
+  // Supabase session UUID (the useParams sessionId string), NOT the Dexie ++id.
+  sessionId: string;
+  blob: Blob; // resized JPEG, maxDimension 2048 (handwriting legibility for Phase 47)
+  thumbnail: Blob;
+  sortOrder: number;
+  status: "captured"; // Phase 47 extends: "processing" | "processed"
+  createdAt: string; // ISO
+}
+
 export interface UserEditedField {
   // Supabase UUID — the SAME value updateItemField/processAudioWithAi pass around,
   // NOT the integer Dexie item id (the houseVisitItems/saleItems tables are legacy
