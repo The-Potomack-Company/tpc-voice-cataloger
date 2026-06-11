@@ -127,7 +127,8 @@ function hasVerifiedWorkspaceClaims(claims: FirebaseClaims): boolean {
   const hd = claims.hd;
   return (
     claims.email_verified === true &&
-    (hd === undefined || (typeof hd === "string" && hd.toLowerCase() === ALLOWED_DOMAIN)) &&
+    typeof hd === "string" &&
+    hd.toLowerCase() === ALLOWED_DOMAIN &&
     hasGoogleProviderClaim(claims)
   );
 }
@@ -137,7 +138,7 @@ function assertAllowedDomain(user: FirebaseSdkUser, claims: FirebaseClaims) {
   const email = user.email ?? claimEmail;
 
   if (!isAllowedEmail(email) || !hasVerifiedWorkspaceClaims(claims)) {
-    throw new Error("Firebase account is outside the allowed Google Workspace domain");
+    throw new Error("Please use your Potomack Workspace account");
   }
 }
 

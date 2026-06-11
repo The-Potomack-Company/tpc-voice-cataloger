@@ -51,7 +51,7 @@ describe("firebaseAuth", () => {
           firebase: { sign_in_provider: "google.com" },
         },
       }),
-    ).toBe("specialist");
+    ).toBeNull();
     expect(
       roleFromFirebaseClaims({
         id: "2b",
@@ -120,7 +120,8 @@ describe("firebaseAuth", () => {
     expect(session.user.id).toBe("firebase-1");
   });
 
-  it("accepts verified Google Workspace users when hd is absent", async () => {
+  it("rejects verified Google Potomack users when hd is absent", async () => {
+    const signOut = vi.fn();
     setFirebaseSdkLoaderForTests(async () => ({
       initializeApp: vi.fn(() => ({})),
       getApps: vi.fn(() => []),
@@ -146,14 +147,14 @@ describe("firebaseAuth", () => {
           }),
         },
       }),
-      signOut: vi.fn(),
+      signOut,
       updatePassword: vi.fn(),
     }));
 
-    const session = await signInWithGoogle();
-
-    expect(session.access_token).toBe("id-token");
-    expect(session.user.id).toBe("firebase-hd-absent");
+    await expect(signInWithGoogle()).rejects.toThrow(
+      "Please use your Potomack Workspace account",
+    );
+    expect(signOut).toHaveBeenCalled();
   });
 
   it("rejects verified Google Potomack users when hd is present for another domain", async () => {
@@ -188,7 +189,9 @@ describe("firebaseAuth", () => {
       updatePassword: vi.fn(),
     }));
 
-    await expect(signInWithGoogle()).rejects.toThrow("outside the allowed Google Workspace domain");
+    await expect(signInWithGoogle()).rejects.toThrow(
+      "Please use your Potomack Workspace account",
+    );
     expect(signOut).toHaveBeenCalled();
   });
 
@@ -227,7 +230,47 @@ describe("firebaseAuth", () => {
     }));
 
     await expect(getFreshFirebaseIdToken()).rejects.toThrow(
-      "outside the allowed Google Workspace domain",
+      "Please use your Potomack Workspace account",
+    );
+    expect(getIdTokenResult).toHaveBeenCalledWith(true);
+    expect(signOut).toHaveBeenCalledWith(auth);
+  });
+
+  it("signs out and rejects stale current users whose refreshed claims lack hd", async () => {
+    const signOut = vi.fn();
+    const getIdTokenResult = vi.fn().mockResolvedValue({
+      token: "consumer-work-email-token",
+      claims: {
+        email: "staff@potomackco.com",
+        email_verified: true,
+        firebase: { sign_in_provider: "google.com" },
+      },
+    });
+    const auth = {
+      currentUser: {
+        uid: "firebase-no-hd",
+        email: "staff@potomackco.com",
+        displayName: "No HD User",
+        getIdToken: vi.fn().mockResolvedValue("fallback-token"),
+        getIdTokenResult,
+      },
+    };
+    setFirebaseSdkLoaderForTests(async () => ({
+      initializeApp: vi.fn(() => ({})),
+      getApps: vi.fn(() => []),
+      getApp: vi.fn(() => ({})),
+      getAuth: vi.fn(() => auth),
+      GoogleAuthProvider: class {
+        setCustomParameters = vi.fn();
+      },
+      onAuthStateChanged: vi.fn(),
+      signInWithPopup: vi.fn(),
+      signOut,
+      updatePassword: vi.fn(),
+    }));
+
+    await expect(getFreshFirebaseIdToken()).rejects.toThrow(
+      "Please use your Potomack Workspace account",
     );
     expect(getIdTokenResult).toHaveBeenCalledWith(true);
     expect(signOut).toHaveBeenCalledWith(auth);
@@ -260,7 +303,9 @@ describe("firebaseAuth", () => {
       updatePassword: vi.fn(),
     }));
 
-    await expect(signInWithGoogle()).rejects.toThrow("outside the allowed Google Workspace domain");
+    await expect(signInWithGoogle()).rejects.toThrow(
+      "Please use your Potomack Workspace account",
+    );
     expect(signOut).toHaveBeenCalled();
   });
 
@@ -295,7 +340,9 @@ describe("firebaseAuth", () => {
       updatePassword: vi.fn(),
     }));
 
-    await expect(signInWithGoogle()).rejects.toThrow("outside the allowed Google Workspace domain");
+    await expect(signInWithGoogle()).rejects.toThrow(
+      "Please use your Potomack Workspace account",
+    );
     expect(signOut).toHaveBeenCalled();
   });
 
@@ -330,7 +377,9 @@ describe("firebaseAuth", () => {
       updatePassword: vi.fn(),
     }));
 
-    await expect(signInWithGoogle()).rejects.toThrow("outside the allowed Google Workspace domain");
+    await expect(signInWithGoogle()).rejects.toThrow(
+      "Please use your Potomack Workspace account",
+    );
     expect(signOut).toHaveBeenCalled();
   });
 });
