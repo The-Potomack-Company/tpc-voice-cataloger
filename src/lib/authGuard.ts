@@ -1,8 +1,14 @@
 import { supabase } from "../lib/supabase";
+import { isFirebaseAuthBackend } from "./authBackend";
+import { getFreshFirebaseIdToken } from "./firebaseAuth";
 
 const REFRESH_WINDOW_SECONDS = 60;
 
 export async function ensureFreshSession(): Promise<string> {
+  if (isFirebaseAuthBackend()) {
+    return getFreshFirebaseIdToken();
+  }
+
   const {
     data: { session },
   } = await supabase.auth.getSession();

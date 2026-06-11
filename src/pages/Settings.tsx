@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "../stores/authStore";
 import { useWalkthroughStatus } from "../components/walkthrough/useWalkthroughStatus";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { supabase } from "../lib/supabase";
+import { isFirebaseAuthBackend } from "../lib/authBackend";
+import { useUserRole } from "../hooks/useUserRole";
 import { ThemePicker } from "../ui/ThemePicker";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Badge } from "../ui/Badge";
@@ -17,6 +18,7 @@ export function SettingsPage() {
   const signIn = useAuthStore((s) => s.signIn);
   const signOut = useAuthStore((s) => s.signOut);
   const updatePassword = useAuthStore((s) => s.updatePassword);
+  const isFirebaseAuth = isFirebaseAuthBackend();
   const navigate = useNavigate();
 
   // Password change form state
@@ -31,19 +33,7 @@ export function SettingsPage() {
   // Sign out state
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
-  // Admin role detection
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.role === "admin") setIsAdmin(true);
-      });
-  }, [user]);
+  const { isAdmin } = useUserRole();
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +164,7 @@ export function SettingsPage() {
       </section>
 
       {/* Account section */}
+      {!isFirebaseAuth && (
       <section className="mb-8">
         <Eyebrow className="mb-3">Account</Eyebrow>
 
@@ -265,6 +256,7 @@ export function SettingsPage() {
           </div>
         )}
       </section>
+      )}
 
       {/* Actions section */}
       <section>
