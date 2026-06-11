@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useSession, useSessionItemCount, useSessionItems } from "../hooks/useSessions";
+import { useNotePageCount } from "../hooks/useNotePages";
 import { useSessionStore } from "../stores/sessionStore";
 import { useUserRole } from "../hooks/useUserRole";
 import { listAccounts, type Account } from "../services/adminApi";
@@ -82,6 +83,7 @@ export function SessionDetailPage() {
   // Get queued count from Zustand store
   const items = useSessionItems(sessionId!);
   const queuedCount = items.filter(i => i.ai_status === "queued").length;
+  const notePageCount = useNotePageCount(sessionId);
 
   const recordingSessionId = useUIStore((s) => s.recordingSessionId);
   const setRecordingSession = useUIStore((s) => s.setRecordingSession);
@@ -480,6 +482,24 @@ export function SessionDetailPage() {
           Remaining actions: specialist Submit, admin Spreadsheet export, Return, Reopen. */}
       {!roleLoading && (
         <div className="flex flex-col gap-2 mb-6">
+          {/* Photo notes -- capture handwritten note pages for this session (Phase 46).
+              Same mutate gate as the Add-Item FAB; both modes. */}
+          {!isReadOnly && !continuousActive && (
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => navigate(`/session/${sessionId}/photo-notes`)}
+              icon={<Icon name="image" size={14} aria-hidden />}
+            >
+              Photo notes
+              {notePageCount > 0 && (
+                <Badge className="ml-2" aria-label={`${notePageCount} pages captured`}>
+                  {notePageCount}
+                </Badge>
+              )}
+            </Button>
+          )}
+
           {/* Submit for Review -- specialist only, active or returned sessions */}
           {isSpecialist && (session.status === 'active' || session.status === 'returned') && (
             <Button
