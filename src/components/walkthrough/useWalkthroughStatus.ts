@@ -15,7 +15,7 @@ export function useWalkthroughStatus() {
       .from('profiles')
       .select('walkthrough_completed, role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {

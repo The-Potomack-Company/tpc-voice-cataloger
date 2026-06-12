@@ -64,6 +64,77 @@ describe("cataloger-api /session/claim CORS", () => {
   });
 });
 
+describe("cataloger-api /session/claim profile bootstrap", () => {
+  it("upserts a profile for already-claimed Firebase workspace sessions", async () => {
+    const auth = {
+      verifyIdToken: vi.fn().mockResolvedValue({
+        uid: "firebase-uid-1",
+        email: "specialist@potomackco.com",
+        name: "Jane Specialist",
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
+        role: "manager",
+        is_active: true,
+      }),
+    };
+    const profiles = {
+      bootstrapProfile: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth,
+      profiles,
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/session/claim",
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({ ok: true, refreshRequired: false });
+    expect(profiles.bootstrapProfile).toHaveBeenCalledWith({
+      id: "firebase-uid-1",
+      email: "specialist@potomackco.com",
+      display_name: "Jane Specialist",
+      role: "manager",
+      is_active: true,
+      hasRoleClaim: true,
+    });
+  });
+
+  it("defaults a fresh claimed profile to specialist without an explicit role claim", async () => {
+    const auth = {
+      verifyIdToken: vi.fn().mockResolvedValue({
+        uid: "firebase-uid-2",
+        email: "new@potomackco.com",
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
+      }),
+    };
+    const profiles = {
+      bootstrapProfile: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth,
+      profiles,
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/session/claim",
+    });
+
+    expect(response.status).toBe(200);
+    expect(profiles.bootstrapProfile).toHaveBeenCalledWith(expect.objectContaining({
+      id: "firebase-uid-2",
+      role: "specialist",
+      hasRoleClaim: false,
+    }));
+  });
+});
+
 function callHandler(handler: ReturnType<typeof createRequestHandler>, options: {
   method: string;
   url: string;
@@ -153,6 +224,106 @@ describe("cataloger-api admin routes", () => {
     }));
     expect(profiles.upsertProfile).toHaveBeenCalledWith(expect.objectContaining({
       id: "user-1",
+      role: "specialist",
+      is_active: true,
+    }));
+  });
+
+  it("seeds existing and new staff profiles with requested roles", async () => {
+    const missing = Object.assign(new Error("not found"), { code: "auth/user-not-found" });
+    const auth = {
+      verifyIdToken: async () => ({
+        uid: "admin-1",
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
+      }),
+      getUserByEmail: vi.fn()
+        .mockResolvedValueOnce({
+          uid: "manager-1",
+          email: "manager@potomackco.com",
+          customClaims: { existing: true },
+        })
+        .mockRejectedValueOnce(missing),
+      updateUser: vi.fn().mockResolvedValue(undefined),
+      createUser: vi.fn().mockResolvedValue({
+        uid: "specialist-1",
+        email: "specialist@potomackco.com",
+      }),
+      setCustomUserClaims: vi.fn().mockResolvedValue(undefined),
+    };
+    const profiles = {
+      getProfile: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        is_active: true,
+      }),
+      upsertProfile: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth,
+      profiles,
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/admin/create-user",
+      body: {
+        users: [
+          {
+            email: "manager@potomackco.com",
+            displayName: "Manny Manager",
+            role: "manager",
+          },
+          {
+            email: "specialist@potomackco.com",
+            displayName: "Sally Specialist",
+            role: "specialist",
+          },
+        ],
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      users: [
+        {
+          id: "manager-1",
+          email: "manager@potomackco.com",
+          role: "manager",
+          created: false,
+        },
+        {
+          id: "specialist-1",
+          email: "specialist@potomackco.com",
+          role: "specialist",
+          created: true,
+        },
+      ],
+    });
+    expect(auth.updateUser).toHaveBeenCalledWith("manager-1", expect.objectContaining({
+      displayName: "Manny Manager",
+      emailVerified: true,
+      disabled: false,
+    }));
+    expect(auth.createUser).toHaveBeenCalledWith(expect.objectContaining({
+      email: "specialist@potomackco.com",
+      displayName: "Sally Specialist",
+      emailVerified: true,
+    }));
+    expect(auth.setCustomUserClaims).toHaveBeenCalledWith("manager-1", expect.objectContaining({
+      role: "manager",
+      is_active: true,
+      workspace: "potomackco.com",
+      workspace_role: "authenticated",
+    }));
+    expect(profiles.upsertProfile).toHaveBeenCalledWith(expect.objectContaining({
+      id: "manager-1",
+      role: "manager",
+      is_active: true,
+    }));
+    expect(profiles.upsertProfile).toHaveBeenCalledWith(expect.objectContaining({
+      id: "specialist-1",
       role: "specialist",
       is_active: true,
     }));

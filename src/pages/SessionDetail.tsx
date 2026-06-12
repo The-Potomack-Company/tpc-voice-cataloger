@@ -121,12 +121,16 @@ export function SessionDetailPage() {
   const canReview = isReviewer || isAdmin;
   const isSpecialist = !canReview && !roleLoading;
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountsLoadFailed, setAccountsLoadFailed] = useState(false);
   const [editingAssignee, setEditingAssignee] = useState(false);
   const [reassignError, setReassignError] = useState<string | null>(null);
 
   // Fetch accounts when admin
   useEffect(() => {
     if (!isAdmin) return;
+    setAccountsLoading(true);
+    setAccountsLoadFailed(false);
     listAccounts()
       .then((data) => {
         setAccounts(
@@ -136,6 +140,7 @@ export function SessionDetailPage() {
         );
       })
       .catch(() => {
+        setAccountsLoadFailed(true);
         // IN-03: don't fail silently — the assignee dropdown would render empty
         // with no explanation. Surface it like NewSession's accountsError so the
         // admin knows the team list didn't load (phase goal, Codex #16-20).
@@ -144,6 +149,9 @@ export function SessionDetailPage() {
           .notifyError(
             "Could not load team members. Check your connection and try again.",
           );
+      })
+      .finally(() => {
+        setAccountsLoading(false);
       });
   }, [isAdmin]);
 
@@ -354,6 +362,7 @@ export function SessionDetailPage() {
   };
 
   const shortId = sessionShortId(session);
+  const noAssignableAccounts = isAdmin && !accountsLoading && !accountsLoadFailed && accounts.length === 0;
 
   // Three-stat strip: AI-cataloged / Needs review / Total
   const transcribedCount = items.filter((i) => i.ai_status === "done").length;
@@ -600,10 +609,14 @@ export function SessionDetailPage() {
               value={session.assigned_to ?? ""}
               onChange={(e) => handleReassign(e.target.value)}
               onBlur={() => setEditingAssignee(false)}
+              disabled={accounts.length === 0}
               className="text-sm font-medium rounded border border-rule
                          bg-bg text-ink
                          px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent"
             >
+              {accounts.length === 0 && (
+                <option value="">No team profiles available</option>
+              )}
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.display_name}
@@ -618,10 +631,21 @@ export function SessionDetailPage() {
               title="Tap to reassign"
             >
               {accounts.find((a) => a.id === session.assigned_to)?.display_name ??
-                (session.assigned_to ? "Loading..." : "Unassigned")}
+                (session.assigned_to
+                  ? accountsLoading
+                    ? "Loading..."
+                    : "Unknown assignee"
+                  : noAssignableAccounts
+                    ? "No team profiles"
+                    : "Unassigned")}
             </span>
           )}
         </div>
+      )}
+      {noAssignableAccounts && (
+        <p className="text-sm text-ink-3 -mt-4 mb-6" role="status">
+          Seed active staff profiles to enable reassignment.
+        </p>
       )}
       {/* Reassign error */}
       {reassignError && (

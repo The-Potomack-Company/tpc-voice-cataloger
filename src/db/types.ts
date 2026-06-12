@@ -124,7 +124,7 @@ export interface IdMapping {
 
 export interface WriteAheadEntry {
   id?: number;
-  table: "sessions" | "items" | "analytics_events" | "ui_interactions";
+  table: "sessions" | "items" | "analytics_events";
   operation: "insert" | "update" | "delete";
   // Phase 39 (D-04): for an `items` update, an optional `updated_at` key in the
   // payload carries the optimistic-concurrency snapshot taken at enqueue time. On

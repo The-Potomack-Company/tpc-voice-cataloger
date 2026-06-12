@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { db } from "../db";
 
 // --- Mocks ---
-const { mockFrom } = vi.hoisted(
+const { mockFrom, mockAddDroppedWriteAheadCount } = vi.hoisted(
   () => {
     const mockFrom = vi.fn();
+    const mockAddDroppedWriteAheadCount = vi.fn();
 
-    return { mockFrom };
+    return { mockFrom, mockAddDroppedWriteAheadCount };
   },
 );
 
@@ -17,11 +18,16 @@ vi.mock("../lib/supabase", () => ({
 }));
 
 // Mock uiStore for the hook
-vi.mock("../stores/uiStore", () => ({
-  useUIStore: vi.fn((selector: (s: { isOnline: boolean }) => boolean) =>
+vi.mock("../stores/uiStore", () => {
+  const useUIStore = vi.fn((selector: (s: { isOnline: boolean }) => boolean) =>
     selector({ isOnline: true }),
-  ),
-}));
+  );
+  return {
+    useUIStore: Object.assign(useUIStore, {
+      getState: () => ({ addDroppedWriteAheadCount: mockAddDroppedWriteAheadCount }),
+    }),
+  };
+});
 
 // Phase 39: the precondition flush surfaces exhausted conflicts via notifyError.
 vi.mock("../stores/notificationStore", () => ({
@@ -33,6 +39,7 @@ import {
   processWriteAheadQueue,
   getPendingCount,
   hasPendingForItem,
+  isPermanentWriteAheadError,
 } from "../hooks/useWriteAheadQueue";
 
 describe("write-ahead queue", () => {
@@ -225,6 +232,7 @@ describe("write-ahead queue", () => {
     });
 
     it("permanent failure drops the failing entry + same-item dependents and CONTINUES the drain", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       // Entry 1: insert items/uuid-perm -> permanent failure (HTTP 400)
       await db.writeAheadQueue.add({
         table: "items",
@@ -263,11 +271,55 @@ describe("write-ahead queue", () => {
         }),
       }));
 
+      try {
+        await processWriteAheadQueue();
+
+        // Failing insert + same-item dependent update dropped; unrelated entry processed + removed.
+        expect(processed).toEqual(["Unrelated"]);
+        expect(await db.writeAheadQueue.count()).toBe(0);
+        expect(mockAddDroppedWriteAheadCount).toHaveBeenCalledWith(2);
+        expect(warnSpy).toHaveBeenCalledWith(
+          "Dropping non-retryable write-ahead queue entries:",
+          expect.objectContaining({ entryId: expect.any(Number), dropped: 2 }),
+        );
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it("classifies only configured permanent WAL 4xx statuses as non-retryable", () => {
+      for (const status of [400, 404, 406, 410]) {
+        expect(isPermanentWriteAheadError({ message: "PostgREST failed", status })).toBe(true);
+      }
+
+      for (const status of [401, 403, 429, 500, 503]) {
+        expect(isPermanentWriteAheadError({ message: "PostgREST failed", status })).toBe(false);
+      }
+    });
+
+    it("does not drop auth or rate-limit failures", async () => {
+      await db.writeAheadQueue.add({
+        table: "analytics_events",
+        operation: "insert",
+        payload: { event_type: "test.event" },
+        createdAt: new Date("2026-01-01"),
+      });
+      await db.writeAheadQueue.add({
+        table: "sessions",
+        operation: "insert",
+        payload: { name: "Later" },
+        createdAt: new Date("2026-01-02"),
+      });
+
+      mockFrom.mockReturnValue({
+        insert: vi.fn().mockReturnValue({ error: { message: "unauthorized", status: 401 } }),
+      });
+
       await processWriteAheadQueue();
 
-      // Failing insert + same-item dependent update dropped; unrelated entry processed + removed.
-      expect(processed).toEqual(["Unrelated"]);
-      expect(await db.writeAheadQueue.count()).toBe(0);
+      const remaining = await db.writeAheadQueue.orderBy("createdAt").toArray();
+      expect(remaining).toHaveLength(2);
+      expect(mockAddDroppedWriteAheadCount).not.toHaveBeenCalled();
     });
 
     it("transient failure halts the drain and leaves all remaining entries in FIFO order", async () => {

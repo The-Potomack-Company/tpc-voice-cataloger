@@ -105,7 +105,7 @@ export const useThemeStore = create<ThemeState>()((set, get) => ({
         .from("profiles")
         .select("theme")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
       set({ hydratedUserId: userId });
       if (error) {
         // Missing column or no profile row — fall back to localStorage.

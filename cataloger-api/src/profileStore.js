@@ -48,6 +48,26 @@ export function createProfileStoreFromPool(pool) {
       );
     },
 
+    async bootstrapProfile(profile) {
+      await pool.query(
+        `insert into public.profiles (id, email, display_name, role, is_active)
+         values ($1, $2, $3, $4, $5)
+         on conflict (id) do update set
+           email = coalesce(excluded.email, public.profiles.email),
+           display_name = coalesce(excluded.display_name, public.profiles.display_name),
+           role = case when $6 then excluded.role else public.profiles.role end,
+           is_active = excluded.is_active`,
+        [
+          profile.id,
+          profile.email,
+          profile.display_name,
+          profile.role,
+          profile.is_active,
+          profile.hasRoleClaim === true,
+        ],
+      );
+    },
+
     async updateActive(userId, isActive) {
       await pool.query(
         "update public.profiles set is_active = $2 where id = $1",

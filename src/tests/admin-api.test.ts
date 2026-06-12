@@ -30,6 +30,7 @@ import {
   createSpecialistAccount,
   toggleAccountActive,
   listAccounts,
+  seedProfiles,
   type Account,
 } from '../services/adminApi';
 
@@ -204,6 +205,57 @@ describe('adminApi', () => {
         'https://cataloger-api.example.com/admin/list-users',
         expect.objectContaining({
           headers: expect.objectContaining({ authorization: 'Bearer firebase-token' }),
+        }),
+      );
+    });
+  });
+
+  describe('seedProfiles', () => {
+    it('calls cataloger-api batch create-user in Firebase mode', async () => {
+      mockIsFirebaseAuthBackend.mockReturnValue(true);
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          users: [
+            {
+              id: 'manager-1',
+              email: 'manager@potomackco.com',
+              role: 'manager',
+              created: false,
+            },
+          ],
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(seedProfiles([
+        {
+          email: 'manager@potomackco.com',
+          displayName: 'Manny Manager',
+          role: 'manager',
+        },
+      ])).resolves.toEqual([
+        {
+          id: 'manager-1',
+          email: 'manager@potomackco.com',
+          role: 'manager',
+          created: false,
+        },
+      ]);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://cataloger-api.example.com/admin/create-user',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            users: [
+              {
+                email: 'manager@potomackco.com',
+                displayName: 'Manny Manager',
+                role: 'manager',
+              },
+            ],
+          }),
         }),
       );
     });

@@ -11,6 +11,20 @@ export interface Account {
   created_at: string
 }
 
+export interface SeedProfileInput {
+  email: string
+  displayName: string
+  role: "dev" | "admin" | "manager" | "specialist"
+  password?: string
+}
+
+export interface SeedProfileResult {
+  id: string
+  email: string
+  role: string
+  created: boolean
+}
+
 export async function createSpecialistAccount(params: {
   email: string
   password: string
@@ -57,6 +71,18 @@ export async function listAccounts(): Promise<Account[]> {
   const { data, error } = await supabase.functions.invoke('admin-list-users')
   if (error) throw new Error(error.message)
   return data.accounts
+}
+
+export async function seedProfiles(users: SeedProfileInput[]): Promise<SeedProfileResult[]> {
+  if (!isFirebaseAuthBackend()) {
+    throw new Error('Profile seeding is only available through cataloger-api')
+  }
+
+  const data = await catalogerApiFetch<{ users: SeedProfileResult[] }>('/admin/create-user', {
+    method: 'POST',
+    body: JSON.stringify({ users }),
+  })
+  return data.users
 }
 
 async function catalogerApiFetch<T>(
