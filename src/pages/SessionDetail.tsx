@@ -29,11 +29,7 @@ import { StatStrip } from "../ui/StatStrip";
 import { WarnBanner } from "../ui/WarnBanner";
 import { sessionShortId } from "../utils/groupByDate";
 import { isNeedsReview } from "../utils/itemStatus";
-
-// Continuous mode disabled pending correctness rework (look-back audio corruption,
-// wrong-item merge race, duplicate-item replay). Code kept dormant for future revival.
-// See _workspace/Decisions/D-050 + docs/audit-consolidated-backlog-2026-05-27.md.
-const CONTINUOUS_MODE_ENABLED = false;
+import { featureFlags } from "../lib/featureFlags";
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -108,10 +104,13 @@ export function SessionDetailPage() {
   const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   const [importToast, setImportToast] = useState<string | null>(null);
+  const continuousCaptureEnabled = featureFlags.continuousCapture;
   const continuousActive = useContinuousModeStore(
-    (s) => (s.active || s.finalizing) && s.sessionId === sessionId,
+    (s) => continuousCaptureEnabled && (s.active || s.finalizing) && s.sessionId === sessionId,
   );
-  const continuousFinalizing = useContinuousModeStore((s) => s.finalizing && s.sessionId === sessionId);
+  const continuousFinalizing = useContinuousModeStore(
+    (s) => continuousCaptureEnabled && s.finalizing && s.sessionId === sessionId,
+  );
   const advanceContinuousItem = useContinuousModeStore((s) => s.advanceItem);
   const continuousRecorder = useContinuousRecorder();
   const continuousPaused = continuousRecorder.status === "paused";
@@ -338,14 +337,17 @@ export function SessionDetailPage() {
   };
 
   const handleStartContinuous = async () => {
+    if (!continuousCaptureEnabled) return;
     await continuousRecorder.start(sessionId!, session.mode as "house" | "sale");
   };
 
   const handleStopContinuous = async () => {
+    if (!continuousCaptureEnabled) return;
     await continuousRecorder.stop();
   };
 
   const handleContinuousNewItem = () => {
+    if (!continuousCaptureEnabled) return;
     void advanceContinuousItem(null);
   };
 
@@ -769,7 +771,7 @@ export function SessionDetailPage() {
         </div>
       )}
 
-      {!isReadOnly && !continuousActive && CONTINUOUS_MODE_ENABLED && (
+      {!isReadOnly && !continuousActive && continuousCaptureEnabled && (
         <ContinuousModeFAB
           onStart={handleStartContinuous}
           disabled={continuousRecorder.status === "requesting"}
