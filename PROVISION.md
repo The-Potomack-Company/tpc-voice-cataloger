@@ -32,6 +32,7 @@ gcloud artifacts repositories create potomack \
   --description="Potomack app Cloud Run images"
 
 gcloud sql instances create potomack-cataloger-db \
+  --edition=enterprise \
   --database-version=POSTGRES_16 \
   --tier=db-f1-micro \
   --region=us-central1 \
