@@ -1,5 +1,12 @@
 import { z, toJSONSchema } from "zod";
-import { getNotePages, markNotePagesStatus } from "../db/notePages";
+import {
+  ensureNotePageContentHashes,
+  getNotePages,
+  isNotePageProcessed,
+  markNotePageProcessed,
+  markNotePagesStatus,
+  notePageContentKey,
+} from "../db/notePages";
 import type { NotePage } from "../db/types";
 import { ensureFreshSession } from "../lib/authGuard";
 import { toAllCaps } from "../utils/toAllCaps";
@@ -94,17 +101,22 @@ const rawResponseSchema = toJSONSchema(MODEL_RESPONSE_SCHEMA);
 sanitizeGeminiSchema(rawResponseSchema);
 
 export function notePagesBatchKey(sessionId: string, pages: NotePage[]): string {
-  const orderedRefs = pages
-    .map((page) => `${page.pageUid}@${page.sortOrder}`)
+  const pageKeys = pages
+    .map((page) => page.contentHash ? notePageContentKey(page.contentHash) : page.pageUid)
+    .sort()
     .join(",");
-  return `photo-notes:v1:${sessionId}:${orderedRefs}`;
+  return `photo-notes:v2:${sessionId}:${pageKeys}`;
 }
 
 function refsForDraft(pages: NotePage[], sourcePageUids: string[]): DraftSourcePageRef[] {
   const byUid = new Map(pages.map((page) => [page.pageUid, page]));
   return sourcePageUids.flatMap((pageUid) => {
     const page = byUid.get(pageUid);
-    return page ? [{ pageUid, sortOrder: page.sortOrder }] : [];
+    return page ? [{
+      pageUid,
+      sortOrder: page.sortOrder,
+      pageContentKey: page.contentHash ? notePageContentKey(page.contentHash) : undefined,
+    }] : [];
   });
 }
 
@@ -129,6 +141,8 @@ export function normalizeModelDrafts(
   pages: NotePage[],
   parsed: z.infer<typeof MODEL_RESPONSE_SCHEMA>,
 ): ItemDraftPayload[] {
+  const perPageSegmentCounts = new Map<string, number>();
+
   return parsed.drafts.map((draft) => {
     const fields = {} as DraftFields;
     const fieldConfidence = {} as Record<DraftFieldName, number>;
@@ -145,8 +159,18 @@ export function normalizeModelDrafts(
       }
     }
 
+    const sourcePageRefs = refsForDraft(pages, draft.source_page_uids);
+    const primaryPage = sourcePageRefs[0];
+    if (!primaryPage?.pageContentKey) {
+      throw new Error("Model draft did not reference a processed page");
+    }
+    const pageSegmentIndex = perPageSegmentCounts.get(primaryPage.pageContentKey) ?? 0;
+    perPageSegmentCounts.set(primaryPage.pageContentKey, pageSegmentIndex + 1);
+
     return {
-      sourcePageRefs: refsForDraft(pages, draft.source_page_uids),
+      pageContentKey: primaryPage.pageContentKey,
+      pageSegmentIndex,
+      sourcePageRefs,
       rawOcrText: draft.raw_ocr_text,
       fields,
       fieldConfidence,
@@ -155,33 +179,31 @@ export function normalizeModelDrafts(
   });
 }
 
-export async function processNotesWithAi(sessionId: string): Promise<{ draftCount: number }> {
-  const pages = await getNotePages(sessionId);
-  if (pages.length === 0) {
-    throw new Error("No note pages to process");
+async function processOneNotePage(
+  sessionId: string,
+  page: NotePage,
+  accessToken: string,
+): Promise<{ draftCount: number }> {
+  if (page.id === undefined || !page.contentHash) {
+    throw new Error("Note page is missing durable idempotency metadata");
   }
 
-  const batchKey = notePagesBatchKey(sessionId, pages);
-  const pageIds = pages.flatMap((page) => (page.id === undefined ? [] : [page.id]));
-  await markNotePagesStatus(pageIds, "processing");
-
+  await markNotePagesStatus([page.id], "processing");
   try {
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {
       throw new Error("VITE_GEMINI_PROXY_URL is not configured. Create a .env file from .env.example.");
     }
 
-    const [accessToken, encodedPages] = await Promise.all([
-      ensureFreshSession(),
-      Promise.all(
-        pages.map(async (page) => ({
-          pageUid: page.pageUid,
-          sortOrder: page.sortOrder,
-          mimeType: page.blob.type || "image/jpeg",
-          data: await blobToBase64(page.blob),
-        })),
-      ),
-    ]);
+    const pageContentKey = notePageContentKey(page.contentHash);
+    const batchKey = notePagesBatchKey(sessionId, [page]);
+    const encodedPage = {
+      pageUid: page.pageUid,
+      sortOrder: page.sortOrder,
+      pageContentKey,
+      mimeType: page.blob.type || "image/jpeg",
+      data: await blobToBase64(page.blob),
+    };
 
     const geminiPayload = {
       system_instruction: {
@@ -193,17 +215,17 @@ export async function processNotesWithAi(sessionId: string): Promise<{ draftCoun
             {
               text: [
                 `Session ID: ${sessionId}`,
-                `Batch key: ${batchKey}`,
+                `Page content key: ${pageContentKey}`,
                 "Page order:",
-                ...encodedPages.map((page) => `${page.sortOrder + 1}. ${page.pageUid}`),
+                `${encodedPage.sortOrder + 1}. ${encodedPage.pageUid}`,
               ].join("\n"),
             },
-            ...encodedPages.map((page) => ({
+            {
               inlineData: {
-                mimeType: page.mimeType.split(";")[0],
-                data: page.data,
+                mimeType: encodedPage.mimeType.split(";")[0],
+                data: encodedPage.data,
               },
-            })),
+            },
           ],
         },
       ],
@@ -251,17 +273,51 @@ export async function processNotesWithAi(sessionId: string): Promise<{ draftCoun
       throw new Error(`Note draft validation failed: ${parsed.error.message}`);
     }
 
-    const drafts = normalizeModelDrafts(pages, parsed.data);
+    const drafts = normalizeModelDrafts([page], parsed.data);
     const result = await persistItemDraftBatch({
       sessionId,
       batchKey,
-      pages: pages.map((page) => ({ pageUid: page.pageUid, sortOrder: page.sortOrder })),
+      pages: [{
+        pageUid: page.pageUid,
+        sortOrder: page.sortOrder,
+        pageContentKey,
+      }],
       drafts,
     });
-    await markNotePagesStatus(pageIds, "processed");
+    await markNotePageProcessed(page.id, page.contentHash);
     return result;
   } catch (error) {
-    await markNotePagesStatus(pageIds, "failed");
+    await markNotePagesStatus([page.id], "failed");
     throw error;
   }
+}
+
+export async function processNotesWithAi(sessionId: string): Promise<{ draftCount: number }> {
+  const pages = await ensureNotePageContentHashes(await getNotePages(sessionId));
+  if (pages.length === 0) {
+    throw new Error("No note pages to process");
+  }
+
+  const unprocessedPages = pages.filter((page) => !isNotePageProcessed(page));
+  if (unprocessedPages.length === 0) {
+    return { draftCount: 0 };
+  }
+
+  const accessToken = await ensureFreshSession();
+  let draftCount = 0;
+  const failures: Error[] = [];
+  for (const page of unprocessedPages) {
+    try {
+      const result = await processOneNotePage(sessionId, page, accessToken);
+      draftCount += result.draftCount;
+    } catch (error) {
+      failures.push(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(`Failed to process ${failures.length} note page${failures.length === 1 ? "" : "s"}`);
+  }
+
+  return { draftCount };
 }

@@ -128,6 +128,10 @@ function validateDraftBatchPayload(body) {
   if (!Array.isArray(body.drafts) || body.drafts.length === 0) {
     return "drafts required";
   }
+  const missingPageKey = body.drafts.some((draft) => !isNonEmptyString(draft?.pageContentKey));
+  if (missingPageKey) {
+    return "draft pageContentKey required";
+  }
   return null;
 }
 
@@ -136,6 +140,10 @@ function rowFromDraft(sessionId, batchKey, uid, draft, index) {
     session_id: sessionId,
     batch_key: batchKey,
     segment_index: index,
+    page_content_key: draft.pageContentKey,
+    page_segment_index: Number.isInteger(draft.pageSegmentIndex)
+      ? draft.pageSegmentIndex
+      : index,
     source_page_refs: draft.sourcePageRefs,
     raw_ocr_text: draft.rawOcrText ?? null,
     title: draft.fields?.title ?? null,
@@ -179,33 +187,16 @@ async function handleDraftBatch(req, res, auth, cors = {}, env = process.env) {
 
   const sessionId = body.sessionId;
   const batchKey = body.batchKey;
-  const query = new URL(`${baseUrl}/item_drafts`);
-  query.searchParams.set("session_id", `eq.${sessionId}`);
-  query.searchParams.set("batch_key", `eq.${batchKey}`);
-  query.searchParams.set("select", "id");
-  query.searchParams.set("limit", "1");
-
-  const duplicateResponse = await fetch(query, {
-    headers: postgrestHeaders(verified.token),
-  });
-  if (!duplicateResponse.ok) {
-    const detail = await duplicateResponse.text().catch(() => "");
-    json(res, 502, { error: "Draft duplicate check failed", detail }, cors);
-    return;
-  }
-
-  const existing = await duplicateResponse.json();
-  if (Array.isArray(existing) && existing.length > 0) {
-    json(res, 409, { error: "Draft batch already processed" }, cors);
-    return;
-  }
-
   const rows = body.drafts.map((draft, index) =>
     rowFromDraft(sessionId, batchKey, verified.decoded.uid, draft, index),
   );
-  const insertResponse = await fetch(`${baseUrl}/item_drafts`, {
+  const insertUrl = new URL(`${baseUrl}/item_drafts`);
+  insertUrl.searchParams.set("on_conflict", "session_id,page_content_key,page_segment_index");
+  const insertResponse = await fetch(insertUrl, {
     method: "POST",
-    headers: postgrestHeaders(verified.token, { prefer: "return=representation" }),
+    headers: postgrestHeaders(verified.token, {
+      prefer: "resolution=ignore-duplicates,return=representation",
+    }),
     body: JSON.stringify(rows),
   });
   if (!insertResponse.ok) {

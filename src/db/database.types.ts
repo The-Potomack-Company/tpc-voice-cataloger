@@ -435,6 +435,8 @@ export type Database = {
           id: string
           low_confidence_fields: string[]
           measurements: string | null
+          page_content_key: string | null
+          page_segment_index: number | null
           promoted_item_id: string | null
           raw_ocr_text: string | null
           receipt_number: string | null
@@ -460,6 +462,8 @@ export type Database = {
           id?: string
           low_confidence_fields?: string[]
           measurements?: string | null
+          page_content_key?: string | null
+          page_segment_index?: number | null
           promoted_item_id?: string | null
           raw_ocr_text?: string | null
           receipt_number?: string | null
@@ -485,6 +489,8 @@ export type Database = {
           id?: string
           low_confidence_fields?: string[]
           measurements?: string | null
+          page_content_key?: string | null
+          page_segment_index?: number | null
           promoted_item_id?: string | null
           raw_ocr_text?: string | null
           receipt_number?: string | null

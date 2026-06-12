@@ -16,6 +16,8 @@ function postDraftBatch({
     drafts: [
       {
         sourcePageRefs: [{ pageUid: "page-1", sortOrder: 0 }],
+        pageContentKey: "sha256:page-1",
+        pageSegmentIndex: 0,
         rawOcrText: "Walnut chair",
         fields: { title: "WALNUT CHAIR" },
         fieldConfidence: { title: 0.9 },
@@ -82,7 +84,7 @@ describe("cataloger-api item draft batches", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("blocks duplicate draft batches", async () => {
+  it("upserts drafts with a per-page conflict key", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([{ id: "draft-1" }]),
@@ -96,9 +98,38 @@ describe("cataloger-api item draft batches", () => {
       fetchMock,
     });
 
-    expect(response.status).toBe(409);
-    expect(JSON.parse(response.body)).toEqual({
-      error: "Draft batch already processed",
+    expect(response.status).toBe(201);
+    expect(JSON.parse(response.body)).toEqual({ ok: true, draftCount: 1 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      "https://postgrest.test/item_drafts?on_conflict=session_id%2Cpage_content_key%2Cpage_segment_index",
+    );
+    expect(init.headers.prefer).toBe("resolution=ignore-duplicates,return=representation");
+    expect(JSON.parse(init.body)).toEqual([
+      expect.objectContaining({
+        session_id: "session-1",
+        page_content_key: "sha256:page-1",
+        page_segment_index: 0,
+      }),
+    ]);
+  });
+
+  it("treats duplicate per-page drafts as zero inserted rows", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([]),
     });
+    const response = await postDraftBatch({
+      decoded: {
+        uid: "user-1",
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
+      },
+      fetchMock,
+    });
+
+    expect(response.status).toBe(201);
+    expect(JSON.parse(response.body)).toEqual({ ok: true, draftCount: 0 });
   });
 });

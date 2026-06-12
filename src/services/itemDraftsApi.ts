@@ -16,9 +16,12 @@ export type DraftFieldConfidence = Record<DraftFieldName, number>;
 export interface DraftSourcePageRef {
   pageUid: string;
   sortOrder: number;
+  pageContentKey?: string;
 }
 
 export interface ItemDraftPayload {
+  pageContentKey: string;
+  pageSegmentIndex: number;
   sourcePageRefs: DraftSourcePageRef[];
   rawOcrText: string;
   fields: DraftFields;

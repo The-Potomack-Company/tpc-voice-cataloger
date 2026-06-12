@@ -10,6 +10,8 @@ vi.mock("../lib/authGuard", () => ({
 }));
 
 const draft: ItemDraftPayload = {
+  pageContentKey: "sha256:page-1",
+  pageSegmentIndex: 0,
   sourcePageRefs: [{ pageUid: "page-1", sortOrder: 0 }],
   rawOcrText: "Walnut chair",
   fields: {

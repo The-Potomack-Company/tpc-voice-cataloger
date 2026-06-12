@@ -84,15 +84,21 @@ export interface SessionAudio {
 
 export interface NotePage {
   id?: number;
-  // crypto.randomUUID() — stable identity across retake/reorder and the Phase 47
-  // idempotency key. NOT the Dexie ++id (which churns) and NOT a Supabase id.
+  // crypto.randomUUID() — stable UI identity across retake/reorder. NOT the Dexie
+  // ++id (which churns) and NOT a Supabase id.
   pageUid: string;
   // Supabase session UUID (the useParams sessionId string), NOT the Dexie ++id.
   sessionId: string;
   blob: Blob; // resized JPEG, maxDimension 2048 (handwriting legibility for Phase 47)
   thumbnail: Blob;
+  // SHA-256 over the persisted page blob. This is the Phase 47 idempotency key:
+  // reordering pages or adding new pages must not change whether this content has
+  // already produced drafts.
+  contentHash?: string;
+  processedContentHash?: string;
   sortOrder: number;
   status: "captured" | "processing" | "processed" | "failed";
+  processedAt?: string;
   createdAt: string; // ISO
 }
 
