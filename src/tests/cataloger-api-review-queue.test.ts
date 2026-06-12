@@ -6,6 +6,7 @@ const { createRequestHandler } = await import("../../cataloger-api/src/server.js
 type HeaderValue = string | number | readonly string[];
 type HeaderMap = Record<string, HeaderValue | undefined>;
 type Method = "GET" | "POST";
+type QueryResult = { rows: Array<Record<string, unknown>> };
 
 function jsonResponse(body: unknown, status = 200) {
   return {
@@ -31,12 +32,14 @@ function request({
   body,
   fetchMock,
   profiles = profileStore("manager"),
+  databasePool,
 }: {
   method: Method;
   path: string;
   body?: unknown;
   fetchMock: ReturnType<typeof vi.fn>;
   profiles?: ReturnType<typeof profileStore>;
+  databasePool?: ReturnType<typeof promotionPool>;
 }) {
   vi.stubGlobal("fetch", fetchMock);
   const handler = createRequestHandler({
@@ -48,6 +51,7 @@ function request({
       }),
     },
     profiles,
+    databasePool,
     allowedOrigins: ["https://app.potomackco.com"],
     env: { CATALOGER_POSTGREST_URL: "https://postgrest.test" },
   });
@@ -142,14 +146,72 @@ function reviewFetch({
   });
 }
 
+function promotionPool({
+  claim = true,
+  itemId = "item-new",
+  sortOrder = 2,
+}: {
+  claim?: boolean;
+  itemId?: string;
+  sortOrder?: number;
+} = {}) {
+  const client = {
+    query: vi.fn((sql: string) => {
+      const normalized = sql.trim().toLowerCase();
+      let result: QueryResult;
+      if (normalized === "begin" || normalized === "commit" || normalized === "rollback") {
+        result = { rows: [] };
+      } else if (normalized.startsWith("update public.item_drafts")
+        && normalized.includes("and status = 'draft'")) {
+        result = claim
+          ? {
+            rows: [{
+              id: "draft-1",
+              status: "promoted",
+              promoted_item_id: null,
+              receipt_number_acknowledged: true,
+              updated_at: "2026-06-12T13:00:00.000Z",
+            }],
+          }
+          : { rows: [] };
+      } else if (normalized.startsWith("select coalesce(max(sort_order)")) {
+        result = { rows: [{ sort_order: sortOrder }] };
+      } else if (normalized.startsWith("insert into public.items")) {
+        result = { rows: [{ id: itemId }] };
+      } else if (normalized.startsWith("update public.item_drafts")
+        && normalized.includes("set promoted_item_id")) {
+        result = {
+          rows: [{
+            id: "draft-1",
+            status: "promoted",
+            promoted_item_id: itemId,
+            receipt_number_acknowledged: true,
+            updated_at: "2026-06-12T13:00:00.000Z",
+          }],
+        };
+      } else {
+        throw new Error(`Unexpected SQL: ${sql}`);
+      }
+      return Promise.resolve(result);
+    }),
+    release: vi.fn(),
+  };
+  return {
+    client,
+    connect: vi.fn().mockResolvedValue(client),
+  };
+}
+
 describe("cataloger-api review queue", () => {
   it("promotes a submitted draft and returns promoted_item_id plus an action ack", async () => {
     const fetchMock = reviewFetch();
+    const databasePool = promotionPool();
     const response = await request({
       method: "POST",
       path: "/item-drafts/draft-1/promote",
       body: { fields: { title: "EDITED CHAIR" } },
       fetchMock,
+      databasePool,
     });
 
     expect(response.status).toBe(200);
@@ -165,14 +227,32 @@ describe("cataloger-api review queue", () => {
         acted_at: "2026-06-12T13:00:00.000Z",
       },
     });
-    const itemInsert = fetchMock.mock.calls.find((call) =>
-      String(call[0]) === "https://postgrest.test/items" && call[1]?.method === "POST",
+    const itemInsert = databasePool.client.query.mock.calls.find((call) =>
+      String(call[0]).trim().toLowerCase().startsWith("insert into public.items"),
     );
-    expect(JSON.parse(String(itemInsert?.[1]?.body))[0]).toEqual(expect.objectContaining({
-      title: "EDITED CHAIR",
-      sort_order: 2,
-      ai_status: "done",
-    }));
+    expect(itemInsert?.[1]).toEqual([
+      "session-1",
+      "sale",
+      2,
+      "100",
+      "EDITED CHAIR",
+      null,
+      null,
+      null,
+      null,
+      null,
+      "Walnut chair",
+      "done",
+    ]);
+    expect(databasePool.client.query.mock.calls.map((call) => String(call[0]).trim().toLowerCase())).toEqual([
+      "begin",
+      expect.stringContaining("where id = $1\n         and status = 'draft'"),
+      "select coalesce(max(sort_order), -1) + 1 as sort_order from public.items where session_id = $1",
+      expect.stringContaining("insert into public.items"),
+      expect.stringContaining("set promoted_item_id = $2"),
+      "commit",
+    ]);
+    expect(databasePool.client.release).toHaveBeenCalledTimes(1);
   });
 
   it("rejects review actions before the session is submitted", async () => {
@@ -209,6 +289,104 @@ describe("cataloger-api review queue", () => {
         blocking_status: "draft",
       },
     });
+  });
+
+  it("aborts promotion without inserting an item when the guarded draft claim loses to discard", async () => {
+    const fetchMock = reviewFetch({
+      drafts: [
+        {
+          id: "draft-1",
+          session_id: "session-1",
+          status: "draft",
+          title: "WALNUT CHAIR",
+          receipt_number: "100",
+          raw_ocr_text: "Walnut chair",
+          source_page_refs: [],
+          low_confidence_fields: [],
+          created_at: "2026-06-12T12:00:00.000Z",
+          updated_at: "2026-06-12T12:00:00.000Z",
+        },
+      ],
+    });
+    let draftReads = 0;
+    fetchMock.mockImplementation((url: URL | string, init?: RequestInit) => {
+      const requestUrl = new URL(String(url));
+      if (requestUrl.pathname === "/item_drafts"
+        && (init?.method ?? "GET") === "GET"
+        && requestUrl.searchParams.get("id")?.startsWith("eq.")) {
+        draftReads += 1;
+        const status = draftReads === 1 ? "draft" : "discarded";
+        return Promise.resolve(jsonResponse([{
+          id: "draft-1",
+          session_id: "session-1",
+          status,
+          title: "WALNUT CHAIR",
+          receipt_number: "100",
+          raw_ocr_text: "Walnut chair",
+          source_page_refs: [],
+          low_confidence_fields: [],
+          created_at: "2026-06-12T12:00:00.000Z",
+          updated_at: "2026-06-12T12:00:00.000Z",
+        }]));
+      }
+      return reviewFetch()(url, init);
+    });
+    const databasePool = promotionPool({ claim: false });
+
+    const response = await request({
+      method: "POST",
+      path: "/item-drafts/draft-1/promote",
+      body: { fields: {} },
+      fetchMock,
+      databasePool,
+    });
+
+    expect(response.status).toBe(409);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "Draft already reviewed",
+      status: "discarded",
+    });
+    const queries = databasePool.client.query.mock.calls.map((call) => String(call[0]).trim().toLowerCase());
+    expect(queries).toEqual([
+      "begin",
+      expect.stringContaining("where id = $1\n         and status = 'draft'"),
+      "rollback",
+    ]);
+    expect(queries.some((sql) => sql.startsWith("insert into public.items"))).toBe(false);
+    expect(databasePool.client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns conflict for promote-after-discard without inserting an item", async () => {
+    const databasePool = promotionPool();
+    const response = await request({
+      method: "POST",
+      path: "/item-drafts/draft-1/promote",
+      body: { fields: {} },
+      fetchMock: reviewFetch({
+        drafts: [
+          {
+            id: "draft-1",
+            session_id: "session-1",
+            status: "discarded",
+            title: "WALNUT CHAIR",
+            receipt_number: "100",
+            raw_ocr_text: "Walnut chair",
+            source_page_refs: [],
+            low_confidence_fields: [],
+            created_at: "2026-06-12T12:00:00.000Z",
+            updated_at: "2026-06-12T12:00:00.000Z",
+          },
+        ],
+      }),
+      databasePool,
+    });
+
+    expect(response.status).toBe(409);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "Draft already reviewed",
+      status: "discarded",
+    });
+    expect(databasePool.connect).not.toHaveBeenCalled();
   });
 
   it("lets specialists view their own submitted drafts without review actions", async () => {

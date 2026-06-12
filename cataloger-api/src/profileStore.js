@@ -1,11 +1,11 @@
 let poolPromise = null;
 const PG_MODULE = "pg";
 
-function databaseUrlFromEnv(env) {
+export function databaseUrlFromEnv(env) {
   return env.CATALOGER_DATABASE_URL ?? env.DATABASE_URL ?? env.PGRST_DB_URI;
 }
 
-export async function createPgProfileStore(env = process.env) {
+export async function createPgPool(env = process.env) {
   const connectionString = databaseUrlFromEnv(env);
   if (!connectionString) {
     throw new Error("CATALOGER_DATABASE_URL is not configured");
@@ -17,7 +17,11 @@ export async function createPgProfileStore(env = process.env) {
       max: Number(env.CATALOGER_DATABASE_POOL_SIZE ?? 5),
     }));
   }
-  const pool = await poolPromise;
+  return poolPromise;
+}
+
+export async function createPgProfileStore(env = process.env) {
+  const pool = await createPgPool(env);
   return createProfileStoreFromPool(pool);
 }
 

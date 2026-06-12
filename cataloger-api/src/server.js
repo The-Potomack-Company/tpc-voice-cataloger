@@ -6,7 +6,7 @@ import {
   validateWorkspaceSignIn,
   workspaceCustomClaims,
 } from "./claimPolicy.js";
-import { createPgProfileStore } from "./profileStore.js";
+import { createPgPool, createPgProfileStore } from "./profileStore.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const RETENTION_DAYS = 30;
@@ -414,14 +414,6 @@ function draftStatusPatchUrl(baseUrl, draftId) {
   return url;
 }
 
-function itemsForSessionUrl(baseUrl, sessionId) {
-  const url = new URL(`${baseUrl}/items`);
-  url.searchParams.set("session_id", `eq.${sessionId}`);
-  url.searchParams.set("select", "id,sort_order,receipt_number");
-  url.searchParams.set("order", "sort_order.desc");
-  return url;
-}
-
 function duplicateDraftUrl(baseUrl, draft) {
   const url = new URL(`${baseUrl}/item_drafts`);
   url.searchParams.set("session_id", `eq.${draft.session_id}`);
@@ -601,27 +593,6 @@ async function blockingDraftForReceipt(baseUrl, token, draft) {
   return blocking ?? null;
 }
 
-async function nextSortOrder(baseUrl, token, sessionId) {
-  const response = await fetch(itemsForSessionUrl(baseUrl, sessionId), {
-    headers: postgrestReadHeaders(token),
-  });
-  if (!response.ok) throw postgrestError(response, "Item read failed");
-  const rows = await postgrestRows(response);
-  const highest = rows.reduce((max, row) => Math.max(max, Number(row.sort_order ?? -1)), -1);
-  return highest + 1;
-}
-
-async function insertPromotedItem(baseUrl, token, row) {
-  const response = await fetch(`${baseUrl}/items`, {
-    method: "POST",
-    headers: postgrestHeaders(token, { prefer: "return=representation" }),
-    body: JSON.stringify([row]),
-  });
-  if (!response.ok) throw postgrestError(response, "Item promotion insert failed");
-  const [item] = await postgrestRows(response);
-  return item ?? null;
-}
-
 function actionAck(type, draftId, actorUid, row) {
   return Object.freeze({
     type,
@@ -643,7 +614,89 @@ async function patchDraftStatus(baseUrl, token, draftId, patch) {
   return row ?? null;
 }
 
-async function handlePromoteDraft(req, res, auth, profiles, draftId, cors = {}, env = process.env) {
+async function promoteDraftTransaction(pool, draftId, itemRow) {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    const claimed = await client.query(
+      `update public.item_drafts
+       set status = 'promoted',
+           receipt_number_acknowledged = true
+       where id = $1
+         and status = 'draft'
+       returning id, status, promoted_item_id, receipt_number_acknowledged, updated_at`,
+      [draftId],
+    );
+    const claimedDraft = claimed.rows[0] ?? null;
+    if (!claimedDraft) {
+      await client.query("rollback");
+      return { draft: null, item: null };
+    }
+
+    const sortOrder = await client.query(
+      "select coalesce(max(sort_order), -1) + 1 as sort_order from public.items where session_id = $1",
+      [itemRow.session_id],
+    );
+    const inserted = await client.query(
+      `insert into public.items (
+         session_id,
+         mode,
+         sort_order,
+         receipt_number,
+         title,
+         description,
+         condition,
+         estimate,
+         measurements,
+         category,
+         transcript,
+         ai_status
+       )
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       returning id`,
+      [
+        itemRow.session_id,
+        itemRow.mode,
+        Number(sortOrder.rows[0]?.sort_order ?? 0),
+        itemRow.receipt_number,
+        itemRow.title,
+        itemRow.description,
+        itemRow.condition,
+        itemRow.estimate,
+        itemRow.measurements,
+        itemRow.category,
+        itemRow.transcript,
+        itemRow.ai_status,
+      ],
+    );
+    const item = inserted.rows[0] ?? null;
+    if (!item?.id) {
+      throw Object.assign(new Error("Item promotion insert failed"), { status: 502 });
+    }
+
+    const updated = await client.query(
+      `update public.item_drafts
+       set promoted_item_id = $2
+       where id = $1
+       returning id, status, promoted_item_id, receipt_number_acknowledged, updated_at`,
+      [draftId, item.id],
+    );
+    const updatedDraft = updated.rows[0] ?? null;
+    if (!updatedDraft) {
+      throw Object.assign(new Error("Draft status update failed"), { status: 502 });
+    }
+
+    await client.query("commit");
+    return { draft: updatedDraft, item };
+  } catch (err) {
+    await client.query("rollback").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function handlePromoteDraft(req, res, auth, profiles, getPool, draftId, cors = {}, env = process.env) {
   const actor = await requireReviewer(req, auth, profiles);
   const baseUrl = postgrestUrlFromEnv(env).replace(/\/$/, "");
   if (!baseUrl) {
@@ -688,20 +741,22 @@ async function handlePromoteDraft(req, res, auth, profiles, draftId, cors = {}, 
     return;
   }
 
-  const sortOrder = await nextSortOrder(baseUrl, token, draft.session_id);
-  const item = await insertPromotedItem(baseUrl, token, itemInsertFromDraft(draft, session, fields, sortOrder));
-  if (!item?.id) {
-    json(res, 502, { error: "Item promotion insert failed" }, cors);
+  const pool = await getPool();
+  const { draft: updatedDraft, item } = await promoteDraftTransaction(
+    pool,
+    draftId,
+    itemInsertFromDraft(draft, session, fields, 0),
+  );
+  if (!updatedDraft) {
+    const currentDraft = await readDraft(baseUrl, token, draftId);
+    json(res, 409, {
+      error: "Draft already reviewed",
+      status: currentDraft?.status ?? draft.status,
+    }, cors);
     return;
   }
-
-  const updatedDraft = await patchDraftStatus(baseUrl, token, draftId, {
-    status: "promoted",
-    promoted_item_id: item.id,
-    receipt_number_acknowledged: true,
-  });
-  if (!updatedDraft) {
-    json(res, 409, { error: "Draft already reviewed", promoted_item_id: item.id }, cors);
+  if (!item?.id) {
+    json(res, 502, { error: "Item promotion insert failed" }, cors);
     return;
   }
 
@@ -1036,14 +1091,21 @@ export function createRequestHandler({
   auth,
   storage,
   profiles,
+  databasePool,
+  databasePoolFactory = createPgPool,
   profileStoreFactory = createPgProfileStore,
   allowedOrigins = allowedOriginsFromEnv(),
   env = process.env,
 }) {
   let profileStorePromise = profiles ? Promise.resolve(profiles) : null;
+  let databasePoolPromise = databasePool ? Promise.resolve(databasePool) : null;
   const getProfiles = () => {
     profileStorePromise ??= profileStoreFactory(env);
     return profileStorePromise;
+  };
+  const getDatabasePool = () => {
+    databasePoolPromise ??= databasePoolFactory(env);
+    return databasePoolPromise;
   };
 
   return (req, res) => {
@@ -1133,7 +1195,16 @@ export function createRequestHandler({
           try {
             const profileStore = await getProfiles();
             if (promoteDraftMatch) {
-              await handlePromoteDraft(req, res, auth, profileStore, promoteDraftMatch[1], cors, env);
+              await handlePromoteDraft(
+                req,
+                res,
+                auth,
+                profileStore,
+                getDatabasePool,
+                promoteDraftMatch[1],
+                cors,
+                env,
+              );
               return;
             }
             if (discardDraftMatch) {
