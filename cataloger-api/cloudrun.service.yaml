@@ -6,6 +6,9 @@ metadata:
     run.googleapis.com/ingress: all
 spec:
   template:
+    metadata:
+      annotations:
+        run.googleapis.com/cloudsql-instances: gen-lang-client-0662587427:us-central1:potomack-cataloger-db
     spec:
       serviceAccountName: cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com
       containers:

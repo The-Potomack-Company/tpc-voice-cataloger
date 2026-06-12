@@ -158,6 +158,48 @@ describe("cataloger-api admin routes", () => {
     }));
   });
 
+  it("logs sanitized /admin/list-users 500s with route and stack", async () => {
+    const dbError = new Error("database socket unavailable");
+    const auth = {
+      verifyIdToken: vi.fn().mockResolvedValue({
+        uid: "admin-1",
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
+      }),
+      listUsers: vi.fn().mockResolvedValue({ users: [], pageToken: undefined }),
+    };
+    const profiles = {
+      getProfile: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        is_active: true,
+      }),
+      listProfiles: vi.fn().mockRejectedValue(dbError),
+    };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = createRequestHandler({
+      auth,
+      profiles,
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    try {
+      const response = await callHandler(handler, {
+        method: "GET",
+        url: "/admin/list-users",
+      });
+
+      expect(response.status).toBe(500);
+      expect(JSON.parse(response.body)).toEqual({ error: "Request failed" });
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("[cataloger-api] /admin/list-users failed"),
+        expect.stringContaining("Error: database socket unavailable"),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it("purges expired and orphaned Firebase audio objects", async () => {
     const deleteExpired = vi.fn().mockResolvedValue(undefined);
     const deleteOrphan = vi.fn().mockResolvedValue(undefined);
