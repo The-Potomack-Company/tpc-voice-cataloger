@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
 // --- Mocks ---
-const { mockCreateSignedUrl } = vi.hoisted(() => {
+const { mockCreateSignedUrl, mockGetFirebaseStorageDownloadUrl } = vi.hoisted(() => {
   const mockCreateSignedUrl = vi.fn();
-  return { mockCreateSignedUrl };
+  const mockGetFirebaseStorageDownloadUrl = vi.fn();
+  return { mockCreateSignedUrl, mockGetFirebaseStorageDownloadUrl };
 });
 
 vi.mock("../lib/supabase", () => ({
@@ -17,11 +18,18 @@ vi.mock("../lib/supabase", () => ({
   },
 }));
 
+vi.mock("../lib/firebaseStorage", () => ({
+  getFirebaseStorageDownloadUrl: mockGetFirebaseStorageDownloadUrl,
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("VITE_AUTH_BACKEND", "supabase");
   mockCreateSignedUrl.mockReset();
+  mockGetFirebaseStorageDownloadUrl.mockReset();
   // Default: resolve with no data (prevents .then crash on unexpected calls)
   mockCreateSignedUrl.mockResolvedValue({ data: null });
+  mockGetFirebaseStorageDownloadUrl.mockResolvedValue(undefined);
 });
 
 describe("usePhotoUrl", () => {
@@ -64,6 +72,28 @@ describe("usePhotoUrl", () => {
       "photos/sess/item/full-0.jpg",
       3600,
     );
+  });
+
+  it("fetches Firebase download URL in Firebase backend mode", async () => {
+    vi.stubEnv("VITE_AUTH_BACKEND", "firebase");
+    const { usePhotoUrl } = await import("../hooks/usePhotoUrl");
+
+    mockGetFirebaseStorageDownloadUrl.mockResolvedValue(
+      "https://firebasestorage.example.com/photo.jpg",
+    );
+
+    const { result } = renderHook(() =>
+      usePhotoUrl(undefined, "photos/sess/item/full-0.jpg"),
+    );
+
+    await waitFor(() => {
+      expect(result.current).toBe("https://firebasestorage.example.com/photo.jpg");
+    });
+
+    expect(mockGetFirebaseStorageDownloadUrl).toHaveBeenCalledWith(
+      "photos/sess/item/full-0.jpg",
+    );
+    expect(mockCreateSignedUrl).not.toHaveBeenCalled();
   });
 
   it("returns undefined when neither blob nor storagePath available", async () => {

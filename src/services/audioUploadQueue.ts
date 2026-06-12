@@ -1,5 +1,7 @@
 import { db } from "../db";
 import { supabase } from "../lib/supabase";
+import { isFirebaseAuthBackend } from "../lib/authBackend";
+import { uploadFirebaseStorageObject } from "../lib/firebaseStorage";
 import { trackEvent } from "./analytics";
 import { extFromMime } from "../utils/audio";
 import type { AudioUploadEntry } from "../db/types";
@@ -88,15 +90,22 @@ export async function processOneAudioUpload(entry: AudioUploadEntry): Promise<vo
   }
 
   try {
-    // Upload the single audio blob with its runtime content-type
-    const { error: uploadError } = await supabase.storage
-      .from("audio")
-      .upload(entry.storagePath, audio.blob, {
+    if (isFirebaseAuthBackend()) {
+      await uploadFirebaseStorageObject(entry.storagePath, audio.blob, {
         contentType: entry.mimeType,
         cacheControl: "31536000",
-        upsert: true,
       });
-    if (uploadError) throw uploadError;
+    } else {
+      // Upload the single audio blob with its runtime content-type
+      const { error: uploadError } = await supabase.storage
+        .from("audio")
+        .upload(entry.storagePath, audio.blob, {
+          contentType: entry.mimeType,
+          cacheControl: "31536000",
+          upsert: true,
+        });
+      if (uploadError) throw uploadError;
+    }
 
     // Upsert metadata row in Supabase audio table.
     // DAT-5: onConflict storage_path / ignoreDuplicates so a retry can't duplicate.

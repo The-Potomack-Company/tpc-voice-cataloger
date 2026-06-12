@@ -15,7 +15,19 @@ spec:
           env:
             - name: FIREBASE_PROJECT_ID
               value: gen-lang-client-0662587427
+            - name: FIREBASE_STORAGE_BUCKET
+              value: gen-lang-client-0662587427.firebasestorage.app
             - name: CATALOGER_API_ALLOWED_ORIGINS
               value: https://app.potomackco.com,https://gen-lang-client-0662587427.web.app
             - name: CATALOGER_POSTGREST_URL
               value: https://cataloger-postgrest-REPLACE.a.run.app
+            - name: CATALOGER_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cataloger-postgres-uri
+                  key: latest
+            - name: PURGE_AUDIO_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: purge-audio-secret
+                  key: latest

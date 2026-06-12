@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function workspaceClaimed() {
+      return signedIn()
+        && request.auth.token.workspace == "potomackco.com"
+        && request.auth.token.workspace_role == "authenticated";
+    }
+
+    function isActive() {
+      return !("is_active" in request.auth.token) || request.auth.token.is_active == true;
+    }
+
+    function isAdmin() {
+      return request.auth.token.admin == true
+        || request.auth.token.role == "admin"
+        || (request.auth.token.roles is list && request.auth.token.roles.hasAny(["admin"]));
+    }
+
+    function hasSessionAccess(sessionId) {
+      return isAdmin()
+        || (
+          request.auth.token.session_access is map
+          && request.auth.token.session_access[sessionId] == true
+        );
+    }
+
+    function validPhotoName(fileName) {
+      return fileName.matches("^(full|thumb)-[0-9]+\\.jpg$");
+    }
+
+    function validAudioName(fileName) {
+      return fileName.matches("^[0-9]+\\.(webm|opus|ogg|mp4|m4a|wav)$");
+    }
+
+    match /photos/{sessionId}/{itemId}/{fileName} {
+      allow read, write: if workspaceClaimed()
+        && isActive()
+        && hasSessionAccess(sessionId)
+        && validPhotoName(fileName);
+    }
+
+    match /audio/{sessionId}/{itemId}/{fileName} {
+      allow read, write: if workspaceClaimed()
+        && isActive()
+        && hasSessionAccess(sessionId)
+        && validAudioName(fileName);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

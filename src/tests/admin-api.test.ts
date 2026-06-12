@@ -5,6 +5,11 @@ const { mockInvoke } = vi.hoisted(() => ({
   mockInvoke: vi.fn(),
 }));
 
+const { mockIsFirebaseAuthBackend, mockEnsureFreshSession } = vi.hoisted(() => ({
+  mockIsFirebaseAuthBackend: vi.fn(),
+  mockEnsureFreshSession: vi.fn(),
+}));
+
 vi.mock('../lib/supabase', () => ({
   supabase: {
     functions: {
@@ -13,15 +18,27 @@ vi.mock('../lib/supabase', () => ({
   },
 }));
 
+vi.mock('../lib/authBackend', () => ({
+  isFirebaseAuthBackend: mockIsFirebaseAuthBackend,
+}));
+
+vi.mock('../lib/authGuard', () => ({
+  ensureFreshSession: mockEnsureFreshSession,
+}));
+
 import {
   createSpecialistAccount,
   toggleAccountActive,
   listAccounts,
+  type Account,
 } from '../services/adminApi';
 
 describe('adminApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsFirebaseAuthBackend.mockReturnValue(false);
+    mockEnsureFreshSession.mockResolvedValue('firebase-token');
+    vi.stubEnv('VITE_CATALOGER_API_URL', 'https://cataloger-api.example.com');
   });
 
   describe('createSpecialistAccount', () => {
@@ -62,6 +79,30 @@ describe('adminApi', () => {
         })
       ).rejects.toThrow('User already registered');
     });
+
+    it('calls cataloger-api in Firebase mode', async () => {
+      mockIsFirebaseAuthBackend.mockReturnValue(true);
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ user: { id: 'firebase-1', email: 'specialist@potomackco.com' } }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const result = await createSpecialistAccount({
+        email: 'specialist@potomackco.com',
+        password: 'temp-pass-123',
+        displayName: 'Jane Doe',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://cataloger-api.example.com/admin/create-user',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ authorization: 'Bearer firebase-token' }),
+        }),
+      );
+      expect(result.user.id).toBe('firebase-1');
+    });
   });
 
   describe('toggleAccountActive', () => {
@@ -88,6 +129,25 @@ describe('adminApi', () => {
       await expect(
         toggleAccountActive('admin-id', false)
       ).rejects.toThrow('Cannot modify your own account');
+    });
+
+    it('calls cataloger-api in Firebase mode', async () => {
+      mockIsFirebaseAuthBackend.mockReturnValue(true);
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(toggleAccountActive('user-456', false)).resolves.toEqual({ success: true });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://cataloger-api.example.com/admin/update-user',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ userId: 'user-456', activate: false }),
+        }),
+      );
     });
   });
 
@@ -120,6 +180,32 @@ describe('adminApi', () => {
 
       expect(mockInvoke).toHaveBeenCalledWith('admin-list-users');
       expect(result).toEqual(mockAccounts);
+    });
+
+    it('lists users through cataloger-api in Firebase mode', async () => {
+      mockIsFirebaseAuthBackend.mockReturnValue(true);
+      const mockAccounts: Account[] = [{
+        id: 'firebase-1',
+        email: 'admin@potomackco.com',
+        display_name: 'Admin',
+        role: 'admin',
+        is_active: true,
+        created_at: '2026-01-01T00:00:00Z',
+      }];
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ accounts: mockAccounts }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(listAccounts()).resolves.toEqual(mockAccounts);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://cataloger-api.example.com/admin/list-users',
+        expect.objectContaining({
+          headers: expect.objectContaining({ authorization: 'Bearer firebase-token' }),
+        }),
+      );
     });
   });
 });

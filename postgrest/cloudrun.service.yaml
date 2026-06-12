@@ -16,6 +16,8 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: PGRST_SERVER_PORT
+              value: "8080"
             - name: PGRST_JWT_AUD
               value: gen-lang-client-0662587427
             - name: PGRST_OPENAPI_SERVER_PROXY_URI

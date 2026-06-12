@@ -1,4 +1,4 @@
-const ALLOWED_DOMAIN = "potomackco.com";
+export const ALLOWED_DOMAIN = "potomackco.com";
 const GOOGLE_PROVIDER_ID = "google.com";
 
 export function isAllowedWorkspaceEmail(email) {
@@ -36,5 +36,15 @@ export function workspaceCustomClaims(existingClaims = {}) {
     ...existingClaims,
     workspace: ALLOWED_DOMAIN,
     workspace_role: "authenticated",
+  };
+}
+
+export function deactivatedCustomClaims(existingClaims = {}) {
+  const { workspace, workspace_role, ...rest } = existingClaims;
+  void workspace;
+  void workspace_role;
+  return {
+    ...rest,
+    is_active: false,
   };
 }
