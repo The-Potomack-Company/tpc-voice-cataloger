@@ -92,7 +92,7 @@ const makeSession = (id: string, name: string, assignedTo: string | null, status
   review_notes: null,
 });
 
-describe("Sessions admin view (mockup-faithful date-grouped tiles)", () => {
+describe("Sessions catalog view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseUIStore.mockImplementation((selector: (s: Record<string, unknown>) => unknown) =>
@@ -106,8 +106,8 @@ describe("Sessions admin view (mockup-faithful date-grouped tiles)", () => {
     mockListAccounts.mockResolvedValue([]);
   });
 
-  it("renders the eyebrow + display title and a New action in the header", () => {
-    mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, loading: false });
+  it("renders the catalog eyebrow + role-scoped title and a New action in the header", () => {
+    mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, isReviewer: true, loading: false });
     mockUseNameMap.mockReturnValue(new Map());
     mockUseActiveSessions.mockReturnValue([makeSession("s1", "Session 1", "user-a")]);
     mockUseSubmittedSessions.mockReturnValue([]);
@@ -120,13 +120,13 @@ describe("Sessions admin view (mockup-faithful date-grouped tiles)", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("The Potomack Co.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Sessions" })).toBeInTheDocument();
+    expect(screen.getByText("Catalog")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "All sessions" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new/i })).toBeInTheDocument();
   });
 
   it("admin view shows each session as a tile with the assignee name visible", () => {
-    mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, loading: false });
+    mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, isReviewer: true, loading: false });
     mockUseNameMap.mockReturnValue(new Map([["user-a", "Alice"]]));
     mockUseActiveSessions.mockReturnValue([makeSession("s1", "Session 1", "user-a")]);
     mockUseSubmittedSessions.mockReturnValue([]);
@@ -144,8 +144,8 @@ describe("Sessions admin view (mockup-faithful date-grouped tiles)", () => {
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
   });
 
-  it("admin view renders an Active Sessions section eyebrow header", () => {
-    mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, loading: false });
+  it("admin view renders an Active section eyebrow header", () => {
+    mockUseUserRole.mockReturnValue({ role: "admin", isAdmin: true, isReviewer: true, loading: false });
     mockUseNameMap.mockReturnValue(new Map([["user-a", "Alice"]]));
     mockUseActiveSessions.mockReturnValue([makeSession("s1", "Session 1", "user-a", "active")]);
     mockUseSubmittedSessions.mockReturnValue([]);
@@ -158,11 +158,11 @@ describe("Sessions admin view (mockup-faithful date-grouped tiles)", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Active Sessions (1)")).toBeInTheDocument();
+    expect(screen.getByText("Active (1)")).toBeInTheDocument();
   });
 
   it("specialist view doesn't surface assignee names on tiles", () => {
-    mockUseUserRole.mockReturnValue({ role: "specialist", isAdmin: false, loading: false });
+    mockUseUserRole.mockReturnValue({ role: "specialist", isAdmin: false, isReviewer: false, loading: false });
     mockUseNameMap.mockReturnValue(new Map());
     mockUseActiveSessions.mockReturnValue([
       makeSession("s1", "Session 1", "user-a"),
@@ -180,11 +180,12 @@ describe("Sessions admin view (mockup-faithful date-grouped tiles)", () => {
 
     expect(screen.queryByText(/Alice/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Bob/)).not.toBeInTheDocument();
-    expect(screen.getByText("Active Sessions (2)")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My sessions" })).toBeInTheDocument();
+    expect(screen.getByText("Active (2)")).toBeInTheDocument();
   });
 
   it("shows skeleton loading state while role is loading", () => {
-    mockUseUserRole.mockReturnValue({ role: null, isAdmin: false, loading: true });
+    mockUseUserRole.mockReturnValue({ role: null, isAdmin: false, isReviewer: false, loading: true });
     mockUseNameMap.mockReturnValue(new Map());
     mockUseActiveSessions.mockReturnValue([]);
     mockUseSubmittedSessions.mockReturnValue([]);

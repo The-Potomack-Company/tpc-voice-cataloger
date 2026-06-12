@@ -38,24 +38,25 @@ function renderWithRouter(ui: React.ReactElement, { route = "/" } = {}) {
 }
 
 describe("AppLayout", () => {
-  test("renders a nav element with 3 NavLink children", () => {
+  test("renders the prototype rail with specialist navigation links", () => {
     renderAppLayout();
     const nav = document.querySelector("nav");
     expect(nav).toBeInTheDocument();
     const links = nav!.querySelectorAll("a");
-    expect(links).toHaveLength(3);
+    expect(links).toHaveLength(4);
+    expect(nav!.className).toContain("tpc-rail");
+    expect(screen.getByLabelText("Home")).toBeInTheDocument();
+    expect(screen.getByLabelText("Catalog")).toBeInTheDocument();
+    expect(screen.getByLabelText("New")).toBeInTheDocument();
+    expect(screen.getByLabelText("Setup")).toBeInTheDocument();
   });
 
-  test("each NavLink uses .tpc-tab which guarantees 48px tap targets via tokens", () => {
-    // Phase 26 reskin: the inline Tailwind `min-h-12 min-w-12` classes were
-    // replaced by the `.tpc-tab` rule in src/ui/tokens/base.css which sets
-    // `min-height: 48px; min-width: 48px;` directly. We verify the class is
-    // applied; the 48px guarantee lives in the CSS rule.
+  test("each NavLink uses .tpc-rail-tab for stable rail tap targets", () => {
     renderAppLayout();
     const nav = document.querySelector("nav");
     const links = nav!.querySelectorAll("a");
     links.forEach((link) => {
-      expect(link.className).toContain("tpc-tab");
+      expect(link.className).toContain("tpc-rail-tab");
     });
   });
 
@@ -65,11 +66,11 @@ describe("AppLayout", () => {
     expect(nav!.className).toContain("pb-[env(safe-area-inset-bottom)]");
   });
 
-  test("root container uses h-dvh class", () => {
+  test("root container uses the prototype app shell class", () => {
     renderAppLayout();
     const rootDiv = document.querySelector("[data-testid='app-layout']");
     expect(rootDiv).toBeInTheDocument();
-    expect(rootDiv!.className).toContain("h-dvh");
+    expect(rootDiv!.className).toContain("tpc-app-shell");
   });
 });
 

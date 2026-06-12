@@ -112,7 +112,7 @@ describe("PhotoNotes — Process gating (PHN-02)", () => {
 
     const btn = await screen.findByRole("button", { name: /process 2 pages/i });
     expect(btn).toBeDisabled();
-    expect(screen.getByText(/pages are saved/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/pages are saved/i).length).toBeGreaterThan(0);
   });
 
   it("enables Process online and shows the draft count toast (UAT-7)", async () => {
