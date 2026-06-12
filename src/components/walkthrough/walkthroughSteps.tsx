@@ -115,16 +115,6 @@ export const ADMIN_STEPS: WalkthroughStep[] = [
       </svg>
     ),
   },
-  {
-    id: 'admin-import',
-    title: 'Import Receipts',
-    description: 'Upload a CSV or XLSX file of receipt numbers to bulk-create items in a sale session. Invalid receipts are skipped automatically.',
-    icon: (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-      </svg>
-    ),
-  },
 ];
 
 export const SPECIALIST_STEPS: WalkthroughStep[] = [
