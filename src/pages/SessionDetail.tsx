@@ -79,7 +79,8 @@ export function SessionDetailPage() {
   // Get queued count from Zustand store
   const items = useSessionItems(sessionId!);
   const queuedCount = items.filter(i => i.ai_status === "queued").length;
-  const notePageCount = useNotePageCount(sessionId);
+  const photoNotesEnabled = featureFlags.photoNotes;
+  const notePageCount = useNotePageCount(photoNotesEnabled ? sessionId : undefined);
 
   const recordingSessionId = useUIStore((s) => s.recordingSessionId);
   const setRecordingSession = useUIStore((s) => s.setRecordingSession);
@@ -486,7 +487,7 @@ export function SessionDetailPage() {
         <div className="flex flex-col gap-2 mb-6">
           {/* Photo notes -- capture handwritten note pages for this session (Phase 46).
               Same mutate gate as the Add-Item FAB; both modes. */}
-          {!isReadOnly && !continuousActive && (
+          {photoNotesEnabled && !isReadOnly && !continuousActive && (
             <Button
               variant="secondary"
               fullWidth

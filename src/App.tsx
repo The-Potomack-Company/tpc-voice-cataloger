@@ -10,6 +10,7 @@ import { PhotoNotesPage } from "./pages/PhotoNotes";
 import { ItemEntryPage } from "./pages/ItemEntry";
 import { SettingsPage } from "./pages/Settings";
 import { AccountManagementPage } from "./pages/AccountManagement";
+import { featureFlags } from "./lib/featureFlags";
 
 export default function App() {
   return (
@@ -20,10 +21,12 @@ export default function App() {
           <Route index element={<SessionsPage />} />
           <Route path="new" element={<NewSessionPage />} />
           <Route path="session/:sessionId" element={<SessionDetailPage />} />
-          <Route
-            path="session/:sessionId/photo-notes"
-            element={<PhotoNotesPage />}
-          />
+          {featureFlags.photoNotes && (
+            <Route
+              path="session/:sessionId/photo-notes"
+              element={<PhotoNotesPage />}
+            />
+          )}
           <Route
             path="session/:sessionId/item/:itemId"
             element={<ItemEntryPage />}

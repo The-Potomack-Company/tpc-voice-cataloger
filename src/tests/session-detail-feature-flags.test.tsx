@@ -81,6 +81,7 @@ describe("SessionDetail feature flags", () => {
 
   afterEach(() => {
     vi.stubEnv("VITE_FEATURE_CONTINUOUS_CAPTURE", "true");
+    vi.stubEnv("VITE_FEATURE_PHOTO_NOTES", "true");
   });
 
   it("hides the continuous capture entry point when the flag is off", async () => {
@@ -88,5 +89,12 @@ describe("SessionDetail feature flags", () => {
     renderDetail();
     await screen.findByRole("button", { name: /start cataloging/i });
     expect(screen.queryByRole("button", { name: /continuous mode/i })).not.toBeInTheDocument();
+  });
+
+  it("hides the photo notes entry point when the flag is off", async () => {
+    vi.stubEnv("VITE_FEATURE_PHOTO_NOTES", "false");
+    renderDetail();
+    await screen.findByRole("button", { name: /start cataloging/i });
+    expect(screen.queryByRole("button", { name: /photo notes/i })).not.toBeInTheDocument();
   });
 });

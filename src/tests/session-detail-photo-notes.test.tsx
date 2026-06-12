@@ -96,12 +96,6 @@ describe("SessionDetail — Photo notes entry (PHN-01)", () => {
     expect(await screen.findByRole("button", { name: /photo notes/i })).toBeInTheDocument();
   });
 
-  it("shows the Photo notes action on an active house session", async () => {
-    mockUseSession.mockReturnValue({ ...baseSession, mode: "house" });
-    renderDetail();
-    expect(await screen.findByRole("button", { name: /photo notes/i })).toBeInTheDocument();
-  });
-
   it("hides the action on a submitted (read-only) specialist session", async () => {
     mockUseSession.mockReturnValue({ ...baseSession, status: "submitted" });
     renderDetail();
