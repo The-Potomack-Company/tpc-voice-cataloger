@@ -18,6 +18,8 @@ import {
 import { useSessionStore } from "../stores/sessionStore";
 import { trackUiInteraction } from "../services/analytics";
 import { Icon, type IconName } from "../ui/icons";
+import { Badge } from "../ui/Badge";
+import { useUserRole } from "../hooks/useUserRole";
 
 // Normalize :sessionId and :itemId into route templates so page_path aggregates cleanly.
 function normalizePath(pathname: string): string {
@@ -31,13 +33,15 @@ interface TabSpec {
   end?: boolean;
   icon: IconName;
   label: string;
+  activeFor?: (pathname: string) => boolean;
 }
 
-const TABS: TabSpec[] = [
-  { to: "/", end: true, icon: "folder", label: "Sessions" },
-  { to: "/new", icon: "plus", label: "New" },
-  { to: "/settings", icon: "settings", label: "Settings" },
-];
+function roleLabel(role: string | null, isAdmin: boolean, isReviewer: boolean): string {
+  if (role === "dev") return "Dev";
+  if (isAdmin) return "Admin";
+  if (isReviewer) return "Manager";
+  return "Specialist";
+}
 
 export function AppLayout() {
   useOnlineStatus();
@@ -45,6 +49,31 @@ export function AppLayout() {
 
   const location = useLocation();
   const fetchSessions = useSessionStore(s => s.fetchSessions);
+  const { role, isAdmin, isReviewer } = useUserRole();
+  const roleName = roleLabel(role, isAdmin, isReviewer);
+  const tabs: TabSpec[] = [
+    {
+      to: "/",
+      end: true,
+      icon: "home",
+      label: roleName === "Specialist" ? "Home" : "Home",
+      activeFor: (pathname) => pathname === "/",
+    },
+    {
+      to: "/",
+      icon: "folder",
+      label: roleName === "Dev" ? "Analytics" : "Catalog",
+      activeFor: (pathname) =>
+        pathname.startsWith("/session") || pathname === "/new",
+    },
+    ...(roleName === "Specialist" || isAdmin
+      ? [{ to: "/new", icon: "plus" as IconName, label: "New" }]
+      : []),
+    ...(isAdmin
+      ? [{ to: "/admin/accounts", icon: "users" as IconName, label: "Accounts" }]
+      : []),
+    { to: "/settings", icon: "settings", label: "Setup" },
+  ];
 
   useEffect(() => {
     const template = normalizePath(location.pathname);
@@ -80,37 +109,27 @@ export function AppLayout() {
   return (
     <div
       data-testid="app-layout"
-      className="flex flex-col h-dvh bg-bg pt-[env(safe-area-inset-top)]"
+      className="tpc-app-shell bg-bg pt-[env(safe-area-inset-top)]"
     >
       <InstallBanner />
-      <OfflineIndicator />
-      <BlockedQueueBadge />
       <PhotoMigrationBanner />
       <MigrationRetryBanner />
-      <main className="flex-1 overflow-y-auto isolate">
-        {/* Phase 27 (MOTION-03): keyed wrapper triggers the route cross-fade
-            declared in base.css. The keyframes are wrapped in a
-            prefers-reduced-motion: no-preference media query, so users with
-            the reduced-motion pref see instant transitions instead. */}
-        <div
-          key={location.pathname}
-          className="tpc-route-fade-in"
-          data-testid="route-fade"
-        >
-          <Outlet />
-        </div>
-      </main>
       <nav
-        className="tpc-tabbar pb-[env(safe-area-inset-bottom)]"
+        className="tpc-rail pb-[env(safe-area-inset-bottom)]"
         aria-label="Primary navigation"
       >
-        {TABS.map((tab) => (
+        <div className="tpc-rail-mark" aria-hidden>
+          TPC
+        </div>
+        {tabs.map((tab) => (
           <NavLink
-            key={tab.to}
+            key={`${tab.to}:${tab.label}`}
             to={tab.to}
             end={tab.end}
             className={({ isActive }) =>
-              `tpc-tab ${isActive ? "tpc-tab-active" : ""}`
+              `tpc-rail-tab ${(
+                tab.activeFor ? tab.activeFor(location.pathname) : isActive
+              ) ? "tpc-rail-tab-active" : ""}`
             }
             aria-label={tab.label}
           >
@@ -125,6 +144,42 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
+      <div className="tpc-main">
+        <header className="tpc-topbar">
+          <div className="tpc-brandline">
+            <span className="tpc-eyebrow">The Potomack Co.</span>
+            <strong className="tpc-display tpc-shell-title">
+              {location.pathname.startsWith("/admin")
+                ? "Accounts"
+                : location.pathname.startsWith("/settings")
+                  ? "Setup"
+                  : location.pathname.startsWith("/session")
+                    ? "Catalog"
+                    : "Sessions"}
+            </strong>
+          </div>
+          <div className="tpc-topbar-actions">
+            <Badge tone={roleName === "Specialist" ? "info" : "default"}>
+              {roleName}
+            </Badge>
+            <OfflineIndicator />
+            <BlockedQueueBadge />
+          </div>
+        </header>
+        <main className="tpc-content">
+          {/* Phase 27 (MOTION-03): keyed wrapper triggers the route cross-fade
+              declared in base.css. The keyframes are wrapped in a
+              prefers-reduced-motion: no-preference media query, so users with
+              the reduced-motion pref see instant transitions instead. */}
+          <div
+            key={location.pathname}
+            className="tpc-route-fade-in"
+            data-testid="route-fade"
+          >
+            <Outlet />
+          </div>
+        </main>
+      </div>
       <ErrorToast />
     </div>
   );
