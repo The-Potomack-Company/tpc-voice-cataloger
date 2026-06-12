@@ -118,7 +118,7 @@ gcloud run deploy cataloger-api \
   --region=us-central1 \
   --allow-unauthenticated \
   --service-account=cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com \
-  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427,CATALOGER_API_ALLOWED_ORIGINS=https://app.potomackco.com\\,https://gen-lang-client-0662587427.web.app
+  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427,CATALOGER_POSTGREST_URL=https://cataloger-postgrest-REPLACE.a.run.app,CATALOGER_API_ALLOWED_ORIGINS=https://app.potomackco.com\\,https://gen-lang-client-0662587427.web.app
 ```
 
 ## App Env Flip
