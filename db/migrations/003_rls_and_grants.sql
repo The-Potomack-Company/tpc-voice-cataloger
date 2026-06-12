@@ -24,7 +24,23 @@ as $$
     and exists (
       select 1 from public.profiles
       where id = private.jwt_uid()
-        and role = 'admin'
+        and role in ('dev', 'admin')
+        and is_active = true
+    );
+$$;
+
+create or replace function private.can_review()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.jwt_workspace() = 'potomackco.com'
+    and exists (
+      select 1 from public.profiles
+      where id = private.jwt_uid()
+        and role in ('dev', 'admin', 'manager')
         and is_active = true
     );
 $$;
@@ -90,6 +106,11 @@ create policy sessions_specialist_select
     and (created_by = private.jwt_uid() or assigned_to = private.jwt_uid())
   );
 
+drop policy if exists sessions_reviewer_select on public.sessions;
+create policy sessions_reviewer_select
+  on public.sessions for select to authenticated
+  using (private.can_review());
+
 drop policy if exists sessions_specialist_insert on public.sessions;
 create policy sessions_specialist_insert
   on public.sessions for insert to authenticated
@@ -118,6 +139,16 @@ drop policy if exists items_specialist_select on public.items;
 create policy items_specialist_select
   on public.items for select to authenticated
   using (private.is_active_user() and private.owns_session(session_id));
+
+drop policy if exists items_reviewer_select on public.items;
+create policy items_reviewer_select
+  on public.items for select to authenticated
+  using (private.can_review());
+
+drop policy if exists items_reviewer_insert on public.items;
+create policy items_reviewer_insert
+  on public.items for insert to authenticated
+  with check (private.can_review());
 
 drop policy if exists items_specialist_insert on public.items;
 create policy items_specialist_insert
@@ -181,6 +212,11 @@ create policy export_history_admin_all
   on public.export_history for all to authenticated
   using (private.is_admin())
   with check (private.is_admin());
+
+drop policy if exists export_history_reviewer_insert on public.export_history;
+create policy export_history_reviewer_insert
+  on public.export_history for insert to authenticated
+  with check (private.can_review());
 
 drop policy if exists export_history_specialist_select on public.export_history;
 create policy export_history_specialist_select

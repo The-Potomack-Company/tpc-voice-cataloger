@@ -7,6 +7,7 @@ import { SessionsPage } from "./pages/Sessions";
 import { NewSessionPage } from "./pages/NewSession";
 import { SessionDetailPage } from "./pages/SessionDetail";
 import { PhotoNotesPage } from "./pages/PhotoNotes";
+import { ReviewQueuePage } from "./pages/ReviewQueue";
 import { ItemEntryPage } from "./pages/ItemEntry";
 import { SettingsPage } from "./pages/Settings";
 import { AccountManagementPage } from "./pages/AccountManagement";
@@ -22,10 +23,16 @@ export default function App() {
           <Route path="new" element={<NewSessionPage />} />
           <Route path="session/:sessionId" element={<SessionDetailPage />} />
           {featureFlags.photoNotes && (
-            <Route
-              path="session/:sessionId/photo-notes"
-              element={<PhotoNotesPage />}
-            />
+            <>
+              <Route
+                path="session/:sessionId/photo-notes"
+                element={<PhotoNotesPage />}
+              />
+              <Route
+                path="session/:sessionId/review-drafts"
+                element={<ReviewQueuePage />}
+              />
+            </>
           )}
           <Route
             path="session/:sessionId/item/:itemId"

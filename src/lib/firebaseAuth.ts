@@ -224,8 +224,14 @@ export function roleFromFirebaseClaims(user: AppUser | null | undefined): string
   const claims = user?.claims;
   if (!user || claims?.is_active === false) return null;
   if (claims?.admin === true) return "admin";
-  if (claims?.role === "admin" || claims?.role === "specialist") return claims.role;
+  if (
+    claims?.role === "dev" ||
+    claims?.role === "admin" ||
+    claims?.role === "manager" ||
+    claims?.role === "specialist"
+  ) return claims.role;
   if (Array.isArray(claims?.roles) && claims.roles.includes("admin")) return "admin";
+  if (Array.isArray(claims?.roles) && claims.roles.includes("manager")) return "manager";
   return isAllowedEmail(user.email) && hasVerifiedWorkspaceClaims(claims ?? {})
     ? "specialist"
     : null;

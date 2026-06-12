@@ -22,6 +22,7 @@ type RoleState = {
 export function useUserRole(): {
   role: string | null;
   isAdmin: boolean;
+  isReviewer: boolean;
   loading: boolean;
   error: boolean;
   retry: () => void;
@@ -76,7 +77,8 @@ export function useUserRole(): {
   if (isFirebaseAuth) {
     return {
       role: firebaseRole,
-      isAdmin: firebaseRole === "admin",
+      isAdmin: firebaseRole === "dev" || firebaseRole === "admin",
+      isReviewer: firebaseRole === "dev" || firebaseRole === "admin" || firebaseRole === "manager",
       loading: false,
       error: false,
       retry,
@@ -90,7 +92,8 @@ export function useUserRole(): {
   return {
     // Never leak the sentinel to callers as a real role.
     role: error || role === undefined ? null : role,
-    isAdmin: role === "admin",
+    isAdmin: role === "dev" || role === "admin",
+    isReviewer: role === "dev" || role === "admin" || role === "manager",
     loading,
     error,
     retry,

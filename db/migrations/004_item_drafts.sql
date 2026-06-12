@@ -43,6 +43,12 @@ create policy item_drafts_admin_all
   using (private.is_admin())
   with check (private.is_admin());
 
+drop policy if exists item_drafts_reviewer_all on public.item_drafts;
+create policy item_drafts_reviewer_all
+  on public.item_drafts for all to authenticated
+  using (private.can_review())
+  with check (private.can_review());
+
 drop policy if exists item_drafts_specialist_select on public.item_drafts;
 create policy item_drafts_specialist_select
   on public.item_drafts for select to authenticated
