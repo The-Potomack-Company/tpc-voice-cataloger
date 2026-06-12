@@ -66,3 +66,12 @@ export async function reorderNotePages(orderedIds: number[]): Promise<void> {
 export async function deleteNotePagesForSession(sessionId: string): Promise<void> {
   await db.notePages.where("sessionId").equals(sessionId).delete();
 }
+
+export async function markNotePagesStatus(
+  ids: number[],
+  status: NotePage["status"],
+): Promise<void> {
+  await db.transaction("rw", db.notePages, async () => {
+    await Promise.all(ids.map((id) => db.notePages.update(id, { status })));
+  });
+}

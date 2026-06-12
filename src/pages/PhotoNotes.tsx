@@ -14,10 +14,11 @@ import {
 } from "../db/notePages";
 import { resizeImage } from "../utils/image";
 import { processNotes } from "../services/notesProcessing";
+import { DuplicateDraftBatchError } from "../services/itemDraftsApi";
+import { useNotificationStore } from "../stores/notificationStore";
 import type { NotePage } from "../db/types";
 
 const OFFLINE_HINT = "Processing needs a connection — pages are saved.";
-const STUB_TOAST = "Processing lands in the next update.";
 
 function PageRow({
   page,
@@ -105,6 +106,7 @@ export function PhotoNotesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const retakeTargetRef = useRef<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -159,13 +161,26 @@ export function PhotoNotesPage() {
   };
 
   const handleProcess = async () => {
-    if (!sessionId || pages.length === 0 || !isOnline) return;
-    await processNotes(sessionId);
-    setToast(STUB_TOAST);
+    if (!sessionId || pages.length === 0 || !isOnline || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const result = await processNotes(sessionId);
+      setToast(`Created ${result.draftCount} draft${result.draftCount === 1 ? "" : "s"}.`);
+    } catch (error) {
+      if (error instanceof DuplicateDraftBatchError) {
+        setToast("These pages were already processed.");
+      } else {
+        useNotificationStore
+          .getState()
+          .notifyError("Couldn't process note pages.", () => void handleProcess());
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const count = pages.length;
-  const processDisabled = count === 0 || !isOnline;
+  const processDisabled = count === 0 || !isOnline || isProcessing;
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-28">
@@ -236,7 +251,7 @@ export function PhotoNotesPage() {
           onClick={handleProcess}
           disabled={processDisabled}
         >
-          {`Process ${count} page${count === 1 ? "" : "s"}`}
+          {isProcessing ? "Processing…" : `Process ${count} page${count === 1 ? "" : "s"}`}
         </Button>
       </div>
 

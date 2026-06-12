@@ -92,7 +92,7 @@ export interface NotePage {
   blob: Blob; // resized JPEG, maxDimension 2048 (handwriting legibility for Phase 47)
   thumbnail: Blob;
   sortOrder: number;
-  status: "captured"; // Phase 47 extends: "processing" | "processed"
+  status: "captured" | "processing" | "processed" | "failed";
   createdAt: string; // ISO
 }
 

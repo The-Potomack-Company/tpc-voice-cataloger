@@ -11,4 +11,15 @@ describe("Cloud SQL PostgREST role grants", () => {
 
     expect(migration).toMatch(/grant\s+anon,\s*authenticated\s+to\s+cataloger_app;/i);
   });
+
+  it("maps Firebase-native identity claims into private.jwt_uid()", () => {
+    const migration = readFileSync(
+      resolve("db/migrations/001_roles_and_jwt_helpers.sql"),
+      "utf8",
+    );
+
+    expect(migration).toMatch(/private\.jwt_claim\('uid'\)/);
+    expect(migration).toMatch(/private\.jwt_claim\('user_id'\)/);
+    expect(migration).toMatch(/private\.jwt_claim\('sub'\)/);
+  });
 });

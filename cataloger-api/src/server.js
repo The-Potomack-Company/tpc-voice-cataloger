@@ -62,6 +62,167 @@ function bearerToken(req) {
   return scheme?.toLowerCase() === "bearer" && token ? token : null;
 }
 
+function hasWorkspaceClaim(decoded) {
+  return decoded?.workspace === "potomackco.com" && decoded?.workspace_role === "authenticated";
+}
+
+async function requireWorkspaceToken(req, res, auth, cors = {}) {
+  const token = bearerToken(req);
+  if (!token) {
+    json(res, 401, { error: "Bearer Firebase ID token required" }, cors);
+    return null;
+  }
+
+  try {
+    const decoded = await auth.verifyIdToken(token, true);
+    if (!hasWorkspaceClaim(decoded)) {
+      json(res, 403, { error: "Firebase workspace claim required" }, cors);
+      return null;
+    }
+    return { token, decoded };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid Firebase ID token";
+    json(res, 401, { error: message }, cors);
+    return null;
+  }
+}
+
+async function readJsonBody(req) {
+  let body = "";
+  for await (const chunk of req) {
+    body += chunk;
+  }
+  if (body.trim() === "") return {};
+  return JSON.parse(body);
+}
+
+function postgrestUrlFromEnv(env = process.env) {
+  return env.CATALOGER_POSTGREST_URL ?? env.POSTGREST_URL ?? "";
+}
+
+function postgrestHeaders(token, extra = {}) {
+  return {
+    authorization: `Bearer ${token}`,
+    "content-type": "application/json",
+    ...extra,
+  };
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function validateDraftBatchPayload(body) {
+  if (!body || typeof body !== "object") {
+    return "JSON body required";
+  }
+  if (!isNonEmptyString(body.sessionId)) {
+    return "sessionId required";
+  }
+  if (!isNonEmptyString(body.batchKey)) {
+    return "batchKey required";
+  }
+  if (!Array.isArray(body.pages) || body.pages.length === 0) {
+    return "pages required";
+  }
+  if (!Array.isArray(body.drafts) || body.drafts.length === 0) {
+    return "drafts required";
+  }
+  return null;
+}
+
+function rowFromDraft(sessionId, batchKey, uid, draft, index) {
+  return {
+    session_id: sessionId,
+    batch_key: batchKey,
+    segment_index: index,
+    source_page_refs: draft.sourcePageRefs,
+    raw_ocr_text: draft.rawOcrText ?? null,
+    title: draft.fields?.title ?? null,
+    description: draft.fields?.description ?? null,
+    condition: draft.fields?.condition ?? null,
+    estimate: draft.fields?.estimate ?? null,
+    measurements: draft.fields?.measurements ?? null,
+    category: draft.fields?.category ?? null,
+    transcript: draft.fields?.transcript ?? null,
+    receipt_number: draft.fields?.receipt_number ?? null,
+    field_confidence: draft.fieldConfidence ?? {},
+    low_confidence_fields: draft.lowConfidenceFields ?? [],
+    receipt_number_requires_review: Boolean(draft.fields?.receipt_number),
+    created_by: uid,
+  };
+}
+
+async function handleDraftBatch(req, res, auth, cors = {}, env = process.env) {
+  const verified = await requireWorkspaceToken(req, res, auth, cors);
+  if (!verified) return;
+
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch {
+    json(res, 400, { error: "Invalid JSON body" }, cors);
+    return;
+  }
+
+  const validationError = validateDraftBatchPayload(body);
+  if (validationError) {
+    json(res, 400, { error: validationError }, cors);
+    return;
+  }
+
+  const baseUrl = postgrestUrlFromEnv(env).replace(/\/$/, "");
+  if (!baseUrl) {
+    json(res, 500, { error: "PostgREST URL is not configured" }, cors);
+    return;
+  }
+
+  const sessionId = body.sessionId;
+  const batchKey = body.batchKey;
+  const query = new URL(`${baseUrl}/item_drafts`);
+  query.searchParams.set("session_id", `eq.${sessionId}`);
+  query.searchParams.set("batch_key", `eq.${batchKey}`);
+  query.searchParams.set("select", "id");
+  query.searchParams.set("limit", "1");
+
+  const duplicateResponse = await fetch(query, {
+    headers: postgrestHeaders(verified.token),
+  });
+  if (!duplicateResponse.ok) {
+    const detail = await duplicateResponse.text().catch(() => "");
+    json(res, 502, { error: "Draft duplicate check failed", detail }, cors);
+    return;
+  }
+
+  const existing = await duplicateResponse.json();
+  if (Array.isArray(existing) && existing.length > 0) {
+    json(res, 409, { error: "Draft batch already processed" }, cors);
+    return;
+  }
+
+  const rows = body.drafts.map((draft, index) =>
+    rowFromDraft(sessionId, batchKey, verified.decoded.uid, draft, index),
+  );
+  const insertResponse = await fetch(`${baseUrl}/item_drafts`, {
+    method: "POST",
+    headers: postgrestHeaders(verified.token, { prefer: "return=representation" }),
+    body: JSON.stringify(rows),
+  });
+  if (!insertResponse.ok) {
+    const detail = await insertResponse.text().catch(() => "");
+    json(res, insertResponse.status === 409 ? 409 : 502, {
+      error: insertResponse.status === 409
+        ? "Draft batch already processed"
+        : "Draft insert failed",
+      detail,
+    }, cors);
+    return;
+  }
+
+  const inserted = await insertResponse.json();
+  json(res, 201, { ok: true, draftCount: Array.isArray(inserted) ? inserted.length : rows.length }, cors);
+}
+
 async function handleClaim(req, res, auth, cors = {}) {
   const token = bearerToken(req);
   if (!token) {
@@ -94,6 +255,7 @@ async function handleClaim(req, res, auth, cors = {}) {
 export function createRequestHandler({
   auth,
   allowedOrigins = allowedOriginsFromEnv(),
+  env = process.env,
 }) {
   return (req, res) => {
     if (req.method === "GET" && req.url === "/healthz") {
@@ -110,6 +272,19 @@ export function createRequestHandler({
       }
       if (req.method === "POST") {
         void handleClaim(req, res, auth, cors);
+        return;
+      }
+    }
+
+    if (req.url === "/item-draft-batches") {
+      const cors = corsHeaders(req, allowedOrigins);
+      if (req.method === "OPTIONS") {
+        res.writeHead(204, cors);
+        res.end();
+        return;
+      }
+      if (req.method === "POST") {
+        void handleDraftBatch(req, res, auth, cors, env);
         return;
       }
     }
