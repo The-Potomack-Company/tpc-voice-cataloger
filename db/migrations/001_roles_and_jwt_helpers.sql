@@ -13,6 +13,9 @@ begin
   end if;
 end $$;
 
+-- NOINHERIT: the connection role must hold these roles only via SET ROLE
+-- (PostgREST switching), never passively — keeps the privilege boundary.
+alter role cataloger_app noinherit;
 grant anon, authenticated to cataloger_app;
 grant usage on schema public to anon, authenticated, cataloger_api;
 grant usage on schema private to authenticated, cataloger_api;

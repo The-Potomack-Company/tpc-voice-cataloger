@@ -74,7 +74,7 @@ for f in db/migrations/*.sql; do
 done
 ```
 
-The first migration grants `anon` and `authenticated` membership to the Cloud SQL login role `cataloger_app`. Keep this before the PostgREST deploy: PostgREST connects as `cataloger_app` and must be allowed to `SET ROLE anon` or `SET ROLE authenticated` for request-scoped database access.
+The first migration sets `cataloger_app` to `NOINHERIT` and grants it `anon` and `authenticated` membership. NOINHERIT means the login role can only use those privileges via explicit `SET ROLE` (what PostgREST does per request) — it never holds them passively. Keep this before the PostgREST deploy: PostgREST connects as `cataloger_app` and must be allowed to `SET ROLE anon` or `SET ROLE authenticated` for request-scoped database access.
 
 ## Firebase JWKS for PostgREST
 
