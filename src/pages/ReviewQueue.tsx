@@ -83,11 +83,8 @@ function DraftCard({
   const actionsDisabled = busy || !online || !canReview || draft.status !== "draft" || isDuplicateBlocked;
 
   return (
-    <article
-      id={`draft-${draft.id}`}
-      className="tpc-card p-4 space-y-4"
-      style={{ background: "var(--bg-2)" }}
-    >
+    <article id={`draft-${draft.id}`} className="tpc-section">
+      <div className="tpc-section-head">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Eyebrow>{pageRefsLabel(draft.source_page_refs)}</Eyebrow>
@@ -97,6 +94,8 @@ function DraftCard({
         </div>
         <Badge tone={statusTone(draft.status)}>{draft.status}</Badge>
       </div>
+      </div>
+      <div className="tpc-panel">
 
       {isDuplicateBlocked && (
         <button
@@ -108,14 +107,21 @@ function DraftCard({
         </button>
       )}
 
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
       <div className="space-y-3">
         {FIELD_LABELS.map(([field, label]) => {
           const lowConfidence = draft.low_confidence_fields.includes(field);
           return (
-            <label key={field} className="block">
+            <label
+              key={field}
+              className={`block rounded-md border border-rule bg-bg px-3 py-2 ${
+                lowConfidence ? "bg-warn-wash" : ""
+              }`}
+            >
               <span className="flex items-center gap-2 text-xs font-medium uppercase text-ink-3">
                 {label}
                 {lowConfidence && <Badge tone="warn">Low confidence</Badge>}
+                {!fields[field] && <Badge>Blank</Badge>}
               </span>
               {editing ? (
                 field === "description" || field === "transcript" ? (
@@ -148,14 +154,22 @@ function DraftCard({
         })}
       </div>
 
-      {draft.raw_ocr_text && (
-        <details className="rounded border border-rule px-3 py-2">
-          <summary className="cursor-pointer text-xs font-medium uppercase text-ink-3">
-            Raw OCR
-          </summary>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-ink-2">{draft.raw_ocr_text}</p>
-        </details>
-      )}
+      <aside className="rounded-md border border-rule bg-bg p-3">
+        <div className="flex items-center justify-between gap-2">
+          <Eyebrow>Source evidence</Eyebrow>
+          {draft.receipt_number_requires_review && (
+            <Badge tone={draft.receipt_number_acknowledged ? "ok" : "warn"}>
+              receipt ack
+            </Badge>
+          )}
+        </div>
+        {draft.raw_ocr_text ? (
+          <p className="mt-3 whitespace-pre-wrap text-sm text-ink-2">{draft.raw_ocr_text}</p>
+        ) : (
+          <p className="mt-3 text-sm text-ink-3">No OCR source text available.</p>
+        )}
+      </aside>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {canReview && draft.status === "draft" && !isDuplicateBlocked && (
@@ -187,6 +201,7 @@ function DraftCard({
         >
           Discard
         </Button>
+      </div>
       </div>
     </article>
   );
@@ -280,15 +295,16 @@ export function ReviewQueuePage() {
 
   if (loading || roleLoading) {
     return (
-      <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-8">
+      <div className="tpc-page py-8">
         <p className="text-sm text-ink-3">Loading review queue...</p>
       </div>
     );
   }
 
   return (
-    <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-4 pb-20">
-      <div className="tpc-sticky-header py-3 -mx-4 portrait:px-4 landscape:px-8 mb-4">
+    <div className="tpc-page pb-20">
+      <div className="tpc-section mb-4">
+        <div className="tpc-section-head">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -306,10 +322,16 @@ export function ReviewQueuePage() {
             </h1>
           </div>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
+        </div>
+        <div className="tpc-panel">
+        <div className="flex flex-wrap gap-2">
           <Badge tone="info">{counts.draft} pending</Badge>
           <Badge tone="ok">{counts.promoted} promoted</Badge>
           <Badge tone="warn">{counts.discarded} discarded</Badge>
+        </div>
+        <div className="rounded-md border border-rule bg-bg px-3 py-2 text-sm text-ink-2">
+          Promoted and discarded drafts stay immutable; duplicate-block and receipt acknowledgement states remain visible.
+        </div>
         </div>
       </div>
 

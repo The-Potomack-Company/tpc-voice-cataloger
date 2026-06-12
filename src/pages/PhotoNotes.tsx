@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/icons";
+import { Badge } from "../ui/Badge";
+import { Eyebrow } from "../ui/Eyebrow";
 import { useBlobUrl } from "../hooks/useBlobUrl";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useNotePages } from "../hooks/useNotePages";
@@ -187,7 +189,7 @@ export function PhotoNotesPage() {
   const processDisabled = count === 0 || !isOnline || isProcessing;
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-28">
+    <div className="tpc-page flex flex-col min-h-[calc(100vh-4rem)] pb-28">
       <div className="py-2">
         <button
           type="button"
@@ -200,9 +202,13 @@ export function PhotoNotesPage() {
         </button>
       </div>
 
-      <h1 className="tpc-display-text text-xl mt-2 mb-4" style={{ color: "var(--ink)" }}>
-        Photo notes
-      </h1>
+      <header className="mb-4">
+        <Eyebrow>Photo notes</Eyebrow>
+        <h1 className="tpc-display tpc-display-2 mt-1 text-ink">Note pages</h1>
+        <p className="mt-1 text-sm text-ink-3">
+          Capture ordered handwritten pages for this cataloging session.
+        </p>
+      </header>
 
       <input
         ref={fileInputRef}
@@ -213,36 +219,73 @@ export function PhotoNotesPage() {
         className="hidden"
       />
 
-      <Button
-        variant="primary"
-        fullWidth
-        onClick={() => openPicker(null)}
-        disabled={isSaving}
-        icon={<Icon name="camera" size={16} aria-hidden />}
-      >
-        {isSaving ? "Saving…" : "Add page"}
-      </Button>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="tpc-section">
+          <div className="tpc-section-head">
+            <div>
+              <Eyebrow>Pages</Eyebrow>
+              <strong className="block text-ink">Capture queue</strong>
+            </div>
+            <Badge tone={count > 0 ? "info" : "default"}>
+              {count} page{count === 1 ? "" : "s"}
+            </Badge>
+          </div>
+          <div className="tpc-panel">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => openPicker(null)}
+              disabled={isSaving}
+              icon={<Icon name="camera" size={16} aria-hidden />}
+            >
+              {isSaving ? "Saving..." : "Add page"}
+            </Button>
 
-      {count === 0 ? (
-        <p className="mt-6 text-center text-sm text-ink-3">
-          No pages yet. Tap “Add page” to photograph a sheet of notes.
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-2">
-          {pages.map((page, index) => (
-            <PageRow
-              key={page.pageUid}
-              page={page}
-              index={index}
-              total={count}
-              onRetake={(id) => openPicker(id)}
-              onDelete={(id) => setConfirmDeleteId(id)}
-              onMoveUp={(i) => handleMove(i, -1)}
-              onMoveDown={(i) => handleMove(i, +1)}
-            />
-          ))}
-        </ul>
-      )}
+            {count === 0 ? (
+              <p className="text-center text-sm text-ink-3">
+                No pages yet. Use Add page to photograph a sheet of notes.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {pages.map((page, index) => (
+                  <PageRow
+                    key={page.pageUid}
+                    page={page}
+                    index={index}
+                    total={count}
+                    onRetake={(id) => openPicker(id)}
+                    onDelete={(id) => setConfirmDeleteId(id)}
+                    onMoveUp={(i) => handleMove(i, -1)}
+                    onMoveDown={(i) => handleMove(i, +1)}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+        <aside className="tpc-section">
+          <div className="tpc-section-head">
+            <Eyebrow>Review rules</Eyebrow>
+          </div>
+          <div className="tpc-panel">
+            <div className="tpc-sync-line">
+              <span className="tpc-eyebrow">Ack</span>
+              <span className="text-sm text-ink-2">Receipt numbers extracted from notes require reviewer acknowledgement.</span>
+              <Badge tone="warn">receipt</Badge>
+            </div>
+            <div className="tpc-sync-line">
+              <span className="tpc-eyebrow">Dup</span>
+              <span className="text-sm text-ink-2">Duplicate page-content segments route to the existing immutable draft state.</span>
+              <Badge>blocked</Badge>
+            </div>
+            {!isOnline && count > 0 && (
+              <div className="rounded-md border border-rule bg-warn-wash px-3 py-2 text-sm text-ink-2">
+                {OFFLINE_HINT}
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
 
       {/* Sticky Process footer */}
       <div className="fixed bottom-0 left-0 right-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] bg-bg border-t border-rule landscape:max-w-3xl landscape:mx-auto z-40">
@@ -255,7 +298,7 @@ export function PhotoNotesPage() {
           onClick={handleProcess}
           disabled={processDisabled}
         >
-          {isProcessing ? "Processing…" : `Process ${count} page${count === 1 ? "" : "s"}`}
+          {isProcessing ? "Processing..." : `Process ${count} page${count === 1 ? "" : "s"}`}
         </Button>
       </div>
 
