@@ -16,6 +16,7 @@ const {
   mockStorageUpload,
   mockSupabaseFrom,
   mockSupabaseUpsert,
+  mockFirebaseUpload,
 } = vi.hoisted(() => {
   const mockStorageUpload = vi.fn();
   const mockStorageFrom = vi.fn(() => ({
@@ -25,7 +26,8 @@ const {
   const mockSupabaseFrom = vi.fn(() => ({
     upsert: mockSupabaseUpsert,
   }));
-  return { mockStorageFrom, mockStorageUpload, mockSupabaseFrom, mockSupabaseUpsert };
+  const mockFirebaseUpload = vi.fn();
+  return { mockStorageFrom, mockStorageUpload, mockSupabaseFrom, mockSupabaseUpsert, mockFirebaseUpload };
 });
 
 vi.mock("../lib/supabase", () => ({
@@ -33,6 +35,10 @@ vi.mock("../lib/supabase", () => ({
     storage: { from: mockStorageFrom },
     from: mockSupabaseFrom,
   },
+}));
+
+vi.mock("../lib/firebaseStorage", () => ({
+  uploadFirebaseStorageObject: mockFirebaseUpload,
 }));
 
 const { mockAudioUploadQueue, mockAudio } = vi.hoisted(() => {
@@ -105,11 +111,13 @@ describe("audioUploadQueue", () => {
     vi.resetAllMocks();
     vi.useFakeTimers();
     vi.stubGlobal("navigator", { onLine: true });
+    vi.stubEnv("VITE_AUTH_BACKEND", "supabase");
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   describe("enqueueAudioUpload", () => {
@@ -217,6 +225,29 @@ describe("audioUploadQueue", () => {
         }),
         { onConflict: "storage_path", ignoreDuplicates: true }
       );
+    });
+
+    it("uses Firebase Storage resumable upload in Firebase backend mode", async () => {
+      vi.stubEnv("VITE_AUTH_BACKEND", "firebase");
+      const { processOneAudioUpload } = await import(
+        "../services/audioUploadQueue"
+      );
+
+      const entry = makeEntry();
+      mockAudioUploadQueue.update.mockResolvedValue(1);
+      mockAudio.get.mockResolvedValue({ id: 10, blob: new Blob(["audio-data"]) });
+      mockFirebaseUpload.mockResolvedValue(undefined);
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
+
+      await processOneAudioUpload(entry);
+
+      expect(mockFirebaseUpload).toHaveBeenCalledWith(
+        "audio/session-uuid-1/item-uuid-1/10.webm",
+        expect.any(Blob),
+        expect.objectContaining({ contentType: "audio/webm" }),
+      );
+      expect(mockStorageUpload).not.toHaveBeenCalled();
+      expect(mockSupabaseUpsert).toHaveBeenCalledOnce();
     });
 
     it("retries with 4^retryCount*1000 backoff and stays pending on first failure", async () => {

@@ -61,8 +61,14 @@ gcloud projects add-iam-policy-binding gen-lang-client-0662587427 \
 gcloud projects add-iam-policy-binding gen-lang-client-0662587427 \
   --member="serviceAccount:cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com" \
   --role="roles/firebaseauth.admin"
+gcloud projects add-iam-policy-binding gen-lang-client-0662587427 \
+  --member="serviceAccount:cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
 gcloud secrets add-iam-policy-binding cataloger-postgres-uri \
   --member="serviceAccount:cataloger-postgrest@gen-lang-client-0662587427.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding cataloger-postgres-uri \
+  --member="serviceAccount:cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
 ```
 
@@ -89,6 +95,37 @@ gcloud secrets add-iam-policy-binding firebase-securetoken-jwks \
 ```
 
 The app mints `workspace=potomackco.com` and `workspace_role=authenticated` via `cataloger-api`. PostgREST maps only `.workspace_role` to the database role; tokens lacking it fall back to `anon`, which has no cataloger table grants.
+
+## Firebase Storage
+
+Deploy the checked-in Firebase Hosting and Storage configuration from a trusted local shell:
+
+```bash
+firebase use gen-lang-client-0662587427
+firebase deploy --only storage,hosting
+```
+
+The client writes Firebase Storage objects at the same logical paths used before:
+
+```text
+photos/{sessionId}/{itemId}/full-{n}.jpg
+photos/{sessionId}/{itemId}/thumb-{n}.jpg
+audio/{sessionId}/{itemId}/{dexieAudioId}.{ext}
+```
+
+`storage.rules` requires the server-minted `workspace=potomackco.com` and `workspace_role=authenticated` custom claims. Firebase Storage rules cannot query Cloud SQL, so per-session access is represented by an optional `session_access.{sessionId}=true` claim or by an admin role claim; users without either fail closed. If custom claims become too small for session ACLs, move remote photo/audio reads and writes through `cataloger-api` endpoints instead of relaxing the rules.
+
+In Firebase mode, the app uses SDK resumable uploads. Remote photo reads use `getDownloadURL`; Firebase rules authorize that lookup before returning Firebase's tokenized download URL.
+
+Create the purge secret before deploying `cataloger-api`. Keep the value out of git:
+
+```bash
+PURGE_AUDIO_SECRET="$(openssl rand -base64 32)"
+printf '%s' "$PURGE_AUDIO_SECRET" | gcloud secrets create purge-audio-secret --data-file=-
+gcloud secrets add-iam-policy-binding purge-audio-secret \
+  --member="serviceAccount:cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
 
 ## Cloud Run Deploys
 
@@ -117,8 +154,27 @@ gcloud run deploy cataloger-api \
   --region=us-central1 \
   --allow-unauthenticated \
   --service-account=cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com \
-  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427,CATALOGER_API_ALLOWED_ORIGINS=https://app.potomackco.com\\,https://gen-lang-client-0662587427.web.app
+  --add-cloudsql-instances=gen-lang-client-0662587427:us-central1:potomack-cataloger-db \
+  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427,FIREBASE_STORAGE_BUCKET=gen-lang-client-0662587427.firebasestorage.app,CATALOGER_API_ALLOWED_ORIGINS=https://app.potomackco.com\\,https://gen-lang-client-0662587427.web.app \
+  --set-secrets=CATALOGER_DATABASE_URL=cataloger-postgres-uri:latest,PURGE_AUDIO_SECRET=purge-audio-secret:latest
 ```
+
+## Audio Retention Scheduler
+
+After `cataloger-api` is deployed, create a Cloud Scheduler job from a trusted shell. Do not create it from the worker:
+
+```bash
+gcloud services enable cloudscheduler.googleapis.com
+gcloud scheduler jobs create http purge-old-audio \
+  --location=us-central1 \
+  --schedule="0 3 * * *" \
+  --uri="https://cataloger-api-REPLACE.a.run.app/purge-audio" \
+  --http-method=POST \
+  --headers="x-purge-secret=${PURGE_AUDIO_SECRET},Content-Type=application/json" \
+  --message-body="{}"
+```
+
+The endpoint deletes Firebase Storage `audio/` objects first, then removes expired Cloud SQL `public.audio` metadata rows. It computes paths server-side from Cloud SQL and Firebase Storage; callers cannot submit paths to delete.
 
 ## App Env Flip
 

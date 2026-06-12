@@ -6,6 +6,7 @@ const {
   mockStorageUpload,
   mockSupabaseFrom,
   mockSupabaseUpsert,
+  mockFirebaseUpload,
 } = vi.hoisted(() => {
   const mockStorageUpload = vi.fn();
   const mockStorageFrom = vi.fn(() => ({
@@ -15,12 +16,14 @@ const {
   const mockSupabaseFrom = vi.fn(() => ({
     upsert: mockSupabaseUpsert,
   }));
+  const mockFirebaseUpload = vi.fn();
 
   return {
     mockStorageFrom,
     mockStorageUpload,
     mockSupabaseFrom,
     mockSupabaseUpsert,
+    mockFirebaseUpload,
   };
 });
 
@@ -31,6 +34,10 @@ vi.mock("../lib/supabase", () => ({
     },
     from: mockSupabaseFrom,
   },
+}));
+
+vi.mock("../lib/firebaseStorage", () => ({
+  uploadFirebaseStorageObject: mockFirebaseUpload,
 }));
 
 // Mock Dexie photoUploadQueue and photos tables
@@ -94,11 +101,13 @@ describe("photoUploadQueue", () => {
     vi.useFakeTimers();
     // Default navigator.onLine to true
     vi.stubGlobal("navigator", { onLine: true });
+    vi.stubEnv("VITE_AUTH_BACKEND", "supabase");
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   describe("enqueue", () => {
@@ -398,6 +407,38 @@ describe("photoUploadQueue", () => {
           mockPhotoUploadQueue.update.mock.calls.length - 1
         ];
       expect(lastCall[1]).toMatchObject({ status: "uploaded" });
+    });
+
+    it("uses Firebase Storage resumable uploads in Firebase backend mode", async () => {
+      vi.stubEnv("VITE_AUTH_BACKEND", "firebase");
+      const { processOneUpload } = await import(
+        "../services/photoUploadQueue"
+      );
+
+      const entry = makeEntry();
+      mockPhotoUploadQueue.update.mockResolvedValue(1);
+      mockPhotos.get.mockResolvedValue({
+        id: 10,
+        blob: new Blob(["full-data"]),
+        thumbnail: new Blob(["thumb-data"]),
+      });
+      mockFirebaseUpload.mockResolvedValue(undefined);
+      mockSupabaseUpsert.mockResolvedValue({ error: null });
+
+      await processOneUpload(entry);
+
+      expect(mockFirebaseUpload).toHaveBeenCalledWith(
+        "photos/session-uuid-1/item-uuid-1/full-0.jpg",
+        expect.any(Blob),
+        expect.objectContaining({ contentType: "image/jpeg" }),
+      );
+      expect(mockFirebaseUpload).toHaveBeenCalledWith(
+        "photos/session-uuid-1/item-uuid-1/thumb-0.jpg",
+        expect.any(Blob),
+        expect.objectContaining({ contentType: "image/jpeg" }),
+      );
+      expect(mockStorageUpload).not.toHaveBeenCalled();
+      expect(mockSupabaseUpsert).toHaveBeenCalledOnce();
     });
   });
 

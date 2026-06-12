@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useBlobUrl } from "./useBlobUrl";
 import { supabase } from "../lib/supabase";
+import { isFirebaseAuthBackend } from "../lib/authBackend";
+import { getFirebaseStorageDownloadUrl } from "../lib/firebaseStorage";
 
 /**
  * Returns a display URL for a photo.
  * Prefers local Dexie blob (instant, works offline).
- * Falls back to Supabase Storage signed URL when no local blob (admin on different device).
- * Signed URL expires after 3600 seconds (1 hour).
+ * Falls back to the active backend when no local blob (admin on different device).
+ * Supabase mode uses a 1-hour signed URL. Firebase mode uses getDownloadURL; rules
+ * authorize the lookup before returning Firebase's tokenized download URL.
  */
 export function usePhotoUrl(
   blob: Blob | undefined,
@@ -21,13 +24,16 @@ export function usePhotoUrl(
     if (blob || !storagePath) return;
 
     let cancelled = false;
-    supabase.storage
-      .from("photos")
-      .createSignedUrl(storagePath, 3600)
-      .then(({ data }) => {
-        if (!cancelled && data) {
-          setSignedUrl(data.signedUrl);
-        }
+    const urlPromise = isFirebaseAuthBackend()
+      ? getFirebaseStorageDownloadUrl(storagePath)
+      : supabase.storage
+        .from("photos")
+        .createSignedUrl(storagePath, 3600)
+        .then(({ data }) => data?.signedUrl);
+
+    urlPromise
+      .then((url) => {
+        if (!cancelled && url) setSignedUrl(url);
       })
       .catch(() => {});
 

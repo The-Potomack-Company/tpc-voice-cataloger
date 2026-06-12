@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 const { createRequestHandler } = await import("../../cataloger-api/src/server.js");
 
@@ -50,7 +50,7 @@ describe("cataloger-api /session/claim CORS", () => {
     expect(response.header("access-control-allow-origin")).toBe(
       "https://app.potomackco.com",
     );
-    expect(response.header("access-control-allow-methods")).toBe("POST, OPTIONS");
+    expect(response.header("access-control-allow-methods")).toBe("GET, POST, OPTIONS");
     expect(response.header("access-control-allow-headers")).toBe(
       "Authorization, Content-Type",
     );
@@ -61,5 +61,148 @@ describe("cataloger-api /session/claim CORS", () => {
 
     expect(response.status).toBe(204);
     expect(response.header("access-control-allow-origin")).toBeUndefined();
+  });
+});
+
+function callHandler(handler: ReturnType<typeof createRequestHandler>, options: {
+  method: string;
+  url: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+}) {
+  return new Promise<{ status: number; headers: HeaderMap; body: string }>((resolve) => {
+    const body = options.body === undefined ? "" : JSON.stringify(options.body);
+    const response = {
+      body: "",
+      headers: {} as HeaderMap,
+      status: 0,
+      writeHead(status: number, headers: HeaderMap) {
+        this.status = status;
+        this.headers = headers;
+      },
+      end(responseBody = "") {
+        this.body = responseBody;
+        resolve({ status: this.status, headers: this.headers, body: this.body });
+      },
+    };
+    const request = {
+      method: options.method,
+      url: options.url,
+      headers: {
+        authorization: "Bearer token",
+        origin: "https://app.potomackco.com",
+        ...(options.headers ?? {}),
+      },
+      async *[Symbol.asyncIterator]() {
+        if (body) yield body;
+      },
+    };
+    handler(request, response);
+  });
+}
+
+describe("cataloger-api admin routes", () => {
+  it("creates a Firebase user, mints workspace claims, and upserts a profile", async () => {
+    const auth = {
+      verifyIdToken: async () => ({
+        uid: "admin-1",
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
+      }),
+      createUser: vi.fn().mockResolvedValue({
+        uid: "user-1",
+        email: "specialist@potomackco.com",
+      }),
+      setCustomUserClaims: vi.fn().mockResolvedValue(undefined),
+      deleteUser: vi.fn(),
+    };
+    const profiles = {
+      getProfile: vi.fn().mockResolvedValue({
+        id: "admin-1",
+        role: "admin",
+        is_active: true,
+      }),
+      upsertProfile: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth,
+      profiles,
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/admin/create-user",
+      body: {
+        email: "specialist@potomackco.com",
+        password: "temporary",
+        displayName: "Jane Specialist",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(auth.createUser).toHaveBeenCalledWith(expect.objectContaining({
+      email: "specialist@potomackco.com",
+      displayName: "Jane Specialist",
+    }));
+    expect(auth.setCustomUserClaims).toHaveBeenCalledWith("user-1", expect.objectContaining({
+      role: "specialist",
+      is_active: true,
+      workspace: "potomackco.com",
+      workspace_role: "authenticated",
+    }));
+    expect(profiles.upsertProfile).toHaveBeenCalledWith(expect.objectContaining({
+      id: "user-1",
+      role: "specialist",
+      is_active: true,
+    }));
+  });
+
+  it("purges expired and orphaned Firebase audio objects", async () => {
+    const deleteExpired = vi.fn().mockResolvedValue(undefined);
+    const deleteOrphan = vi.fn().mockResolvedValue(undefined);
+    const storage = {
+      bucket: () => ({
+        getFiles: vi.fn().mockResolvedValue([[
+          { name: "audio/session/item/expired.webm" },
+          { name: "audio/session/item/orphan.webm" },
+        ]]),
+        file: (path: string) => ({
+          delete: path.includes("orphan") ? deleteOrphan : deleteExpired,
+        }),
+      }),
+    };
+    const profiles = {
+      listExpiredAudio: vi.fn().mockResolvedValue([
+        {
+          id: "00000000-0000-0000-0000-000000000001",
+          storage_path: "audio/session/item/expired.webm",
+        },
+      ]),
+      listKnownAudioPaths: vi.fn().mockResolvedValue(["audio/session/item/expired.webm"]),
+      deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth: {},
+      storage,
+      profiles,
+      env: { PURGE_AUDIO_SECRET: "secret" },
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/purge-audio",
+      headers: { "x-purge-secret": "secret" },
+      body: {},
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({ removed: 2, expired: 1, orphans: 1 });
+    expect(deleteExpired).toHaveBeenCalledWith({ ignoreNotFound: true });
+    expect(deleteOrphan).toHaveBeenCalledWith({ ignoreNotFound: true });
+    expect(profiles.deleteAudioByIds).toHaveBeenCalledWith([
+      "00000000-0000-0000-0000-000000000001",
+    ]);
   });
 });

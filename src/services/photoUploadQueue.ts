@@ -1,5 +1,7 @@
 import { db } from "../db";
 import { supabase } from "../lib/supabase";
+import { isFirebaseAuthBackend } from "../lib/authBackend";
+import { uploadFirebaseStorageObject } from "../lib/firebaseStorage";
 import { trackEvent } from "./analytics";
 import type { PhotoUploadEntry } from "../db/types";
 
@@ -64,25 +66,36 @@ export async function processOneUpload(entry: PhotoUploadEntry): Promise<void> {
   }
 
   try {
-    // Upload full-size blob
-    const { error: fullError } = await supabase.storage
-      .from("photos")
-      .upload(entry.storagePath, photo.blob, {
+    if (isFirebaseAuthBackend()) {
+      await uploadFirebaseStorageObject(entry.storagePath, photo.blob, {
         contentType: "image/jpeg",
         cacheControl: "31536000",
-        upsert: true,
       });
-    if (fullError) throw fullError;
+      await uploadFirebaseStorageObject(entry.thumbnailPath, photo.thumbnail!, {
+        contentType: "image/jpeg",
+        cacheControl: "31536000",
+      });
+    } else {
+      // Upload full-size blob
+      const { error: fullError } = await supabase.storage
+        .from("photos")
+        .upload(entry.storagePath, photo.blob, {
+          contentType: "image/jpeg",
+          cacheControl: "31536000",
+          upsert: true,
+        });
+      if (fullError) throw fullError;
 
-    // Upload thumbnail
-    const { error: thumbError } = await supabase.storage
-      .from("photos")
-      .upload(entry.thumbnailPath, photo.thumbnail!, {
-        contentType: "image/jpeg",
-        cacheControl: "31536000",
-        upsert: true,
-      });
-    if (thumbError) throw thumbError;
+      // Upload thumbnail
+      const { error: thumbError } = await supabase.storage
+        .from("photos")
+        .upload(entry.thumbnailPath, photo.thumbnail!, {
+          contentType: "image/jpeg",
+          cacheControl: "31536000",
+          upsert: true,
+        });
+      if (thumbError) throw thumbError;
+    }
 
     // Insert metadata row in Supabase photos table
     // DAT-5: upsert (ON CONFLICT DO NOTHING) so a retry can't create a duplicate photos row.
