@@ -20,6 +20,14 @@ import { formatDuration } from "../utils/audio";
 import { audioRecordsForItem } from "../db/audioLookup";
 import { AiFailureBanner } from "../components/AiFailureBanner";
 
+const UNSUPPORTED_LEGACY_SESSION_MODE_ERROR = "unsupported legacy session mode";
+
+function supportedItemCreationMode(
+  mode: string | null | undefined,
+): "sale" | null {
+  return mode === "sale" ? mode : null;
+}
+
 /** Always-visible waveform wrapper. Renders the bars dimmed when idle and
  *  swaps the timer copy for a "Tap to record" prompt so the surface always
  *  occupies its space. While AI is processing a just-finished recording
@@ -92,6 +100,7 @@ export function ItemEntryPage() {
   }>();
   const navigate = useNavigate();
   const creatingRef = useRef(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
 
   // Load session from Zustand
   const session = useSession(sessionId!);
@@ -104,7 +113,7 @@ export function ItemEntryPage() {
     }
   }, [sessionId, fetchItems]);
 
-  const mode = "sale";
+  const mode = supportedItemCreationMode(session?.mode);
   const isNewItem = itemId === "new";
 
   // Get items from Zustand store
@@ -127,7 +136,13 @@ export function ItemEntryPage() {
   // Create new item when navigating to /item/new
   useEffect(() => {
     if (!isNewItem || !session || creatingRef.current) return;
+    if (!mode) {
+      setCreationError(UNSUPPORTED_LEGACY_SESSION_MODE_ERROR);
+      return;
+    }
+
     creatingRef.current = true;
+    setCreationError(null);
 
     const createItem = async () => {
       const newId = await createBlankItem(sessionId!, mode);
@@ -196,8 +211,14 @@ export function ItemEntryPage() {
     if (nextItem) {
       navigate(`/session/${sessionId}/item/${nextItem.id}`);
     } else {
+      if (!mode) {
+        setCreationError(UNSUPPORTED_LEGACY_SESSION_MODE_ERROR);
+        return;
+      }
+
       // Last item -- create new
       navigatingArrowRef.current = true;
+      setCreationError(null);
       try {
         const newId = await createBlankItem(sessionId, mode);
         navigate(`/session/${sessionId}/item/${newId}`);
@@ -208,6 +229,20 @@ export function ItemEntryPage() {
       }
     }
   }, [nextItem, sessionId, mode, navigate]);
+
+  if (creationError) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh] px-4">
+        <div
+          role="alert"
+          className="text-center text-sm"
+          style={{ color: "var(--err)" }}
+        >
+          {creationError}
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (!session || (isNewItem && !item)) {
