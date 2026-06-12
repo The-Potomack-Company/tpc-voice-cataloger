@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { ItemEntryPage } from "../pages/ItemEntry";
 
-const { mockItems, mockFetchItems } = vi.hoisted(() => ({
+const { mockItems, mockFetchItems, mockCreateBlankItem, mockUseSession } = vi.hoisted(() => ({
   mockItems: [] as Array<Record<string, unknown>>,
   mockFetchItems: vi.fn(),
+  mockCreateBlankItem: vi.fn(),
+  mockUseSession: vi.fn(),
 }));
 
 vi.mock("dexie-react-hooks", () => ({
@@ -13,7 +15,7 @@ vi.mock("dexie-react-hooks", () => ({
 }));
 
 vi.mock("../hooks/useSessions", () => ({
-  useSession: () => ({ id: "session-1", mode: "house" }),
+  useSession: mockUseSession,
   useSessionItems: () => mockItems,
 }));
 
@@ -24,7 +26,7 @@ vi.mock("../stores/sessionStore", () => ({
 }));
 
 vi.mock("../db/items", () => ({
-  createBlankItem: vi.fn(),
+  createBlankItem: mockCreateBlankItem,
   updateItemField: vi.fn(),
 }));
 
@@ -36,10 +38,6 @@ vi.mock("../db/audioLookup", () => ({
   audioRecordsForItem: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../components/PhotoCapture", () => ({
-  PhotoCapture: () => <div data-testid="photo-capture" />,
-}));
-
 vi.mock("../components/RecordButton", () => ({
   RecordButton: () => <button type="button">Record</button>,
 }));
@@ -47,10 +45,14 @@ vi.mock("../components/RecordButton", () => ({
 describe("ItemEntryPage waiting indicator", () => {
   beforeEach(() => {
     mockFetchItems.mockReset();
+    mockCreateBlankItem.mockReset();
+    mockCreateBlankItem.mockResolvedValue("item-2");
+    mockUseSession.mockReset();
+    mockUseSession.mockReturnValue({ id: "session-1", mode: "sale" });
     mockItems.length = 0;
     mockItems.push({
       id: "item-1",
-      mode: "house",
+      mode: "sale",
       sort_order: 0,
       ai_status: "pending",
       title: null,
@@ -77,5 +79,39 @@ describe("ItemEntryPage waiting indicator", () => {
     expect(
       screen.getByText("Waiting for connectivity to process..."),
     ).toBeInTheDocument();
+  });
+
+  it("creates a new item with the sale session mode unchanged", async () => {
+    mockItems.length = 0;
+
+    render(
+      <MemoryRouter initialEntries={["/session/session-1/item/new"]}>
+        <Routes>
+          <Route path="/session/:sessionId/item/:itemId" element={<ItemEntryPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(mockCreateBlankItem).toHaveBeenCalledWith("session-1", "sale");
+    });
+  });
+
+  it("blocks item creation for a synthetic house-mode session row", async () => {
+    mockItems.length = 0;
+    mockUseSession.mockReturnValue({ id: "session-1", mode: "house" });
+
+    render(
+      <MemoryRouter initialEntries={["/session/session-1/item/new"]}>
+        <Routes>
+          <Route path="/session/:sessionId/item/:itemId" element={<ItemEntryPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "unsupported legacy session mode",
+    );
+    expect(mockCreateBlankItem).not.toHaveBeenCalled();
   });
 });

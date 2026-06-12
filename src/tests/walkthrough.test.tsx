@@ -8,8 +8,8 @@ describe('Walkthrough', () => {
   });
 
   describe('admin steps', () => {
-    it.todo('WT-02: admin sees 12 steps (8 shared + 4 admin)');
-    it.todo('WT-02: admin steps include Manage Accounts, Assign Sessions, Review & Export, Import Receipts');
+    it.todo('WT-02: admin sees 11 steps (8 shared + 3 admin)');
+    it.todo('WT-02: admin steps include Manage Accounts, Assign Sessions, Review & Export');
     it.todo('WT-02: admin role section label shows ADMIN FEATURES');
   });
 

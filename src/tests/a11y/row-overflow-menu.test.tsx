@@ -95,11 +95,9 @@ describe("ItemCard ⋯ menu → ConfirmDialog", () => {
           item={item}
           sessionId="s-1"
           isExpanded={false}
-          onToggle={() => {}}
           audioCount={0}
           latestAudioId={null}
-          photoCount={0}
-          dexieItemId={null}
+          hasServerAudio={false}
           isPending={false}
         />
       </MemoryRouter>,

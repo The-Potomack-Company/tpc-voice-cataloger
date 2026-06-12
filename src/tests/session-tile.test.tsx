@@ -52,22 +52,6 @@ describe("SessionTile", () => {
     expect(screen.getByText(/42 items/)).toBeInTheDocument();
   });
 
-  it("renders the house mode tile (H) with the sand-wash variant", () => {
-    render(
-      <MemoryRouter>
-        <SessionTile
-          session={{ ...baseSession, mode: "house" }}
-          itemCount={1}
-          onTap={() => {}}
-          onDelete={() => {}}
-          onRename={() => {}}
-        />
-      </MemoryRouter>,
-    );
-    expect(screen.getByText("H")).toBeInTheDocument();
-    expect(screen.getByText(/1 item/)).toBeInTheDocument();
-  });
-
   it("shows the assignee name when provided (admin view)", () => {
     render(
       <MemoryRouter>

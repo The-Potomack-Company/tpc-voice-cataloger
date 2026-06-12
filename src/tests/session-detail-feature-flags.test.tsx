@@ -1,9 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { SessionDetailPage } from "../pages/SessionDetail";
 
-// --- Hoisted mocks ---
 const {
   mockUseUserRole,
   mockListAccounts,
@@ -11,7 +10,6 @@ const {
   mockUseSessionItemCount,
   mockUseSessionItems,
   mockUseSessionStore,
-  mockStoreUpdateSession,
   mockUseUIStore,
   mockUseNotePageCount,
 } = vi.hoisted(() => ({
@@ -21,7 +19,6 @@ const {
   mockUseSessionItemCount: vi.fn(),
   mockUseSessionItems: vi.fn(),
   mockUseSessionStore: vi.fn(),
-  mockStoreUpdateSession: vi.fn(),
   mockUseUIStore: vi.fn(),
   mockUseNotePageCount: vi.fn(),
 }));
@@ -33,11 +30,7 @@ vi.mock("../hooks/useSessions", () => ({
   useSessionItemCount: mockUseSessionItemCount,
   useSessionItems: mockUseSessionItems,
 }));
-vi.mock("../stores/sessionStore", () => ({
-  useSessionStore: Object.assign(mockUseSessionStore, {
-    getState: () => ({ updateSession: mockStoreUpdateSession }),
-  }),
-}));
+vi.mock("../stores/sessionStore", () => ({ useSessionStore: mockUseSessionStore }));
 vi.mock("../stores/uiStore", () => ({ useUIStore: mockUseUIStore }));
 vi.mock("../hooks/useNotePages", () => ({ useNotePageCount: mockUseNotePageCount }));
 vi.mock("../components/ConfirmDialog", () => ({ ConfirmDialog: () => null }));
@@ -64,24 +57,19 @@ function renderDetail() {
     <MemoryRouter initialEntries={["/session/session-1"]}>
       <Routes>
         <Route path="/session/:sessionId" element={<SessionDetailPage />} />
-        <Route
-          path="/session/:sessionId/photo-notes"
-          element={<div>PHOTO NOTES SCREEN</div>}
-        />
-        <Route path="/" element={<div>Home</div>} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
-describe("SessionDetail — Photo notes entry (PHN-01)", () => {
+describe("SessionDetail feature flags", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseSession.mockReturnValue(baseSession);
     mockUseSessionItemCount.mockReturnValue(0);
     mockUseSessionItems.mockReturnValue([]);
     mockUseSessionStore.mockImplementation((selector: (s: Record<string, unknown>) => unknown) =>
-      selector({ fetchItems: vi.fn(), updateSession: mockStoreUpdateSession }),
+      selector({ fetchItems: vi.fn(), updateSession: vi.fn(), deleteSession: vi.fn() }),
     );
     mockUseUIStore.mockImplementation((selector: (s: Record<string, unknown>) => unknown) =>
       selector({ recordingSessionId: null, setRecordingSession: vi.fn() }),
@@ -91,31 +79,22 @@ describe("SessionDetail — Photo notes entry (PHN-01)", () => {
     mockUseUserRole.mockReturnValue({ role: "specialist", isAdmin: false, loading: false });
   });
 
-  it("shows the Photo notes action on an active sale session", async () => {
-    renderDetail();
-    expect(await screen.findByRole("button", { name: /photo notes/i })).toBeInTheDocument();
+  afterEach(() => {
+    vi.stubEnv("VITE_FEATURE_CONTINUOUS_CAPTURE", "true");
+    vi.stubEnv("VITE_FEATURE_PHOTO_NOTES", "true");
   });
 
-  it("hides the action on a submitted (read-only) specialist session", async () => {
-    mockUseSession.mockReturnValue({ ...baseSession, status: "submitted" });
+  it("hides the continuous capture entry point when the flag is off", async () => {
+    vi.stubEnv("VITE_FEATURE_CONTINUOUS_CAPTURE", "false");
     renderDetail();
-    await screen.findByRole("button", { name: /delete session/i });
+    await screen.findByRole("button", { name: /start cataloging/i });
+    expect(screen.queryByRole("button", { name: /continuous mode/i })).not.toBeInTheDocument();
+  });
+
+  it("hides the photo notes entry point when the flag is off", async () => {
+    vi.stubEnv("VITE_FEATURE_PHOTO_NOTES", "false");
+    renderDetail();
+    await screen.findByRole("button", { name: /start cataloging/i });
     expect(screen.queryByRole("button", { name: /photo notes/i })).not.toBeInTheDocument();
-  });
-
-  it("shows a count chip when captured pages exist", async () => {
-    mockUseNotePageCount.mockReturnValue(3);
-    renderDetail();
-    const btn = await screen.findByRole("button", { name: /photo notes/i });
-    expect(btn).toHaveTextContent("3");
-  });
-
-  it("navigates to the photo-notes route on click", async () => {
-    renderDetail();
-    const btn = await screen.findByRole("button", { name: /photo notes/i });
-    fireEvent.click(btn);
-    await waitFor(() => {
-      expect(screen.getByText("PHOTO NOTES SCREEN")).toBeInTheDocument();
-    });
   });
 });

@@ -114,15 +114,14 @@ test.describe("Mockup fidelity sweep", () => {
     expect(isDark).toBe(true);
   });
 
-  test("NewSession — paired mode tiles with accent-wash and sand-wash", async ({
+  test("NewSession — sale cataloging mode", async ({
     page,
   }) => {
     test.skip(!HAS_SUPABASE, "Requires SUPABASE_URL env");
     await page.goto("/new");
     await expect(page.getByRole("heading", { name: "New Session" })).toBeVisible();
-    // Both mode picker tiles should be present
-    await expect(page.getByText("House Visit")).toBeVisible();
     await expect(page.getByText("Sale Cataloging")).toBeVisible();
+    await expect(page.getByText("House Visit")).toHaveCount(0);
     await page.screenshot({
       path: `${SCREENSHOT_DIR}/new-session.png`,
       fullPage: true,

@@ -19,14 +19,11 @@ interface ItemCardProps {
   item: SupabaseItem;
   sessionId: string;
   isExpanded: boolean;
-  onToggle: () => void;
   readOnly?: boolean;
   audioCount: number;
   latestAudioId: number | null;
   // F2: server-side audio existence (cross-device) — gates AiFailureBanner Retry.
   hasServerAudio: boolean;
-  photoCount: number;
-  dexieItemId: number | string | null;
   isPending: boolean;
 }
 
@@ -40,12 +37,10 @@ function ItemCardImpl({
   item,
   sessionId,
   isExpanded,
-  onToggle,
   readOnly,
   audioCount,
   latestAudioId,
   hasServerAudio,
-  photoCount,
   isPending,
 }: ItemCardProps) {
   if (import.meta.env.MODE !== "production") {
@@ -157,19 +152,6 @@ function ItemCardImpl({
               </svg>
             )}
 
-            {item.mode === "house" && photoCount > 0 && (
-              <span className="flex items-center gap-0.5 text-accent">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M1 8a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 018.07 3h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0016.07 6H17a2 2 0 012 2v7a2 2 0 01-2 2H3a2 2 0 01-2-2V8zm13.5 3a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM10 14a3 3 0 100-6 3 3 0 000 6z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="text-xs font-medium">{photoCount}</span>
-              </span>
-            )}
-
             {/* D-06: audio upload durability pill (pending/uploaded/failed).
                 'none' renders nothing. 'failed' is a retry control that
                 re-enqueues via retryFailedUploads(). LIB Badge tones only. */}
@@ -205,34 +187,6 @@ function ItemCardImpl({
               <Badge tone="info" className="animate-pulse">
                 Processing...
               </Badge>
-            )}
-
-            {/* Chevron — house mode only. Sale mode navigates to detail, so
-                an inline expand toggle would be dead weight. House mode keeps
-                it for the read-only field summary which has no other surface. */}
-            {item.mode === "house" && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onToggle(); }}
-                className="p-0.5 -m-0.5 rounded hover:bg-bg-2 transition-colors"
-                aria-label={isExpanded ? "Collapse details" : "Expand details"}
-              >
-                <svg
-                  className={`w-4 h-4 text-ink-3 transition-transform ${
-                    isExpanded ? "rotate-90" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                  />
-                </svg>
-              </button>
             )}
 
             {/* Accessible-equivalent of swipe-to-delete (D-03). Routes through
@@ -277,37 +231,8 @@ function ItemCardImpl({
           </div>
         )}
 
-        {/* Expanded section -- house mode: read-only field summary */}
-        {isExpanded && !isQueued && item.mode === "house" && (
-          <div className="border-t border-rule px-3 py-3 space-y-2">
-            {([
-              ["Header", item.title],
-              ["Description", item.description],
-              ["Measurements", item.measurements],
-              ["Condition", item.condition],
-              ["Estimate", item.estimate],
-              ["Category", item.category],
-            ] as const).filter(([, val]) => val).map(([label, val]) => (
-              <div key={label}>
-                <span className="text-xs font-medium text-ink-3 uppercase">{label}</span>
-                <p className="text-sm text-ink whitespace-pre-wrap">{val}</p>
-              </div>
-            ))}
-
-            {!readOnly && (
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="tpc-btn tpc-btn-danger tpc-btn-fullwidth mt-3"
-              >
-                Delete Item
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Expanded section -- sale mode: editable fields (non-queued only) */}
-        {isExpanded && !isQueued && item.mode !== "house" && (
+        {/* Expanded section -- editable fields (non-queued only) */}
+        {isExpanded && !isQueued && (
           <div className="border-t border-rule px-3 py-3 space-y-3">
             <EditableField
               label="Header"
@@ -356,15 +281,13 @@ function ItemCardImpl({
               readOnly={readOnly}
             />
 
-            {item.mode === "sale" && (
-              <EditableField
-                label="Receipt Number"
-                value={item.receipt_number ?? undefined}
-                onSave={handleFieldSave("receipt_number")}
-                placeholder="Enter receipt number"
-                readOnly={readOnly}
-              />
-            )}
+            <EditableField
+              label="Receipt Number"
+              value={item.receipt_number ?? undefined}
+              onSave={handleFieldSave("receipt_number")}
+              placeholder="Enter receipt number"
+              readOnly={readOnly}
+            />
 
             {/* Raw transcript — collapsed by default. */}
             {item.transcript && (
@@ -442,13 +365,10 @@ function arePropsEqual(prev: ItemCardProps, next: ItemCardProps): boolean {
   if (
     prev.sessionId !== next.sessionId ||
     prev.isExpanded !== next.isExpanded ||
-    prev.onToggle !== next.onToggle ||
     prev.readOnly !== next.readOnly ||
     prev.audioCount !== next.audioCount ||
     prev.latestAudioId !== next.latestAudioId ||
     prev.hasServerAudio !== next.hasServerAudio ||
-    prev.photoCount !== next.photoCount ||
-    prev.dexieItemId !== next.dexieItemId ||
     prev.isPending !== next.isPending
   ) {
     return false;

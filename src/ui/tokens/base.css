@@ -352,7 +352,7 @@
    ink utilities, search-affordance helpers.
    ============================================================ */
 
-/* Mode tile — small 40x40 letter tile w/ accent/sand wash per mode.
+/* Mode tile — small 40x40 letter tile.
  * SCREEN-01 (Sessions list) shows one tile per session row. */
 .tpc .tpc-mode-tile {
   width: 40px;
@@ -368,7 +368,6 @@
   line-height: 1;
 }
 .tpc .tpc-mode-tile-sale  { background: var(--accent-wash); color: var(--accent); }
-.tpc .tpc-mode-tile-house { background: var(--sand-wash);   color: var(--sand); }
 
 /* Date-group eyebrow header used inside Sessions list. */
 .tpc .tpc-date-group {
@@ -539,8 +538,4 @@
 .tpc .tpc-card-mode-sale[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent-wash);
-}
-.tpc .tpc-card-mode-house[aria-pressed="true"] {
-  border-color: color-mix(in oklch, var(--sand) 50%, var(--rule-2));
-  background: var(--sand-wash);
 }

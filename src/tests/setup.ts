@@ -6,6 +6,9 @@ import { toHaveNoViolations } from "jest-axe";
 
 expect.extend(toHaveNoViolations);
 
+vi.stubEnv("VITE_FEATURE_CONTINUOUS_CAPTURE", "true");
+vi.stubEnv("VITE_FEATURE_PHOTO_NOTES", "true");
+
 // Mock matchMedia for jsdom (used by InstallBanner standalone detection)
 if (typeof window !== "undefined" && !window.matchMedia) {
   Object.defineProperty(window, "matchMedia", {

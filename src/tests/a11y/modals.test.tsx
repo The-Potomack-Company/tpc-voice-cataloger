@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -7,16 +7,7 @@ import { ReturnDialog } from "../../components/ReturnDialog";
 import { ItemPeekModal } from "../../components/ItemPeekModal";
 import type { Tables } from "../../db/database.types";
 
-// PhotoLightbox pulls a photo display URL off Dexie + Supabase; stub both so the
-// lightbox renders an <img> without touching IndexedDB or the network.
-vi.mock("dexie-react-hooks", () => ({ useLiveQuery: () => undefined }));
-vi.mock("../../hooks/usePhotoUrl", () => ({
-  usePhotoUrl: () => "blob:mock-photo",
-}));
-
-import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { MigrationSplash } from "../../components/MigrationSplash";
-import type { ItemPhoto } from "../../db/types";
 
 beforeEach(() => cleanup());
 
@@ -184,87 +175,6 @@ describe("ItemPeekModal (migrated to <Modal> — biggest prior gap)", () => {
   it("renders nothing when item is null", () => {
     render(<ItemPeekModal item={null} onClose={vi.fn()} />);
     expect(screen.queryByRole("dialog")).toBeNull();
-  });
-});
-
-const lightboxPhotos: ItemPhoto[] = [
-  { id: 1, itemId: 10, blob: new Blob(["a"]), kind: "full", createdAt: 0 },
-  { id: 2, itemId: 10, blob: new Blob(["b"]), kind: "full", createdAt: 0 },
-] as unknown as ItemPhoto[];
-
-describe("PhotoLightbox (migrated to <Modal>, nested ConfirmDialog)", () => {
-  it("renders role=dialog + aria-modal and keeps Close/Delete labels", () => {
-    render(
-      <PhotoLightbox
-        photos={lightboxPhotos}
-        initialIndex={0}
-        onClose={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(
-      within(dialog).getByRole("button", { name: "Close" }),
-    ).toBeInTheDocument();
-    expect(
-      within(dialog).getByRole("button", { name: "Delete photo" }),
-    ).toBeInTheDocument();
-  });
-
-  it("Escape closes the lightbox", async () => {
-    const onClose = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <PhotoLightbox
-        photos={lightboxPhotos}
-        initialIndex={0}
-        onClose={onClose}
-        onDelete={vi.fn()}
-      />,
-    );
-    await user.keyboard("{Escape}");
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("nested-trap: opening the photo-delete confirm moves focus into it; Escape returns to the lightbox (not all the way out)", async () => {
-    const onClose = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <PhotoLightbox
-        photos={lightboxPhotos}
-        initialIndex={0}
-        onClose={onClose}
-        onDelete={vi.fn()}
-      />,
-    );
-
-    // Open the nested ConfirmDialog.
-    await user.click(screen.getByRole("button", { name: "Delete photo" }));
-
-    // Two dialogs are present; focus is inside the inner confirm.
-    const dialogs = screen.getAllByRole("dialog");
-    expect(dialogs).toHaveLength(2);
-    const confirm = screen.getByText("Delete Photo").closest('[role="dialog"]')!;
-    expect(confirm.contains(document.activeElement)).toBe(true);
-
-    // Escape on the inner confirm closes ONLY the confirm — lightbox stays open.
-    await user.keyboard("{Escape}");
-    expect(screen.queryByText("Delete Photo")).toBeNull();
-    expect(screen.getByRole("dialog")).toBeInTheDocument(); // lightbox still here
-    expect(onClose).not.toHaveBeenCalled(); // did not blow all the way out
-  });
-
-  it("has no axe violations", async () => {
-    render(
-      <PhotoLightbox
-        photos={lightboxPhotos}
-        initialIndex={0}
-        onClose={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
-    expect(await axe(document.body, AXE_OPTS)).toHaveNoViolations();
   });
 });
 

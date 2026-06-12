@@ -1,27 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { createSession, deleteSession } from "../db/sessions";
-import { createBlankItem, deleteItem } from "../db/items";
+import { createSession } from "../db/sessions";
 import { useNotificationStore } from "../stores/notificationStore";
 import { useActiveSessions } from "../hooks/useSessions";
 import { useUserRole } from "../hooks/useUserRole";
 import { listAccounts, type Account } from "../services/adminApi";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { ImportReceiptsButton } from "../components/ImportReceiptsButton";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 
-type Mode = "house" | "sale";
-
 export function NewSessionPage() {
   const [name, setName] = useState("");
-  const [mode, setMode] = useState<Mode>("house");
   const [notes, setNotes] = useState("");
   const [showActiveWarning, setShowActiveWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
@@ -57,13 +50,6 @@ export function NewSessionPage() {
       });
   }, [isAdmin]);
 
-  // Auto-dismiss toast after 3 seconds
-  useEffect(() => {
-    if (!toastMessage) return;
-    const timer = setTimeout(() => setToastMessage(null), 3000);
-    return () => clearTimeout(timer);
-  }, [toastMessage]);
-
   const handleSubmit = async () => {
     if (!name.trim() || submitting) return;
 
@@ -81,7 +67,7 @@ export function NewSessionPage() {
     try {
       const newId = await createSession(
         name.trim(),
-        mode,
+        "sale",
         notes.trim() || undefined,
         isAdmin ? assignedTo : undefined,
       );
@@ -97,88 +83,6 @@ export function NewSessionPage() {
         );
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleImport = async (receipts: string[], skipped: number) => {
-    if (receipts.length === 0) {
-      setToastMessage("No valid receipt numbers found in file");
-      return;
-    }
-
-    // CR-01/D-01: a transactional import requires connectivity. The store's
-    // create/update actions silently offline-queue on network errors and return
-    // normally, which would let the loop "succeed" and navigate while leaving
-    // un-drained queued rows — no rollback ever fires. Refuse up front when
-    // offline so the SC2 atomicity contract stays honest.
-    if (!navigator.onLine) {
-      useNotificationStore
-        .getState()
-        .notifyError("You're offline — reconnect to import.");
-      return;
-    }
-
-    setImporting(true);
-    // D-01: client-side atomicity. Track every row this import lands so a
-    // mid-loop failure can compensate (reverse-order best-effort deletes) —
-    // no orphan session/items remain, without needing a transactional RPC.
-    let createdSessionId: string | undefined;
-    const createdItemIds: string[] = [];
-    // RESEARCH Q2: the loop variable at throw time is the single collider
-    // (await-then-throw stops iteration; in-file dupes are pre-filtered to skipped).
-    let lastReceipt: string | undefined;
-    try {
-      createdSessionId = await createSession(
-        name.trim(),
-        "sale",
-        notes.trim() || undefined,
-        isAdmin ? assignedTo : undefined,
-      );
-
-      for (const receipt of receipts) {
-        lastReceipt = receipt;
-        // CR-02: persist receipt_number at creation time. updateItemField
-        // swallows a duplicate-receipt (23505) violation internally and returns
-        // normally, which would leave a blank-receipt orphan AND let the loop
-        // navigate to success. createItem reverts + throws on that non-network
-        // error, so a duplicate now reaches the catch and triggers rollback.
-        const itemId = await createBlankItem(createdSessionId, "sale", receipt);
-        createdItemIds.push(itemId);
-      }
-
-      const msg = `${receipts.length} item${receipts.length === 1 ? "" : "s"} created${skipped > 0 ? `, ${skipped} ${skipped === 1 ? "entry" : "entries"} skipped` : ""}`;
-      sessionStorage.setItem("importToast", msg);
-      navigate(`/session/${createdSessionId}`);
-    } catch (err) {
-      // Compensate in reverse creation order; each delete is best-effort so a
-      // failed cleanup never masks the original error. deleteSession/deleteItem
-      // are Supabase-backed (FK cascade), leaving no Dexie idMapping to purge.
-      for (const itemId of [...createdItemIds].reverse()) {
-        if (createdSessionId) {
-          await deleteItem(itemId, createdSessionId).catch(() => {});
-        }
-      }
-      if (createdSessionId) {
-        await deleteSession(createdSessionId).catch(() => {});
-      }
-      // Gate strictly on 23505 (Pitfall 1) — every other failure keeps the
-      // generic copy. catch binds unknown, so narrow via a code probe (Pitfall 2).
-      // WR-01: also require lastReceipt to be set — a 23505 from the pre-loop
-      // createSession would otherwise name "Receipt #undefined". Only an
-      // in-loop createBlankItem collision has an identified offending receipt.
-      const isDup =
-        lastReceipt !== undefined &&
-        (err as { code?: string } | null)?.code === "23505";
-      useNotificationStore
-        .getState()
-        .notifyError(
-          isDup
-            ? `Receipt #${lastReceipt} is already in use — that import was undone. Remove it and try again.`
-            : "Import didn't finish — changes were undone. Try again.",
-          () => handleImport(receipts, skipped),
-        );
-    } finally {
-      setImporting(false);
     }
   };
 
@@ -198,53 +102,25 @@ export function NewSessionPage() {
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Smith Estate House Visit"
+          placeholder="e.g. June Fine Sale"
         />
       </div>
 
-      {/* Mode Picker — paired accent-wash / sand-wash tiles */}
+      {/* Cataloging mode */}
       <div className="mb-6">
         <Eyebrow className="mb-2">Cataloging Mode</Eyebrow>
-        <div className="grid gap-3 portrait:grid-cols-1 landscape:grid-cols-2">
-          {/* House Visit card */}
-          <button
-            type="button"
-            onClick={() => setMode("house")}
-            aria-pressed={mode === "house"}
-            className="tpc-card-mode tpc-card-mode-house"
-          >
-            <div className="flex items-center gap-3">
-              <span className="tpc-mode-tile tpc-mode-tile-house" aria-hidden>
-                H
-              </span>
-              <div>
-                <div className="tpc-display tpc-display-4 text-ink">House Visit</div>
-                <p className="text-sm text-ink-3 mt-0.5">
-                  Catalog items with photos during a house visit
-                </p>
-              </div>
+        <div className="tpc-card-mode tpc-card-mode-sale" aria-label="Sale Cataloging">
+          <div className="flex items-center gap-3">
+            <span className="tpc-mode-tile tpc-mode-tile-sale" aria-hidden>
+              S
+            </span>
+            <div>
+              <div className="tpc-display tpc-display-4 text-ink">Sale Cataloging</div>
+              <p className="text-sm text-ink-3 mt-0.5">
+                Enter receipt numbers and dictate items for a sale
+              </p>
             </div>
-          </button>
-
-          {/* Sale Cataloging card */}
-          <button
-            type="button"
-            onClick={() => setMode("sale")}
-            aria-pressed={mode === "sale"}
-            className="tpc-card-mode tpc-card-mode-sale"
-          >
-            <div className="flex items-center gap-3">
-              <span className="tpc-mode-tile tpc-mode-tile-sale" aria-hidden>
-                S
-              </span>
-              <div>
-                <div className="tpc-display tpc-display-4 text-ink">Sale Cataloging</div>
-                <p className="text-sm text-ink-3 mt-0.5">
-                  Enter receipt numbers and dictate items for a sale
-                </p>
-              </div>
-            </div>
-          </button>
+          </div>
         </div>
       </div>
 
@@ -312,36 +188,16 @@ export function NewSessionPage() {
         </div>
       )}
 
-      {/* Import Receipt List - only in sale mode */}
-      {mode === "sale" && (
-        <div className="mb-6">
-          <ImportReceiptsButton
-            onImport={handleImport}
-            disabled={!name.trim() || importing || submitting || (isAdmin && !assignedTo)}
-          />
-          <p className="text-xs text-ink-4 mt-2 text-center">
-            Upload a CSV or XLSX file with receipt numbers
-          </p>
-        </div>
-      )}
-
       {/* Submit */}
       <Button
         type="button"
         variant="primary"
         fullWidth
         onClick={handleSubmit}
-        disabled={!name.trim() || submitting || importing || (isAdmin && !assignedTo)}
+        disabled={!name.trim() || submitting || (isAdmin && !assignedTo)}
       >
         {submitting ? "Creating…" : "Start Session"}
       </Button>
-
-      {/* Toast feedback */}
-      {toastMessage && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-ink text-bg px-4 py-3 rounded-md shadow-lg animate-[slideUp_0.3s_ease-out]">
-          <span className="text-sm">{toastMessage}</span>
-        </div>
-      )}
 
       {/* Active session warning */}
       <ConfirmDialog

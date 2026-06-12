@@ -85,9 +85,9 @@ describe("SessionsPage", () => {
 });
 
 describe("NewSessionPage", () => {
-  test("renders mode picker with House Visit and Sale Cataloging options", () => {
+  test("renders sale cataloging as the only cataloging mode", () => {
     renderWithRouter(<NewSessionPage />);
-    expect(screen.getByText("House Visit")).toBeInTheDocument();
     expect(screen.getByText("Sale Cataloging")).toBeInTheDocument();
+    expect(screen.queryByText("House Visit")).not.toBeInTheDocument();
   });
 });
