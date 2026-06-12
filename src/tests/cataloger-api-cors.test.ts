@@ -161,11 +161,12 @@ describe("cataloger-api admin routes", () => {
   it("purges expired and orphaned Firebase audio objects", async () => {
     const deleteExpired = vi.fn().mockResolvedValue(undefined);
     const deleteOrphan = vi.fn().mockResolvedValue(undefined);
+    const oldTimeCreated = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
     const storage = {
       bucket: () => ({
         getFiles: vi.fn().mockResolvedValue([[
-          { name: "audio/session/item/expired.webm" },
-          { name: "audio/session/item/orphan.webm" },
+          { name: "audio/session/item/expired.webm", metadata: { timeCreated: oldTimeCreated } },
+          { name: "audio/session/item/orphan.webm", metadata: { timeCreated: oldTimeCreated } },
         ]]),
         file: (path: string) => ({
           delete: path.includes("orphan") ? deleteOrphan : deleteExpired,
@@ -180,6 +181,7 @@ describe("cataloger-api admin routes", () => {
         },
       ]),
       listKnownAudioPaths: vi.fn().mockResolvedValue(["audio/session/item/expired.webm"]),
+      hasAudioPath: vi.fn().mockResolvedValue(false),
       deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
     };
     const handler = createRequestHandler({
@@ -201,8 +203,123 @@ describe("cataloger-api admin routes", () => {
     expect(JSON.parse(response.body)).toEqual({ removed: 2, expired: 1, orphans: 1 });
     expect(deleteExpired).toHaveBeenCalledWith({ ignoreNotFound: true });
     expect(deleteOrphan).toHaveBeenCalledWith({ ignoreNotFound: true });
+    expect(profiles.hasAudioPath).toHaveBeenCalledWith("audio/session/item/orphan.webm");
     expect(profiles.deleteAudioByIds).toHaveBeenCalledWith([
       "00000000-0000-0000-0000-000000000001",
     ]);
+  });
+
+  it("skips young Firebase audio orphans inside the grace period", async () => {
+    const deleteYoungOrphan = vi.fn().mockResolvedValue(undefined);
+    const youngTimeCreated = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const storage = {
+      bucket: () => ({
+        getFiles: vi.fn().mockResolvedValue([[
+          { name: "audio/session/item/young.webm", metadata: { timeCreated: youngTimeCreated } },
+        ]]),
+        file: () => ({ delete: deleteYoungOrphan }),
+      }),
+    };
+    const profiles = {
+      listExpiredAudio: vi.fn().mockResolvedValue([]),
+      listKnownAudioPaths: vi.fn().mockResolvedValue([]),
+      hasAudioPath: vi.fn().mockResolvedValue(false),
+      deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth: {},
+      storage,
+      profiles,
+      env: { PURGE_AUDIO_SECRET: "secret" },
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/purge-audio",
+      headers: { "x-purge-secret": "secret" },
+      body: {},
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({ removed: 0, expired: 0, orphans: 0 });
+    expect(deleteYoungOrphan).not.toHaveBeenCalled();
+    expect(profiles.hasAudioPath).not.toHaveBeenCalled();
+  });
+
+  it("deletes old Firebase audio orphans after the grace period", async () => {
+    const deleteOldOrphan = vi.fn().mockResolvedValue(undefined);
+    const oldTimeCreated = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const storage = {
+      bucket: () => ({
+        getFiles: vi.fn().mockResolvedValue([[
+          { name: "audio/session/item/old.webm", metadata: { timeCreated: oldTimeCreated } },
+        ]]),
+        file: () => ({ delete: deleteOldOrphan }),
+      }),
+    };
+    const profiles = {
+      listExpiredAudio: vi.fn().mockResolvedValue([]),
+      listKnownAudioPaths: vi.fn().mockResolvedValue([]),
+      hasAudioPath: vi.fn().mockResolvedValue(false),
+      deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth: {},
+      storage,
+      profiles,
+      env: { PURGE_AUDIO_SECRET: "secret" },
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/purge-audio",
+      headers: { "x-purge-secret": "secret" },
+      body: {},
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({ removed: 1, expired: 0, orphans: 1 });
+    expect(profiles.hasAudioPath).toHaveBeenCalledWith("audio/session/item/old.webm");
+    expect(deleteOldOrphan).toHaveBeenCalledWith({ ignoreNotFound: true });
+  });
+
+  it("spares an orphan candidate when its audio metadata appears before delete", async () => {
+    const deleteLateMetadataObject = vi.fn().mockResolvedValue(undefined);
+    const oldTimeCreated = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const storage = {
+      bucket: () => ({
+        getFiles: vi.fn().mockResolvedValue([[
+          { name: "audio/session/item/race.webm", metadata: { timeCreated: oldTimeCreated } },
+        ]]),
+        file: () => ({ delete: deleteLateMetadataObject }),
+      }),
+    };
+    const profiles = {
+      listExpiredAudio: vi.fn().mockResolvedValue([]),
+      listKnownAudioPaths: vi.fn().mockResolvedValue([]),
+      hasAudioPath: vi.fn().mockResolvedValue(true),
+      deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth: {},
+      storage,
+      profiles,
+      env: { PURGE_AUDIO_SECRET: "secret" },
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/purge-audio",
+      headers: { "x-purge-secret": "secret" },
+      body: {},
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({ removed: 0, expired: 0, orphans: 0 });
+    expect(profiles.hasAudioPath).toHaveBeenCalledWith("audio/session/item/race.webm");
+    expect(deleteLateMetadataObject).not.toHaveBeenCalled();
   });
 });

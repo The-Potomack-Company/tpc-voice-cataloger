@@ -78,6 +78,14 @@ export function createProfileStoreFromPool(pool) {
       return result.rows.map((row) => row.storage_path).filter(Boolean);
     },
 
+    async hasAudioPath(path) {
+      const result = await pool.query(
+        "select 1 from public.audio where storage_path = $1 limit 1",
+        [path],
+      );
+      return (result.rowCount ?? result.rows.length) > 0;
+    },
+
     async deleteAudioByIds(ids) {
       if (ids.length === 0) return;
       await pool.query("delete from public.audio where id = any($1::uuid[])", [ids]);

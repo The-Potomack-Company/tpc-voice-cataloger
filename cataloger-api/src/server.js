@@ -17,6 +17,7 @@ const PROD_ALLOWED_ORIGINS = [
 const FIREBASE_ADMIN_APP_MODULE = "firebase-admin/app";
 const FIREBASE_ADMIN_AUTH_MODULE = "firebase-admin/auth";
 const FIREBASE_ADMIN_STORAGE_MODULE = "firebase-admin/storage";
+const DEFAULT_ORPHAN_GRACE_HOURS = 24;
 const DEFAULT_ALLOWED_ORIGINS = [
   ...PROD_ALLOWED_ORIGINS,
   "http://localhost:5173",
@@ -67,6 +68,14 @@ function json(res, status, body, headers = {}) {
     ...headers,
   });
   res.end(JSON.stringify(body));
+}
+
+function audioOrphanGraceMs(env) {
+  const configuredHours = Number(env.PURGE_AUDIO_ORPHAN_GRACE_HOURS);
+  const graceHours = Number.isFinite(configuredHours)
+    ? Math.max(configuredHours, DEFAULT_ORPHAN_GRACE_HOURS)
+    : DEFAULT_ORPHAN_GRACE_HOURS;
+  return graceHours * 60 * 60 * 1000;
 }
 
 function bearerToken(req) {
@@ -237,15 +246,39 @@ async function handleListUsers(res, auth, profiles, cors = {}) {
   json(res, 200, { accounts }, cors);
 }
 
-async function listFirebaseObjectNames(storage, prefix) {
+async function firebaseFileCreatedAtMs(file) {
+  const listedMetadata = file.metadata ?? {};
+  const metadata = listedMetadata.timeCreated
+    ? listedMetadata
+    : (await file.getMetadata?.())?.[0] ?? listedMetadata;
+  const createdAt = metadata.timeCreated ?? metadata.time_created;
+  const createdAtMs = Date.parse(createdAt);
+  return Number.isFinite(createdAtMs) ? createdAtMs : null;
+}
+
+async function listFirebaseObjects(storage, prefix) {
   const bucket = storage.bucket();
   const [files] = await bucket.getFiles({ prefix });
-  return files.map((file) => file.name);
+  return Promise.all(files.map(async (file) => ({
+    name: file.name,
+    createdAtMs: await firebaseFileCreatedAtMs(file),
+  })));
 }
 
 async function deleteFirebaseObjects(storage, paths) {
   const bucket = storage.bucket();
   await Promise.all(paths.map((path) => bucket.file(path).delete({ ignoreNotFound: true })));
+}
+
+async function deleteRecheckedOrphanObjects(storage, profiles, paths) {
+  const removed = [];
+  const bucket = storage.bucket();
+  for (const path of paths) {
+    if (await profiles.hasAudioPath(path)) continue;
+    await bucket.file(path).delete({ ignoreNotFound: true });
+    removed.push(path);
+  }
+  return removed;
 }
 
 async function handlePurgeAudio(req, res, profiles, storage, env = process.env, cors = {}) {
@@ -264,24 +297,29 @@ async function handlePurgeAudio(req, res, profiles, storage, env = process.env, 
   }
 
   const cutoffIso = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const [expiredRows, knownPaths, storagePaths] = await Promise.all([
+  const orphanGraceMs = audioOrphanGraceMs(env);
+  const orphanCreatedBeforeMs = Date.now() - orphanGraceMs;
+  const [expiredRows, knownPaths, storageObjects] = await Promise.all([
     profiles.listExpiredAudio(cutoffIso),
     profiles.listKnownAudioPaths(),
-    listFirebaseObjectNames(storage, "audio/"),
+    listFirebaseObjects(storage, "audio/"),
   ]);
   const known = new Set(knownPaths);
   const expiredPaths = expiredRows.map((row) => row.storage_path).filter(Boolean);
   const expiredIds = expiredRows.map((row) => row.id).filter(Boolean);
-  const orphanPaths = storagePaths.filter((path) => !known.has(path));
-  const pathsToRemove = Array.from(new Set([...expiredPaths, ...orphanPaths]));
+  const orphanCandidates = storageObjects
+    .filter((object) => object.createdAtMs !== null && object.createdAtMs < orphanCreatedBeforeMs)
+    .map((object) => object.name)
+    .filter((path) => !known.has(path));
 
-  if (pathsToRemove.length > 0) {
-    await deleteFirebaseObjects(storage, pathsToRemove);
+  if (expiredPaths.length > 0) {
+    await deleteFirebaseObjects(storage, Array.from(new Set(expiredPaths)));
   }
+  const orphanPaths = await deleteRecheckedOrphanObjects(storage, profiles, Array.from(new Set(orphanCandidates)));
   await profiles.deleteAudioByIds(expiredIds);
 
   json(res, 200, {
-    removed: pathsToRemove.length,
+    removed: new Set([...expiredPaths, ...orphanPaths]).size,
     expired: expiredPaths.length,
     orphans: orphanPaths.length,
   }, cors);
