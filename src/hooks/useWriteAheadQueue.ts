@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { db } from "../db";
 import { supabase } from "../lib/supabase";
 import { useUIStore } from "../stores/uiStore";
-import { classifyAiError } from "../utils/aiErrorClass";
 import { notifyDrainComplete } from "../stores/drainSignalStore";
 import { preconditionUpdate } from "../db/optimisticUpdate";
 import type { WriteAheadEntry } from "../db/types";
@@ -27,17 +26,6 @@ function scheduleTransientRedrain(): void {
   }, TRANSIENT_REDRAIN_MS);
 }
 
-// Supabase returns errors as plain PostgrestError-shaped objects ({ message, code, ... }),
-// not Error instances. classifyAiError only reads `.message` off real Error instances
-// (instanceof check), so normalize to an Error carrying the message + status before
-// classifying — otherwise every supabase failure stringifies to "[object Object]" and
-// silently classifies as transient.
-//
-// WR-06: emit the status as a controlled "(HTTP <status>)" trailer that
-// classifyAiError anchors on, and ONLY from a real numeric HTTP `status`.
-// PostgrestError.code is a SQLSTATE (e.g. "23505"), NOT an HTTP status — the old
-// `/^\d{3}$/.test(r.code)` path fabricated bogus HTTP statuses from SQLSTATEs
-// shaped like "404"/"500", mis-classifying recoverable writes as permanent drops.
 function toError(raw: unknown): Error {
   if (raw instanceof Error) return raw;
   if (raw && typeof raw === "object") {
@@ -47,6 +35,20 @@ function toError(raw: unknown): Error {
     return new Error(status ? `${base} (HTTP ${status})` : base);
   }
   return new Error(String(raw));
+}
+
+function httpStatusFromError(error: Error): number | null {
+  const match = error.message.match(/(?:Proxy returned HTTP (\d{3})|\(HTTP (\d{3})\)$)/);
+  if (!match) return null;
+  const status = Number(match[1] ?? match[2]);
+  return Number.isFinite(status) ? status : null;
+}
+
+export function isPermanentWriteAheadError(error: unknown): boolean {
+  if (!navigator.onLine) return false;
+  const normalized = toError(error);
+  const status = httpStatusFromError(normalized);
+  return status === 400 || status === 404 || status === 406 || status === 410;
 }
 
 export async function enqueueWrite(
@@ -136,16 +138,16 @@ export async function processWriteAheadQueue(): Promise<void> {
         // Intentionally do NOT emit an analytics event here: trackEvent re-enqueues into this
         // same queue, which would grow the queue on every failed drain. Drain failures surface
         // via console + the global app.error handler on unhandled rejections.
-        const kind = classifyAiError(toError(err));
-        if (kind === "permanent") {
-          // D-09: a permanent failure (4xx / validation) won't succeed on replay.
+        if (isPermanentWriteAheadError(err)) {
+          // D-09: a permanent failure from the configured WAL status set won't
+          // succeed on replay. Auth/rate-limit/server cases remain retryable.
           // Drop the failing entry AND every queued entry for the same item (matched
           // by payload.id / tempId, reusing the hasPendingForItem idiom) so dependent
           // updates don't 404 forever (RESEARCH Pitfall 5), then CONTINUE the drain so
           // one bad write can't strand every later write (head-of-line block, T-33-06).
           const itemId = (entry.payload as Record<string, unknown>).id;
           const itemTempId = entry.tempId;
-          await db.writeAheadQueue
+          const dropped = await db.writeAheadQueue
             .filter((e) => {
               if (e.id === entry.id) return true;
               const p = e.payload as Record<string, unknown>;
@@ -154,6 +156,14 @@ export async function processWriteAheadQueue(): Promise<void> {
               return false;
             })
             .delete();
+          useUIStore.getState().addDroppedWriteAheadCount(dropped);
+          console.warn("Dropping non-retryable write-ahead queue entries:", {
+            entryId: entry.id,
+            table: entry.table,
+            operation: entry.operation,
+            dropped,
+            error: toError(err).message,
+          });
           continue;
         }
         // Transient (offline / timeout / 429 / 5xx): halt-and-backoff. Preserve FIFO —

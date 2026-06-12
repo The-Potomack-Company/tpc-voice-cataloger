@@ -105,28 +105,11 @@ export async function trackEventNow(payload: AnalyticsEventPayload): Promise<voi
 }
 
 /**
- * Emit a fine-grained UI interaction event into ui_interactions.
- * Offline-safe. Never throws.
+ * UI interaction telemetry was retired with the dashboard. Keep the call-site
+ * helper as a no-op so views do not enqueue writes to the pruned table.
  */
 export async function trackUiInteraction(payload: UiInteractionPayload): Promise<void> {
-  try {
-    const { userId, email } = await getUserContext();
-    await enqueueWrite({
-      table: "ui_interactions",
-      operation: "insert",
-      payload: {
-        app_source: APP_SOURCE,
-        app_version: APP_VERSION || null,
-        user_id: userId,
-        user_email: email,
-        // Stamp at event time, not drain time.
-        created_at: new Date().toISOString(),
-        ...payload,
-      },
-    });
-  } catch (err) {
-    console.warn("[analytics] trackUiInteraction failed", err);
-  }
+  void payload;
 }
 
 /**

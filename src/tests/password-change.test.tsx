@@ -46,7 +46,14 @@ vi.mock('../db/sessions', () => ({
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn(() => Promise.resolve({ data: { walkthrough_completed: true }, error: null })) })) })) })),
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({ data: { walkthrough_completed: true }, error: null })),
+          single: vi.fn(() => Promise.resolve({ data: { walkthrough_completed: true }, error: null })),
+        })),
+      })),
+    })),
     auth: { getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'test-id' } }, error: null })), onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })) },
   },
 }));

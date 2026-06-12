@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { trackUiInteraction } from "../services/analytics";
 
-/**
- * Fire a `view` ui_interactions event on mount and whenever pagePath/sessionId changes.
- */
+/** Retained call-site hook; UI interaction telemetry is retired. */
 export function usePageView(pagePath: string, sessionId?: string | null): void {
   useEffect(() => {
     trackUiInteraction({

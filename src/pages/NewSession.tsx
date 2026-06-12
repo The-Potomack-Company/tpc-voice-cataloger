@@ -23,6 +23,7 @@ export function NewSessionPage() {
   const navigate = useNavigate();
   const activeSessions = useActiveSessions();
   const { isAdmin } = useUserRole();
+  const noAssignableAccounts = isAdmin && !accountsLoading && !accountsError && accounts.length === 0;
 
   useEffect(() => {
     nameRef.current?.focus();
@@ -145,7 +146,7 @@ export function NewSessionPage() {
               id="assign-to"
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
-              disabled={accountsLoading}
+              disabled={accountsLoading || accounts.length === 0}
               className="tpc-input appearance-none pr-9 font-medium"
             >
               {accountsLoading ? (
@@ -155,7 +156,7 @@ export function NewSessionPage() {
               ) : (
                 <>
                   <option value="" disabled>
-                    Select a specialist…
+                    {accounts.length === 0 ? "No team profiles available" : "Select a specialist…"}
                   </option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -183,6 +184,11 @@ export function NewSessionPage() {
           {accountsError && (
             <p className="text-sm text-err mt-1" role="alert">
               {accountsError}
+            </p>
+          )}
+          {noAssignableAccounts && (
+            <p className="text-sm text-ink-3 mt-1" role="status">
+              No active team profiles yet. Seed staff profiles before assigning sessions.
             </p>
           )}
         </div>

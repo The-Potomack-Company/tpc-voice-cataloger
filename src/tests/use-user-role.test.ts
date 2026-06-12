@@ -35,10 +35,10 @@ function asUser(id: string | null) {
   );
 }
 
-// Build the .from('profiles').select('role').eq('id').single() chain.
+// Build the .from('profiles').select('role').eq('id').maybeSingle() chain.
 function setupProfileResponse(data: unknown, error: unknown) {
-  const single = vi.fn().mockResolvedValue({ data, error });
-  const eq = vi.fn().mockReturnValue({ single });
+  const maybeSingle = vi.fn().mockResolvedValue({ data, error });
+  const eq = vi.fn().mockReturnValue({ maybeSingle });
   const select = vi.fn().mockReturnValue({ eq });
   mockFrom.mockReturnValue({ select });
 }
@@ -154,11 +154,11 @@ describe("useUserRole", () => {
 
     const first = deferredProfileResponse();
     const second = deferredProfileResponse();
-    const single = vi
+    const maybeSingle = vi
       .fn()
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
-    const eq = vi.fn().mockReturnValue({ single });
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
     const select = vi.fn().mockReturnValue({ eq });
     mockFrom.mockReturnValue({ select });
 

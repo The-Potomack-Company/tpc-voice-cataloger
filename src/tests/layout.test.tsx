@@ -8,7 +8,14 @@ import { NewSessionPage } from "../pages/NewSession";
 vi.mock("../lib/supabase", () => ({
   supabase: {
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn(() => Promise.resolve({ data: null, error: null })), order: vi.fn(() => Promise.resolve({ data: [], error: null })) })), order: vi.fn(() => Promise.resolve({ data: [], error: null })) })),
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+          single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+          order: vi.fn(() => Promise.resolve({ data: [], error: null })),
+        })),
+        order: vi.fn(() => Promise.resolve({ data: [], error: null })),
+      })),
       // offlineQueue.drainQueue runs on layout mount: stale-reclaim (.update().eq().lt()) + DB-atomic claim (.update().eq().eq().select())
       update: vi.fn(() => ({ eq: vi.fn(() => ({ lt: vi.fn(() => Promise.resolve({ data: [], error: null })), eq: vi.fn(() => ({ select: vi.fn(() => Promise.resolve({ data: [], error: null })) })) })) })),
     })),

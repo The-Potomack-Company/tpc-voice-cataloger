@@ -25,6 +25,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ];
+const VALID_PROFILE_ROLES = new Set(["dev", "admin", "manager", "specialist"]);
 
 function parseAllowedOrigins(value) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -227,6 +228,27 @@ function jsonError(res, path, err, cors = {}, fallback = "Request failed") {
 
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function profileRoleFromClaims(claims = {}) {
+  return VALID_PROFILE_ROLES.has(claims.role) ? claims.role : null;
+}
+
+function displayNameFromIdentity(decoded = {}, user = null) {
+  const name = user?.displayName ?? decoded.name ?? decoded.display_name ?? decoded.email;
+  return isNonEmptyString(name) ? name.trim() : decoded.uid;
+}
+
+async function bootstrapLoginProfile(profiles, decoded, user = null) {
+  const roleClaim = profileRoleFromClaims(user?.customClaims ?? decoded);
+  await profiles.bootstrapProfile({
+    id: decoded.uid,
+    email: user?.email ?? decoded.email ?? null,
+    display_name: displayNameFromIdentity(decoded, user),
+    role: roleClaim ?? "specialist",
+    is_active: decoded.is_active !== false && user?.disabled !== true,
+    hasRoleClaim: roleClaim !== null,
+  });
 }
 
 function validateDraftBatchPayload(body) {
@@ -829,16 +851,19 @@ async function handleDiscardDraft(req, res, auth, profiles, draftId, cors = {}, 
   }, cors);
 }
 
-async function handleClaim(req, res, auth, cors = {}) {
+async function handleClaim(req, res, auth, profiles, cors = {}) {
   const token = bearerToken(req);
   if (!token) {
     json(res, 401, { error: "Bearer Firebase ID token required" }, cors);
     return;
   }
 
+  let tokenVerified = false;
   try {
     const decoded = await auth.verifyIdToken(token, true);
+    tokenVerified = true;
     if (decoded.workspace === "potomackco.com" && decoded.workspace_role === "authenticated") {
+      await bootstrapLoginProfile(profiles, decoded);
       json(res, 200, { ok: true, refreshRequired: false }, cors);
       return;
     }
@@ -850,32 +875,131 @@ async function handleClaim(req, res, auth, cors = {}) {
       return;
     }
 
-    await auth.setCustomUserClaims(decoded.uid, workspaceCustomClaims(user.customClaims));
+    const claims = workspaceCustomClaims(user.customClaims);
+    await auth.setCustomUserClaims(decoded.uid, claims);
+    await bootstrapLoginProfile(profiles, { ...decoded, ...claims }, user);
     json(res, 200, { ok: true, refreshRequired: true }, cors);
   } catch (err) {
+    if (tokenVerified) {
+      jsonError(res, "/session/claim", err, cors);
+      return;
+    }
     const message = err instanceof Error ? err.message : "Invalid Firebase ID token";
     json(res, 401, { error: message }, cors);
   }
 }
 
-async function handleCreateUser(req, res, auth, profiles, cors = {}) {
-  const { email, password, displayName } = await readJson(req);
+function normalizeSeedUser(input) {
+  if (!input || typeof input !== "object") {
+    return { error: "Each user must be an object" };
+  }
+  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+  const role = typeof input.role === "string" ? input.role : "specialist";
+  const displayName = typeof input.displayName === "string"
+    ? input.displayName.trim()
+    : typeof input.display_name === "string"
+      ? input.display_name.trim()
+      : "";
+
   if (!email || !displayName) {
-    json(res, 400, { error: "email and displayName are required" }, cors);
-    return;
+    return { error: "email and displayName are required" };
   }
   if (!isAllowedWorkspaceEmail(email)) {
-    json(res, 400, { error: "Email must be in the Potomack Workspace domain" }, cors);
+    return { error: "Email must be in the Potomack Workspace domain" };
+  }
+  if (!VALID_PROFILE_ROLES.has(role)) {
+    return { error: "role must be dev, admin, manager, or specialist" };
+  }
+  return {
+    email,
+    displayName,
+    password: typeof input.password === "string" && input.password ? input.password : undefined,
+    role,
+  };
+}
+
+async function seedUser(auth, profiles, input) {
+  const normalized = normalizeSeedUser(input);
+  if (normalized.error) throw new Error(normalized.error);
+
+  let user = null;
+  let created = false;
+  try {
+    user = await auth.getUserByEmail(normalized.email);
+    await auth.updateUser(user.uid, {
+      displayName: normalized.displayName,
+      emailVerified: true,
+      disabled: false,
+    });
+    user = {
+      ...user,
+      email: user.email ?? normalized.email,
+      displayName: normalized.displayName,
+      disabled: false,
+    };
+  } catch (err) {
+    const code = err?.code ?? "";
+    if (code !== "auth/user-not-found") throw err;
+    user = await auth.createUser({
+      email: normalized.email,
+      displayName: normalized.displayName,
+      emailVerified: true,
+      ...(normalized.password ? { password: normalized.password } : {}),
+    });
+    created = true;
+  }
+
+  const claims = workspaceCustomClaims({
+    ...(user.customClaims ?? {}),
+    role: normalized.role,
+    is_active: true,
+  });
+  await auth.setCustomUserClaims(user.uid, claims);
+  await profiles.upsertProfile({
+    id: user.uid,
+    email: user.email ?? normalized.email,
+    display_name: normalized.displayName,
+    role: normalized.role,
+    is_active: true,
+  });
+
+  return {
+    id: user.uid,
+    email: user.email ?? normalized.email,
+    role: normalized.role,
+    created,
+  };
+}
+
+async function handleCreateUser(req, res, auth, profiles, cors = {}) {
+  const body = await readJson(req);
+  if (Array.isArray(body.users)) {
+    try {
+      const users = [];
+      for (const userInput of body.users) {
+        users.push(await seedUser(auth, profiles, userInput));
+      }
+      json(res, 200, { users }, cors);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to seed users";
+      json(res, 400, { error: message }, cors);
+    }
+    return;
+  }
+
+  const normalized = normalizeSeedUser({ ...body, role: "specialist" });
+  if (normalized.error) {
+    json(res, 400, { error: normalized.error }, cors);
     return;
   }
 
   let user = null;
   try {
     user = await auth.createUser({
-      email,
-      displayName,
+      email: normalized.email,
+      displayName: normalized.displayName,
       emailVerified: true,
-      ...(password ? { password } : {}),
+      ...(normalized.password ? { password: normalized.password } : {}),
     });
     await auth.setCustomUserClaims(user.uid, workspaceCustomClaims({
       role: "specialist",
@@ -883,12 +1007,12 @@ async function handleCreateUser(req, res, auth, profiles, cors = {}) {
     }));
     await profiles.upsertProfile({
       id: user.uid,
-      email: user.email ?? email,
-      display_name: displayName,
+      email: user.email ?? normalized.email,
+      display_name: normalized.displayName,
       role: "specialist",
       is_active: true,
     });
-    json(res, 200, { user: { id: user.uid, email: user.email ?? email } }, cors);
+    json(res, 200, { user: { id: user.uid, email: user.email ?? normalized.email } }, cors);
   } catch (err) {
     if (user?.uid) {
       await auth.deleteUser(user.uid).catch(() => {});
@@ -1153,7 +1277,9 @@ export function createRequestHandler({
         return;
       }
       if (path === "/session/claim" && req.method === "POST") {
-        void handleClaim(req, res, auth, cors);
+        void getProfiles()
+          .then((profileStore) => handleClaim(req, res, auth, profileStore, cors))
+          .catch((err) => jsonError(res, path, err, cors));
         return;
       }
       if (path.startsWith("/admin/") && (req.method === "POST" || req.method === "GET")) {

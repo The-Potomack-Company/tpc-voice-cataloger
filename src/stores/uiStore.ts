@@ -6,6 +6,8 @@ interface UIState {
   setRecordingSession: (id: string | null) => void;
   isOnline: boolean;
   setOnline: (online: boolean) => void;
+  droppedWriteAheadCount: number;
+  addDroppedWriteAheadCount: (count: number) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -16,11 +18,17 @@ export const useUIStore = create<UIState>()(
         set({ recordingSessionId: id }),
       isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
       setOnline: (online: boolean) => set({ isOnline: online }),
+      droppedWriteAheadCount: 0,
+      addDroppedWriteAheadCount: (count: number) =>
+        set((state) => ({
+          droppedWriteAheadCount: state.droppedWriteAheadCount + count,
+        })),
     }),
     {
       name: "tpc-ui-state",
       partialize: (state) => ({
         recordingSessionId: state.recordingSessionId,
+        droppedWriteAheadCount: state.droppedWriteAheadCount,
       }),
     },
   ),
