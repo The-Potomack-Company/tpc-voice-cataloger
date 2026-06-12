@@ -7,6 +7,7 @@ import {
   notePagesBatchKey,
   processNotesWithAi,
 } from "../services/processNotesWithAi";
+import type { ItemDraftPayload } from "../services/itemDraftsApi";
 
 vi.mock("../lib/authGuard", () => ({
   ensureFreshSession: vi.fn().mockResolvedValue("firebase-token"),
@@ -29,7 +30,24 @@ function jpeg(tag: string): Blob {
   return new Blob([tag], { type: "image/jpeg" });
 }
 
-function geminiResponse(pageUid: string) {
+function modelDraft(pageUids: string[], title: string) {
+  return {
+    source_page_uids: pageUids,
+    raw_ocr_text: title,
+    fields: {
+      title: { value: title, confidence: 0.92 },
+      description: { value: null, confidence: 1 },
+      condition: { value: null, confidence: 1 },
+      estimate: { value: null, confidence: 1 },
+      measurements: { value: null, confidence: 1 },
+      category: { value: "FRN", confidence: 0.91 },
+      transcript: { value: title, confidence: 0.88 },
+      receipt_number: { value: null, confidence: 1 },
+    },
+  };
+}
+
+function geminiResponse(drafts: ReturnType<typeof modelDraft>[]) {
   return {
     candidates: [
       {
@@ -37,22 +55,7 @@ function geminiResponse(pageUid: string) {
           parts: [
             {
               text: JSON.stringify({
-                drafts: [
-                  {
-                    source_page_uids: [pageUid],
-                    raw_ocr_text: `Walnut chair ${pageUid}`,
-                    fields: {
-                      title: { value: `Walnut chair ${pageUid}`, confidence: 0.92 },
-                      description: { value: null, confidence: 1 },
-                      condition: { value: null, confidence: 1 },
-                      estimate: { value: null, confidence: 1 },
-                      measurements: { value: null, confidence: 1 },
-                      category: { value: "FRN", confidence: 0.91 },
-                      transcript: { value: `Walnut chair ${pageUid}`, confidence: 0.88 },
-                      receipt_number: { value: null, confidence: 1 },
-                    },
-                  },
-                ],
+                drafts,
               }),
             },
           ],
@@ -62,12 +65,12 @@ function geminiResponse(pageUid: string) {
   };
 }
 
-function pageUidFromProxyRequest(init: RequestInit | undefined): string {
+function pageUidsFromProxyRequest(init: RequestInit | undefined): string[] {
   const body = JSON.parse(String(init?.body));
   const text = body.payload.contents[0].parts[0].text as string;
-  const match = text.match(/\d+\. ([^\n]+)/);
-  if (!match) throw new Error("missing page uid in proxy request");
-  return match[1];
+  const matches = [...text.matchAll(/^\d+\. ([^\s]+) \(sha256:[^)]+\)$/gm)];
+  if (matches.length === 0) throw new Error("missing page uids in proxy request");
+  return matches.map((match) => match[1]);
 }
 
 beforeEach(() => {
@@ -129,24 +132,85 @@ describe("photo note segmentation normalization", () => {
     }]);
   });
 
-  it("re-run after add/reorder sends only unprocessed page content", async () => {
-    const id0 = await addNotePage({ sessionId: "session-1", blob: jpeg("a"), thumbnail: jpeg("ta") });
-    const id1 = await addNotePage({ sessionId: "session-1", blob: jpeg("b"), thumbnail: jpeg("tb") });
-    const persistedDraftKeys: string[] = [];
+  it("attributes an item spanning two pages to one primary page draft", async () => {
+    const id0 = await addNotePage({ sessionId: "session-1", blob: jpeg("span-a"), thumbnail: jpeg("ta") });
+    const id1 = await addNotePage({ sessionId: "session-1", blob: jpeg("span-b"), thumbnail: jpeg("tb") });
+    const persistedDrafts: ItemDraftPayload[] = [];
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
       if (url === "https://gemini-proxy.test") {
+        const pageUids = pageUidsFromProxyRequest(init);
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(geminiResponse(pageUidFromProxyRequest(init))),
+          json: () => Promise.resolve(geminiResponse([
+            modelDraft(pageUids, "Walnut chair continued across pages"),
+          ])),
         });
       }
 
       const body = JSON.parse(String(init?.body));
-      persistedDraftKeys.push(...body.drafts.map((draft: { pageContentKey: string }) => draft.pageContentKey));
+      persistedDrafts.push(...body.drafts as ItemDraftPayload[]);
       return Promise.resolve({
         ok: true,
         status: 201,
         json: () => Promise.resolve({ draftCount: body.drafts.length }),
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 1 });
+
+    const pages = await getNotePages("session-1");
+    expect(pages.map((p) => p.id)).toEqual([id0, id1]);
+    expect(persistedDrafts).toHaveLength(1);
+    expect(persistedDrafts[0].pageContentKey).toBe(`sha256:${pages[0].contentHash}`);
+    expect(persistedDrafts[0].pageSegmentIndex).toBe(0);
+    expect(persistedDrafts[0].sourcePageRefs).toEqual([
+      {
+        pageUid: pages[0].pageUid,
+        sortOrder: 0,
+        pageContentKey: `sha256:${pages[0].contentHash}`,
+      },
+      {
+        pageUid: pages[1].pageUid,
+        sortOrder: 1,
+        pageContentKey: `sha256:${pages[1].contentHash}`,
+      },
+    ]);
+    const proxyCalls = fetchMock.mock.calls.filter(([url]) => url === "https://gemini-proxy.test");
+    expect(proxyCalls).toHaveLength(1);
+    expect(pageUidsFromProxyRequest(proxyCalls[0][1])).toEqual([pages[0].pageUid, pages[1].pageUid]);
+  });
+
+  it("re-run after add/reorder sends the full ordered page set without duplicating old page drafts", async () => {
+    const id0 = await addNotePage({ sessionId: "session-1", blob: jpeg("a"), thumbnail: jpeg("ta") });
+    const id1 = await addNotePage({ sessionId: "session-1", blob: jpeg("b"), thumbnail: jpeg("tb") });
+    const persistedDraftsByKey = new Map<string, ItemDraftPayload>();
+    const persistBodies: Array<{ drafts: ItemDraftPayload[] }> = [];
+    const insertedCounts: number[] = [];
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === "https://gemini-proxy.test") {
+        const pageUids = pageUidsFromProxyRequest(init);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(geminiResponse(
+            pageUids.map((pageUid) => modelDraft([pageUid], `Walnut chair ${pageUid}`)),
+          )),
+        });
+      }
+
+      const body = JSON.parse(String(init?.body));
+      persistBodies.push(body);
+      let insertedCount = 0;
+      for (const draft of body.drafts as ItemDraftPayload[]) {
+        const key = `${draft.pageContentKey}:${draft.pageSegmentIndex}`;
+        if (!persistedDraftsByKey.has(key)) insertedCount += 1;
+        persistedDraftsByKey.set(key, draft);
+      }
+      insertedCounts.push(insertedCount);
+      return Promise.resolve({
+        ok: true,
+        status: 201,
+        json: () => Promise.resolve({ draftCount: insertedCount }),
       });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -158,32 +222,45 @@ describe("photo note segmentation normalization", () => {
 
     await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 1 });
 
-    expect(persistedDraftKeys).toHaveLength(3);
-    expect(new Set(persistedDraftKeys).size).toBe(3);
+    expect(insertedCounts).toEqual([2, 1]);
+    expect(persistBodies).toHaveLength(2);
+    expect(persistBodies[0].drafts).toHaveLength(2);
+    expect(persistBodies[1].drafts).toHaveLength(3);
+    expect(persistedDraftsByKey.size).toBe(3);
+    const firstRunKeys = persistBodies[0].drafts.map((draft) => `${draft.pageContentKey}:${draft.pageSegmentIndex}`);
+    const secondRunKeys = persistBodies[1].drafts.map((draft) => `${draft.pageContentKey}:${draft.pageSegmentIndex}`);
+    expect(firstRunKeys.every((key) => secondRunKeys.includes(key))).toBe(true);
     const proxyCalls = fetchMock.mock.calls.filter(([url]) => url === "https://gemini-proxy.test");
-    expect(proxyCalls).toHaveLength(3);
+    expect(proxyCalls).toHaveLength(2);
     const pages = await getNotePages("session-1");
     expect(pages.every((p) => p.status === "processed")).toBe(true);
     expect(pages.every((p) => p.processedContentHash === p.contentHash)).toBe(true);
+    expect(pageUidsFromProxyRequest(proxyCalls[1][1])).toEqual(pages.map((page) => page.pageUid));
+
+    await reorderNotePages([id0, id1, pages[2].id as number]);
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 0 });
+    expect(fetchMock.mock.calls.filter(([url]) => url === "https://gemini-proxy.test")).toHaveLength(2);
   });
 
-  it("partial-failure retry processes only the failed pages", async () => {
+  it("batch-failure retry reprocesses the full ordered page set", async () => {
     await addNotePage({ sessionId: "session-1", blob: jpeg("ok"), thumbnail: jpeg("tok") });
     await addNotePage({ sessionId: "session-1", blob: jpeg("fail-once"), thumbnail: jpeg("tfail") });
     let apiCalls = 0;
-    const processedUids: string[] = [];
+    const processedUidSets: string[][] = [];
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
       if (url === "https://gemini-proxy.test") {
-        const pageUid = pageUidFromProxyRequest(init);
-        processedUids.push(pageUid);
+        const pageUids = pageUidsFromProxyRequest(init);
+        processedUidSets.push(pageUids);
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(geminiResponse(pageUid)),
+          json: () => Promise.resolve(geminiResponse(
+            pageUids.map((pageUid) => modelDraft([pageUid], `Walnut chair ${pageUid}`)),
+          )),
         });
       }
 
       apiCalls += 1;
-      if (apiCalls === 2) {
+      if (apiCalls === 1) {
         return Promise.resolve({
           ok: false,
           status: 502,
@@ -200,15 +277,17 @@ describe("photo note segmentation normalization", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(processNotesWithAi("session-1")).rejects.toThrow("Failed to process 1 note page");
+    await expect(processNotesWithAi("session-1")).rejects.toThrow("Failed to process 2 note pages");
     let pages = await getNotePages("session-1");
-    expect(pages.map((p) => p.status)).toEqual(["processed", "failed"]);
+    expect(pages.map((p) => p.status)).toEqual(["failed", "failed"]);
 
-    processedUids.length = 0;
-    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 1 });
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 2 });
 
     pages = await getNotePages("session-1");
     expect(pages.map((p) => p.status)).toEqual(["processed", "processed"]);
-    expect(processedUids).toEqual([pages[1].pageUid]);
+    expect(processedUidSets).toEqual([
+      pages.map((page) => page.pageUid),
+      pages.map((page) => page.pageUid),
+    ]);
   });
 });

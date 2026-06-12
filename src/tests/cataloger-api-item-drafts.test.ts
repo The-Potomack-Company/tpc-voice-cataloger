@@ -84,7 +84,7 @@ describe("cataloger-api item draft batches", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("upserts drafts with a per-page conflict key", async () => {
+  it("upserts drafts with a per-page conflict key and replaces duplicates", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([{ id: "draft-1" }]),
@@ -105,7 +105,7 @@ describe("cataloger-api item draft batches", () => {
     expect(String(url)).toBe(
       "https://postgrest.test/item_drafts?on_conflict=session_id%2Cpage_content_key%2Cpage_segment_index",
     );
-    expect(init.headers.prefer).toBe("resolution=ignore-duplicates,return=representation");
+    expect(init.headers.prefer).toBe("resolution=merge-duplicates,return=representation");
     expect(JSON.parse(init.body)).toEqual([
       expect.objectContaining({
         session_id: "session-1",
@@ -115,10 +115,10 @@ describe("cataloger-api item draft batches", () => {
     ]);
   });
 
-  it("treats duplicate per-page drafts as zero inserted rows", async () => {
+  it("reports rows returned by the per-page upsert", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve([]),
+      json: () => Promise.resolve([{ id: "draft-1" }]),
     });
     const response = await postDraftBatch({
       decoded: {
@@ -130,6 +130,6 @@ describe("cataloger-api item draft batches", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(JSON.parse(response.body)).toEqual({ ok: true, draftCount: 0 });
+    expect(JSON.parse(response.body)).toEqual({ ok: true, draftCount: 1 });
   });
 });

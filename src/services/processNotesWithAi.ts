@@ -3,10 +3,10 @@ import {
   ensureNotePageContentHashes,
   getNotePages,
   isNotePageProcessed,
-  markNotePageProcessed,
   markNotePagesStatus,
   notePageContentKey,
 } from "../db/notePages";
+import { db } from "../db";
 import type { NotePage } from "../db/types";
 import { ensureFreshSession } from "../lib/authGuard";
 import { toAllCaps } from "../utils/toAllCaps";
@@ -110,14 +110,16 @@ export function notePagesBatchKey(sessionId: string, pages: NotePage[]): string 
 
 function refsForDraft(pages: NotePage[], sourcePageUids: string[]): DraftSourcePageRef[] {
   const byUid = new Map(pages.map((page) => [page.pageUid, page]));
-  return sourcePageUids.flatMap((pageUid) => {
-    const page = byUid.get(pageUid);
-    return page ? [{
-      pageUid,
-      sortOrder: page.sortOrder,
-      pageContentKey: page.contentHash ? notePageContentKey(page.contentHash) : undefined,
-    }] : [];
-  });
+  return sourcePageUids
+    .flatMap((pageUid) => {
+      const page = byUid.get(pageUid);
+      return page ? [{
+        pageUid,
+        sortOrder: page.sortOrder,
+        pageContentKey: page.contentHash ? notePageContentKey(page.contentHash) : undefined,
+      }] : [];
+    })
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 function cleanText(value: string | null): string | null {
@@ -179,31 +181,62 @@ export function normalizeModelDrafts(
   });
 }
 
-async function processOneNotePage(
+async function markNotePagesProcessed(pages: NotePage[]): Promise<void> {
+  const processedAt = new Date().toISOString();
+  await db.transaction("rw", db.notePages, async () => {
+    await Promise.all(
+      pages.map((page) => {
+        if (page.id === undefined || !page.contentHash) {
+          throw new Error("Note page is missing durable idempotency metadata");
+        }
+        return db.notePages.update(page.id, {
+          status: "processed",
+          processedContentHash: page.contentHash,
+          processedAt,
+        });
+      }),
+    );
+  });
+}
+
+async function processNotePageSet(
   sessionId: string,
-  page: NotePage,
+  pages: NotePage[],
+  unprocessedPages: NotePage[],
   accessToken: string,
 ): Promise<{ draftCount: number }> {
-  if (page.id === undefined || !page.contentHash) {
+  if (unprocessedPages.some((page) => page.id === undefined || !page.contentHash)) {
     throw new Error("Note page is missing durable idempotency metadata");
   }
 
-  await markNotePagesStatus([page.id], "processing");
+  const unprocessedIds = unprocessedPages.map((page) => page.id as number);
+  await markNotePagesStatus(unprocessedIds, "processing");
   try {
     const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL;
     if (!proxyUrl) {
       throw new Error("VITE_GEMINI_PROXY_URL is not configured. Create a .env file from .env.example.");
     }
 
-    const pageContentKey = notePageContentKey(page.contentHash);
-    const batchKey = notePagesBatchKey(sessionId, [page]);
-    const encodedPage = {
+    const batchKey = notePagesBatchKey(sessionId, pages);
+    const encodedPages = await Promise.all(
+      pages.map(async (page) => {
+        if (!page.contentHash) {
+          throw new Error("Note page is missing durable idempotency metadata");
+        }
+        return {
+          pageUid: page.pageUid,
+          sortOrder: page.sortOrder,
+          pageContentKey: notePageContentKey(page.contentHash),
+          mimeType: page.blob.type || "image/jpeg",
+          data: await blobToBase64(page.blob),
+        };
+      }),
+    );
+    const pageRefs = encodedPages.map((page) => ({
       pageUid: page.pageUid,
       sortOrder: page.sortOrder,
-      pageContentKey,
-      mimeType: page.blob.type || "image/jpeg",
-      data: await blobToBase64(page.blob),
-    };
+      pageContentKey: page.pageContentKey,
+    }));
 
     const geminiPayload = {
       system_instruction: {
@@ -215,17 +248,23 @@ async function processOneNotePage(
             {
               text: [
                 `Session ID: ${sessionId}`,
-                `Page content key: ${pageContentKey}`,
                 "Page order:",
-                `${encodedPage.sortOrder + 1}. ${encodedPage.pageUid}`,
+                ...encodedPages.map((page) =>
+                  `${page.sortOrder + 1}. ${page.pageUid} (${page.pageContentKey})`,
+                ),
               ].join("\n"),
             },
-            {
-              inlineData: {
-                mimeType: encodedPage.mimeType.split(";")[0],
-                data: encodedPage.data,
+            ...encodedPages.flatMap((page) => [
+              {
+                text: `Page ${page.sortOrder + 1}: ${page.pageUid} (${page.pageContentKey})`,
               },
-            },
+              {
+                inlineData: {
+                  mimeType: page.mimeType.split(";")[0],
+                  data: page.data,
+                },
+              },
+            ]),
           ],
         },
       ],
@@ -273,21 +312,17 @@ async function processOneNotePage(
       throw new Error(`Note draft validation failed: ${parsed.error.message}`);
     }
 
-    const drafts = normalizeModelDrafts([page], parsed.data);
+    const drafts = normalizeModelDrafts(pages, parsed.data);
     const result = await persistItemDraftBatch({
       sessionId,
       batchKey,
-      pages: [{
-        pageUid: page.pageUid,
-        sortOrder: page.sortOrder,
-        pageContentKey,
-      }],
+      pages: pageRefs,
       drafts,
     });
-    await markNotePageProcessed(page.id, page.contentHash);
+    await markNotePagesProcessed(unprocessedPages);
     return result;
   } catch (error) {
-    await markNotePagesStatus([page.id], "failed");
+    await markNotePagesStatus(unprocessedIds, "failed");
     throw error;
   }
 }
@@ -304,20 +339,12 @@ export async function processNotesWithAi(sessionId: string): Promise<{ draftCoun
   }
 
   const accessToken = await ensureFreshSession();
-  let draftCount = 0;
-  const failures: Error[] = [];
-  for (const page of unprocessedPages) {
-    try {
-      const result = await processOneNotePage(sessionId, page, accessToken);
-      draftCount += result.draftCount;
-    } catch (error) {
-      failures.push(error instanceof Error ? error : new Error(String(error)));
-    }
+  try {
+    return await processNotePageSet(sessionId, pages, unprocessedPages, accessToken);
+  } catch (error) {
+    throw new Error(
+      `Failed to process ${unprocessedPages.length} note page${unprocessedPages.length === 1 ? "" : "s"}`,
+      { cause: error },
+    );
   }
-
-  if (failures.length > 0) {
-    throw new Error(`Failed to process ${failures.length} note page${failures.length === 1 ? "" : "s"}`);
-  }
-
-  return { draftCount };
 }

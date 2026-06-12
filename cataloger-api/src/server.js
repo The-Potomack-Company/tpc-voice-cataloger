@@ -195,7 +195,7 @@ async function handleDraftBatch(req, res, auth, cors = {}, env = process.env) {
   const insertResponse = await fetch(insertUrl, {
     method: "POST",
     headers: postgrestHeaders(verified.token, {
-      prefer: "resolution=ignore-duplicates,return=representation",
+      prefer: "resolution=merge-duplicates,return=representation",
     }),
     body: JSON.stringify(rows),
   });
