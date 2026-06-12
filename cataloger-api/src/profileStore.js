@@ -86,6 +86,15 @@ export function createProfileStoreFromPool(pool) {
       return (result.rowCount ?? result.rows.length) > 0;
     },
 
+    async listExistingAudioPaths(paths) {
+      if (paths.length === 0) return [];
+      const result = await pool.query(
+        "select storage_path from public.audio where storage_path = any($1::text[])",
+        [paths],
+      );
+      return result.rows.map((row) => row.storage_path).filter(Boolean);
+    },
+
     async deleteAudioByIds(ids) {
       if (ids.length === 0) return;
       await pool.query("delete from public.audio where id = any($1::uuid[])", [ids]);

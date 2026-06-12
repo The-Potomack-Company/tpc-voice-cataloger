@@ -181,7 +181,7 @@ describe("cataloger-api admin routes", () => {
         },
       ]),
       listKnownAudioPaths: vi.fn().mockResolvedValue(["audio/session/item/expired.webm"]),
-      hasAudioPath: vi.fn().mockResolvedValue(false),
+      listExistingAudioPaths: vi.fn().mockResolvedValue([]),
       deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
     };
     const handler = createRequestHandler({
@@ -200,10 +200,20 @@ describe("cataloger-api admin routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(JSON.parse(response.body)).toEqual({ removed: 2, expired: 1, orphans: 1 });
+    expect(JSON.parse(response.body)).toEqual({
+      removed: 2,
+      expired: 1,
+      orphans: 1,
+      progress: {
+        expired: { scanned: 1, deleted: 1, skipped: 0 },
+        orphans: { scanned: 1, deleted: 1, skipped: 0 },
+      },
+    });
     expect(deleteExpired).toHaveBeenCalledWith({ ignoreNotFound: true });
     expect(deleteOrphan).toHaveBeenCalledWith({ ignoreNotFound: true });
-    expect(profiles.hasAudioPath).toHaveBeenCalledWith("audio/session/item/orphan.webm");
+    expect(profiles.listExistingAudioPaths).toHaveBeenCalledWith([
+      "audio/session/item/orphan.webm",
+    ]);
     expect(profiles.deleteAudioByIds).toHaveBeenCalledWith([
       "00000000-0000-0000-0000-000000000001",
     ]);
@@ -223,7 +233,7 @@ describe("cataloger-api admin routes", () => {
     const profiles = {
       listExpiredAudio: vi.fn().mockResolvedValue([]),
       listKnownAudioPaths: vi.fn().mockResolvedValue([]),
-      hasAudioPath: vi.fn().mockResolvedValue(false),
+      listExistingAudioPaths: vi.fn().mockResolvedValue([]),
       deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
     };
     const handler = createRequestHandler({
@@ -242,9 +252,17 @@ describe("cataloger-api admin routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(JSON.parse(response.body)).toEqual({ removed: 0, expired: 0, orphans: 0 });
+    expect(JSON.parse(response.body)).toEqual({
+      removed: 0,
+      expired: 0,
+      orphans: 0,
+      progress: {
+        expired: { scanned: 0, deleted: 0, skipped: 0 },
+        orphans: { scanned: 0, deleted: 0, skipped: 0 },
+      },
+    });
     expect(deleteYoungOrphan).not.toHaveBeenCalled();
-    expect(profiles.hasAudioPath).not.toHaveBeenCalled();
+    expect(profiles.listExistingAudioPaths).not.toHaveBeenCalled();
   });
 
   it("deletes old Firebase audio orphans after the grace period", async () => {
@@ -261,7 +279,7 @@ describe("cataloger-api admin routes", () => {
     const profiles = {
       listExpiredAudio: vi.fn().mockResolvedValue([]),
       listKnownAudioPaths: vi.fn().mockResolvedValue([]),
-      hasAudioPath: vi.fn().mockResolvedValue(false),
+      listExistingAudioPaths: vi.fn().mockResolvedValue([]),
       deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
     };
     const handler = createRequestHandler({
@@ -280,8 +298,18 @@ describe("cataloger-api admin routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(JSON.parse(response.body)).toEqual({ removed: 1, expired: 0, orphans: 1 });
-    expect(profiles.hasAudioPath).toHaveBeenCalledWith("audio/session/item/old.webm");
+    expect(JSON.parse(response.body)).toEqual({
+      removed: 1,
+      expired: 0,
+      orphans: 1,
+      progress: {
+        expired: { scanned: 0, deleted: 0, skipped: 0 },
+        orphans: { scanned: 1, deleted: 1, skipped: 0 },
+      },
+    });
+    expect(profiles.listExistingAudioPaths).toHaveBeenCalledWith([
+      "audio/session/item/old.webm",
+    ]);
     expect(deleteOldOrphan).toHaveBeenCalledWith({ ignoreNotFound: true });
   });
 
@@ -299,7 +327,7 @@ describe("cataloger-api admin routes", () => {
     const profiles = {
       listExpiredAudio: vi.fn().mockResolvedValue([]),
       listKnownAudioPaths: vi.fn().mockResolvedValue([]),
-      hasAudioPath: vi.fn().mockResolvedValue(true),
+      listExistingAudioPaths: vi.fn().mockResolvedValue(["audio/session/item/race.webm"]),
       deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
     };
     const handler = createRequestHandler({
@@ -318,8 +346,85 @@ describe("cataloger-api admin routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(JSON.parse(response.body)).toEqual({ removed: 0, expired: 0, orphans: 0 });
-    expect(profiles.hasAudioPath).toHaveBeenCalledWith("audio/session/item/race.webm");
+    expect(JSON.parse(response.body)).toEqual({
+      removed: 0,
+      expired: 0,
+      orphans: 0,
+      progress: {
+        expired: { scanned: 0, deleted: 0, skipped: 0 },
+        orphans: { scanned: 1, deleted: 0, skipped: 1 },
+      },
+    });
+    expect(profiles.listExistingAudioPaths).toHaveBeenCalledWith([
+      "audio/session/item/race.webm",
+    ]);
     expect(deleteLateMetadataObject).not.toHaveBeenCalled();
+  });
+
+  it("bulk rechecks and deletes a large Firebase orphan set in bounded batches", async () => {
+    const oldTimeCreated = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const paths = Array.from(
+      { length: 205 },
+      (_, index) => `audio/session/item/orphan-${index}.webm`,
+    );
+    let activeDeletes = 0;
+    let maxActiveDeletes = 0;
+    const deleteObject = vi.fn().mockImplementation(async () => {
+      activeDeletes += 1;
+      maxActiveDeletes = Math.max(maxActiveDeletes, activeDeletes);
+      await Promise.resolve();
+      activeDeletes -= 1;
+    });
+    const storage = {
+      bucket: () => ({
+        getFiles: vi.fn().mockResolvedValue([
+          paths.map((name) => ({ name, metadata: { timeCreated: oldTimeCreated } })),
+        ]),
+        file: () => ({ delete: deleteObject }),
+      }),
+    };
+    const profiles = {
+      listExpiredAudio: vi.fn().mockResolvedValue([]),
+      listKnownAudioPaths: vi.fn().mockResolvedValue([]),
+      listExistingAudioPaths: vi.fn().mockResolvedValue([]),
+      deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
+    };
+    const progressLog = vi.spyOn(console, "info").mockImplementation(() => {});
+    const handler = createRequestHandler({
+      auth: {},
+      storage,
+      profiles,
+      env: { PURGE_AUDIO_SECRET: "secret" },
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/purge-audio",
+      headers: { "x-purge-secret": "secret" },
+      body: {},
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      removed: 205,
+      expired: 0,
+      orphans: 205,
+      progress: {
+        expired: { scanned: 0, deleted: 0, skipped: 0 },
+        orphans: { scanned: 205, deleted: 205, skipped: 0 },
+      },
+    });
+    expect(profiles.listExistingAudioPaths).toHaveBeenCalledTimes(1);
+    expect(profiles.listExistingAudioPaths).toHaveBeenCalledWith(paths);
+    expect(deleteObject).toHaveBeenCalledTimes(205);
+    expect(maxActiveDeletes).toBeGreaterThan(1);
+    expect(maxActiveDeletes).toBeLessThan(205);
+    expect(progressLog).toHaveBeenCalledWith(
+      "[purge-audio] orphan delete progress",
+      expect.objectContaining({ batch: 3, batches: 3, scanned: 205, deleted: 205 }),
+    );
+
+    progressLog.mockRestore();
   });
 });

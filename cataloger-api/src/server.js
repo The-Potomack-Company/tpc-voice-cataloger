@@ -18,6 +18,8 @@ const FIREBASE_ADMIN_APP_MODULE = "firebase-admin/app";
 const FIREBASE_ADMIN_AUTH_MODULE = "firebase-admin/auth";
 const FIREBASE_ADMIN_STORAGE_MODULE = "firebase-admin/storage";
 const DEFAULT_ORPHAN_GRACE_HOURS = 24;
+const ORPHAN_DELETE_BATCH_SIZE = 100;
+const ORPHAN_DELETE_CONCURRENCY = 8;
 const DEFAULT_ALLOWED_ORIGINS = [
   ...PROD_ALLOWED_ORIGINS,
   "http://localhost:5173",
@@ -270,15 +272,73 @@ async function deleteFirebaseObjects(storage, paths) {
   await Promise.all(paths.map((path) => bucket.file(path).delete({ ignoreNotFound: true })));
 }
 
-async function deleteRecheckedOrphanObjects(storage, profiles, paths) {
-  const removed = [];
-  const bucket = storage.bucket();
-  for (const path of paths) {
-    if (await profiles.hasAudioPath(path)) continue;
-    await bucket.file(path).delete({ ignoreNotFound: true });
-    removed.push(path);
+function uniqueValues(values) {
+  return Array.from(new Set(values));
+}
+
+function batchesOf(values, size) {
+  const batches = [];
+  for (let index = 0; index < values.length; index += size) {
+    batches.push(values.slice(index, index + size));
   }
-  return removed;
+  return batches;
+}
+
+async function mapWithConcurrency(values, concurrency, worker) {
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, values.length) },
+    async () => {
+      while (nextIndex < values.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        await worker(values[currentIndex]);
+      }
+    },
+  );
+  await Promise.all(workers);
+}
+
+async function deleteRecheckedOrphanObjects(storage, profiles, paths) {
+  const candidatePaths = uniqueValues(paths);
+  if (candidatePaths.length === 0) {
+    return {
+      paths: [],
+      scanned: 0,
+      deleted: 0,
+      skipped: 0,
+      batches: 0,
+    };
+  }
+
+  const existingPaths = new Set(await profiles.listExistingAudioPaths(candidatePaths));
+  const deletePaths = candidatePaths.filter((path) => !existingPaths.has(path));
+  const skipped = candidatePaths.length - deletePaths.length;
+  const removedPaths = [];
+  const bucket = storage.bucket();
+
+  const batches = batchesOf(deletePaths, ORPHAN_DELETE_BATCH_SIZE);
+  for (const [batchIndex, batch] of batches.entries()) {
+    await mapWithConcurrency(batch, ORPHAN_DELETE_CONCURRENCY, async (path) => {
+      await bucket.file(path).delete({ ignoreNotFound: true });
+      removedPaths.push(path);
+    });
+    console.info("[purge-audio] orphan delete progress", {
+      batch: batchIndex + 1,
+      batches: batches.length,
+      scanned: candidatePaths.length,
+      deleted: removedPaths.length,
+      skipped,
+    });
+  }
+
+  return {
+    paths: removedPaths,
+    scanned: candidatePaths.length,
+    deleted: removedPaths.length,
+    skipped,
+    batches: batches.length,
+  };
 }
 
 async function handlePurgeAudio(req, res, profiles, storage, env = process.env, cors = {}) {
@@ -312,16 +372,32 @@ async function handlePurgeAudio(req, res, profiles, storage, env = process.env, 
     .map((object) => object.name)
     .filter((path) => !known.has(path));
 
-  if (expiredPaths.length > 0) {
-    await deleteFirebaseObjects(storage, Array.from(new Set(expiredPaths)));
+  const uniqueExpiredPaths = uniqueValues(expiredPaths);
+  if (uniqueExpiredPaths.length > 0) {
+    await deleteFirebaseObjects(storage, uniqueExpiredPaths);
   }
-  const orphanPaths = await deleteRecheckedOrphanObjects(storage, profiles, Array.from(new Set(orphanCandidates)));
+  const orphanProgress = await deleteRecheckedOrphanObjects(storage, profiles, orphanCandidates);
   await profiles.deleteAudioByIds(expiredIds);
 
+  const progress = {
+    expired: {
+      scanned: expiredPaths.length,
+      deleted: uniqueExpiredPaths.length,
+      skipped: 0,
+    },
+    orphans: {
+      scanned: orphanProgress.scanned,
+      deleted: orphanProgress.deleted,
+      skipped: orphanProgress.skipped,
+    },
+  };
+  console.info("[purge-audio] completed", progress);
+
   json(res, 200, {
-    removed: new Set([...expiredPaths, ...orphanPaths]).size,
+    removed: new Set([...uniqueExpiredPaths, ...orphanProgress.paths]).size,
     expired: expiredPaths.length,
-    orphans: orphanPaths.length,
+    orphans: orphanProgress.deleted,
+    progress,
   }, cors);
 }
 
