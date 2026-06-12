@@ -57,6 +57,7 @@ function draftStoreFetch(initialRows: DraftRow[] = []) {
 function postDraftBatch({
   decoded,
   fetchMock = vi.fn(),
+  postgrestUrl = "https://postgrest.test",
   body = {
     sessionId: "session-1",
     batchKey: "batch-1",
@@ -76,6 +77,7 @@ function postDraftBatch({
 }: {
   decoded: Record<string, unknown>;
   fetchMock?: ReturnType<typeof vi.fn>;
+  postgrestUrl?: string;
   body?: Record<string, unknown>;
 }) {
   vi.stubGlobal("fetch", fetchMock);
@@ -84,7 +86,7 @@ function postDraftBatch({
       verifyIdToken: vi.fn().mockResolvedValue(decoded),
     },
     allowedOrigins: ["https://app.potomackco.com"],
-    env: { CATALOGER_POSTGREST_URL: "https://postgrest.test" },
+    env: { CATALOGER_POSTGREST_URL: postgrestUrl },
   });
 
   return new Promise<{ status: number; body: string; headers: HeaderMap }>((resolve) => {
@@ -164,6 +166,25 @@ describe("cataloger-api item draft batches", () => {
         page_content_key: "sha256:page-1",
         page_segment_index: 0,
       }),
+    ]);
+  });
+
+  it("normalizes PostgREST env URLs that include the Supabase REST prefix", async () => {
+    const { fetchMock } = draftStoreFetch();
+    const response = await postDraftBatch({
+      decoded: {
+        uid: "user-1",
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
+      },
+      fetchMock,
+      postgrestUrl: "https://postgrest.test/rest/v1/",
+    });
+
+    expect(response.status).toBe(201);
+    expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
+      "https://postgrest.test/item_drafts?session_id=eq.session-1&page_content_key=eq.sha256%3Apage-1&page_segment_index=eq.0&status=eq.draft",
+      "https://postgrest.test/item_drafts?on_conflict=session_id%2Cpage_content_key%2Cpage_segment_index",
     ]);
   });
 

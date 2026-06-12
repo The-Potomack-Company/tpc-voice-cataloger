@@ -168,7 +168,8 @@ async function readJsonBody(req) {
 }
 
 function postgrestUrlFromEnv(env = process.env) {
-  return env.CATALOGER_POSTGREST_URL ?? env.POSTGREST_URL ?? "";
+  const configuredUrl = env.CATALOGER_POSTGREST_URL ?? env.POSTGREST_URL ?? "";
+  return configuredUrl.replace(/\/rest\/v1\/?$/, "");
 }
 
 function postgrestHeaders(token, extra = {}) {
@@ -199,6 +200,29 @@ async function postgrestRows(response) {
 
 function postgrestError(response, fallback) {
   return Object.assign(new Error(fallback), { status: response.status });
+}
+
+function errorStatus(err) {
+  return typeof err?.status === "number" ? err.status : 500;
+}
+
+function errorMessage(err, fallback = "Request failed") {
+  return err instanceof Error ? err.message : fallback;
+}
+
+function logServerError(path, err) {
+  const stack = err instanceof Error ? err.stack ?? err.message : String(err);
+  console.error(`[cataloger-api] ${path} failed`, stack);
+}
+
+function jsonError(res, path, err, cors = {}, fallback = "Request failed") {
+  const status = errorStatus(err);
+  if (status >= 500) {
+    logServerError(path, err);
+    json(res, status, { error: fallback }, cors);
+    return;
+  }
+  json(res, status, { error: errorMessage(err, fallback) }, cors);
 }
 
 function isNonEmptyString(value) {
@@ -1151,9 +1175,7 @@ export function createRequestHandler({
             }
             json(res, 405, { error: "Method not allowed" }, cors);
           } catch (err) {
-            const status = typeof err?.status === "number" ? err.status : 500;
-            const message = err instanceof Error ? err.message : "Request failed";
-            json(res, status, { error: message }, cors);
+            jsonError(res, path, err, cors);
           }
         })();
         return;
@@ -1162,8 +1184,7 @@ export function createRequestHandler({
         void getProfiles()
           .then((profileStore) => handlePurgeAudio(req, res, profileStore, storage, env, cors))
           .catch((err) => {
-            const message = err instanceof Error ? err.message : "Purge failed";
-            json(res, 500, { error: message }, cors);
+            jsonError(res, path, err, cors, "Purge failed");
           });
         return;
       }
@@ -1213,9 +1234,7 @@ export function createRequestHandler({
             }
             json(res, 405, { error: "Method not allowed" }, cors);
           } catch (err) {
-            const status = typeof err?.status === "number" ? err.status : 500;
-            const message = err instanceof Error ? err.message : "Request failed";
-            json(res, status, { error: message }, cors);
+            jsonError(res, path, err, cors);
           }
         })();
         return;
@@ -1234,9 +1253,7 @@ export function createRequestHandler({
             }
             json(res, 405, { error: "Method not allowed" }, cors);
           } catch (err) {
-            const status = typeof err?.status === "number" ? err.status : 500;
-            const message = err instanceof Error ? err.message : "Request failed";
-            json(res, status, { error: message }, cors);
+            jsonError(res, path, err, cors);
           }
         })();
         return;
