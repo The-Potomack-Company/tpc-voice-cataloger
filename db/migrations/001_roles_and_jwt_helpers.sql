@@ -36,7 +36,11 @@ returns text
 language sql
 stable
 as $$
-  select private.jwt_claim('uid');
+  select coalesce(
+    private.jwt_claim('uid'),
+    private.jwt_claim('user_id'),
+    private.jwt_claim('sub')
+  );
 $$;
 
 create or replace function private.jwt_workspace()

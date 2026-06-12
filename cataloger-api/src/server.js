@@ -121,6 +121,203 @@ async function requireAdmin(req, auth, profiles) {
   return { decoded, profile };
 }
 
+async function requireWorkspaceToken(req, res, auth, cors = {}) {
+  const token = bearerToken(req);
+  if (!token) {
+    json(res, 401, { error: "Bearer Firebase ID token required" }, cors);
+    return null;
+  }
+
+  try {
+    const decoded = await auth.verifyIdToken(token, true);
+    if (!hasWorkspaceClaims(decoded)) {
+      json(res, 403, { error: "Firebase workspace claim required" }, cors);
+      return null;
+    }
+    return { token, decoded };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid Firebase ID token";
+    json(res, 401, { error: message }, cors);
+    return null;
+  }
+}
+
+async function readJsonBody(req) {
+  return readJson(req);
+}
+
+function postgrestUrlFromEnv(env = process.env) {
+  return env.CATALOGER_POSTGREST_URL ?? env.POSTGREST_URL ?? "";
+}
+
+function postgrestHeaders(token, extra = {}) {
+  return {
+    authorization: `Bearer ${token}`,
+    "content-type": "application/json",
+    ...extra,
+  };
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function validateDraftBatchPayload(body) {
+  if (!body || typeof body !== "object") {
+    return "JSON body required";
+  }
+  if (!isNonEmptyString(body.sessionId)) {
+    return "sessionId required";
+  }
+  if (!isNonEmptyString(body.batchKey)) {
+    return "batchKey required";
+  }
+  if (!Array.isArray(body.pages) || body.pages.length === 0) {
+    return "pages required";
+  }
+  if (!Array.isArray(body.drafts) || body.drafts.length === 0) {
+    return "drafts required";
+  }
+  const missingPageKey = body.drafts.some((draft) => !isNonEmptyString(draft?.pageContentKey));
+  if (missingPageKey) {
+    return "draft pageContentKey required";
+  }
+  return null;
+}
+
+function rowFromDraft(sessionId, batchKey, uid, draft, index) {
+  return {
+    session_id: sessionId,
+    batch_key: batchKey,
+    segment_index: index,
+    page_content_key: draft.pageContentKey,
+    page_segment_index: Number.isInteger(draft.pageSegmentIndex)
+      ? draft.pageSegmentIndex
+      : index,
+    source_page_refs: draft.sourcePageRefs,
+    raw_ocr_text: draft.rawOcrText ?? null,
+    title: draft.fields?.title ?? null,
+    description: draft.fields?.description ?? null,
+    condition: draft.fields?.condition ?? null,
+    estimate: draft.fields?.estimate ?? null,
+    measurements: draft.fields?.measurements ?? null,
+    category: draft.fields?.category ?? null,
+    transcript: draft.fields?.transcript ?? null,
+    receipt_number: draft.fields?.receipt_number ?? null,
+    field_confidence: draft.fieldConfidence ?? {},
+    low_confidence_fields: draft.lowConfidenceFields ?? [],
+    receipt_number_requires_review: Boolean(draft.fields?.receipt_number),
+    created_by: uid,
+  };
+}
+
+function itemDraftConflictUrl(baseUrl) {
+  const url = new URL(`${baseUrl}/item_drafts`);
+  url.searchParams.set("on_conflict", "session_id,page_content_key,page_segment_index");
+  return url;
+}
+
+function itemDraftRowUrl(baseUrl, row) {
+  const url = new URL(`${baseUrl}/item_drafts`);
+  url.searchParams.set("session_id", `eq.${row.session_id}`);
+  url.searchParams.set("page_content_key", `eq.${row.page_content_key}`);
+  url.searchParams.set("page_segment_index", `eq.${row.page_segment_index}`);
+  url.searchParams.set("status", "eq.draft");
+  return url;
+}
+
+async function responseRows(response) {
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function writeDraftRow(baseUrl, token, row) {
+  const updateResponse = await fetch(itemDraftRowUrl(baseUrl, row), {
+    method: "PATCH",
+    headers: postgrestHeaders(token, {
+      prefer: "return=representation",
+    }),
+    body: JSON.stringify(row),
+  });
+  if (!updateResponse.ok) {
+    return { ok: false, response: updateResponse };
+  }
+
+  const updated = await responseRows(updateResponse);
+  if (updated.length > 0) {
+    return { ok: true, changedCount: updated.length, skippedCount: 0 };
+  }
+
+  const insertResponse = await fetch(itemDraftConflictUrl(baseUrl), {
+    method: "POST",
+    headers: postgrestHeaders(token, {
+      prefer: "resolution=ignore-duplicates,return=representation",
+    }),
+    body: JSON.stringify([row]),
+  });
+  if (!insertResponse.ok) {
+    return { ok: false, response: insertResponse };
+  }
+
+  const inserted = await responseRows(insertResponse);
+  return {
+    ok: true,
+    changedCount: inserted.length,
+    skippedCount: inserted.length === 0 ? 1 : 0,
+  };
+}
+
+async function handleDraftBatch(req, res, auth, cors = {}, env = process.env) {
+  const verified = await requireWorkspaceToken(req, res, auth, cors);
+  if (!verified) return;
+
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch {
+    json(res, 400, { error: "Invalid JSON body" }, cors);
+    return;
+  }
+
+  const validationError = validateDraftBatchPayload(body);
+  if (validationError) {
+    json(res, 400, { error: validationError }, cors);
+    return;
+  }
+
+  const baseUrl = postgrestUrlFromEnv(env).replace(/\/$/, "");
+  if (!baseUrl) {
+    json(res, 500, { error: "PostgREST URL is not configured" }, cors);
+    return;
+  }
+
+  const sessionId = body.sessionId;
+  const batchKey = body.batchKey;
+  const rows = body.drafts.map((draft, index) =>
+    rowFromDraft(sessionId, batchKey, verified.decoded.uid, draft, index),
+  );
+
+  let draftCount = 0;
+  let skippedCount = 0;
+  for (const row of rows) {
+    const result = await writeDraftRow(baseUrl, verified.token, row);
+    if (!result.ok) {
+      const detail = await result.response.text().catch(() => "");
+      json(res, result.response.status === 409 ? 409 : 502, {
+        error: result.response.status === 409
+          ? "Draft batch already processed"
+          : "Draft insert failed",
+        detail,
+      }, cors);
+      return;
+    }
+    draftCount += result.changedCount;
+    skippedCount += result.skippedCount;
+  }
+
+  json(res, 201, { ok: true, draftCount, skippedCount }, cors);
+}
+
 async function handleClaim(req, res, auth, cors = {}) {
   const token = bearerToken(req);
   if (!token) {
@@ -408,8 +605,8 @@ export function createRequestHandler({
   storage,
   profiles,
   profileStoreFactory = createPgProfileStore,
-  env = process.env,
   allowedOrigins = allowedOriginsFromEnv(),
+  env = process.env,
 }) {
   let profileStorePromise = profiles ? Promise.resolve(profiles) : null;
   const getProfiles = () => {
@@ -474,6 +671,19 @@ export function createRequestHandler({
             const message = err instanceof Error ? err.message : "Purge failed";
             json(res, 500, { error: message }, cors);
           });
+        return;
+      }
+    }
+
+    if (path === "/item-draft-batches") {
+      const cors = corsHeaders(req, allowedOrigins);
+      if (req.method === "OPTIONS") {
+        res.writeHead(204, cors);
+        res.end();
+        return;
+      }
+      if (req.method === "POST") {
+        void handleDraftBatch(req, res, auth, cors, env);
         return;
       }
     }

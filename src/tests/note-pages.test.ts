@@ -8,6 +8,8 @@ import {
   retakeNotePage,
   deleteNotePage,
   deleteNotePagesForSession,
+  isNotePageProcessed,
+  markNotePageProcessed,
 } from "../db/notePages";
 
 afterEach(async () => {
@@ -42,6 +44,7 @@ describe("notePages CRUD + ordering", () => {
     const pages = await getNotePages("S1");
     expect(pages.map((p) => p.sortOrder)).toEqual([0, 1, 2]);
     expect(pages.every((p) => p.status === "captured")).toBe(true);
+    expect(pages.every((p) => typeof p.contentHash === "string")).toBe(true);
     const uids = new Set(pages.map((p) => p.pageUid));
     expect(uids.size).toBe(3);
     expect(await countNotePages("S1")).toBe(3);
@@ -78,9 +81,26 @@ describe("notePages CRUD + ordering", () => {
     const after = (await db.notePages.get(id))!;
     expect(after.pageUid).toBe(before.pageUid);
     expect(after.sortOrder).toBe(before.sortOrder);
+    expect(after.contentHash).not.toBe(before.contentHash);
+    expect(isNotePageProcessed(after)).toBe(false);
     expect(after.blob).toBeDefined();
     expect(await countNotePages("S1")).toBe(2);
     expect((await getNotePages("S1")).map((p) => p.id)).toEqual([id, expect.any(Number)]);
+  });
+
+  it("retake preserves processed status when page content is unchanged", async () => {
+    const id = await capture("S1", "a");
+    const before = (await db.notePages.get(id))!;
+    await markNotePageProcessed(id, before.contentHash!);
+
+    await retakeNotePage(id, {
+      blob: jpeg("full-a"),
+      thumbnail: jpeg("new-thumb"),
+    });
+
+    const after = (await db.notePages.get(id))!;
+    expect(after.contentHash).toBe(before.contentHash);
+    expect(isNotePageProcessed(after)).toBe(true);
   });
 
   it("deleteNotePage removes exactly one row (UAT-4)", async () => {

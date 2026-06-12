@@ -32,6 +32,7 @@ gcloud artifacts repositories create potomack \
   --description="Potomack app Cloud Run images"
 
 gcloud sql instances create potomack-cataloger-db \
+  --edition=enterprise \
   --database-version=POSTGRES_16 \
   --tier=db-f1-micro \
   --region=us-central1 \
@@ -140,7 +141,7 @@ gcloud run deploy cataloger-postgrest \
   --allow-unauthenticated \
   --service-account=cataloger-postgrest@gen-lang-client-0662587427.iam.gserviceaccount.com \
   --add-cloudsql-instances=gen-lang-client-0662587427:us-central1:potomack-cataloger-db \
-  --set-env-vars=PGRST_JWT_AUD=gen-lang-client-0662587427,PGRST_OPENAPI_SERVER_PROXY_URI=https://cataloger-postgrest-REPLACE.a.run.app \
+  --set-env-vars=PGRST_SERVER_PORT=8080,PGRST_JWT_AUD=gen-lang-client-0662587427,PGRST_OPENAPI_SERVER_PROXY_URI=https://cataloger-postgrest-REPLACE.a.run.app \
   --set-secrets=PGRST_DB_URI=cataloger-postgres-uri:latest,PGRST_JWT_SECRET=firebase-securetoken-jwks:latest
 ```
 
@@ -155,7 +156,7 @@ gcloud run deploy cataloger-api \
   --allow-unauthenticated \
   --service-account=cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com \
   --add-cloudsql-instances=gen-lang-client-0662587427:us-central1:potomack-cataloger-db \
-  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427,FIREBASE_STORAGE_BUCKET=gen-lang-client-0662587427.firebasestorage.app,CATALOGER_API_ALLOWED_ORIGINS=https://app.potomackco.com\\,https://gen-lang-client-0662587427.web.app \
+  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427,FIREBASE_STORAGE_BUCKET=gen-lang-client-0662587427.firebasestorage.app,CATALOGER_POSTGREST_URL=https://cataloger-postgrest-REPLACE.a.run.app,CATALOGER_API_ALLOWED_ORIGINS=https://app.potomackco.com\\,https://gen-lang-client-0662587427.web.app \
   --set-secrets=CATALOGER_DATABASE_URL=cataloger-postgres-uri:latest,PURGE_AUDIO_SECRET=purge-audio-secret:latest
 ```
 

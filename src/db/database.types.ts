@@ -422,6 +422,105 @@ export type Database = {
           },
         ]
       }
+      item_drafts: {
+        Row: {
+          batch_key: string
+          category: string | null
+          condition: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          estimate: string | null
+          field_confidence: Json
+          id: string
+          low_confidence_fields: string[]
+          measurements: string | null
+          page_content_key: string | null
+          page_segment_index: number | null
+          promoted_item_id: string | null
+          raw_ocr_text: string | null
+          receipt_number: string | null
+          receipt_number_acknowledged: boolean
+          receipt_number_requires_review: boolean
+          segment_index: number
+          session_id: string
+          source_page_refs: Json
+          status: string
+          title: string | null
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_key: string
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimate?: string | null
+          field_confidence?: Json
+          id?: string
+          low_confidence_fields?: string[]
+          measurements?: string | null
+          page_content_key?: string | null
+          page_segment_index?: number | null
+          promoted_item_id?: string | null
+          raw_ocr_text?: string | null
+          receipt_number?: string | null
+          receipt_number_acknowledged?: boolean
+          receipt_number_requires_review?: boolean
+          segment_index: number
+          session_id: string
+          source_page_refs?: Json
+          status?: string
+          title?: string | null
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_key?: string
+          category?: string | null
+          condition?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimate?: string | null
+          field_confidence?: Json
+          id?: string
+          low_confidence_fields?: string[]
+          measurements?: string | null
+          page_content_key?: string | null
+          page_segment_index?: number | null
+          promoted_item_id?: string | null
+          raw_ocr_text?: string | null
+          receipt_number?: string | null
+          receipt_number_acknowledged?: boolean
+          receipt_number_requires_review?: boolean
+          segment_index?: number
+          session_id?: string
+          source_page_refs?: Json
+          status?: string
+          title?: string | null
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_drafts_promoted_item_id_fkey"
+            columns: ["promoted_item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_drafts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photos: {
         Row: {
           created_at: string

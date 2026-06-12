@@ -43,7 +43,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockProcessNotes.mockResolvedValue(undefined);
+  mockProcessNotes.mockResolvedValue({ draftCount: 2, skippedCount: 0 });
   setOnline(true);
 });
 
@@ -115,7 +115,7 @@ describe("PhotoNotes — Process gating (PHN-02)", () => {
     expect(screen.getByText(/pages are saved/i)).toBeInTheDocument();
   });
 
-  it("enables Process online and shows the stub toast without writing items (UAT-7)", async () => {
+  it("enables Process online and shows the draft count toast (UAT-7)", async () => {
     await seed(2);
     renderPage();
 
@@ -127,6 +127,16 @@ describe("PhotoNotes — Process gating (PHN-02)", () => {
     await waitFor(() => {
       expect(mockProcessNotes).toHaveBeenCalledWith(SID);
     });
-    expect(await screen.findByText(/lands in the next update/i)).toBeInTheDocument();
+    expect(await screen.findByText(/created 2 drafts/i)).toBeInTheDocument();
+  });
+
+  it("shows skipped reviewed pages in the process toast", async () => {
+    mockProcessNotes.mockResolvedValue({ draftCount: 1, skippedCount: 2 });
+    await seed(3);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /process 3 pages/i }));
+
+    expect(await screen.findByText(/created 1 draft, 2 pages skipped/i)).toBeInTheDocument();
   });
 });

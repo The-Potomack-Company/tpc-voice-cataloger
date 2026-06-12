@@ -190,8 +190,8 @@ db.version(12).stores({
 
 // v13: Add notePages table for v1.4 Photo Notes capture (Phase 46). Client-only
 // (Dexie) page storage — no Supabase write, no schema change. New empty table, no
-// .upgrade() needed (v9/v11 precedent). pageUid is the stable retake/reorder identity
-// and the Phase 47 idempotency key; sessionId is the Supabase session UUID string.
+// .upgrade() needed (v9/v11 precedent). pageUid is the stable retake/reorder identity;
+// sessionId is the Supabase session UUID string.
 db.version(13).stores({
   sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
   houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
@@ -206,6 +206,25 @@ db.version(13).stores({
   audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
   userEditedFields: "[itemId+field], itemId",
   notePages: "++id, pageUid, sessionId, sortOrder",
+});
+
+// v14: Add per-page content-hash tracking for Phase 47 note draft idempotency.
+// Existing pages get hashes lazily before processing; retake writes a new hash and
+// clears processedContentHash so changed content is eligible for processing again.
+db.version(14).stores({
+  sessions: "++id, mode, status, updatedAt, createdAt, deletedAt",
+  houseVisitItems: "++id, sessionId, sortOrder, aiStatus, [sessionId+aiStatus]",
+  saleItems: "++id, sessionId, receiptNumber, sortOrder, aiStatus, [sessionId+aiStatus]",
+  photos: "++id, itemId, sortOrder",
+  audio: "++id, itemId",
+  sessionAudio: "sessionId, updatedAt",
+  exportHistory: "++id, sessionId, exportedAt",
+  idMapping: "++id, oldId, newId, type, [newId+type], [oldId+type]",
+  writeAheadQueue: "++id, createdAt",
+  photoUploadQueue: "++id, status, dexiePhotoId, itemId, createdAt",
+  audioUploadQueue: "++id, status, dexieAudioId, itemId, createdAt",
+  userEditedFields: "[itemId+field], itemId",
+  notePages: "++id, pageUid, sessionId, sortOrder, status, contentHash",
 });
 
 export { db };
