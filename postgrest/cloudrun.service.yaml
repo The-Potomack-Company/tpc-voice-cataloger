@@ -1,0 +1,32 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: cataloger-postgrest
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cloudsql-instances: gen-lang-client-0662587427:us-central1:potomack-cataloger-db
+    spec:
+      serviceAccountName: cataloger-postgrest@gen-lang-client-0662587427.iam.gserviceaccount.com
+      containers:
+        - image: us-central1-docker.pkg.dev/gen-lang-client-0662587427/potomack/postgrest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PGRST_JWT_AUD
+              value: gen-lang-client-0662587427
+            - name: PGRST_OPENAPI_SERVER_PROXY_URI
+              value: https://cataloger-postgrest-REPLACE.a.run.app
+            - name: PGRST_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: cataloger-postgres-uri
+                  key: latest
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-securetoken-jwks
+                  key: latest

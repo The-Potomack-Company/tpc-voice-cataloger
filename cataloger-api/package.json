@@ -1,0 +1,11 @@
+{
+  "name": "cataloger-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0"
+  }
+}

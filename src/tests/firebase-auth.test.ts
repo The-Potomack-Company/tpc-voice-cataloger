@@ -40,6 +40,8 @@ function firebaseUser({
       claims: claims ?? {
         email,
         email_verified: true,
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
         firebase: { sign_in_provider: "google.com" },
       },
     }),
@@ -89,6 +91,8 @@ describe("firebaseAuth", () => {
     vi.unstubAllEnvs();
     resetFirebaseAuthForTests();
     stubFirebaseEnv();
+    vi.stubEnv("VITE_CATALOGER_API_URL", "https://cataloger-api.example.com");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
   });
 
   it("maps role claims and falls back to specialist without requiring hd in Firebase claims", () => {
@@ -104,6 +108,8 @@ describe("firebaseAuth", () => {
         id: "2",
         email: "staff@potomackco.com",
         claims: {
+          workspace: "potomackco.com",
+          workspace_role: "authenticated",
           email_verified: true,
           firebase: { sign_in_provider: "google.com" },
         },
@@ -173,13 +179,15 @@ describe("firebaseAuth", () => {
     expect(signOut).toHaveBeenCalled();
   });
 
-  it("accepts refreshed Firebase claims for a vetted user without requiring hd", async () => {
+  it("accepts refreshed Firebase claims for a vetted user with the server workspace claim", async () => {
     const currentUser = firebaseUser({
       uid: "firebase-no-hd",
       token: "fresh-token",
       claims: {
         email: "staff@potomackco.com",
         email_verified: true,
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
         firebase: { sign_in_provider: "google.com" },
       },
     });
@@ -198,6 +206,8 @@ describe("firebaseAuth", () => {
       claims: {
         email: "staff@example.com",
         email_verified: true,
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
         firebase: { sign_in_provider: "google.com" },
       },
     });
@@ -217,6 +227,8 @@ describe("firebaseAuth", () => {
       claims: {
         email: "staff@potomackco.com",
         email_verified: false,
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
         firebase: { sign_in_provider: "google.com" },
       },
     });
@@ -236,6 +248,8 @@ describe("firebaseAuth", () => {
       claims: {
         email: "staff@potomackco.com",
         email_verified: true,
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
         firebase: { sign_in_provider: "password" },
       },
     });
@@ -255,6 +269,8 @@ describe("firebaseAuth", () => {
       claims: {
         email: "staff@potomackco.com",
         email_verified: false,
+        workspace: "potomackco.com",
+        workspace_role: "authenticated",
         firebase: { sign_in_provider: "google.com" },
       },
     });
@@ -264,5 +280,46 @@ describe("firebaseAuth", () => {
       "Please use your Potomack Workspace account",
     );
     expect(signOut).toHaveBeenCalled();
+  });
+
+  it("claims the workspace server-side and refreshes the ID token when missing", async () => {
+    const popupUser = firebaseUser({
+      token: "pre-claim-token",
+      claims: {
+        email: "staff@potomackco.com",
+        email_verified: true,
+        firebase: { sign_in_provider: "google.com" },
+      },
+    });
+    popupUser.getIdTokenResult = vi
+      .fn()
+      .mockResolvedValueOnce({
+        token: "pre-claim-token",
+        claims: {
+          email: "staff@potomackco.com",
+          email_verified: true,
+          firebase: { sign_in_provider: "google.com" },
+        },
+      })
+      .mockResolvedValueOnce({
+        token: "post-claim-token",
+        claims: {
+          email: "staff@potomackco.com",
+          email_verified: true,
+          workspace: "potomackco.com",
+          workspace_role: "authenticated",
+          firebase: { sign_in_provider: "google.com" },
+        },
+      });
+    installFirebaseSdk({ popupUser });
+
+    const session = await signInWithGoogle();
+
+    expect(fetch).toHaveBeenCalledWith("https://cataloger-api.example.com/session/claim", {
+      method: "POST",
+      headers: { authorization: "Bearer pre-claim-token" },
+    });
+    expect(popupUser.getIdTokenResult).toHaveBeenLastCalledWith(true);
+    expect(session.access_token).toBe("post-claim-token");
   });
 });

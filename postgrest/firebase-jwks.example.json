@@ -1,0 +1,12 @@
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "use": "sig",
+      "kid": "replace-with-current-firebase-securetoken-kid",
+      "alg": "RS256",
+      "n": "replace-with-current-modulus",
+      "e": "AQAB"
+    }
+  ]
+}
