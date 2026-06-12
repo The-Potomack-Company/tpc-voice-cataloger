@@ -13,6 +13,7 @@ begin
   end if;
 end $$;
 
+grant anon, authenticated to cataloger_app;
 grant usage on schema public to anon, authenticated, cataloger_api;
 grant usage on schema private to authenticated, cataloger_api;
 

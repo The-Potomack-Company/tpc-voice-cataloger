@@ -74,6 +74,8 @@ for f in db/migrations/*.sql; do
 done
 ```
 
+The first migration grants `anon` and `authenticated` membership to the Cloud SQL login role `cataloger_app`. Keep this before the PostgREST deploy: PostgREST connects as `cataloger_app` and must be allowed to `SET ROLE anon` or `SET ROLE authenticated` for request-scoped database access.
+
 ## Firebase JWKS for PostgREST
 
 PostgREST reads the Firebase Secure Token JWKS from the `PGRST_JWT_SECRET` environment variable, injected from Secret Manager. The Firebase project audience is `PGRST_JWT_AUD=gen-lang-client-0662587427`. Fetch the current JWKS and redeploy PostgREST when Google rotates keys.
@@ -115,7 +117,7 @@ gcloud run deploy cataloger-api \
   --region=us-central1 \
   --allow-unauthenticated \
   --service-account=cataloger-api@gen-lang-client-0662587427.iam.gserviceaccount.com \
-  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427
+  --set-env-vars=FIREBASE_PROJECT_ID=gen-lang-client-0662587427,CATALOGER_API_ALLOWED_ORIGINS=https://app.potomackco.com\\,https://gen-lang-client-0662587427.web.app
 ```
 
 ## App Env Flip

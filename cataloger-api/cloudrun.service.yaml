@@ -15,3 +15,5 @@ spec:
           env:
             - name: FIREBASE_PROJECT_ID
               value: gen-lang-client-0662587427
+            - name: CATALOGER_API_ALLOWED_ORIGINS
+              value: https://app.potomackco.com,https://gen-lang-client-0662587427.web.app
