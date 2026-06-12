@@ -2,9 +2,10 @@ import { Navigate, Outlet } from 'react-router'
 import { useUserRole } from '../hooks/useUserRole'
 
 export function AdminRouteGuard() {
-  const { role, loading } = useUserRole()
+  const { role, isAdmin, loading } = useUserRole()
+  const canAdmin = isAdmin || role === 'dev' || role === 'admin'
 
   if (loading) return null
-  if (role !== 'admin') return <Navigate to="/" replace />
+  if (!canAdmin) return <Navigate to="/" replace />
   return <Outlet />
 }

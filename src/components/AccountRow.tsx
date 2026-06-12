@@ -32,8 +32,12 @@ export function AccountRow({
         <p className="text-ink font-medium truncate">{account.display_name}</p>
         <p className="text-sm text-ink-3 mt-0.5 truncate">{account.email}</p>
         <div className="flex items-center gap-2 mt-1.5">
-          {account.role === 'admin' ? (
+          {account.role === 'dev' ? (
+            <Badge tone="info">Dev</Badge>
+          ) : account.role === 'admin' ? (
             <Badge tone="info">Admin</Badge>
+          ) : account.role === 'manager' ? (
+            <Badge tone="info">Manager</Badge>
           ) : (
             <Badge>Specialist</Badge>
           )}

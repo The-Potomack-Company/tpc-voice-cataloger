@@ -1,7 +1,7 @@
 create table if not exists public.profiles (
   id text primary key,
   email text,
-  role text not null default 'specialist' check (role in ('admin', 'specialist')),
+  role text not null default 'specialist' check (role in ('dev', 'admin', 'manager', 'specialist')),
   display_name text not null,
   is_active boolean not null default true,
   walkthrough_completed boolean not null default false,

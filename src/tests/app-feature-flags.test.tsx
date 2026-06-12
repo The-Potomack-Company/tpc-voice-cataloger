@@ -17,6 +17,7 @@ vi.mock("../pages/Sessions", () => ({ SessionsPage: () => <div>SESSIONS</div> })
 vi.mock("../pages/NewSession", () => ({ NewSessionPage: () => <div>NEW SESSION</div> }));
 vi.mock("../pages/SessionDetail", () => ({ SessionDetailPage: () => <div>SESSION DETAIL</div> }));
 vi.mock("../pages/PhotoNotes", () => ({ PhotoNotesPage: () => <div>PHOTO NOTES ROUTE</div> }));
+vi.mock("../pages/ReviewQueue", () => ({ ReviewQueuePage: () => <div>REVIEW DRAFTS ROUTE</div> }));
 vi.mock("../pages/ItemEntry", () => ({ ItemEntryPage: () => <div>ITEM ENTRY</div> }));
 vi.mock("../pages/Settings", () => ({ SettingsPage: () => <div>SETTINGS</div> }));
 vi.mock("../pages/AccountManagement", () => ({
@@ -36,5 +37,15 @@ describe("App feature flags", () => {
       </MemoryRouter>,
     );
     expect(screen.queryByText("PHOTO NOTES ROUTE")).not.toBeInTheDocument();
+  });
+
+  it("does not register the review drafts route when the flag is off", () => {
+    vi.stubEnv("VITE_FEATURE_PHOTO_NOTES", "false");
+    render(
+      <MemoryRouter initialEntries={["/session/session-1/review-drafts"]}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("REVIEW DRAFTS ROUTE")).not.toBeInTheDocument();
   });
 });

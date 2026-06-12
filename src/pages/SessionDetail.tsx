@@ -117,8 +117,9 @@ export function SessionDetailPage() {
   const continuousPaused = continuousRecorder.status === "paused";
 
   // Admin reassignment state
-  const { isAdmin, loading: roleLoading } = useUserRole();
-  const isSpecialist = !isAdmin && !roleLoading;
+  const { isAdmin, isReviewer, loading: roleLoading } = useUserRole();
+  const canReview = isReviewer || isAdmin;
+  const isSpecialist = !canReview && !roleLoading;
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [editingAssignee, setEditingAssignee] = useState(false);
   const [reassignError, setReassignError] = useState<string | null>(null);
@@ -422,7 +423,7 @@ export function SessionDetailPage() {
           </div>
 
           {/* Finalize action — admin export trigger from the header (mockup behavior). */}
-          {isAdmin && (
+          {canReview && (
             <Button
               variant="primary"
               size="sm"
@@ -503,6 +504,17 @@ export function SessionDetailPage() {
             </Button>
           )}
 
+          {photoNotesEnabled && session.status === 'submitted' && (
+            <Button
+              variant={canReview ? "primary" : "secondary"}
+              fullWidth
+              onClick={() => navigate(`/session/${sessionId}/review-drafts`)}
+              icon={<Icon name="file" size={14} aria-hidden />}
+            >
+              Review drafts
+            </Button>
+          )}
+
           {/* Submit for Review -- specialist only, active or returned sessions */}
           {isSpecialist && (session.status === 'active' || session.status === 'returned') && (
             <Button
@@ -521,7 +533,7 @@ export function SessionDetailPage() {
           )}
 
           {/* Export Spreadsheet button -- admin only, no confirmation needed */}
-          {isAdmin && (
+          {canReview && (
             <Button
               variant="secondary"
               fullWidth
