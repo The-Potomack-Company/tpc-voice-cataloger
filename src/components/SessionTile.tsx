@@ -3,7 +3,7 @@
  *
  * Mockup-faithful single session row used inside the Sessions list
  * (SCREEN-01). Matches docs/design-handoff/tpc-voice.jsx — the 40x40
- * Sale-H / House-S accent-wash mode tile, the mono session id eyebrow,
+ * Sale accent-wash mode tile, the mono session id eyebrow,
  * the row title, and the "{n} items · {mins} min" meta line.
  *
  * Wraps the existing SwipeableRow to preserve long-press rename and
@@ -102,8 +102,7 @@ export function SessionTile({
     }
   };
 
-  const isSale = session.mode === "sale";
-  const modeLabel = isSale ? "Sale" : "House";
+  const modeLabel = "Sale";
   const statusBadge = statusBadgeFor(session.status);
   // Recording in progress when the UI store's current recording session id
   // matches this row AND the session is still in the active state.
@@ -126,15 +125,12 @@ export function SessionTile({
           .filter(Boolean)
           .join(" ")}
       >
-        {/* Mode tile — accent-wash for Sale, sand-wash for House */}
+        {/* Mode tile */}
         <div
           aria-hidden="true"
-          className={[
-            "tpc-mode-tile",
-            isSale ? "tpc-mode-tile-sale" : "tpc-mode-tile-house",
-          ].join(" ")}
+          className="tpc-mode-tile tpc-mode-tile-sale"
         >
-          {isSale ? "S" : "H"}
+          S
         </div>
 
         <div className="flex-1 min-w-0">

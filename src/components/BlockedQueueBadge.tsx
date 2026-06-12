@@ -102,7 +102,7 @@ export function BlockedQueueBadge() {
               >
                 <span className="truncate">{blockedItemLabel(item)}</span>
                 <span className="shrink-0 text-xs opacity-70">
-                  {item.mode === "sale" ? "Sale" : "House"}
+                  Sale
                 </span>
               </button>
             </li>

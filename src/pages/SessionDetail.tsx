@@ -215,7 +215,7 @@ export function SessionDetailPage() {
   // Specialist on submitted/exported session = locked. Admin is NEVER locked.
   const isLifecycleLocked = isSpecialist && session.status === 'submitted';
   const isReadOnly = isLifecycleLocked || (isSpecialist && session.status === 'exported');
-  const modeLabel = session.mode === "house" ? "House Visit" : "Sale Cataloging";
+  const modeLabel = "Sale Cataloging";
 
   const startEditingName = () => {
     if (isReadOnly) return;

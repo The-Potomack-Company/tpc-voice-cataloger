@@ -1,10 +1,7 @@
 import { useParams, useNavigate } from "react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db";
 
-import { PhotoCapture } from "../components/PhotoCapture";
-import { PhotoLightbox } from "../components/PhotoLightbox";
 import { EditableField } from "../components/EditableField";
 import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
@@ -19,9 +16,7 @@ import { useSession, useSessionItems } from "../hooks/useSessions";
 import { useSessionStore } from "../stores/sessionStore";
 import { createBlankItem, updateItemField } from "../db/items";
 import { reformatMeasurements } from "../utils/formatMeasurements";
-import { getDexieItemId } from "../db/idMapping";
 import { formatDuration } from "../utils/audio";
-import type { ItemPhoto } from "../db/types";
 import { audioRecordsForItem } from "../db/audioLookup";
 import { AiFailureBanner } from "../components/AiFailureBanner";
 
@@ -72,23 +67,18 @@ function RecordingWaveform({ isProcessing = false }: { isProcessing?: boolean })
 /**
  * Two-stat strip beneath the record button (mockup SCREEN-02).
  *
- * Shows the live count of items entered and photos captured across this
- * session. Reads directly from the items array passed in to avoid extra
- * round trips.
+ * Shows the live count of items entered across this session.
  */
 function RecordingStats({
   itemCount,
-  photoCount,
 }: {
   itemCount: number;
-  photoCount: number;
 }) {
   return (
     <StatStrip
       variant="cards"
       stats={[
         { label: "Items", value: itemCount, showBar: false },
-        { label: "Photos", value: photoCount, showBar: false },
       ]}
       large
     />
@@ -102,7 +92,6 @@ export function ItemEntryPage() {
   }>();
   const navigate = useNavigate();
   const creatingRef = useRef(false);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Load session from Zustand
   const session = useSession(sessionId!);
@@ -115,7 +104,7 @@ export function ItemEntryPage() {
     }
   }, [sessionId, fetchItems]);
 
-  const mode = session?.mode === "sale" ? "sale" : "house";
+  const mode = "sale";
   const isNewItem = itemId === "new";
 
   // Get items from Zustand store
@@ -148,13 +137,6 @@ export function ItemEntryPage() {
     createItem().catch(console.error);
   }, [isNewItem, session, mode, sessionId, navigate]);
 
-  // Photos query STAYS Dexie but needs ID mapping for migrated items
-  const [dexieItemId, setDexieItemId] = useState<number | string | null>(null);
-  useEffect(() => {
-    if (!itemId || isNewItem) return;
-    getDexieItemId(itemId).then(id => setDexieItemId(id ?? itemId));
-  }, [itemId, isNewItem]);
-
   // Latest audio id + server-side existence for this item — feeds the shared
   // AiFailureBanner. hasServerAudio (F2) gates the banner off cross-device audio
   // that lives only in Supabase (id:undefined union rows ⇒ latestAudioId null).
@@ -174,34 +156,6 @@ export function ItemEntryPage() {
   );
   const bannerLatestAudioId = bannerAudioMeta.latestAudioId;
   const bannerHasServerAudio = bannerAudioMeta.hasServerAudio;
-
-  const photos = useLiveQuery(
-    () => {
-      if (mode !== "house") return [] as ItemPhoto[];
-      const lookupId = dexieItemId ?? itemId;
-      if (!lookupId) return [] as ItemPhoto[];
-      return db.photos.where("itemId").equals(lookupId).sortBy("sortOrder");
-    },
-    [dexieItemId, itemId, mode],
-    [] as ItemPhoto[],
-  );
-
-  // Session-wide photo count for the SCREEN-02 stat strip.
-  const sessionPhotoCount = useLiveQuery(
-    async () => {
-      if (!items.length || mode !== "house") return 0;
-      // Sum photos across every item in the session.
-      const counts = await Promise.all(
-        items.map(async (i) => {
-          const lookupId = (await getDexieItemId(i.id)) ?? i.id;
-          return db.photos.where("itemId").equals(lookupId).count();
-        }),
-      );
-      return counts.reduce((a, b) => a + b, 0);
-    },
-    [items.map((i) => i.id).join("|"), mode],
-    0,
-  );
 
   // Receipt number state for sale mode
   const [receiptValue, setReceiptValue] = useState("");
@@ -255,14 +209,6 @@ export function ItemEntryPage() {
     }
   }, [nextItem, sessionId, mode, navigate]);
 
-  // Lightbox delete handler
-  const handleLightboxDelete = useCallback(
-    async (photoId: number) => {
-      await db.photos.delete(photoId);
-    },
-    [],
-  );
-
   // Loading state
   if (!session || (isNewItem && !item)) {
     return (
@@ -287,16 +233,8 @@ export function ItemEntryPage() {
         <BackButton sessionId={sessionId!} />
       </div>
 
-      {/* Mode-specific top section */}
+      {/* Item fields */}
       <div className="py-2 space-y-3">
-        {mode === "house" && itemId && !isNewItem && (
-          <PhotoCapture
-            itemId={itemId}
-            sessionId={sessionId!}
-            onOpenLightbox={(index) => setLightboxIndex(index)}
-          />
-        )}
-
         {/* AI failure banner — only renders when the last AI run terminally
             failed. Without this, the detail page has no failure surface and
             users have no path back to a successful run. */}
@@ -406,11 +344,10 @@ export function ItemEntryPage() {
               isProcessing={item?.ai_status === "processing"}
             />
 
-            {/* Two-stat strip — items entered and photos captured. */}
+            {/* Session stat strip. */}
             {session && (
               <RecordingStats
                 itemCount={totalItems}
-                photoCount={sessionPhotoCount}
               />
             )}
           </>
@@ -420,16 +357,6 @@ export function ItemEntryPage() {
       {/* Recording overlays */}
       <RecordingIndicator />
       <RecordingToast />
-
-      {/* Photo lightbox */}
-      {lightboxIndex !== null && photos.length > 0 && (
-        <PhotoLightbox
-          photos={photos}
-          initialIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onDelete={handleLightboxDelete}
-        />
-      )}
 
       {/* Bottom control trio — prev item / record / next item (mockup
           tpc-voice.jsx:151-161). Anchored above the tab bar so it stays

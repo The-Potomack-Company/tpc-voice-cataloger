@@ -108,7 +108,7 @@ export function SessionCard({
     }
   };
 
-  const modeLabel = session.mode === "house" ? "House Visit" : "Sale";
+  const modeLabel = "Sale";
 
   return (
     <SwipeableRow onDelete={onDelete}>

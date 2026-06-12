@@ -13,7 +13,7 @@ vi.mock("dexie-react-hooks", () => ({
 }));
 
 vi.mock("../hooks/useSessions", () => ({
-  useSession: () => ({ id: "session-1", mode: "house" }),
+  useSession: () => ({ id: "session-1", mode: "sale" }),
   useSessionItems: () => mockItems,
 }));
 
@@ -36,10 +36,6 @@ vi.mock("../db/audioLookup", () => ({
   audioRecordsForItem: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../components/PhotoCapture", () => ({
-  PhotoCapture: () => <div data-testid="photo-capture" />,
-}));
-
 vi.mock("../components/RecordButton", () => ({
   RecordButton: () => <button type="button">Record</button>,
 }));
@@ -50,7 +46,7 @@ describe("ItemEntryPage waiting indicator", () => {
     mockItems.length = 0;
     mockItems.push({
       id: "item-1",
-      mode: "house",
+      mode: "sale",
       sort_order: 0,
       ai_status: "pending",
       title: null,

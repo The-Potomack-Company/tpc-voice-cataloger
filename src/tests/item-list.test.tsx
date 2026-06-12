@@ -168,7 +168,7 @@ describe("ItemList", () => {
       expect(screen.getByText(/12345-1/)).toBeInTheDocument();
     });
 
-    // Click navigates to detail view (same as house mode) — no inline expansion
+    // Click navigates to detail view; cards no longer expand inline.
     fireEvent.click(screen.getByText(/12345-1/));
 
     // Sale cards no longer expand inline; they navigate to /session/:id/item/:itemId

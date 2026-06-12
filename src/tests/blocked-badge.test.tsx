@@ -216,7 +216,7 @@ describe("BlockedQueueBadge (REL-3 / D-10)", () => {
     expect(detail).not.toHaveTextContent("abcdef12-3456-7890-aaaa-bbbbbbbbbbbb");
   });
 
-  it("shows each row's mode (House / Sale)", async () => {
+  it("shows sale as the row mode label", async () => {
     setBlocked([
       { id: "h1", mode: "house", session_id: "s1", title: "Lamp", receipt_number: null },
       { id: "s1x", mode: "sale", session_id: "s2", title: "Vase", receipt_number: null },
@@ -224,8 +224,8 @@ describe("BlockedQueueBadge (REL-3 / D-10)", () => {
     renderBadge();
     fireEvent.click(await screen.findByTestId("blocked-queue-badge"));
     const detail = await screen.findByTestId("blocked-queue-detail");
-    expect(detail).toHaveTextContent("House");
     expect(detail).toHaveTextContent("Sale");
+    expect(detail).not.toHaveTextContent("House");
   });
 
   it("navigates to the item route on tap", async () => {

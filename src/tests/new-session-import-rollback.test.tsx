@@ -275,7 +275,7 @@ describe("NewSession import compensating rollback (SC2, D-01)", () => {
 
     const user = userEvent.setup();
     renderNewSession();
-    await user.type(screen.getByLabelText("Session Name"), "Test House");
+    await user.type(screen.getByLabelText("Session Name"), "Test Sale");
     await user.click(screen.getByRole("button", { name: "Start Session" }));
 
     await vi.waitFor(() => expect(mockNotifyError).toHaveBeenCalledTimes(1));

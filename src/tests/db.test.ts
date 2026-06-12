@@ -29,8 +29,8 @@ describe("Dexie database", () => {
 
   it("can create and read a Session record", async () => {
     const session: Omit<Session, "id"> = {
-      name: "Test House Visit",
-      mode: "house",
+      name: "Test Sale",
+      mode: "sale",
       status: "active",
       notes: "",
       createdAt: new Date(),
@@ -41,8 +41,8 @@ describe("Dexie database", () => {
     const retrieved = await db.sessions.get(id);
 
     expect(retrieved).toBeDefined();
-    expect(retrieved!.name).toBe("Test House Visit");
-    expect(retrieved!.mode).toBe("house");
+    expect(retrieved!.name).toBe("Test Sale");
+    expect(retrieved!.mode).toBe("sale");
   });
 
   it("can create and read a HouseVisitItem linked to a session", async () => {

@@ -214,7 +214,7 @@ export function useAudioRecorder(): AudioRecorderReturn {
 
                 // D-05: fire-and-forget background upload — never blocks the
                 // resolve below or the AI trigger (RecordButton). A rejected
-                // enqueue/drain is swallowed. Mirrors PhotoCapture.tsx:130-136.
+                // enqueue/drain is swallowed.
                 // itemId here is the Supabase UUID STRING (itemIdRef.current),
                 // NOT the `as unknown as number` coercion the Dexie row uses.
                 enqueueAudioUpload({

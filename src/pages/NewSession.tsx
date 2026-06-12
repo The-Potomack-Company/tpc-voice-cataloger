@@ -12,11 +12,8 @@ import { Eyebrow } from "../ui/Eyebrow";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 
-type Mode = "house" | "sale";
-
 export function NewSessionPage() {
   const [name, setName] = useState("");
-  const [mode, setMode] = useState<Mode>("house");
   const [notes, setNotes] = useState("");
   const [showActiveWarning, setShowActiveWarning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -81,7 +78,7 @@ export function NewSessionPage() {
     try {
       const newId = await createSession(
         name.trim(),
-        mode,
+        "sale",
         notes.trim() || undefined,
         isAdmin ? assignedTo : undefined,
       );
@@ -198,53 +195,25 @@ export function NewSessionPage() {
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Smith Estate House Visit"
+          placeholder="e.g. June Fine Sale"
         />
       </div>
 
-      {/* Mode Picker — paired accent-wash / sand-wash tiles */}
+      {/* Cataloging mode */}
       <div className="mb-6">
         <Eyebrow className="mb-2">Cataloging Mode</Eyebrow>
-        <div className="grid gap-3 portrait:grid-cols-1 landscape:grid-cols-2">
-          {/* House Visit card */}
-          <button
-            type="button"
-            onClick={() => setMode("house")}
-            aria-pressed={mode === "house"}
-            className="tpc-card-mode tpc-card-mode-house"
-          >
-            <div className="flex items-center gap-3">
-              <span className="tpc-mode-tile tpc-mode-tile-house" aria-hidden>
-                H
-              </span>
-              <div>
-                <div className="tpc-display tpc-display-4 text-ink">House Visit</div>
-                <p className="text-sm text-ink-3 mt-0.5">
-                  Catalog items with photos during a house visit
-                </p>
-              </div>
+        <div className="tpc-card-mode tpc-card-mode-sale" aria-label="Sale Cataloging">
+          <div className="flex items-center gap-3">
+            <span className="tpc-mode-tile tpc-mode-tile-sale" aria-hidden>
+              S
+            </span>
+            <div>
+              <div className="tpc-display tpc-display-4 text-ink">Sale Cataloging</div>
+              <p className="text-sm text-ink-3 mt-0.5">
+                Enter receipt numbers and dictate items for a sale
+              </p>
             </div>
-          </button>
-
-          {/* Sale Cataloging card */}
-          <button
-            type="button"
-            onClick={() => setMode("sale")}
-            aria-pressed={mode === "sale"}
-            className="tpc-card-mode tpc-card-mode-sale"
-          >
-            <div className="flex items-center gap-3">
-              <span className="tpc-mode-tile tpc-mode-tile-sale" aria-hidden>
-                S
-              </span>
-              <div>
-                <div className="tpc-display tpc-display-4 text-ink">Sale Cataloging</div>
-                <p className="text-sm text-ink-3 mt-0.5">
-                  Enter receipt numbers and dictate items for a sale
-                </p>
-              </div>
-            </div>
-          </button>
+          </div>
         </div>
       </div>
 
@@ -312,18 +281,16 @@ export function NewSessionPage() {
         </div>
       )}
 
-      {/* Import Receipt List - only in sale mode */}
-      {mode === "sale" && (
-        <div className="mb-6">
-          <ImportReceiptsButton
-            onImport={handleImport}
-            disabled={!name.trim() || importing || submitting || (isAdmin && !assignedTo)}
-          />
-          <p className="text-xs text-ink-4 mt-2 text-center">
-            Upload a CSV or XLSX file with receipt numbers
-          </p>
-        </div>
-      )}
+      {/* Import Receipt List */}
+      <div className="mb-6">
+        <ImportReceiptsButton
+          onImport={handleImport}
+          disabled={!name.trim() || importing || submitting || (isAdmin && !assignedTo)}
+        />
+        <p className="text-xs text-ink-4 mt-2 text-center">
+          Upload a CSV or XLSX file with receipt numbers
+        </p>
+      </div>
 
       {/* Submit */}
       <Button
