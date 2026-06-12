@@ -87,117 +87,123 @@ export function NewSessionPage() {
   };
 
   return (
-    <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
+    <div className="tpc-page">
       {/* Eyebrow + display title */}
       <header className="mb-6">
-        <Eyebrow>The Potomack Co.</Eyebrow>
-        <h1 className="tpc-display tpc-display-2 mt-1 text-ink">New Session</h1>
+        <Eyebrow>Catalog setup</Eyebrow>
+        <h1 className="tpc-display tpc-display-2 mt-1 text-ink">New session</h1>
+        <p className="mt-1 text-sm text-ink-3">
+          Create a sale cataloging workspace with one capture path.
+        </p>
       </header>
 
-      {/* Session Name */}
-      <div className="mb-6">
-        <Input
-          ref={nameRef}
-          label="Session Name"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. June Fine Sale"
-        />
-      </div>
-
-      {/* Cataloging mode */}
-      <div className="mb-6">
-        <Eyebrow className="mb-2">Cataloging Mode</Eyebrow>
-        <div className="tpc-card-mode tpc-card-mode-sale" aria-label="Sale Cataloging">
-          <div className="flex items-center gap-3">
-            <span className="tpc-mode-tile tpc-mode-tile-sale" aria-hidden>
-              S
-            </span>
-            <div>
-              <div className="tpc-display tpc-display-4 text-ink">Sale Cataloging</div>
-              <p className="text-sm text-ink-3 mt-0.5">
-                Enter receipt numbers and dictate items for a sale
-              </p>
-            </div>
+      <section className="tpc-section">
+        <div className="tpc-section-head">
+          <div>
+            <Eyebrow>Session</Eyebrow>
+            <strong className="block text-ink">Sale cataloging</strong>
           </div>
         </div>
-      </div>
+        <div className="tpc-panel">
+          <Input
+            ref={nameRef}
+            label="Session Name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. June Fine Sale"
+          />
 
-      {/* Notes */}
-      <div className="mb-6">
-        <Eyebrow className="mb-1">Notes (optional)</Eyebrow>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Any notes about this session…"
-          rows={3}
-          className="tpc-input resize-none"
-        />
-      </div>
+          <div>
+            <Eyebrow className="mb-2">Cataloging Mode</Eyebrow>
+            <div className="tpc-card-mode tpc-card-mode-sale" aria-label="Sale Cataloging">
+              <div className="flex items-center gap-3">
+                <span className="tpc-mode-tile tpc-mode-tile-sale" aria-hidden>
+                  S
+                </span>
+                <div>
+                  <div className="tpc-display tpc-display-4 text-ink">Sale Cataloging</div>
+                  <p className="text-sm text-ink-3 mt-0.5">
+                    Receipt number, voice entry, item photos, and review.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      {/* Assign To - admin only */}
-      {isAdmin && (
-        <div className="mb-6">
-          <Eyebrow className="mb-1">Assign To</Eyebrow>
-          <div className={`relative${accountsLoading ? " opacity-50" : ""}`}>
-            <select
-              id="assign-to"
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              disabled={accountsLoading}
-              className="tpc-input appearance-none pr-9 font-medium"
-            >
-              {accountsLoading ? (
-                <option value="" disabled>
-                  Loading…
-                </option>
-              ) : (
-                <>
+          <div>
+            <Eyebrow className="mb-1">Notes (optional)</Eyebrow>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any notes about this session..."
+              rows={3}
+              className="tpc-input resize-none"
+            />
+          </div>
+
+          {isAdmin && (
+            <div>
+              <Eyebrow className="mb-1">Assign To</Eyebrow>
+              <div className={`relative${accountsLoading ? " opacity-50" : ""}`}>
+                <select
+                  id="assign-to"
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  disabled={accountsLoading}
+                  className="tpc-input appearance-none pr-9 font-medium"
+                >
+                  {accountsLoading ? (
+                    <option value="" disabled>
+                      Loading...
+                    </option>
+                  ) : (
+                    <>
                   <option value="" disabled>
-                    Select a specialist…
+                    Select a specialist...
                   </option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.display_name}
                     </option>
                   ))}
-                </>
+                    </>
+                  )}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
+                </svg>
+              </div>
+              {accountsError && (
+                <p className="text-sm text-err mt-1" role="alert">
+                  {accountsError}
+                </p>
               )}
-            </select>
-            <svg
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-              />
-            </svg>
-          </div>
-          {accountsError && (
-            <p className="text-sm text-err mt-1" role="alert">
-              {accountsError}
-            </p>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Submit */}
-      <Button
-        type="button"
-        variant="primary"
-        fullWidth
-        onClick={handleSubmit}
-        disabled={!name.trim() || submitting || (isAdmin && !assignedTo)}
-      >
-        {submitting ? "Creating…" : "Start Session"}
-      </Button>
+          <Button
+            type="button"
+            variant="primary"
+            fullWidth
+            onClick={handleSubmit}
+            disabled={!name.trim() || submitting || (isAdmin && !assignedTo)}
+          >
+            {submitting ? "Creating..." : "Start Session"}
+          </Button>
+        </div>
+      </section>
 
       {/* Active session warning */}
       <ConfirmDialog

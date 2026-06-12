@@ -7,6 +7,7 @@ import { ReceiptNumberInput } from "../components/ReceiptNumberInput";
 import { ItemCounter } from "../components/ItemCounter";
 import { RecordButton } from "../components/RecordButton";
 import { Icon } from "../ui/icons";
+import { Eyebrow } from "../ui/Eyebrow";
 import { Waveform } from "../ui/Waveform";
 import { StatStrip } from "../ui/StatStrip";
 import { useRecordingStore } from "../stores/recordingStore";
@@ -262,14 +263,25 @@ export function ItemEntryPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto pb-40">
+    <div className="tpc-page flex flex-col min-h-[calc(100vh-4rem)] pb-40">
       {/* Back button */}
       <div className="py-2">
         <BackButton sessionId={sessionId!} />
       </div>
 
       {/* Item fields */}
-      <div className="py-2 space-y-3">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="tpc-section">
+        <div className="tpc-section-head">
+          <div>
+            <Eyebrow>Voice capture</Eyebrow>
+            <strong className="block text-ink">
+              Item {currentPosition} of {displayTotal}
+            </strong>
+          </div>
+          <span className="tpc-badge">Sale</span>
+        </div>
+        <div className="tpc-panel">
         {/* AI failure banner — only renders when the last AI run terminally
             failed. Without this, the detail page has no failure surface and
             users have no path back to a successful run. */}
@@ -305,7 +317,7 @@ export function ItemEntryPage() {
 
         {/* Editable fields for both modes */}
         {item && (
-          <div className="space-y-3 border border-rule rounded-lg p-3">
+          <div className="space-y-3">
             <EditableField
               label="Header"
               value={item.title ?? undefined}
@@ -352,7 +364,7 @@ export function ItemEntryPage() {
         {/* Raw transcript — collapsed by default so the long copy doesn't
             dominate the screen. Native <details> keeps it a11y-correct. */}
         {item?.transcript && (
-          <details className="border border-rule rounded-lg p-3">
+          <details className="rounded-md border border-rule bg-bg p-3">
             <summary className="text-xs font-medium text-ink-3 uppercase tracking-wide cursor-pointer flex items-center gap-2">
               <span className="tpc-disclosure-chev"><Icon name="chev" size={12} aria-hidden /></span>
               Raw transcript
@@ -365,12 +377,19 @@ export function ItemEntryPage() {
 
         {/* Item counter */}
         <ItemCounter current={currentPosition} total={displayTotal} />
-      </div>
+        </div>
+      </section>
 
       {/* Always-on waveform + recording stats. Record button lives in the
           bottom trio (mockup tpc-voice.jsx:151-161). Item deletion is handled
           exclusively from SessionDetail's SwipeableRow swipe-to-delete. */}
-      <div className="pb-4 pt-2 space-y-3">
+      <aside className="space-y-3">
+        <section className="tpc-section">
+          <div className="tpc-section-head">
+            <Eyebrow>AI status</Eyebrow>
+            <span className="tpc-badge">{item?.ai_status ?? "new"}</span>
+          </div>
+          <div className="tpc-panel">
         {itemId && !isNewItem && (
           <>
             {/* Live waveform — always rendered; dims when idle. Replaced by
@@ -387,6 +406,26 @@ export function ItemEntryPage() {
             )}
           </>
         )}
+          </div>
+        </section>
+        <section className="tpc-section">
+          <div className="tpc-section-head">
+            <Eyebrow>Offline order</Eyebrow>
+          </div>
+          <div className="tpc-panel">
+            <div className="tpc-sync-line">
+              <span className="tpc-eyebrow">1</span>
+              <span className="text-sm text-ink-2">Item metadata</span>
+              <span className="tpc-badge tpc-badge-ok">first</span>
+            </div>
+            <div className="tpc-sync-line">
+              <span className="tpc-eyebrow">2</span>
+              <span className="text-sm text-ink-2">Photos and audio</span>
+              <span className="tpc-badge">queued</span>
+            </div>
+          </div>
+        </section>
+      </aside>
       </div>
 
       {/* Recording overlays */}

@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router";
+import { Navigate, Routes, Route } from "react-router";
 import { AppLayout } from "./layouts/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRouteGuard } from "./components/AdminRouteGuard";
@@ -31,6 +31,10 @@ export default function App() {
               <Route
                 path="session/:sessionId/review-drafts"
                 element={<ReviewQueuePage />}
+              />
+              <Route
+                path="session/:sessionId/drafts"
+                element={<Navigate to="../review-drafts" replace relative="path" />}
               />
             </>
           )}

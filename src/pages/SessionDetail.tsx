@@ -378,11 +378,11 @@ export function SessionDetailPage() {
             : session.status;
 
   return (
-    <div className={`relative portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto ${
+    <div className={`tpc-page relative ${
       continuousActive ? "pb-32" : isReadOnly ? "pb-24" : "pb-60"
     }`}>
-      {/* Sticky header — eyebrow ("Review · TPCXX") + italic display ("N items · M min") + Sync action */}
-      <div className="tpc-sticky-header py-3 -mx-4 portrait:px-4 landscape:px-8 mb-4">
+      <div className="tpc-section mb-4">
+        <div className="tpc-section-head">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -416,11 +416,11 @@ export function SessionDetailPage() {
                   "tpc-display tpc-display-4 truncate text-ink mt-0.5" +
                   (isReadOnly ? "" : " cursor-pointer hover:text-accent transition-colors")
                 }
-              >
-                {session.name}
-              </h1>
-            )}
-          </div>
+            >
+              {session.name}
+            </h1>
+          )}
+        </div>
 
           {/* Finalize action — admin export trigger from the header (mockup behavior). */}
           {canReview && (
@@ -437,9 +437,10 @@ export function SessionDetailPage() {
             </Button>
           )}
         </div>
+        </div>
 
-        {/* Mode + status badges, mono assigned-to */}
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
+        <div className="tpc-panel">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge>{modeLabel}</Badge>
           <Badge tone={statusBadgeTone}>{statusBadgeLabel}</Badge>
           <span
@@ -451,6 +452,31 @@ export function SessionDetailPage() {
           >
             {itemCount} item{itemCount === 1 ? "" : "s"}
           </span>
+        </div>
+        <div className="tpc-sync-stack">
+          <div className="tpc-sync-line">
+            <span className="tpc-eyebrow">Offline</span>
+            <span className="text-sm text-ink-2">
+              {queuedCount > 0
+                ? "Item metadata is still queued before media upload."
+                : "No queued item writes for this session."}
+            </span>
+            <Badge tone={queuedCount > 0 ? "warn" : "ok"}>
+              {queuedCount > 0 ? `${queuedCount} queued` : "clear"}
+            </Badge>
+          </div>
+          {photoNotesEnabled && (
+            <div className="tpc-sync-line">
+              <span className="tpc-eyebrow">Notes</span>
+              <span className="text-sm text-ink-2">
+                Handwritten note pages stay scoped to this session.
+              </span>
+              <Badge tone={notePageCount > 0 ? "info" : "default"}>
+                {notePageCount} page{notePageCount === 1 ? "" : "s"}
+              </Badge>
+            </div>
+          )}
+        </div>
         </div>
       </div>
 
@@ -485,7 +511,14 @@ export function SessionDetailPage() {
       {/* Lifecycle action stack — admin Sync lives in the sticky header (mockup).
           Remaining actions: specialist Submit, admin Spreadsheet export, Return, Reopen. */}
       {!roleLoading && (
-        <div className="flex flex-col gap-2 mb-6">
+        <div className="tpc-section mb-6">
+          <div className="tpc-section-head">
+            <div>
+              <Eyebrow>Workflow</Eyebrow>
+              <strong className="block text-ink">Session actions</strong>
+            </div>
+          </div>
+          <div className="tpc-panel">
           {/* Photo notes -- capture handwritten note pages for this session (Phase 46).
               Same mutate gate as the Add-Item FAB; both modes. */}
           {photoNotesEnabled && !isReadOnly && !continuousActive && (
@@ -545,7 +578,7 @@ export function SessionDetailPage() {
                 ? `${queuedCount} item${queuedCount === 1 ? '' : 's'} still queued`
                 : exportingXlsx
                   ? 'Exporting…'
-                  : 'Export Spreadsheet'}
+              : 'Export Spreadsheet'}
             </Button>
           )}
 
@@ -570,6 +603,7 @@ export function SessionDetailPage() {
               Reopen Session
             </Button>
           )}
+          </div>
         </div>
       )}
 
@@ -592,7 +626,7 @@ export function SessionDetailPage() {
 
       {/* Admin-only assignee field */}
       {isAdmin && session && (
-        <div className="tpc-card flex items-center justify-between px-4 py-3 mb-6" style={{ background: "var(--bg-2)" }}>
+        <div className="tpc-card flex items-center justify-between px-4 py-3 mb-6 bg-bg">
           <span className="text-sm text-ink-3">Assigned to</span>
           {editingAssignee ? (
             <select
@@ -645,7 +679,12 @@ export function SessionDetailPage() {
 
       {/* Metadata section */}
       <section className="mb-6">
-        <div className="tpc-card p-4 space-y-3" style={{ background: "var(--bg-2)" }}>
+        <div className="tpc-section">
+          <div className="tpc-section-head">
+            <Eyebrow>Session</Eyebrow>
+            <Badge>{shortId}</Badge>
+          </div>
+          <div className="tpc-panel">
           <div className="flex items-center justify-between">
             <span className="text-sm text-ink-3">Items</span>
             <span className="tnum text-sm font-medium text-ink">{itemCount}</span>
@@ -658,12 +697,13 @@ export function SessionDetailPage() {
             <span className="text-sm text-ink-3">Last updated</span>
             <span className="tnum text-sm text-ink">{formatRelativeTime(session.updated_at)}</span>
           </div>
+          </div>
         </div>
       </section>
 
       {/* Notes section */}
       <section className="mb-6">
-        <Eyebrow className="mb-2">Notes</Eyebrow>
+        <Eyebrow className="mb-2">Session notes</Eyebrow>
         {isReadOnly ? (
           <div className="w-full rounded-lg border border-rule
                           bg-bg-2 p-3 text-sm

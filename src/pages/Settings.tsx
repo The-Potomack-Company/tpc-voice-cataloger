@@ -96,16 +96,21 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
+    <div className="tpc-page">
       <header className="mb-6">
-        <Eyebrow>The Potomack Co.</Eyebrow>
+        <Eyebrow>Setup</Eyebrow>
         <h1 className="tpc-display tpc-display-2 mt-1 text-ink">Settings</h1>
+        <p className="mt-1 text-sm text-ink-3">
+          Install, appearance, account, and admin controls.
+        </p>
       </header>
 
       {/* Appearance section (Phase 25) */}
-      <section className="mb-8">
-        <Eyebrow>Appearance</Eyebrow>
-        <div className="mt-3 flex flex-col gap-2">
+      <section className="tpc-section mb-6">
+        <div className="tpc-section-head">
+          <Eyebrow>Appearance</Eyebrow>
+        </div>
+        <div className="tpc-panel">
           <ThemePicker />
           <p className="text-xs text-ink-3">
             Choose Light, Dark, or System (follows your OS).
@@ -114,9 +119,11 @@ export function SettingsPage() {
       </section>
 
       {/* About section */}
-      <section className="mb-8">
-        <Eyebrow className="mb-3">About</Eyebrow>
-        <div className="bg-bg-2 rounded-lg p-4">
+      <section className="tpc-section mb-6">
+        <div className="tpc-section-head">
+          <Eyebrow>About</Eyebrow>
+        </div>
+        <div className="tpc-panel">
           <p className="text-ink font-medium">
             TPC Catalog v1.1
           </p>
@@ -128,11 +135,14 @@ export function SettingsPage() {
 
       {/* Admin section (admin-only) */}
       {isAdmin && (
-        <section className="mb-8">
-          <Eyebrow className="mb-3">Admin</Eyebrow>
+        <section className="tpc-section mb-6">
+          <div className="tpc-section-head">
+            <Eyebrow>Admin</Eyebrow>
+          </div>
+          <div className="tpc-panel">
           <button
             onClick={() => navigate("/admin/accounts")}
-            className="w-full bg-bg-2 rounded-lg p-4 text-left text-ink min-h-12 hover:bg-bg-2 transition-colors flex items-center justify-between"
+            className="w-full rounded-md border border-rule bg-bg p-4 text-left text-ink min-h-12 hover:bg-bg-2 transition-colors flex items-center justify-between"
           >
             <span>Account Management</span>
             <svg
@@ -149,13 +159,16 @@ export function SettingsPage() {
               />
             </svg>
           </button>
+          </div>
         </section>
       )}
 
       {/* Storage section */}
-      <section className="mb-8">
-        <Eyebrow className="mb-3">Storage</Eyebrow>
-        <div className="bg-bg-2 rounded-lg p-4">
+      <section className="tpc-section mb-6">
+        <div className="tpc-section-head">
+          <Eyebrow>Storage</Eyebrow>
+        </div>
+        <div className="tpc-panel">
           <div className="flex items-center justify-between">
             <span className="text-ink">Database</span>
             <Badge tone="ok">Active</Badge>
@@ -165,14 +178,17 @@ export function SettingsPage() {
 
       {/* Account section */}
       {!isFirebaseAuth && (
-      <section className="mb-8">
-        <Eyebrow className="mb-3">Account</Eyebrow>
+      <section className="tpc-section mb-6">
+        <div className="tpc-section-head">
+          <Eyebrow>Account</Eyebrow>
+        </div>
+        <div className="tpc-panel">
 
         {/* Change Password expandable row */}
         {!passwordExpanded ? (
           <button
             onClick={() => setPasswordExpanded(true)}
-            className="w-full bg-bg-2 rounded-lg p-4 text-left text-ink min-h-12 hover:bg-bg-2 transition-colors flex items-center justify-between"
+            className="w-full rounded-md border border-rule bg-bg p-4 text-left text-ink min-h-12 hover:bg-bg-2 transition-colors flex items-center justify-between"
           >
             <span>Change Password</span>
             <svg
@@ -190,7 +206,7 @@ export function SettingsPage() {
             </svg>
           </button>
         ) : (
-          <div className="bg-bg-2 rounded-lg p-4">
+          <div className="rounded-md border border-rule bg-bg p-4">
             <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
               <Input
                 id="currentPassword"
@@ -255,15 +271,19 @@ export function SettingsPage() {
             </form>
           </div>
         )}
+        </div>
       </section>
       )}
 
       {/* Actions section */}
-      <section>
-        <Eyebrow className="mb-3">Actions</Eyebrow>
+      <section className="tpc-section">
+        <div className="tpc-section-head">
+          <Eyebrow>Actions</Eyebrow>
+        </div>
+        <div className="tpc-panel">
         <button
           onClick={resetWalkthrough}
-          className="w-full bg-bg-2 rounded-lg p-4 text-left
+          className="w-full rounded-md border border-rule bg-bg p-4 text-left
                      text-ink min-h-12
                      hover:bg-bg-2 transition-colors"
         >
@@ -271,10 +291,11 @@ export function SettingsPage() {
         </button>
         <button
           onClick={() => setShowSignOutConfirm(true)}
-          className="w-full bg-bg-2 rounded-lg p-4 text-left text-err min-h-12 hover:bg-bg-2 transition-colors mt-3"
+          className="w-full rounded-md border border-rule bg-bg p-4 text-left text-err min-h-12 hover:bg-bg-2 transition-colors"
         >
           Sign Out
         </button>
+        </div>
       </section>
 
       {/* Sign out confirmation */}

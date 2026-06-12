@@ -8,6 +8,7 @@ import { SessionTile } from "../components/SessionTile";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 import {
   useActiveSessions,
   useSubmittedSessions,
@@ -23,6 +24,7 @@ import { groupByAssignee, groupByDate, sessionShortId } from "../utils/groupByDa
 import type { Tables } from "../db/database.types";
 
 type GroupMode = "date" | "specialist";
+type ListFilter = "all" | "review" | "export";
 const GROUP_MODE_STORAGE_KEY = "tpc.sessions.groupMode";
 
 type SupabaseSession = Tables<"sessions">;
@@ -226,7 +228,7 @@ export function SessionsPage() {
   const submittedSessions = useSubmittedSessions();
   const returnedSessions = useReturnedSessions();
   const exportedSessions = useExportedSessions();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, isReviewer, role, loading: roleLoading } = useUserRole();
   const nameMap = useNameMap();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -234,6 +236,7 @@ export function SessionsPage() {
   const [exportedExpanded, setExportedExpanded] = useState(false);
   const [returnedExpandedAdmin, setReturnedExpandedAdmin] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<SupabaseSession | null>(null);
+  const [listFilter, setListFilter] = useState<ListFilter>("all");
   const [groupMode, setGroupMode] = useState<GroupMode>(() => {
     if (typeof window === "undefined") return "date";
     const stored = window.localStorage.getItem(GROUP_MODE_STORAGE_KEY);
@@ -322,6 +325,53 @@ export function SessionsPage() {
     returnedSessions.some((s) => s.assigned_to) ||
     exportedSessions.some((s) => s.assigned_to);
   const nameMapReady = !hasAssigned || nameMap.size > 0;
+  const canSeeAll = isReviewer || isAdmin;
+  const roleName =
+    role === "dev" ? "Dev" : isAdmin ? "Admin" : isReviewer ? "Manager" : "Specialist";
+  const catalogTitle = canSeeAll ? "All sessions" : "My sessions";
+  const catalogCopy = canSeeAll
+    ? "Search every specialist session with review and export state in one queue."
+    : "Search assigned and self-created catalog sessions.";
+  const visibleGroups = [
+    {
+      key: "returned",
+      label: canSeeAll ? "Returned" : "Needs Attention",
+      sessions: filteredReturned,
+      tone: "warn" as const,
+      need: "review" as const,
+    },
+    {
+      key: "submitted",
+      label: canSeeAll ? "Awaiting Review" : "Submitted",
+      sessions: filteredSubmitted,
+      tone: "neutral" as const,
+      need: "review" as const,
+      expanded: submittedExpanded,
+      onToggle: () => setSubmittedExpanded((v) => !v),
+    },
+    {
+      key: "active",
+      label: "Active",
+      sessions: filteredActive,
+      tone: "neutral" as const,
+      need: "active" as const,
+    },
+    {
+      key: "exported",
+      label: "Exported",
+      sessions: filteredExported,
+      tone: "neutral" as const,
+      need: "export" as const,
+      expanded: exportedExpanded,
+      onToggle: () => setExportedExpanded((v) => !v),
+    },
+  ].filter((group) => {
+    if (group.sessions.length === 0) return false;
+    if (!canSeeAll || listFilter === "all") return true;
+    return group.need === listFilter;
+  });
+  const reviewCount = returnedSessions.length + submittedSessions.length;
+  const readyExportCount = submittedSessions.length;
 
   // Admin grouping switcher — uses specialist grouping when toggle is set,
   // otherwise falls back to the existing date-grouped layout.
@@ -348,7 +398,7 @@ export function SessionsPage() {
   // Empty state -- no sessions at all
   if (totalSessions === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-full portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-12">
+      <div className="tpc-page flex flex-col items-center justify-center min-h-full py-12">
         <svg
           className="w-20 h-20 text-ink-4 mb-6"
           fill="none"
@@ -378,12 +428,12 @@ export function SessionsPage() {
   }
 
   return (
-    <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
-      {/* Header — eyebrow + display title + New button */}
-      <header className="mb-5 flex items-baseline justify-between gap-3">
+    <div className="tpc-page">
+      <header className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <Eyebrow>The Potomack Co.</Eyebrow>
-          <h1 className="tpc-display tpc-display-2 mt-1 text-ink">Sessions</h1>
+          <Eyebrow>Catalog</Eyebrow>
+          <h1 className="tpc-display tpc-display-2 mt-1 text-ink">{catalogTitle}</h1>
+          <p className="mt-1 text-sm text-ink-3">{catalogCopy}</p>
         </div>
         <Button
           variant="secondary"
@@ -410,187 +460,163 @@ export function SessionsPage() {
         </Button>
       </header>
 
-      {/* Offline banner */}
+      <div className="tpc-metric-grid mb-4">
+        <div className="tpc-metric">
+          <Eyebrow>Scope</Eyebrow>
+          <div className="tpc-metric-value">{totalSessions}</div>
+          <p className="mt-1 text-xs text-ink-3">
+            {roleName === "Specialist" ? "visible sessions" : "sessions tracked"}
+          </p>
+        </div>
+        <div className="tpc-metric">
+          <Eyebrow>Review</Eyebrow>
+          <div className="tpc-metric-value">{reviewCount}</div>
+          <p className="mt-1 text-xs text-ink-3">returned or submitted</p>
+        </div>
+        <div className="tpc-metric">
+          <Eyebrow>Export</Eyebrow>
+          <div className="tpc-metric-value">{readyExportCount}</div>
+          <p className="mt-1 text-xs text-ink-3">submitted sessions</p>
+        </div>
+        <div className="tpc-metric">
+          <Eyebrow>Sync</Eyebrow>
+          <div className="tpc-metric-value">{isOnline ? "On" : "Off"}</div>
+          <p className="mt-1 text-xs text-ink-3">
+            {isOnline ? "writes drain normally" : "writes queue locally"}
+          </p>
+        </div>
+      </div>
+
       {!isOnline && (
         <div
-          className="flex items-center justify-center gap-2 py-2 px-4 mb-4 bg-bg-2 rounded-md text-ink-3"
+          className="mb-4 rounded-md border border-rule bg-bg-2 px-4 py-3 text-ink-3"
           role="status"
           aria-live="polite"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            aria-hidden
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M18.364 5.636a9 9 0 010 12.728M5.636 5.636a9 9 0 000 12.728M3.757 3.757l16.486 16.486"
-            />
-          </svg>
-          <span className="text-sm">You're offline. Changes will sync when you reconnect.</span>
+          <span className="text-sm">Offline: writes are queued locally and readable sessions stay available.</span>
         </div>
       )}
 
-      {/* Search */}
-      <SessionSearch onSearch={setSearchQuery} />
+      {canSeeAll && (
+        <section className="mb-4 grid gap-2 md:grid-cols-3">
+          <div className="tpc-card p-3 bg-bg">
+            <Eyebrow>Needs review</Eyebrow>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <strong className="text-ink">{reviewCount} sessions</strong>
+              <Badge tone="warn">Review</Badge>
+            </div>
+          </div>
+          <div className="tpc-card p-3 bg-bg">
+            <Eyebrow>Ready export</Eyebrow>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <strong className="text-ink">{readyExportCount} sessions</strong>
+              <Badge tone="ok">Export</Badge>
+            </div>
+          </div>
+          <div className="tpc-card p-3 bg-bg">
+            <Eyebrow>Owner grouping</Eyebrow>
+            <p className="mt-1 text-sm text-ink-3">Specialist grouping stays tucked behind the control below.</p>
+          </div>
+        </section>
+      )}
 
-      {/* Admin-only group-by toggle (date vs specialist). Specialists only
-          ever see their own work per RLS, so the toggle is moot for them. */}
-      {isAdmin && (
-        <div
-          className="tpc-theme-picker mt-3"
-          role="group"
-          aria-label="Group sessions by"
-        >
-          <button
-            type="button"
-            onClick={() => setGroupMode("date")}
-            aria-pressed={groupMode === "date"}
-            className={`tpc-btn tpc-btn-sm tpc-theme-picker-option ${
-              groupMode === "date" ? "tpc-btn-primary" : "tpc-btn-ghost"
-            }`}
-          >
-            By date
-          </button>
-          <button
-            type="button"
-            onClick={() => setGroupMode("specialist")}
-            aria-pressed={groupMode === "specialist"}
-            className={`tpc-btn tpc-btn-sm tpc-theme-picker-option ${
-              groupMode === "specialist" ? "tpc-btn-primary" : "tpc-btn-ghost"
-            }`}
-          >
-            By specialist
-          </button>
+      <section className="tpc-section">
+        <div className="tpc-section-head">
+          <div>
+            <Eyebrow>Sessions</Eyebrow>
+            <strong className="block text-ink">{catalogTitle}</strong>
+          </div>
+          <Badge>{filteredTotal}</Badge>
         </div>
-      )}
+        <div className="tpc-panel">
+          <div className="tpc-toolbar">
+            <div className="min-w-[240px] flex-1">
+              <SessionSearch onSearch={setSearchQuery} />
+            </div>
+            {canSeeAll && (
+              <div className="tpc-segmented" role="group" aria-label="Filter sessions">
+                {(["all", "review", "export"] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setListFilter(filter)}
+                    aria-pressed={listFilter === filter}
+                    className={`tpc-btn tpc-btn-sm ${
+                      listFilter === filter ? "tpc-btn-primary" : "tpc-btn-ghost"
+                    }`}
+                  >
+                    {filter === "all" ? "All" : filter === "review" ? "Review" : "Export"}
+                  </button>
+                ))}
+              </div>
+            )}
+            {canSeeAll && (
+              <div className="tpc-segmented" role="group" aria-label="Group sessions by">
+                <button
+                  type="button"
+                  onClick={() => setGroupMode("date")}
+                  aria-pressed={groupMode === "date"}
+                  className={`tpc-btn tpc-btn-sm ${
+                    groupMode === "date" ? "tpc-btn-primary" : "tpc-btn-ghost"
+                  }`}
+                >
+                  Date
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGroupMode("specialist")}
+                  aria-pressed={groupMode === "specialist"}
+                  className={`tpc-btn tpc-btn-sm ${
+                    groupMode === "specialist" ? "tpc-btn-primary" : "tpc-btn-ghost"
+                  }`}
+                >
+                  Specialist
+                </button>
+              </div>
+            )}
+          </div>
 
-      {/* Empty search results */}
-      {searchQuery && filteredTotal === 0 && (
-        <p className="text-center text-ink-3 mt-8">
-          No sessions match "{searchQuery}"
-        </p>
-      )}
-
-      {isAdmin ? (
-        <>
-          {/* Admin view — Awaiting Review / Active / Returned / Exported */}
-          {filteredSubmitted.length > 0 && (
-            <section className="mt-6">
-              <SectionHeader title="Awaiting Review" count={filteredSubmitted.length} />
-              {renderAdminGroup(filteredSubmitted)}
-            </section>
+          {searchQuery && filteredTotal === 0 && (
+            <p className="text-center text-ink-3 py-6">
+              No sessions match "{searchQuery}"
+            </p>
           )}
 
-          {filteredActive.length > 0 && (
-            <section className="mt-8">
-              <SectionHeader title="Active Sessions" count={filteredActive.length} />
-              {renderAdminGroup(filteredActive)}
-            </section>
-          )}
-
-          {filteredReturned.length > 0 && (
-            <section className="mt-8">
+          {visibleGroups.map((group) => (
+            <section key={group.key}>
               <SectionHeader
-                title="Returned"
-                count={filteredReturned.length}
-                collapsible
-                expanded={returnedExpandedAdmin}
-                onToggle={() => setReturnedExpandedAdmin((v) => !v)}
+                title={group.label}
+                count={group.sessions.length}
+                tone={group.tone}
+                collapsible={group.key === "submitted" || group.key === "exported" || group.key === "returned"}
+                expanded={
+                  group.key === "returned"
+                    ? returnedExpandedAdmin
+                    : group.expanded ?? true
+                }
+                onToggle={
+                  group.key === "returned"
+                    ? () => setReturnedExpandedAdmin((v) => !v)
+                    : group.onToggle
+                }
               />
-              {returnedExpandedAdmin && renderAdminGroup(filteredReturned)}
-            </section>
-          )}
-
-          {filteredExported.length > 0 && (
-            <section className="mt-8">
-              <SectionHeader
-                title="Exported"
-                count={filteredExported.length}
-                collapsible
-                expanded={exportedExpanded}
-                onToggle={() => setExportedExpanded((v) => !v)}
-              />
-              {exportedExpanded && renderAdminGroup(filteredExported)}
-            </section>
-          )}
-        </>
-      ) : (
-        <>
-          {/* Specialist view — Needs Attention / Active / Submitted / Exported */}
-          {filteredReturned.length > 0 && (
-            <section className="mt-6">
-              <SectionHeader
-                title={`Needs Attention`}
-                count={filteredReturned.length}
-                tone="warn"
-              />
-              <DateGroupedTiles
-                sessions={filteredReturned}
-                onTap={handleTap}
-                onDelete={handleDeleteRequest}
-                onRename={handleRename}
-              />
-            </section>
-          )}
-
-          {filteredActive.length > 0 && (
-            <section className={filteredReturned.length > 0 ? "mt-8" : "mt-6"}>
-              <SectionHeader title="Active Sessions" count={filteredActive.length} />
-              <DateGroupedTiles
-                sessions={filteredActive}
-                onTap={handleTap}
-                onDelete={handleDeleteRequest}
-                onRename={handleRename}
-              />
-            </section>
-          )}
-
-          {filteredSubmitted.length > 0 && (
-            <section className="mt-8">
-              <SectionHeader
-                title="Submitted"
-                count={filteredSubmitted.length}
-                collapsible
-                expanded={submittedExpanded}
-                onToggle={() => setSubmittedExpanded((v) => !v)}
-              />
-              {submittedExpanded && (
+              {(group.key !== "returned" || returnedExpandedAdmin) &&
+                (group.key !== "submitted" || submittedExpanded) &&
+                (group.key !== "exported" || exportedExpanded) &&
+                (canSeeAll ? (
+                  renderAdminGroup(group.sessions)
+                ) : (
                 <DateGroupedTiles
-                  sessions={filteredSubmitted}
+                  sessions={group.sessions}
                   onTap={handleTap}
                   onDelete={handleDeleteRequest}
                   onRename={handleRename}
                 />
-              )}
+                ))}
             </section>
-          )}
-
-          {filteredExported.length > 0 && (
-            <section className="mt-8">
-              <SectionHeader
-                title="Exported"
-                count={filteredExported.length}
-                collapsible
-                expanded={exportedExpanded}
-                onToggle={() => setExportedExpanded((v) => !v)}
-              />
-              {exportedExpanded && (
-                <DateGroupedTiles
-                  sessions={filteredExported}
-                  onTap={handleTap}
-                  onDelete={handleDeleteRequest}
-                  onRename={handleRename}
-                />
-              )}
-            </section>
-          )}
-        </>
-      )}
+          ))}
+        </div>
+      </section>
 
       {/* Delete confirmation dialog */}
       <ConfirmDialog

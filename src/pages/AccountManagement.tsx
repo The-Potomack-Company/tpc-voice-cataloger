@@ -154,7 +154,7 @@ export function AccountManagementPage() {
   }
 
   return (
-    <div className="portrait:px-4 landscape:px-8 landscape:max-w-3xl landscape:mx-auto py-6">
+    <div className="tpc-page">
       {/* Back navigation */}
       <Link
         to="/settings"
@@ -166,10 +166,13 @@ export function AccountManagementPage() {
 
       {/* Page title — italic display per unified design language */}
       <header className="mb-6">
-        <Eyebrow>Admin</Eyebrow>
+        <Eyebrow>Admin / Accounts</Eyebrow>
         <h1 className="tpc-display tpc-display-2 mt-1 text-ink">
-          Account Management
+          Accounts
         </h1>
+        <p className="mt-1 text-sm text-ink-3">
+          Workspace domain and role access controls.
+        </p>
       </header>
 
       {/* Add Specialist / Discard toggle button */}
@@ -190,11 +193,11 @@ export function AccountManagementPage() {
 
       {/* Inline creation form */}
       {formOpen && (
-        <form
-          onSubmit={handleCreate}
-          className="tpc-card p-4 mt-3 flex flex-col gap-4"
-          style={{ background: 'var(--bg-2)' }}
-        >
+        <form onSubmit={handleCreate} className="tpc-section mt-3">
+          <div className="tpc-section-head">
+            <Eyebrow>New specialist</Eyebrow>
+          </div>
+          <div className="tpc-panel">
           <Input
             id="displayName"
             label="Display Name"
@@ -230,21 +233,30 @@ export function AccountManagementPage() {
           )}
 
           <Button type="submit" variant="primary" fullWidth disabled={creating}>
-            {creating ? 'Creating…' : 'Create Account'}
+            {creating ? 'Creating...' : 'Create Account'}
           </Button>
+          </div>
         </form>
       )}
 
       {/* Account list */}
-      <div className="space-y-3 mt-6">
+      <section className="tpc-section mt-6">
+        <div className="tpc-section-head">
+          <div>
+            <Eyebrow>Workspace</Eyebrow>
+            <strong className="block text-ink">Team accounts</strong>
+          </div>
+          <span className="tpc-badge">{accounts.length}</span>
+        </div>
+        <div className="tpc-panel">
         {loading ? (
           <>
-            <div className="tpc-card p-4 h-20 animate-pulse" style={{ background: 'var(--bg-2)' }} />
-            <div className="tpc-card p-4 h-20 animate-pulse" style={{ background: 'var(--bg-2)' }} />
-            <div className="tpc-card p-4 h-20 animate-pulse" style={{ background: 'var(--bg-2)' }} />
+            <div className="tpc-card p-4 h-20 animate-pulse bg-bg" />
+            <div className="tpc-card p-4 h-20 animate-pulse bg-bg" />
+            <div className="tpc-card p-4 h-20 animate-pulse bg-bg" />
           </>
         ) : loadError ? (
-          <div className="tpc-card p-4" style={{ background: 'var(--err-wash)' }}>
+          <div className="tpc-card p-4 bg-err-wash">
             <p className="text-err text-sm">{loadError}</p>
             <button
               type="button"
@@ -258,7 +270,7 @@ export function AccountManagementPage() {
             </button>
           </div>
         ) : accounts.length === 0 ? (
-          <div className="tpc-card p-6 text-center" style={{ background: 'var(--bg-2)' }}>
+          <div className="tpc-card p-6 text-center bg-bg">
             <p className="text-ink font-medium">No accounts yet</p>
             <p className="text-sm text-ink-3 mt-1">
               Add your first specialist account to get started with session assignment.
@@ -280,7 +292,8 @@ export function AccountManagementPage() {
             </div>
           ))
         )}
-      </div>
+        </div>
+      </section>
 
       {/* Deactivation confirmation dialog */}
       <ConfirmDialog
