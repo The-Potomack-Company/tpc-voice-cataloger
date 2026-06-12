@@ -361,6 +361,64 @@ describe("cataloger-api admin routes", () => {
     expect(deleteLateMetadataObject).not.toHaveBeenCalled();
   });
 
+  it("spares metadata inserted after global scan but before a later batch recheck", async () => {
+    const oldTimeCreated = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const paths = Array.from(
+      { length: 101 },
+      (_, index) => `audio/session/item/race-${index}.webm`,
+    );
+    const lateMetadataPath = paths[100];
+    const deleteByPath = new Map(paths.map((path) => [path, vi.fn().mockResolvedValue(undefined)]));
+    const storage = {
+      bucket: () => ({
+        getFiles: vi.fn().mockResolvedValue([
+          paths.map((name) => ({ name, metadata: { timeCreated: oldTimeCreated } })),
+        ]),
+        file: (path: string) => ({ delete: deleteByPath.get(path) }),
+      }),
+    };
+    const profiles = {
+      listExpiredAudio: vi.fn().mockResolvedValue([]),
+      listKnownAudioPaths: vi.fn().mockResolvedValue([]),
+      // Invariant: between a batch recheck and its deletes there is no awaited work
+      // other than the deletes themselves, so late metadata can only appear before
+      // the recheck that guards its own batch.
+      listExistingAudioPaths: vi.fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([lateMetadataPath]),
+      deleteAudioByIds: vi.fn().mockResolvedValue(undefined),
+    };
+    const handler = createRequestHandler({
+      auth: {},
+      storage,
+      profiles,
+      env: { PURGE_AUDIO_SECRET: "secret" },
+      allowedOrigins: ["https://app.potomackco.com"],
+    });
+
+    const response = await callHandler(handler, {
+      method: "POST",
+      url: "/purge-audio",
+      headers: { "x-purge-secret": "secret" },
+      body: {},
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      removed: 100,
+      expired: 0,
+      orphans: 100,
+      progress: {
+        expired: { scanned: 0, deleted: 0, skipped: 0 },
+        orphans: { scanned: 101, deleted: 100, skipped: 1 },
+      },
+    });
+    expect(profiles.listExistingAudioPaths).toHaveBeenCalledTimes(2);
+    expect(profiles.listExistingAudioPaths).toHaveBeenNthCalledWith(1, paths.slice(0, 100));
+    expect(profiles.listExistingAudioPaths).toHaveBeenNthCalledWith(2, paths.slice(100));
+    expect(deleteByPath.get(lateMetadataPath)).not.toHaveBeenCalled();
+  });
+
   it("bulk rechecks and deletes a large Firebase orphan set in bounded batches", async () => {
     const oldTimeCreated = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
     const paths = Array.from(
@@ -415,8 +473,10 @@ describe("cataloger-api admin routes", () => {
         orphans: { scanned: 205, deleted: 205, skipped: 0 },
       },
     });
-    expect(profiles.listExistingAudioPaths).toHaveBeenCalledTimes(1);
-    expect(profiles.listExistingAudioPaths).toHaveBeenCalledWith(paths);
+    expect(profiles.listExistingAudioPaths).toHaveBeenCalledTimes(3);
+    expect(profiles.listExistingAudioPaths).toHaveBeenNthCalledWith(1, paths.slice(0, 100));
+    expect(profiles.listExistingAudioPaths).toHaveBeenNthCalledWith(2, paths.slice(100, 200));
+    expect(profiles.listExistingAudioPaths).toHaveBeenNthCalledWith(3, paths.slice(200));
     expect(deleteObject).toHaveBeenCalledTimes(205);
     expect(maxActiveDeletes).toBeGreaterThan(1);
     expect(maxActiveDeletes).toBeLessThan(205);

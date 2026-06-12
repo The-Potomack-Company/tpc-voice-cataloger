@@ -311,15 +311,17 @@ async function deleteRecheckedOrphanObjects(storage, profiles, paths) {
     };
   }
 
-  const existingPaths = new Set(await profiles.listExistingAudioPaths(candidatePaths));
-  const deletePaths = candidatePaths.filter((path) => !existingPaths.has(path));
-  const skipped = candidatePaths.length - deletePaths.length;
   const removedPaths = [];
+  let skipped = 0;
   const bucket = storage.bucket();
 
-  const batches = batchesOf(deletePaths, ORPHAN_DELETE_BATCH_SIZE);
+  const batches = batchesOf(candidatePaths, ORPHAN_DELETE_BATCH_SIZE);
   for (const [batchIndex, batch] of batches.entries()) {
-    await mapWithConcurrency(batch, ORPHAN_DELETE_CONCURRENCY, async (path) => {
+    const existingPaths = new Set(await profiles.listExistingAudioPaths(batch));
+    const deletePaths = batch.filter((path) => !existingPaths.has(path));
+    skipped += batch.length - deletePaths.length;
+
+    await mapWithConcurrency(deletePaths, ORPHAN_DELETE_CONCURRENCY, async (path) => {
       await bucket.file(path).delete({ ignoreNotFound: true });
       removedPaths.push(path);
     });
