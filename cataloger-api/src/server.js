@@ -161,6 +161,62 @@ function rowFromDraft(sessionId, batchKey, uid, draft, index) {
   };
 }
 
+function itemDraftConflictUrl(baseUrl) {
+  const url = new URL(`${baseUrl}/item_drafts`);
+  url.searchParams.set("on_conflict", "session_id,page_content_key,page_segment_index");
+  return url;
+}
+
+function itemDraftRowUrl(baseUrl, row) {
+  const url = new URL(`${baseUrl}/item_drafts`);
+  url.searchParams.set("session_id", `eq.${row.session_id}`);
+  url.searchParams.set("page_content_key", `eq.${row.page_content_key}`);
+  url.searchParams.set("page_segment_index", `eq.${row.page_segment_index}`);
+  url.searchParams.set("status", "eq.draft");
+  return url;
+}
+
+async function responseRows(response) {
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function writeDraftRow(baseUrl, token, row) {
+  const updateResponse = await fetch(itemDraftRowUrl(baseUrl, row), {
+    method: "PATCH",
+    headers: postgrestHeaders(token, {
+      prefer: "return=representation",
+    }),
+    body: JSON.stringify(row),
+  });
+  if (!updateResponse.ok) {
+    return { ok: false, response: updateResponse };
+  }
+
+  const updated = await responseRows(updateResponse);
+  if (updated.length > 0) {
+    return { ok: true, changedCount: updated.length, skippedCount: 0 };
+  }
+
+  const insertResponse = await fetch(itemDraftConflictUrl(baseUrl), {
+    method: "POST",
+    headers: postgrestHeaders(token, {
+      prefer: "resolution=ignore-duplicates,return=representation",
+    }),
+    body: JSON.stringify([row]),
+  });
+  if (!insertResponse.ok) {
+    return { ok: false, response: insertResponse };
+  }
+
+  const inserted = await responseRows(insertResponse);
+  return {
+    ok: true,
+    changedCount: inserted.length,
+    skippedCount: inserted.length === 0 ? 1 : 0,
+  };
+}
+
 async function handleDraftBatch(req, res, auth, cors = {}, env = process.env) {
   const verified = await requireWorkspaceToken(req, res, auth, cors);
   if (!verified) return;
@@ -190,28 +246,26 @@ async function handleDraftBatch(req, res, auth, cors = {}, env = process.env) {
   const rows = body.drafts.map((draft, index) =>
     rowFromDraft(sessionId, batchKey, verified.decoded.uid, draft, index),
   );
-  const insertUrl = new URL(`${baseUrl}/item_drafts`);
-  insertUrl.searchParams.set("on_conflict", "session_id,page_content_key,page_segment_index");
-  const insertResponse = await fetch(insertUrl, {
-    method: "POST",
-    headers: postgrestHeaders(verified.token, {
-      prefer: "resolution=merge-duplicates,return=representation",
-    }),
-    body: JSON.stringify(rows),
-  });
-  if (!insertResponse.ok) {
-    const detail = await insertResponse.text().catch(() => "");
-    json(res, insertResponse.status === 409 ? 409 : 502, {
-      error: insertResponse.status === 409
-        ? "Draft batch already processed"
-        : "Draft insert failed",
-      detail,
-    }, cors);
-    return;
+
+  let draftCount = 0;
+  let skippedCount = 0;
+  for (const row of rows) {
+    const result = await writeDraftRow(baseUrl, verified.token, row);
+    if (!result.ok) {
+      const detail = await result.response.text().catch(() => "");
+      json(res, result.response.status === 409 ? 409 : 502, {
+        error: result.response.status === 409
+          ? "Draft batch already processed"
+          : "Draft insert failed",
+        detail,
+      }, cors);
+      return;
+    }
+    draftCount += result.changedCount;
+    skippedCount += result.skippedCount;
   }
 
-  const inserted = await insertResponse.json();
-  json(res, 201, { ok: true, draftCount: Array.isArray(inserted) ? inserted.length : rows.length }, cors);
+  json(res, 201, { ok: true, draftCount, skippedCount }, cors);
 }
 
 async function handleClaim(req, res, auth, cors = {}) {

@@ -21,6 +21,7 @@ import {
   type DraftFields,
   type DraftSourcePageRef,
   type ItemDraftPayload,
+  type PersistItemDraftBatchResult,
 } from "./itemDraftsApi";
 
 const CONFIDENCE_THRESHOLD = 0.6;
@@ -204,7 +205,7 @@ async function processNotePageSet(
   pages: NotePage[],
   unprocessedPages: NotePage[],
   accessToken: string,
-): Promise<{ draftCount: number }> {
+): Promise<PersistItemDraftBatchResult> {
   if (unprocessedPages.some((page) => page.id === undefined || !page.contentHash)) {
     throw new Error("Note page is missing durable idempotency metadata");
   }
@@ -327,7 +328,7 @@ async function processNotePageSet(
   }
 }
 
-export async function processNotesWithAi(sessionId: string): Promise<{ draftCount: number }> {
+export async function processNotesWithAi(sessionId: string): Promise<PersistItemDraftBatchResult> {
   const pages = await ensureNotePageContentHashes(await getNotePages(sessionId));
   if (pages.length === 0) {
     throw new Error("No note pages to process");
@@ -335,7 +336,7 @@ export async function processNotesWithAi(sessionId: string): Promise<{ draftCoun
 
   const unprocessedPages = pages.filter((page) => !isNotePageProcessed(page));
   if (unprocessedPages.length === 0) {
-    return { draftCount: 0 };
+    return { draftCount: 0, skippedCount: 0 };
   }
 
   const accessToken = await ensureFreshSession();

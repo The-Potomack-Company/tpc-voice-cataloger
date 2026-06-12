@@ -62,7 +62,7 @@ describe("item draft API client", () => {
       drafts: [draft],
     });
 
-    expect(result).toEqual({ draftCount: 1 });
+    expect(result).toEqual({ draftCount: 1, skippedCount: 0 });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://cataloger-api.test/item-draft-batches",
       expect.objectContaining({

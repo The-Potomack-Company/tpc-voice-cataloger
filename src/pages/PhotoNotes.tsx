@@ -165,7 +165,11 @@ export function PhotoNotesPage() {
     setIsProcessing(true);
     try {
       const result = await processNotes(sessionId);
-      setToast(`Created ${result.draftCount} draft${result.draftCount === 1 ? "" : "s"}.`);
+      const created = `Created ${result.draftCount} draft${result.draftCount === 1 ? "" : "s"}`;
+      const skipped = result.skippedCount > 0
+        ? `, ${result.skippedCount} page${result.skippedCount === 1 ? "" : "s"} skipped`
+        : "";
+      setToast(`${created}${skipped}.`);
     } catch (error) {
       if (error instanceof DuplicateDraftBatchError) {
         setToast("These pages were already processed.");

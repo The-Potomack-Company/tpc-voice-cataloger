@@ -29,6 +29,11 @@ export interface ItemDraftPayload {
   lowConfidenceFields: DraftFieldName[];
 }
 
+export interface PersistItemDraftBatchResult {
+  draftCount: number;
+  skippedCount: number;
+}
+
 export class DuplicateDraftBatchError extends Error {}
 
 export async function persistItemDraftBatch(input: {
@@ -36,7 +41,7 @@ export async function persistItemDraftBatch(input: {
   batchKey: string;
   pages: DraftSourcePageRef[];
   drafts: ItemDraftPayload[];
-}): Promise<{ draftCount: number }> {
+}): Promise<PersistItemDraftBatchResult> {
   const apiUrl = import.meta.env.VITE_CATALOGER_API_URL;
   if (!apiUrl) {
     throw new Error("VITE_CATALOGER_API_URL is not set. Add it to .env.local");
@@ -67,6 +72,9 @@ export async function persistItemDraftBatch(input: {
     throw new Error(message);
   }
 
-  const body = (await response.json()) as { draftCount?: number };
-  return { draftCount: body.draftCount ?? input.drafts.length };
+  const body = (await response.json()) as { draftCount?: number; skippedCount?: number };
+  return {
+    draftCount: body.draftCount ?? input.drafts.length,
+    skippedCount: body.skippedCount ?? 0,
+  };
 }

@@ -157,7 +157,7 @@ describe("photo note segmentation normalization", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 1 });
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 1, skippedCount: 0 });
 
     const pages = await getNotePages("session-1");
     expect(pages.map((p) => p.id)).toEqual([id0, id1]);
@@ -215,12 +215,12 @@ describe("photo note segmentation normalization", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 2 });
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 2, skippedCount: 0 });
 
     await reorderNotePages([id1, id0]);
     await addNotePage({ sessionId: "session-1", blob: jpeg("c"), thumbnail: jpeg("tc") });
 
-    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 1 });
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 1, skippedCount: 0 });
 
     expect(insertedCounts).toEqual([2, 1]);
     expect(persistBodies).toHaveLength(2);
@@ -238,7 +238,7 @@ describe("photo note segmentation normalization", () => {
     expect(pageUidsFromProxyRequest(proxyCalls[1][1])).toEqual(pages.map((page) => page.pageUid));
 
     await reorderNotePages([id0, id1, pages[2].id as number]);
-    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 0 });
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 0, skippedCount: 0 });
     expect(fetchMock.mock.calls.filter(([url]) => url === "https://gemini-proxy.test")).toHaveLength(2);
   });
 
@@ -281,7 +281,7 @@ describe("photo note segmentation normalization", () => {
     let pages = await getNotePages("session-1");
     expect(pages.map((p) => p.status)).toEqual(["failed", "failed"]);
 
-    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 2 });
+    await expect(processNotesWithAi("session-1")).resolves.toEqual({ draftCount: 2, skippedCount: 0 });
 
     pages = await getNotePages("session-1");
     expect(pages.map((p) => p.status)).toEqual(["processed", "processed"]);
